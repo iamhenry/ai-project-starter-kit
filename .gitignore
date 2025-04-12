@@ -1,0 +1,12 @@
+# Ignore macOS-specific files
+.DS_Store
+
+# Ignore IDE and editor files
+.idea/
+.vscode/
+
+# Ignore build and dependency directories
+node_modules/
+__pycache__/
+build/
+dist/ 
