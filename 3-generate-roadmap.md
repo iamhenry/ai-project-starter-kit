@@ -9,8 +9,8 @@
 
 # Requirements
 
-- Bill of Materials document
-- Overview / User Stories document
+- BOM document
+- User Stories document
 
 ---
 
