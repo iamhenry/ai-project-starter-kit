@@ -1,5 +1,5 @@
 # Instructions (Pre file generation step)
-1. With a focus on a test driven development, mvp, and vertical slice methodology, generate 5-15 questions that clears ambiguity, especially around:
+1. With a focus on a test driven development, mvp, and vertical slice methodology, generate 5-15 questions that clears ambiguity, clarity must be > 95%, give me the 3 best suggestions numbered. so i can just choose one of them. Focus on but not limited to:
    1. data structures
    2. state management
    3. relationships
