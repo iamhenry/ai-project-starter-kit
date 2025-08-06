@@ -1,3 +1,7 @@
+// My Notes
+- think about how the roadmap steps will be affected by TDD (writing tests first) and if it makes sense to me
+- if it doesnt, restructure the milestone slices to focus on logic first → implementation (follow unit → integration tdd flow)
+
 # HIGHLY Experimental Roadmap.md Parallel Task Execution
 
 ## Purpose
