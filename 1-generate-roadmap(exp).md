@@ -2,7 +2,7 @@
 - think about how the roadmap steps will be affected by TDD (writing tests first) and if it makes sense to me
 - if it doesnt, restructure the milestone slices to focus on logic first → implementation (follow unit → integration tdd flow)
 - this new  Tracer Bullet Vertical Slice Method focuses on one core journey or user story that's chord to the MVP
-(ex. # Core Flow Home: (Conversation List) → FAB → Capture/Gallery → Image Processing → New Conversation View (with Receipt Component showing parsed items`)
+`(ex. # Core Flow Home: (Conversation List) → FAB → Capture/Gallery → Image Processing → New Conversation View (with Receipt Component showing parsed items)`
 
 # HIGHLY Experimental Roadmap.md Parallel Task Execution
 
