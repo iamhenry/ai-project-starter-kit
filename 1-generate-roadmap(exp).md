@@ -76,13 +76,17 @@ The roadmap must be structured around delivering thin, end-to-end user functiona
 - **Objective:** Build the thinnest possible, functional slice of the project's **single most critical user journey**. This slice must connect all necessary architectural layers (e.g., UI -> API -> Service) to prove the concept works end-to-end.
 - **Method:** To achieve speed, this phase should aggressively use in-memory state, mocked API responses, and hardcoded data *within* the functional pipeline. The goal is interactivity, not feature completeness or data persistence.
 - **Outcome:** A developer can use a primitive but complete version of the core feature, validating the riskiest architectural and user-experience assumptions immediately.
+- **Handling Multiple Core Flows:** If the application has more than one critical user journey, the planner must force a prioritization to select a **single** journey for the Phase 1 Tracer Bullet. The remaining core flows become the top-priority milestones for Phase 2. Use the following criteria to decide:
+    1.  **Dependency:** Does one flow require the output or existence of another? (e.g., A "view item" flow must precede a "purchase item" flow). Choose the prerequisite flow first.
+    2.  **Risk:** Which flow contains the most significant technical or usability unknowns? Build the riskiest one first.
+    3.  **Core Value:** Which flow is most central to the app's unique value proposition? Build that one first.
 
 ### Phase 2: Service Integration & Feature Expansion
-- **Objective:** Systematically replace the mocked/hardcoded parts of the "Tracer Bullet" with real services and begin building out secondary features as their own vertical slices.
-- **Prioritization:**
-    1.  **Swap out mocks:** Connect the Phase 1 slice to real databases, real 3rd-party APIs, and real backend logic.
-    2.  **Build new vertical slices:** Add secondary features (e.g., user profiles, settings pages, content feeds) one by one, ensuring each is a complete, functional slice.
-- **Outcome:** The core feature becomes robust and production-ready, and the application's surface area grows with fully functional, testable features.
+- **Objective:** To evolve the Phase 1 Tracer Bullet into a robust, production-ready feature and then systematically build out the remaining critical user journeys of the application.
+- **Prioritization Hierarchy (MUST be followed in this order):**
+    1.  **Stabilize the Core Slice:** Replace all mocks from Phase 1 with real services and add necessary persistence (e.g., database storage). This makes the initial feature complete.
+    2.  **Implement Subsequent Core Flows:** Build out any other critical user journeys that were deferred from Phase 1. These should be tackled in a logical, dependency-first order.
+    3.  **Expand with Secondary Features:** Once all core journeys are functional, build out supporting features (e.g., settings screens, ancillary content feeds, user profiles).
 
 ### Phase 3: Production Hardening & Polish
 - **Objective:** Focus on non-functional requirements, user experience enhancements, and business-logic integrations now that the core features are validated.
@@ -146,13 +150,17 @@ This roadmap outlines the development plan for [Project Name], broken down into 
 - 🔄 **PARALLEL** - Can run simultaneously with other tasks
 - ✅ **DEPENDENT** - Requires specific prior task completion
 
+---
+
 ## Phase 1: The Tracer Bullet (Core Functional Slice)
 Focus on building the thinnest possible, functional slice of the project's single most critical user journey.
 
-### Milestone 1: [Milestone Name - e.g., "End-to-End Core Interaction Loop"]
+---
+
+### Milestone 1: [Milestone Name - e.g., "End-to-End Recipe Generation Loop"]
 **Task Execution Plan: ⚠️ Task 1 → ⚠️ Task 2 → ✅ Task 3**
 
-Objective: [Brief description of the core loop, e.g., "Enable a user to perform the core action and see a result from a real API call, using mocked data within the API to start."].
+Objective: Enable a user to enter an ingredient and receive a recipe name from a 'dumb' API, proving the entire UI-to-API-to-UI communication loop works.
 
 Dependencies & Parallelization:
 - **BLOCKS**: All other milestones (this proves the core concept).
@@ -161,84 +169,140 @@ Dependencies & Parallelization:
 - **PARALLEL WITH**: None.
 
 Data Flow:
-- [Describe the end-to-end flow, e.g., "User input from a single screen triggers an API call to a 'dumb' endpoint that returns a hardcoded, structured response. The UI then displays this response."].
-- [e.g., "API contract defined for `/api/core-action` (request: `{ input: string }`, response: `{ id, result: string }`)."]
+- User input from a single screen triggers an API call to a 'dumb' endpoint that returns a hardcoded, structured response. The UI then displays this response.
+- API contract defined for `/api/generate-recipe` (request: `{ ingredients: string[] }`, response: `{ recipeName: string }`).
 
 Acceptance Criteria:
-- [List criteria, e.g., "User can interact with the core UI element (e.g., a button)."]
-- [e.g., "A network request is successfully sent to the defined API endpoint."]
-- [e.g., "The API endpoint returns a successful, hardcoded response adhering to the defined contract."]
-- [e.g., "The UI updates to display the result from the API call."]
+- User can input text into an ingredient field and click a "Generate" button.
+- A network request is successfully sent to the `/api/generate-recipe` endpoint.
+- The API endpoint returns a successful, hardcoded response adhering to the defined contract (e.g., `{ recipeName: "Mock Chicken and Rice" }`).
+- The UI updates to display the recipe name from the API call.
 
 **Tasks**:
-- [ ] 1. ⚠️ Define the API contract and create the 'dumb' API endpoint
-  - [ ] 1.1. Create the API route file.
-  - [ ] 1.2. Implement the endpoint to accept a POST request.
-  - [ ] 1.3. Return a hardcoded JSON object that matches the defined response contract.
-  - File: `app/api/core-action+api.ts`
-  - Contract Definition: [e.g., `POST /api/core-action`: request/response schema]
-  - Branch Name: `feature/api-core-action-scaffold`
+- [ ] 1. ⚠️ Define API contract and create the 'dumb' API endpoint
+  - [ ] 1.1. Create the API route file `app/api/generate-recipe+api.ts`.
+  - [ ] 1.2. Implement the endpoint to accept a POST request with an `ingredients` body.
+  - [ ] 1.3. Return a hardcoded JSON object that matches the response contract.
+  - File: `app/api/generate-recipe+api.ts`
+  - Contract Definition: `POST /api/generate-recipe`, request: `{ ingredients: string[] }`, response: `{ recipeName: string }`
+  - Branch Name: `feature/api-recipe-scaffold`
   - Complexity: 2
 - [ ] 2. ⚠️ Build the minimal UI for the core interaction
-  - [ ] 2.1. Create the simplest possible UI (e.g., one button and a text display area).
-  - [ ] 2.2. Implement the logic to call the API endpoint when the button is clicked.
-  - [ ] 2.3. Add basic loading state handling (e.g., disable the button while waiting for the response).
-  - File: `app/index.tsx` (or a single component file)
-  - Consumes Contract: API contract for `/api/core-action`.
-  - Branch Name: `feature/ui-core-interaction`
+  - [ ] 2.1. Create a single-screen UI with a text input, a "Generate" button, and a text area for the result.
+  - [ ] 2.2. Implement the client-side logic to call the API endpoint when the button is clicked.
+  - [ ] 2.3. Add a basic loading state (e.g., disable the button) while waiting for the response.
+  - File: `app/index.tsx`
+  - Consumes Contract: API contract for `/api/generate-recipe`.
+  - Branch Name: `feature/ui-recipe-generator`
   - Complexity: 2
 - [ ] 3. ✅ Connect the UI to the API response
-  - [ ] 3.1. Take the response from the API call.
-  - [ ] 3.2. Update the application's state with the result.
-  - [ ] 3.3. Render the result in the text display area.
+  - [ ] 3.1. In the API call's success handler, extract the `recipeName` from the response.
+  - [ ] 3.2. Use state management (e.g., `useState`) to store the received recipe name.
+  - [ ] 3.3. Render the recipe name in the designated text area on the UI.
   - File: `app/index.tsx`
-  - Branch Name: `feature/wire-up-core-loop`
+  - Branch Name: `feature/wire-up-recipe-loop`
   - Complexity: 1
 
+---
+
 ## Phase 2: Service Integration & Feature Expansion
-Focus on replacing mocked parts of the core loop with real services and building out secondary features as new vertical slices.
+Focus on replacing mocked parts of the core loop with real services and building out the remaining critical user journeys.
 
-### Milestone 2: [Milestone Name - e.g., "Real Service Integration for Core Loop"]
-**Task Execution Plan: Task 1 ✅**
+---
 
-Objective: [e.g., "Replace the hardcoded API response with a call to a real 3rd-party service or real business logic."].
+### Milestone 2: [Milestone Name - e.g., "Stabilize Core Feature with Real AI & Persistence"]
+**Task Execution Plan: ⚠️ Task 1 → ✅ Task 2**
+
+Objective: Upgrade the core loop by replacing the 'dumb' API with a real AI service and adding database persistence to save generated recipes.
 
 Dependencies & Parallelization:
-- **BLOCKS**: Full feature testing.
+- **BLOCKS**: All subsequent features that rely on real AI or saved data (e.g., Recipe History).
 - **BLOCKED BY**: Milestone 1 complete.
-- **PARALLEL WITH**: Milestone 3 (if it's an independent feature).
+- **PARALLEL WITH**: An independent secondary feature (e.g., a simple 'About Us' screen).
 
 Data Flow:
-- [e.g., "The `/api/core-action` endpoint now forwards the request to a real 3rd-party API, transforms the response, and returns it to the client, maintaining the same contract."]
+- The `/api/generate-recipe` endpoint now calls a real AI service. The response is then saved to a new `recipes` table in the database.
 
 **Tasks**:
-- [ ] 1. ✅ Upgrade API endpoint to be 'smart'
-  - [ ] 1.1. Add the necessary SDK or fetch logic to call the real external service.
-  - [ ] 1.2. Replace the hardcoded response with the logic to call the service.
-  - [ ] 1.3. Add error handling for when the external service call fails.
-  - File: `app/api/core-action+api.ts`
-  - Branch Name: `feature/api-real-service-integration`
-  - Complexity: 3
+- [ ] 1. ⚠️ Upgrade API endpoint to be 'smart' and implement Database Schema
+  - [ ] 1.1. Add the necessary SDK to call a real AI recipe generation service.
+  - [ ] 1.2. Replace the hardcoded response in the API with the real AI call.
+  - [ ] 1.3. Define a Drizzle/Prisma schema for a `recipes` table (e.g., `id`, `name`, `ingredients`, `createdAt`).
+  - [ ] 1.4. Implement a database service layer to save a recipe.
+  - Files: `app/api/generate-recipe+api.ts`, `db/schema.ts`, `services/dbService.ts`
+  - Branch Name: `feature/api-real-ai-and-db`
+  - Complexity: 4
+- [ ] 2. ✅ Integrate database saving into the API flow
+  - [ ] 2.1. After receiving a successful response from the AI service, call the `dbService` to save the new recipe.
+  - [ ] 2.2. Add error handling for both the AI call and the database write operation.
+  - File: `app/api/generate-recipe+api.ts`
+  - Branch Name: `feature/api-save-recipe`
+  - Complexity: 2
 
-(Continue with other milestones for Phase 2, such as adding database persistence or building new vertical slices like a settings page.)
+---
+
+### Milestone 3: [Milestone Name - e.g., "Implement Core Flow: Recipe History"]
+**Task Execution Plan: ✅ Task 1 → ✅ Task 2**
+
+Objective: Build the next most critical user journey, which allows users to view a list of their previously generated and saved recipes.
+
+Dependencies & Parallelization:
+- **BLOCKS**: User's ability to manage their history.
+- **BLOCKED BY**: Milestone 2 (requires recipes to be persisted to have a history).
+- **PARALLEL WITH**: Other independent secondary features.
+
+Data Flow:
+- A new UI screen (`/history`) fetches a list of recipes from the database service. Users can navigate from this list back to a recipe detail view.
+
+**Tasks**:
+- [ ] 1. ✅ Create an API endpoint to fetch recipe history
+  - [ ] 1.1. Create a new API route `app/api/recipes+api.ts`.
+  - [ ] 1.2. Implement a `GET` handler that uses the `dbService` to retrieve all saved recipes.
+  - File: `app/api/recipes+api.ts`
+  - Branch Name: `feature/api-get-recipes`
+  - Complexity: 2
+- [ ] 2. ✅ Build the Recipe History UI
+  - [ ] 2.1. Create a new screen/page component for the recipe history list.
+  - [ ] 2.2. On page load, call the `/api/recipes` endpoint to fetch the data.
+  - [ ] 2.3. Render the list of recipe names, handling loading and empty states.
+  - File: `app/history.tsx`
+  - Branch Name: `feature/ui-recipe-history`
+  - Complexity: 2
+
+---
 
 ## Phase 3: Production Hardening & Polish
 Focus on non-functional requirements, UI/UX polish, and business logic.
 
-### Milestone X: [Milestone Name - e.g., "UI Polish and Animations"]
-**Task Execution Plan: Task 1,2,3 🔄 (all parallel)**
+---
 
-Objective: [e.g., "Enhance the user experience with smooth animations and a polished design system."].
+### Milestone 4: [Milestone Name - e.g., "UI Polish and Interaction Feedback"]
+**Task Execution Plan: 🔄 Task 1, 2, 3 (all parallel)**
+
+Objective: Enhance the user experience with smooth animations, clear loading states, and immediate feedback for user actions.
 
 Dependencies & Parallelization:
 - **BLOCKS**: None.
 - **BLOCKED BY**: Relevant features from Phase 2 must be complete.
 - **PARALLEL WITHIN**: All UI polish tasks can run in parallel.
-- **PARALLEL WITH**: Other Phase 3 milestones (e.g., Analytics).
+- **PARALLEL WITH**: Other Phase 3 milestones (e.g., Analytics, Subscriptions).
 
 **Tasks**:
-- [ ] 1. 🔄 Implement screen transition animations
-  - ...
-- [ ] 2. 🔄 Add loading state animations
-  - ...
+- [ ] 1. 🔄 Implement loading skeletons
+  - [ ] 1.1. While the recipe history list is fetching, display placeholder skeleton components instead of a blank screen.
+  - File: `app/history.tsx`, `components/RecipeSkeleton.tsx`
+  - Branch Name: `feature/ui-loading-skeletons`
+  - Complexity: 2
+- [ ] 2. 🔄 Add interaction feedback
+  - [ ] 2.1. After a recipe is successfully generated and saved, show a "Recipe Saved!" toast notification.
+  - [ ] 2.2. Animate list items appearing on the history page.
+  - Files: `app/index.tsx`, `app/history.tsx`
+  - Branch Name: `feature/ui-interaction-feedback`
+  - Complexity: 2
+- [ ] 3. 🔄 Refine the Design System
+  - [ ] 3.1. Ensure consistent typography, spacing, and color usage across all screens.
+  - [ ] 3.2. Create reusable button and input components with variants.
+  - Files: `styles/global.css`, `components/ui/Button.tsx`
+  - Branch Name: `feature/ui-design-system-refinement`
+  - Complexity: 3
 ```
