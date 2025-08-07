@@ -116,7 +116,7 @@ The roadmap must be structured around delivering thin, end-to-end user functiona
 ### Structure & Formatting
 - Use headers for section titles.
 - Keep milestone descriptions concise and action-oriented.
-- Use bullet points for Data Flow and Acceptance Criteria.
+- Use bullet points for Data Flow.
 - Use step numbering for Step-by-Step Tasks.
 - Reference file paths and contract documents explicitly to ensure clarity.
 
@@ -178,12 +178,6 @@ Data Flow:
 - User input from a single screen triggers an API call to a 'dumb' endpoint that returns a hardcoded, structured response. The UI then displays this response.
 - API contract defined for `/api/generate-recipe` (request: `{ ingredients: string[] }`, response: `{ recipeName: string }`).
 
-Acceptance Criteria:
-- User can input text into an ingredient field and click a "Generate" button.
-- A network request is successfully sent to the `/api/generate-recipe` endpoint.
-- The API endpoint returns a successful, hardcoded response adhering to the defined contract (e.g., `{ recipeName: "Mock Chicken and Rice" }`).
-- The UI updates to display the recipe name from the API call.
-
 **Tasks**:
 - [ ] 1. ⚠️ Define API contract and create the 'dumb' API endpoint
   - [ ] 1.1. Create the API route file `app/api/generate-recipe+api.ts`.
@@ -192,6 +186,7 @@ Acceptance Criteria:
   - File: `app/api/generate-recipe+api.ts`
   - Contract Definition: `POST /api/generate-recipe`, request: `{ ingredients: string[] }`, response: `{ recipeName: string }`
   - Branch Name: `feature/api-recipe-scaffold`
+  - Acceptance Criteria: The API endpoint accepts a POST request and returns a hardcoded JSON object matching the defined contract.
   - Complexity: 2
 - [ ] 2. ⚠️ Build the minimal UI for the core interaction
   - [ ] 2.1. Create a single-screen UI with a text input, a "Generate" button, and a text area for the result.
@@ -200,6 +195,7 @@ Acceptance Criteria:
   - File: `app/index.tsx`
   - Consumes Contract: API contract for `/api/generate-recipe`.
   - Branch Name: `feature/ui-recipe-generator`
+  - Acceptance Criteria: User can input text and click a button, triggering a POST request to the `/api/generate-recipe` endpoint.
   - Complexity: 2
 - [ ] 3. ✅ Connect the UI to the API response
   - [ ] 3.1. In the API call's success handler, extract the `recipeName` from the response.
@@ -207,6 +203,7 @@ Acceptance Criteria:
   - [ ] 3.3. Render the recipe name in the designated text area on the UI.
   - File: `app/index.tsx`
   - Branch Name: `feature/wire-up-recipe-loop`
+  - Acceptance Criteria: The recipe name from the API response is successfully stored in state and rendered on the UI.
   - Complexity: 1
 
 ---
@@ -237,12 +234,14 @@ Data Flow:
   - [ ] 1.4. Implement a database service layer to save a recipe.
   - Files: `app/api/generate-recipe+api.ts`, `db/schema.ts`, `services/dbService.ts`
   - Branch Name: `feature/api-real-ai-and-db`
+  - Acceptance Criteria: The API endpoint successfully calls a real AI service, and a database schema for `recipes` is defined and functional.
   - Complexity: 4
 - [ ] 2. ✅ Integrate database saving into the API flow
   - [ ] 2.1. After receiving a successful response from the AI service, call the `dbService` to save the new recipe.
   - [ ] 2.2. Add error handling for both the AI call and the database write operation.
   - File: `app/api/generate-recipe+api.ts`
   - Branch Name: `feature/api-save-recipe`
+  - Acceptance Criteria: After a successful AI response, the generated recipe data is persisted to the database.
   - Complexity: 2
 
 ---
@@ -266,6 +265,7 @@ Data Flow:
   - [ ] 1.2. Implement a `GET` handler that uses the `dbService` to retrieve all saved recipes.
   - File: `app/api/recipes+api.ts`
   - Branch Name: `feature/api-get-recipes`
+  - Acceptance Criteria: A new GET endpoint `/api/recipes` is created that returns all recipe records from the database.
   - Complexity: 2
 - [ ] 2. ✅ Build the Recipe History UI
   - [ ] 2.1. Create a new screen/page component for the recipe history list.
@@ -273,6 +273,7 @@ Data Flow:
   - [ ] 2.3. Render the list of recipe names, handling loading and empty states.
   - File: `app/history.tsx`
   - Branch Name: `feature/ui-recipe-history`
+  - Acceptance Criteria: The history UI page fetches from `/api/recipes` on load and displays the list of recipe names.
   - Complexity: 2
 
 ---
@@ -298,17 +299,20 @@ Dependencies & Parallelization:
   - [ ] 1.1. While the recipe history list is fetching, display placeholder skeleton components instead of a blank screen.
   - File: `app/history.tsx`, `components/RecipeSkeleton.tsx`
   - Branch Name: `feature/ui-loading-skeletons`
+  - Acceptance Criteria: Skeleton loaders are displayed on the history page before the recipe data is rendered.
   - Complexity: 2
 - [ ] 2. 🔄 Add interaction feedback
   - [ ] 2.1. After a recipe is successfully generated and saved, show a "Recipe Saved!" toast notification.
   - [ ] 2.2. Animate list items appearing on the history page.
   - Files: `app/index.tsx`, `app/history.tsx`
   - Branch Name: `feature/ui-interaction-feedback`
+  - Acceptance Criteria: A toast notification is displayed on successful recipe generation; list items on the history page animate in.
   - Complexity: 2
 - [ ] 3. 🔄 Refine the Design System
   - [ ] 3.1. Ensure consistent typography, spacing, and color usage across all screens.
   - [ ] 3.2. Create reusable button and input components with variants.
   - Files: `styles/global.css`, `components/ui/Button.tsx`
   - Branch Name: `feature/ui-design-system-refinement`
+  - Acceptance Criteria: Reusable, styled components for Button and Input are created and used; app-wide styles (color, typography) are consistent.
   - Complexity: 3
 ```
