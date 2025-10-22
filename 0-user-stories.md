@@ -25,6 +25,7 @@
 
 ## [Feature]
 - [ ] US-01: As a user, I want to ...
+  - [ ] Acceptance Criteria: ...
 
 # Tech Stack (stable versions)
 ## Frontend
