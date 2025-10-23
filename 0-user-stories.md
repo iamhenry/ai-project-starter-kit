@@ -43,6 +43,9 @@
 ## Core User Flows
 [Generate user flows with AI based on the user stories]
 
+# Key Screens
+[High level list of key screens with brief description]
+
 # Tech Stack (stable versions)
 ## Frontend
 - ...
