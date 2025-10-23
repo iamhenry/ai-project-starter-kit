@@ -18,6 +18,8 @@
 2.  Draft initial data structures and interfaces upfront to prevent data inconsistencies in later phases
 3. from these user stories, generate process flow diagrams in mermaid format into logical and related sections
 
+> MVP = fast to build, cheap to run, and easy to maintain—perfect for a paid, zero-to-one Lean MVP.
+
 # Project Overview
 ...
 
