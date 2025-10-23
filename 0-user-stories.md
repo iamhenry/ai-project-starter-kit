@@ -1,5 +1,5 @@
 # Instructions (Pre file generation step)
-Use [Wizard](https://gist.github.com/iamhenry/34960c7c06880510ca975f94f0497823) to define requirements before generating ROADMAP.MD
+🚨 Once the User Stories have been define, Use [Wizard Clarity Prompt](https://gist.github.com/iamhenry/34960c7c06880510ca975f94f0497823) to define requirements before generating ROADMAP.MD
 
 > MVP = fast to build, cheap to run, and easy to maintain—perfect for a paid, zero-to-one Lean MVP.
 
