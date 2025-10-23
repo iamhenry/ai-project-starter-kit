@@ -29,6 +29,10 @@
 - [ ] US-01: As a user, I want to ...
   - [ ] Acceptance Criteria: ...
 
+
+## Core User Flows
+[Generate user flows with AI based on the user stories]
+
 # Tech Stack (stable versions)
 ## Frontend
 - ...
