@@ -60,16 +60,6 @@ For each milestone, include execution syntax directly in the milestone header sh
 Objective: [Brief description]
 ```
 
-#### 3. Dependencies & Parallelization Per Milestone
-For each milestone, include this subsection:
-```markdown
-Dependencies & Parallelization:
-- **BLOCKS**: What this milestone blocks (or "None")
-- **BLOCKED BY**: What blocks this milestone
-- **PARALLEL WITHIN**: Which tasks within milestone can run parallel
-- **PARALLEL WITH**: Which other milestones can run parallel
-```
-
 ---
 
 ## Phase-Specific Guidance
@@ -168,12 +158,6 @@ Focus on building the thinnest possible, functional slice of the project's singl
 
 Objective: Enable a user to enter an ingredient and receive a recipe name from a 'dumb' API, proving the entire UI-to-API-to-UI communication loop works.
 
-Dependencies & Parallelization:
-- **BLOCKS**: All other milestones (this proves the core concept).
-- **BLOCKED BY**: None (starting milestone).
-- **PARALLEL WITHIN**: None (this is a sequential build of the core slice).
-- **PARALLEL WITH**: None.
-
 Data Flow:
 - User input from a single screen triggers an API call to a 'dumb' endpoint that returns a hardcoded, structured response. The UI then displays this response.
 - API contract defined for `/api/generate-recipe` (request: `{ ingredients: string[] }`, response: `{ recipeName: string }`).
@@ -218,11 +202,6 @@ Focus on replacing mocked parts of the core loop with real services and building
 
 Objective: Upgrade the core loop by replacing the 'dumb' API with a real AI service and adding database persistence to save generated recipes.
 
-Dependencies & Parallelization:
-- **BLOCKS**: All subsequent features that rely on real AI or saved data (e.g., Recipe History).
-- **BLOCKED BY**: Milestone 1 complete.
-- **PARALLEL WITH**: An independent secondary feature (e.g., a simple 'About Us' screen).
-
 Data Flow:
 - The `/api/generate-recipe` endpoint now calls a real AI service. The response is then saved to a new `recipes` table in the database.
 
@@ -250,11 +229,6 @@ Data Flow:
 **Task Execution Plan: ✅ Task 1 → ✅ Task 2**
 
 Objective: Build the next most critical user journey, which allows users to view a list of their previously generated and saved recipes.
-
-Dependencies & Parallelization:
-- **BLOCKS**: User's ability to manage their history.
-- **BLOCKED BY**: Milestone 2 (requires recipes to be persisted to have a history).
-- **PARALLEL WITH**: Other independent secondary features.
 
 Data Flow:
 - A new UI screen (`/history`) fetches a list of recipes from the database service. Users can navigate from this list back to a recipe detail view.
@@ -287,12 +261,6 @@ Focus on non-functional requirements, UI/UX polish, and business logic.
 **Task Execution Plan: 🔄 Task 1, 2, 3 (all parallel)**
 
 Objective: Enhance the user experience with smooth animations, clear loading states, and immediate feedback for user actions.
-
-Dependencies & Parallelization:
-- **BLOCKS**: None.
-- **BLOCKED BY**: Relevant features from Phase 2 must be complete.
-- **PARALLEL WITHIN**: All UI polish tasks can run in parallel.
-- **PARALLEL WITH**: Other Phase 3 milestones (e.g., Analytics, Subscriptions).
 
 **Tasks**:
 - [ ] 1. 🔄 Implement loading skeletons
