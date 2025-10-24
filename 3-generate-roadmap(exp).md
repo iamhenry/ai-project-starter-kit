@@ -123,6 +123,7 @@ The roadmap must be structured around delivering thin, end-to-end user functiona
 - `USER-STORIES.md`
 - Potentially: Deepwiki MCP URL to github repo of the codebase/boilerplate i plan to use
 - `ARCHITECTURE.MD` (if available)
+- `TECHNICAL-REQUIREMENTS.md`
 
 ---
 
