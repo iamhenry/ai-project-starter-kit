@@ -51,7 +51,31 @@ Add immediately after the Overview section:
 - ✅ **DEPENDENT** - Requires specific prior task completion
 ```
 
-#### 2. Task Execution Plans
+#### 2. Table of Contents Section
+Add after the Parallel Execution Guide section:
+```markdown
+## Table of Contents
+
+**Phase 1 - [Phase Name]**:
+[Brief description summarizing what the entire phase accomplishes - the overall acceptance criteria for the phase]
+
+- M1: [Milestone Name] - [Single-line description of what this milestone delivers]
+- M2: [Milestone Name] - [Single-line description of what this milestone delivers]
+
+**Phase 2 - [Phase Name]**:
+[Brief description summarizing what the entire phase accomplishes - the overall acceptance criteria for the phase]
+
+- M3: [Milestone Name] - [Single-line description of what this milestone delivers]
+- M4: [Milestone Name] - [Single-line description of what this milestone delivers]
+
+**Phase 3 - [Phase Name]**:
+[Brief description summarizing what the entire phase accomplishes - the overall acceptance criteria for the phase]
+
+- M5: [Milestone Name] - [Single-line description of what this milestone delivers]
+- M6: [Milestone Name] - [Single-line description of what this milestone delivers]
+```
+
+#### 3. Task Execution Plans
 For each milestone, include execution syntax directly in the milestone header showing parallel opportunities:
 ```markdown
 ### Milestone X: [Milestone Name]
@@ -97,7 +121,8 @@ The roadmap must be structured around delivering thin, end-to-end user functiona
 # Requirements
 
 - `USER-STORIES.md`
-- (Potentially: `API-CONTRACTS.yaml` or `DATA-MODELS.md` if available upfront for later phases)
+- Potentially: Deepwiki MCP URL to github repo of the codebase/boilerplate i plan to use
+- `ARCHITECTURE.MD` (if available)
 
 ---
 
@@ -106,7 +131,7 @@ The roadmap must be structured around delivering thin, end-to-end user functiona
 ### Structure & Formatting
 - Use headers for section titles.
 - Keep milestone descriptions concise and action-oriented.
-- Use bullet points for Data Flow.
+- Use relevant mermaid diagrams for Data Flow.
 - Use step numbering for Step-by-Step Tasks.
 - Reference file paths and contract documents explicitly to ensure clarity.
 
@@ -136,15 +161,30 @@ This roadmap outlines the development plan for [Project Name], broken down into 
 ### Phase Dependencies
 - Phase 1 (Tracer Bullet) → Phase 2 (Expansion) → Phase 3 (Hardening)
 
-### Milestone Parallelization
-- **Phase 1**: Milestones are typically sequential as they build the core end-to-end flow.
-- **Phase 2**: Milestones for different vertical slices (e.g., M2: Real OCR, M3: Settings UI) can often run in parallel after the core slice is stable.
-- **Phase 3**: Milestones (e.g., M4: Animations, M5: Analytics) can almost always run in parallel.
-
 ### Task Symbols
 - ⚠️ **BLOCKING** - Must complete before other tasks can start
 - 🔄 **PARALLEL** - Can run simultaneously with other tasks
 - ✅ **DEPENDENT** - Requires specific prior task completion
+
+---
+
+## Table of Contents
+
+**Phase 1 - Tracer Bullet (Core Functional Slice)**:
+Build the thinnest functional end-to-end flow where a user can enter an ingredient, receive a recipe name from a dumb API, proving the entire UI-to-API-to-UI communication loop works.
+
+- M1: End-to-End Recipe Generation Loop - User can input ingredients and receive a hardcoded recipe name, validating the complete interaction flow
+
+**Phase 2 - Service Integration & Feature Expansion**:
+Replace mocked parts with real AI service and database persistence, then build out the remaining critical user journey for viewing recipe history.
+
+- M2: Stabilize Core Feature with Real AI & Persistence - Core loop uses real AI service and saves generated recipes to database
+- M3: Implement Core Flow: Recipe History - Users can view a list of their previously generated and saved recipes
+
+**Phase 3 - Production Hardening & Polish**:
+Enhance user experience with smooth animations, clear loading states, immediate feedback, and consistent design system across all screens.
+
+- M4: UI Polish and Interaction Feedback - Enhanced UX with loading skeletons, toast notifications, animations, and refined design system
 
 ---
 
