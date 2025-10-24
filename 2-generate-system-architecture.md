@@ -3,16 +3,13 @@
 
 # Requirements
 
-- roadmap.md
-- Defined Overview / User Stories document
+- `1-user-stories.md`
 
-#### Instructions
+# Instructions
 Create a detailed system architecture document:
 - based on the [Requirements]
 - create a new file `SYSTEM-ARCHITECTURE.md` in `_ai/docs`
 - generate the document using the [output_format]
-
-
 
 <output_format>
 Use the following example structure:
@@ -78,18 +75,7 @@ Use the following example structure:
 
 ---
 
-## 7. Technology Stack
-[Specify technologies, frameworks, and tools chosen for the project, along with justifications for their selection.]
-
-### Programming Languages & Frameworks
-[List chosen languages, frameworks, and libraries, and explain why they were selected.]
-
-### Infrastructure & Deployment
-[Describe hosting environments, cloud services, CI/CD pipelines, and deployment strategies.]
-
----
-
-## 8. Risk & Mitigation
+## 7. Risk & Mitigation
 [Identify potential risks associated with the system and provide contingency plans.]
 
 ### Risk Assessment
@@ -100,7 +86,7 @@ Use the following example structure:
 
 ---
 
-## 9. Appendix (Optional)
+## 8. Appendix (Optional)
 [Include any additional references, glossaries, or supporting documentation.]
 
 ---
