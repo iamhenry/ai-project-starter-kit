@@ -18,6 +18,10 @@
 - When aiming to reduce merge conflicts through contract-first development and parallelizable task structures.
 - To ensure consistency and clarity in roadmap documentation across different projects.
 
+## Principles
+- Each phase builds on the previous WITHOUT major rewrites.
+- End-to-end slice: Ship a minimal, working thread through the system—UI → API → data—so you can test reality, not theory. Even if it’s rough, it proves integration, deploys, logs, and latency.
+
 # Instructions
 
 - Review and analyze the `Required` documents (e.g., User Stories, Overview).
