@@ -18,9 +18,22 @@
 - When aiming to reduce merge conflicts through contract-first development and parallelizable task structures.
 - To ensure consistency and clarity in roadmap documentation across different projects.
 
-## Principles
+## Principles (Tracer Bullet)
+*consider these principles and questions when structuring the roadmpad and tracer bullet.*
 - Each phase builds on the previous WITHOUT major rewrites.
 - End-to-end slice: Ship a minimal, working thread through the system—UI → API → data—so you can test reality, not theory. Even if it’s rough, it proves integration, deploys, logs, and latency.
+- what are our table stakes?
+- reduce code churn (it wastes time)
+- how to ship faster? what can be trimmed and why?
+- keep only core value proposition
+- Minor inconvenience that doesn't block core workflow is ok, poor UX is not
+- The original Pragmatic Programmer definition says tracer bullets should: **"Operate in the same environment and under the same constraints as the real system"**
+- Use REAL production code, not prototypes
+- Be the thinnest slice that **actually works end-to-end**
+- **The tracer bullet should go THROUGH the high-risk parts, not around them.**
+- **Learn about constraints immediately**
+- **Each iteration adds real value**
+- use real data, not mocks
 
 # Instructions
 
