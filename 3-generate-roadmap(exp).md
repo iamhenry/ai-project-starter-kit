@@ -34,6 +34,7 @@
 - **Learn about constraints immediately**
 - **Each iteration adds real value**
 - use real data, not mocks
+- what tasks can be sacrificed while preserving the core flow and value proposition?
 
 # Instructions
 
