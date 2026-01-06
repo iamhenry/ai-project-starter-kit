@@ -9,4 +9,7 @@
 node_modules/
 __pycache__/
 build/
-dist/ 
+dist/
+
+# Ignore OSgrep
+.osgrep/
