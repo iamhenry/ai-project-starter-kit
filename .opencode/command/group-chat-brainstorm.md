@@ -200,7 +200,7 @@ After capturing all results:
 ## Round {n} — {timestamp}
 
 **USER:**
-{user_message}
+{verbatim user message for this round, unmodified}
 
 <!-- Repeat **{MODEL}:** for each participating model in every section below -->
 
@@ -302,7 +302,7 @@ Started: {timestamp}
 ## Round 1 — {timestamp}
 
 **USER:**
-{initial message}
+{verbatim initial prompt — exact text from step 1, unmodified}
 
 <!-- Repeat **{MODEL}:** for each participating model in every section below -->
 
@@ -337,7 +337,7 @@ Started: {timestamp}
 ## Round 2 — {timestamp}
 
 **USER:**
-{follow-up}
+{verbatim user message for this round, unmodified}
 
 ...
 ```
