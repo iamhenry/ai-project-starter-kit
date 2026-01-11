@@ -29,6 +29,12 @@ You MUST search the codebase and gather evidence between each "why" question. If
 
 ---
 
+## ✅ MANDATORY: Progress Tracking
+
+Use a todo list to track each "why" round. Mark complete before proceeding to the next.
+
+---
+
 ## Investigation Techniques
 
 Evidence gathering is the core of each "why" iteration. Use these approaches flexibly — they're starting points, not checklists.
