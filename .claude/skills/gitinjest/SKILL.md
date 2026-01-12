@@ -17,6 +17,11 @@ Key lesson: Always search broadly first (-i "*.ts" for TypeScript, -i "*.py" for
 pipx install gitingest
 ```
 
+### Linux Notes
+- If `pip install --user` fails with PEP 668 error, use `pipx install gitingest` instead.
+- If `gitingest: command not found`, ensure `~/.local/bin` is on PATH. Run `pipx ensurepath` then restart your shell.
+- Verify: `gitingest --help` or `pipx list | grep gitingest`
+
 ## Default Usage (Streaming to stdout)
 
 ```bash
