@@ -94,3 +94,67 @@ tmux new-window -n "server-log" -d ';' send-keys -t "server-log" "npm start" C-m
 1. `tmux new-window -n "ID" -d`
 2. `tmux send-keys -t "ID" "CMD" C-m`
 3. `tmux capture-pane -p -t "ID"`
+
+---
+
+## 6. Multi-Model Fan Out Pattern
+
+Used when you want to get perspectives from multiple AI models in parallel (e.g., GPT-5.2, Gemini Pro).
+
+### Setup
+
+```bash
+# Kill existing session, create new with multiple windows
+tmux kill-session -t model-consult 2>/dev/null
+tmux new-session -d -s model-consult -n gpt5 ';' new-window -t model-consult -n gemini
+```
+
+### Send Queries
+
+Use heredoc to avoid quote escaping issues:
+
+```bash
+tmux send-keys -t model-consult:gpt5 'cat <<EOF | opencode run --model openai/gpt-5.2 -
+Your prompt here
+EOF
+echo ###DONE###' C-m
+```
+
+### Poll for Completion
+
+```bash
+tmux capture-pane -p -S - -t model-consult:gpt5 | tail -50
+# Look for ###DONE### marker
+```
+
+Poll every ~10 seconds. Queries typically take 2-5 minutes.
+
+### Capture Full Output
+
+```bash
+tmux capture-pane -p -S - -t model-consult:gpt5
+```
+
+The `-S -` flag captures full scrollback history, not just visible screen.
+
+### Cleanup
+
+```bash
+tmux kill-session -t model-consult
+```
+
+### Model Aliases Reference
+
+| Alias | Model ID |
+|-------|----------|
+| GPT | `openai/gpt-5.2` |
+| Gemini Pro | `google/gemini-3-pro-preview` |
+
+Run `opencode models` for full list.
+
+### Key Learnings
+
+1. USE HEREDOC (`cat <<EOF`) to avoid quote escaping nightmares
+2. ADD `###DONE###` marker to know when query completes
+3. USE `-S -` flag with `capture-pane` to get full scrollback
+4. POLL every 10 seconds - queries can take 2-5 minutes
