@@ -1,11 +1,42 @@
 ---
 name: gitinjest
-description: Convert GitHub repositories into LLM-friendly text. Use when you need to analyze external codebases, research unfamiliar libraries, understand third-party project structure, or ingest code from GitHub URLs (public/private, supports subdirectories).
+description: Analyze GitHub repositories by converting to LLM-readable text. TRIGGER when user pastes github.com URL, asks "how does [library] work", or references external codebases. Supports public/private repos and subdirectories.
 ---
 
 # Gitingest
 
+## TRIGGER CONDITIONS
+
+USE when user message contains:
+- `github.com/` URL
+- "look at this repo" or "analyze this codebase"
+- Questions about third-party library internals
+
+SKIP when:
+- URL is user's own project
+- User just wants to clone/fork
+
 Convert GitHub repos into text format using the CLI - output streams to stdout by default.
+
+## STREAMING ONLY (HARD DEFAULT)
+
+ALWAYS stream to stdout with `-o -`. DO NOT:
+- Clone repos locally
+- Write output files (`-o file.txt`)
+- Redirect to disk (`> out.txt`)
+- Create temp files
+
+Only write to disk if user EXPLICITLY requests it.
+
+```bash
+# CORRECT - streams to stdout
+gitingest https://github.com/user/repo -o -
+gitingest https://github.com/user/repo -i "*.ts" -o -
+
+# WRONG - writes to disk (avoid unless user asks)
+gitingest https://github.com/user/repo -o output.txt
+gitingest https://github.com/user/repo > dump.txt
+```
 
 # Gitingest CLI Commands for External Codebase Analysis
 
@@ -18,6 +49,7 @@ pipx install gitingest
 ```
 
 ### Linux Notes
+
 - If `pip install --user` fails with PEP 668 error, use `pipx install gitingest` instead.
 - If `gitingest: command not found`, ensure `~/.local/bin` is on PATH. Run `pipx ensurepath` then restart your shell.
 - Verify: `gitingest --help` or `pipx list | grep gitingest`
