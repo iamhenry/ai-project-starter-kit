@@ -1,6 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "default_agent": "orchestrator",
+  "default_agent": "plan",
   "small_model": "opencode/gpt-5-nano", // used for session title generations
   "formatter": false,
   "instructions": [
@@ -31,17 +31,17 @@
   "agent": {
     "general": {
       // "model": "google/claude-sonnet-4-5"
-      "model": "google/gemini-claude-opus-4-5-thinking-low"
+      "model": "firmware/claude-opus-4-5"
     },
     "build": {
       "description": "Default primary Build agent with full tool access",
       "mode": "primary",
-      "model": "google/gemini-claude-opus-4-5-thinking-low"
+      "model": "firmware/claude-opus-4-5"
     },
     "plan": {
       "description": "Read-only analysis and planning agent with safe bash commands and web search.",
       "mode": "primary",
-      "model": "google/gemini-claude-opus-4-5-thinking-low",
+      "model": "firmware/claude-opus-4-5",
       "tools": {
         "write": false,
         "edit": false,

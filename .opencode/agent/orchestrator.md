@@ -1,7 +1,7 @@
 ---
 description: Strategic workflow orchestrator that breaks complex work into isolated tasks and stitches back only summaries
 mode: primary
-model: google/gemini-claude-opus-4-5-thinking-low
+model: firmware/claude-opus-4-5
 color: "#ffa500"
 tools:
   task: true
