@@ -19,6 +19,7 @@ tools:
   websearch: true
 permission:
   bash:
+    "*": allow
     "rmdir *": deny
     "mv *": deny
     "sudo *": deny
@@ -62,7 +63,6 @@ permission:
     "gh repo sync*": deny
     "npm install*": deny
     "rm *": deny
-    "*": allow
   webfetch: allow
 ---
 
@@ -195,6 +195,8 @@ Round 3: [Integration]                ← after X and Y complete
 ```
 
 **CONFLICT RULE**: If two tasks touch the same file → run sequentially. When uncertain → Atlas first.
+
+**SIZE HEURISTIC**: Parallelize when each subtask involves >5 lines of code changes. For smaller changes with identical patterns across files, a single agent is more efficient.
 
 ## MANDATORY DELEGATION PROTOCOL
 
