@@ -7,10 +7,7 @@
     "CLAUDE.md"
   ],
   "plugin": [
-    "opencode-openai-codex-auth@4.1.0",
-    "@tarquinen/opencode-dcp@beta", // (https://github.com/Tarquinen/opencode-dynamic-context-pruning)
-    "@franlol/opencode-md-table-formatter@0.0.3",
-    "opencode-google-antigravity-auth" // https://github.com/shekohex/opencode-google-antigravity-auth
+    "@tarquinen/opencode-dcp@latest", // (https://github.com/Tarquinen/opencode-dynamic-context-pruning)
   ],
   "tools": {
     "ask": false, // this is for shuvcode version which has ask tool integrated
