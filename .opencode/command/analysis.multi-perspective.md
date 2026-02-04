@@ -5,7 +5,7 @@ subtask: false
 
 # Multi-Perspective
 
-Sends the same task to multiple AI models in parallel and saves each response to a separate markdown file. Useful for getting diverse analytical perspectives on plans, code, or documents.
+Sends the same task to multiple AI models in parallel, displays each agent working in tmux panes, and saves each response to a separate markdown file. Useful for getting diverse analytical perspectives on plans, code, or documents.
 
 ## Usage
 
@@ -61,11 +61,32 @@ Ask "Proceed? [Y/N]" and wait for user approval.
 
 **Step 5: Execute**
 
-For each model, run the following command using inline bash:
+Spawn each model in a tmux pane for visibility. Output is saved to files AND displayed in panes.
+
+**First model** (establishes 60/40 layout — main pane left, agents right):
 
 ```bash
-!opencode run --model {model} --file {target-file} "{prompt}" > {output-dir}/{target-name}-{model}.md
+!tmux split-window -h -d -t 0 -l 40% 'opencode run --model {model1} --file {target-file} "{prompt}" > {output-dir}/{target-name}-{model1}.md 2>&1; exec $SHELL' && tmux select-pane -t 1 -T "{model1-alias}"
 ```
+
+**Remaining models** (spawn in parallel using batch tool, stack vertically in right column):
+
+```bash
+!tmux split-window -v -d -t 1 'opencode run --model {model2} --file {target-file} "{prompt}" > {output-dir}/{target-name}-{model2}.md 2>&1; exec $SHELL'
+!tmux split-window -v -d -t 1 'opencode run --model {model3} --file {target-file} "{prompt}" > {output-dir}/{target-name}-{model3}.md 2>&1; exec $SHELL'
+```
+
+**Name panes** (after all spawns complete):
+
+```bash
+!tmux select-pane -t 2 -T "{model2-alias}"
+!tmux select-pane -t 3 -T "{model3-alias}"
+```
+
+Notes:
+- Use the batch tool to spawn remaining models in parallel
+- Panes stay open after completion (`exec $SHELL`) for review
+- Use model alias for pane title (e.g., "opus" not "firmware/claude-opus-4-5")
 
 **Step 6: Report Results**
 
@@ -75,6 +96,8 @@ After all commands complete, display:
 ✓ Complete! {count} perspectives saved:
   • {output-dir}/{target-name}-{model1}.md
   • {output-dir}/{target-name}-{model2}.md
+
+Agents visible in tmux panes (right side). Close panes manually when done (Ctrl+B, x).
 ```
 
 ## Output File Naming
@@ -107,16 +130,12 @@ Use these exact model names when specifying models. Grouped by provider for easy
 
 **LLM Proxy (Alternative Access)**
 
-- llm-proxy/ant_gemini-3-pro-low
-- llm-proxy/claude-opus-4-5
-- llm-proxy/claude-opus-4-5-thinking
-- llm-proxy/claude-sonnet-4-5
-- llm-proxy/claude-sonnet-4-5-thinking
+- firmware/claude-opus-4-5
+- firmware/gemini-3-pro-preview
 
 **Quick Aliases**
 For convenience, these shorthand aliases map to full model names:
 
-- `sonnet` → `claude-sonnet-4-5`
 - `opus` → `claude-opus-4-5`
 - `gemini` → `gemini-3-pro-high`
 - `gpt` → `gpt-5.2-high`
@@ -137,6 +156,11 @@ For convenience, these shorthand aliases map to full model names:
 - Display error for that specific model
 - Continue with remaining models
 - Report partial success at the end
+
+**If not running in tmux:**
+
+- Display warning: "Warning: Not running in tmux. Panes will not be visible, but files will still be saved."
+- Fall back to original headless execution: `!opencode run --model {model} --file {target-file} "{prompt}" > {output-dir}/{target-name}-{model}.md`
 
 ## Example Session
 
@@ -166,8 +190,8 @@ Summary:
 Proceed? [Y/n]
 > y
 
-Running sonnet...
-Running opus...
+Spawning sonnet in tmux pane...
+Spawning opus in tmux pane...
 
 ✓ Complete! 2 perspectives saved:
   • _ai/task/SOME-DOC-sonnet.md
