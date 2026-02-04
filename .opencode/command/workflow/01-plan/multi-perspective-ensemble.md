@@ -1,4 +1,5 @@
 ---
+name: multi-perspective-ensemble
 description: Fan out a task to multiple AI models and collect diverse perspectives
 subtask: false
 ---
