@@ -51,8 +51,8 @@ Expand these aliases to full provider/model format:
 
 | Alias    | Full Model Name                   |
 | -------- | --------------------------------- |
-| `opus`   | `google/gemini-claude-opus-4-5-thinking-low` |
-| `gemini` | `google/gemini-3-pro-low`         |
+| `opus`   | `firmware/claude-opus-4-5`        |
+| `gemini` | `firmware/gemini-3-pro-preview`   |
 | `gpt`    | `openai/gpt-5.2-low`              |
 | `codex`  | `openai/gpt-5.2-codex-medium`     |
 
