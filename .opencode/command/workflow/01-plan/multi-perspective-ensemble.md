@@ -126,20 +126,16 @@ Use these exact model names when specifying models. Grouped by provider for easy
 
 **OpenAI (GPT)**
 
-- openai/gpt-5.2-extra-high
-- openai/gpt-5.2-high
-
-**LLM Proxy (Alternative Access)**
-
-- firmware/claude-opus-4-5
-- firmware/gemini-3-pro-preview
+- openai/gpt-5.3-codex
+- openai/gpt-5.2
 
 **Quick Aliases**
 For convenience, these shorthand aliases map to full model names:
 
-- `opus` → `claude-opus-4-5`
-- `gemini` → `gemini-3-pro-high`
-- `gpt` → `gpt-5.2-high`
+- `sonnet` → `firmware/claude-sonnet-4-5`
+- `opus` → `firmware/claude-opus-4-6`
+- `gemini` → `firmware/gemini-3-pro-preview`
+- `gpt` → `openai/gpt-5.3-codex`
 
 ## Error Handling
 
