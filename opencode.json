@@ -4,7 +4,8 @@
   "small_model": "opencode/gpt-5-nano", // used for session title generations
   "formatter": false,
   "instructions": [
-    "CLAUDE.md"
+    "CLAUDE.md",
+    ".opencode/napkin.md",
   ],
   "plugin": [
     "@tarquinen/opencode-dcp@latest", // (https://github.com/Tarquinen/opencode-dynamic-context-pruning)
