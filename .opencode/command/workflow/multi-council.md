@@ -72,14 +72,14 @@ Spawn each model in a tmux pane for visibility. Panes stack vertically on the ri
 **First model** (establishes 60/40 layout — main pane left, agents right):
 
 ```bash
-tmux split-window -h -d -t 0 -l 40% 'opencode run --model {full_model1} --format json "{escaped_prompt}"; echo "###DONE###"; exec $SHELL' && tmux select-pane -t 1 -T "{model1-alias}"
+tmux split-window -h -d -t 0 -l 40% 'opencode run --model {full_model1} "{escaped_prompt}"; echo "###DONE###"; exec $SHELL' && tmux select-pane -t 1 -T "{model1-alias}"
 ```
 
 **Remaining models** (spawn in parallel using batch tool, stack vertically in right column):
 
 ```bash
-tmux split-window -v -d -t 1 'opencode run --model {full_model2} --format json "{escaped_prompt}"; echo "###DONE###"; exec $SHELL'
-tmux split-window -v -d -t 1 'opencode run --model {full_model3} --format json "{escaped_prompt}"; echo "###DONE###"; exec $SHELL'
+tmux split-window -v -d -t 1 'opencode run --model {full_model2} "{escaped_prompt}"; echo "###DONE###"; exec $SHELL'
+tmux split-window -v -d -t 1 'opencode run --model {full_model3} "{escaped_prompt}"; echo "###DONE###"; exec $SHELL'
 ```
 
 **Name panes** (after all spawns complete):
@@ -116,18 +116,13 @@ Consultations typically take 1-5 minutes depending on prompt complexity.
 
 ### Step 5: Capture Results
 
-For each completed pane, extract the response using Python (handles escaped newlines):
+For each completed pane, capture the human-readable output directly:
 
 ```bash
-tmux capture-pane -p -S - -t {pane_index} | python3 -c "
-import sys, re
-content = sys.stdin.read()
-texts = re.findall(r'\"text\":\"([^\"]+)\"', content)
-if texts:
-    longest = max(texts, key=len)
-    print(longest.replace('\\\\n', '\n').replace('\\n', '\n'))
-"
+tmux capture-pane -p -S - -t {pane_index}
 ```
+
+The output uses default format (no `--format json`), so panes display human-readable formatted text that can be captured directly without parsing.
 
 ### Step 6: Display Results Inline
 
@@ -258,5 +253,4 @@ Panes visible on the right side. Close manually when done (Ctrl+B, x).
 ## Dependencies
 
 - `tmux` - for parallel pane management
-- `opencode run` - for running models with `--model` and `--format json` flags
-- `python3` - for extracting text from JSON output
+- `opencode run` - for running models with `--model` flag (uses default human-readable format)
