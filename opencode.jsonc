@@ -5,10 +5,10 @@
   "formatter": false,
   "instructions": [
     "CLAUDE.md",
-    ".opencode/napkin.md",
+    ".opencode/napkin.md"
   ],
   "plugin": [
-    "@tarquinen/opencode-dcp@latest", // (https://github.com/Tarquinen/opencode-dynamic-context-pruning)
+    "@tarquinen/opencode-dcp@latest" // (https://github.com/Tarquinen/opencode-dynamic-context-pruning)
   ],
   "tools": {
     "ask": false, // this is for shuvcode version which has ask tool integrated
