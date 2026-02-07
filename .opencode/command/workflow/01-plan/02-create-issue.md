@@ -284,9 +284,37 @@ Once implementation is complete, verify code quality by running these checks in 
 
 ---
 
+### Browser Verification Plan
+
+<!-- Only include when the task has UI changes. Delete this section if not applicable. -->
+
+Verify the implementation visually in the browser. The agent uses the `chrome-devtools` skill (Puppeteer) to automate these steps and capture screenshots as evidence.
+
+**Guidelines:**
+- 3-5 checkpoints covering the core happy-path flow
+- Mark 2-3 key moments with `📸` for screenshot capture
+- Screenshots saved to `_ai/task/{SLUG}/screenshots/{step}.png`
+
+**Example:**
+1. Navigate to `http://localhost:3000/settings`
+2. 📸 Verify the new "Notifications" tab renders (screenshot: initial state)
+3. Toggle notification preference — verify toggle animates and state persists
+4. 📸 Verify success toast appears (screenshot: confirmation)
+5. Refresh page — verify preference persisted
+
+---
+
+[Generate 3-5 verification checkpoints for the core flow. Mark 2-3 moments with 📸.]
+
 ### Manual QA Checklist
 
-[A minimal checklist of manual test cases to verify functionality after implementation.]
+<!-- Steps that require human action and cannot be automated by the agent. -->
+
+[Checklist of manual steps the developer must perform — environment configuration, third-party dashboard settings, deploy verification, access control checks, etc.]
+
+**Example:**
+- [ ] Enable webhook endpoint in Stripe dashboard
+- [ ] Verify CloudFlare DNS records propagated
 
 ```
 
