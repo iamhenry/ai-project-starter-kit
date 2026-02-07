@@ -27,18 +27,17 @@
   },
   "agent": {
     "general": {
-      // "model": "google/claude-sonnet-4-5"
-      "model": "firmware/claude-opus-4-5"
+      "model": "openai/gpt-5.3-codex"
     },
     "build": {
       "description": "Default primary Build agent with full tool access",
       "mode": "primary",
-      "model": "firmware/claude-opus-4-5"
+      "model": "openai/gpt-5.3-codex"
     },
     "plan": {
       "description": "Read-only analysis and planning agent with safe bash commands and web search.",
       "mode": "primary",
-      "model": "firmware/claude-opus-4-5",
+      "model": "openai/gpt-5.3-codex",
       "tools": {
         "write": false,
         "edit": false,

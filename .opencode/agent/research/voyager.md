@@ -2,7 +2,7 @@
 name: voyager
 description: Use this agent when you need to research official documentation API references framework guides or best practices for technologies used in the codebase Examples Example Context User is implementing a new Stripe webhook handler user “I need to add support for the subscription_schedulecanceled event” assistant “I’ll use the Task tool to launch the official-docs-researcher agent to find the current Stripe webhook documentation and best practices for handling this event type” Commentary The user is implementing a new feature involving Stripe webhooks Use the official-docs-researcher agent to gather accurate documentation about the specific event type and current best practices Example Context User is debugging a TanStack Router navigation issue user “The route params aren’t being passed correctly to the loader” assistant “Let me use the official-docs-researcher agent to look up the current TanStack Router documentation on route params and loader patterns” Commentary This is a bug involving TanStack Router Use the official-docs-researcher agent to find official documentation on the current version’s param handling and loader implementation patterns Example Context User is starting work on Apple Music integration user “I need to implement MusicKit authorization flow” assistant “I’ll launch the official-docs-researcher agent to gather the latest MusicKit Web documentation and OAuth best practices” Commentary User is building a new feature Proactively use the official-docs-researcher agent to gather current official documentation before implementation begins.
 mode: subagent
-model: firmware/claude-haiku-4-5
+model: opencode/kimi-k2.5-free
 temperature: 0
 tools:
   write: false

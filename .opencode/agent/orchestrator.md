@@ -1,7 +1,7 @@
 ---
 description: Strategic workflow orchestrator that breaks complex work into isolated tasks and stitches back only summaries
 mode: primary
-model: firmware/claude-opus-4-5
+model: openai/gpt-5.3-codex
 color: "#ffa500"
 tools:
   task: true
