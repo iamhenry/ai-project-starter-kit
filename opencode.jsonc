@@ -108,6 +108,9 @@
         },
         "webfetch": "allow"
       }
+    },
+    "explore": {
+      "disable": true
     }
   }
 }

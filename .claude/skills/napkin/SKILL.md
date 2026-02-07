@@ -5,7 +5,7 @@ description: |
   what works. Activates EVERY session, unconditionally. Read the napkin
   before doing anything. Write to it continuously as you work — not just at
   session boundaries. Log your own mistakes, not just user corrections. The
-  napkin lives in the repo at `.claude/napkin.md`.
+  napkin lives in the repo at `.opencode/napkin.md`.
 version: 1.0.0
 date: 2026-02-06
 ---
@@ -53,15 +53,14 @@ consume.
 
 Update the napkin as you work, not just at session start and end. However,
 **never write to the napkin directly from the main session.** Instead,
-delegate all writes to a subagent using the `Task` tool. This keeps napkin
-housekeeping out of your main context window.
+delegate all writes through the `Task` tool. This keeps napkin housekeeping
+out of your main context window.
 
 When you learn something worth recording, use the Task tool like this:
 
 ```
 Task(
   description="Update napkin",
-  subagent_type="general",
   prompt="Read `.opencode/napkin.md` and apply the following update.
 
 Section: <one of: Corrections | User Preferences | Patterns That Work | Patterns That Don't Work | Domain Notes>
@@ -80,7 +79,7 @@ Return only a one-line confirmation of what was added or changed."
 ```
 
 **You are responsible for composing the prompt with all the details.** The
-subagent has no prior context — it only knows what you put in the prompt.
+task worker has no prior context — it only knows what you put in the prompt.
 Include the date, source, what happened, and what to do instead. Be specific.
 
 Triggers for writing — fire the `Task` tool whenever:
@@ -118,8 +117,8 @@ it returns a paginated object with `.items`" is actionable.
 
 ## Napkin Maintenance
 
-Maintenance is handled by the subagent as part of each write. The Task tool
-prompt above instructs the subagent to consolidate when the file exceeds 150
+Maintenance is handled by the task worker as part of each write. The Task tool
+prompt above instructs the task worker to consolidate when the file exceeds 150
 lines. You do not need to do maintenance yourself.
 
 If you notice the napkin is getting noisy during a session-start read, you
@@ -128,7 +127,6 @@ can fire a dedicated maintenance Task:
 ```
 Task(
   description="Consolidate napkin",
-  subagent_type="general",
   prompt="Read `.opencode/napkin.md` and consolidate it:
 - Merge redundant entries into single rules.
 - Promote repeated corrections to User Preferences.
