@@ -29,7 +29,7 @@ Run /product-requirements first if you haven't completed Phase 1.
 
 ## OUTPUT
 
-Artifact: `_ai/docs/specs.md` (incrementally appended per category)
+Artifact: `_ai/docs/specs.md` (incrementally appended per category) (aka roadmap.md)
 
 ---
 
@@ -60,14 +60,14 @@ Before diving into the 15 categories, spawn 6 parallel research subagents to exp
 
 ### Subagent Missions
 
-| Agent              | Mission                                                         |
-| ------------------ | --------------------------------------------------------------- |
-| Product Teardown   | Find 2-3 similar products, identify their tech stacks           |
-| Open Source Scan   | GitHub repos solving similar problems (stars, activity, arch)   |
-| Framework Compare  | Compare frameworks for this use case (DX, ecosystem, docs)      |
-| Cost Projection    | Estimate hosting + services costs at 0/100/1000 users           |
-| Architecture       | Recommend patterns suitable for solo-dev/indie context          |
-| SaaS Boilerplate   | Find TypeScript starters with auth/payments/billing built-in    |
+| Agent             | Mission                                                       |
+| ----------------- | ------------------------------------------------------------- |
+| Product Teardown  | Find 2-3 similar products, identify their tech stacks         |
+| Open Source Scan  | GitHub repos solving similar problems (stars, activity, arch) |
+| Framework Compare | Compare frameworks for this use case (DX, ecosystem, docs)    |
+| Cost Projection   | Estimate hosting + services costs at 0/100/1000 users         |
+| Architecture      | Recommend patterns suitable for solo-dev/indie context        |
+| SaaS Boilerplate  | Find TypeScript starters with auth/payments/billing built-in  |
 
 ### Subagent Prompts
 
@@ -186,28 +186,28 @@ Which approach would you like to proceed with? (Enter 1-5 or describe your own)
 
 Work through these categories IN ORDER. Each must reach 90% clarity before proceeding to the next.
 
-| Phase | #   | Category                | Focus                                                        |
-| ----- | --- | ----------------------- | ------------------------------------------------------------ |
-| 1     | 1   | Boundaries              | Define what's OUT before spending time on IN                 |
-|       | 2   | Key Components          | Architectural skeleton, layer boundaries, component diagram  |
-| ----- | --- | ----------------------- | ------------------------------------------------------------ |
-| 2     | 3   | Data Models             | Entities, relationships, types, validation rules, type contracts |
-|       | 4   | Storage                 | Persistence approach, database choice                        |
-|       | 5   | APIs                    | Endpoints, contracts, data flow diagrams, request lifecycle  |
-| ----- | --- | ----------------------- | ------------------------------------------------------------ |
-| 3     | 6   | Integrations            | External services, side effects, idempotency, circuit breakers |
-|       | 7   | Auth & Security         | Authentication flow, input validation, CORS, rate limits    |
-| ----- | --- | ----------------------- | ------------------------------------------------------------ |
+| Phase | #   | Category                | Focus                                                                 |
+| ----- | --- | ----------------------- | --------------------------------------------------------------------- |
+| 1     | 1   | Boundaries              | Define what's OUT before spending time on IN                          |
+|       | 2   | Key Components          | Architectural skeleton, layer boundaries, component diagram           |
+| ----- | --- | ----------------------- | ------------------------------------------------------------          |
+| 2     | 3   | Data Models             | Entities, relationships, types, validation rules, type contracts      |
+|       | 4   | Storage                 | Persistence approach, database choice                                 |
+|       | 5   | APIs                    | Endpoints, contracts, data flow diagrams, request lifecycle           |
+| ----- | --- | ----------------------- | ------------------------------------------------------------          |
+| 3     | 6   | Integrations            | External services, side effects, idempotency, circuit breakers        |
+|       | 7   | Auth & Security         | Authentication flow, input validation, CORS, rate limits              |
+| ----- | --- | ----------------------- | ------------------------------------------------------------          |
 | 4     | 8   | State Management        | Client-side state, caching strategy, invalidation, optimistic updates |
-|       | 9   | Async Workflows         | Background jobs, rate-limit handling, retries, agent loops   |
-|       | 10  | Concurrency             | Optimistic locking, conflict resolution, race conditions     |
-| ----- | --- | ----------------------- | ------------------------------------------------------------ |
-| 5     | 11  | Resilience              | Error handling, graceful degradation, recovery patterns      |
-|       | 12  | Logging & Observability | Log levels, debug guidance, error tracking, key events       |
-| ----- | --- | ----------------------- | ------------------------------------------------------------ |
-| 6     | 13  | Infrastructure          | Hosting, deployment, performance, feature flags              |
-|       | 14  | Dependencies            | Libraries with versions, rationale for each                  |
-|       | 15  | Testing Strategy        | Test types per layer, mocking approach, coverage expectations |
+|       | 9   | Async Workflows         | Background jobs, rate-limit handling, retries, agent loops            |
+|       | 10  | Concurrency             | Optimistic locking, conflict resolution, race conditions              |
+| ----- | --- | ----------------------- | ------------------------------------------------------------          |
+| 5     | 11  | Resilience              | Error handling, graceful degradation, recovery patterns               |
+|       | 12  | Logging & Observability | Log levels, debug guidance, error tracking, key events                |
+| ----- | --- | ----------------------- | ------------------------------------------------------------          |
+| 6     | 13  | Infrastructure          | Hosting, deployment, performance, feature flags                       |
+|       | 14  | Dependencies            | Libraries with versions, rationale for each                           |
+|       | 15  | Testing Strategy        | Test types per layer, mocking approach, coverage expectations         |
 
 ---
 
@@ -317,16 +317,16 @@ RECOMMENDATION: [1-2 sentences - favor idiomatic/pragmatic options; tie to solo 
 
 ### Question Format Field Reference
 
-| Field           | Purpose                                              |
-| --------------- | ---------------------------------------------------- |
-| Question        | Product-framed, not implementation-framed            |
-| User Impact     | Sets context for why decision matters to users       |
-| UX              | What user sees/feels (single line)                   |
-| When this matters | Quick filter for relevance based on user behavior  |
-| Pro/Con         | Scannable tradeoffs framed as user/product value     |
-| Complexity      | Includes time estimate to help prioritize            |
-| Technical       | Full engineering context for implementation          |
-| Recommendation  | Opinionated guidance tied to constraints             |
+| Field             | Purpose                                           |
+| ----------------- | ------------------------------------------------- |
+| Question          | Product-framed, not implementation-framed         |
+| User Impact       | Sets context for why decision matters to users    |
+| UX                | What user sees/feels (single line)                |
+| When this matters | Quick filter for relevance based on user behavior |
+| Pro/Con           | Scannable tradeoffs framed as user/product value  |
+| Complexity        | Includes time estimate to help prioritize         |
+| Technical         | Full engineering context for implementation       |
+| Recommendation    | Opinionated guidance tied to constraints          |
 
 ---
 
@@ -432,12 +432,12 @@ Source: user-stories.md
 [Selected approach and why it was chosen]
 
 **Rejected Approaches:**
-| Approach | Why Rejected |
-| -------- | ------------ |
+| Approach | Why Rejected                                                |
+| -------- | ----------------------------------------------------------- |
 | [Name]   | [Reason: cost too high, complexity, missing features, etc.] |
-| [Name]   | [Reason] |
-| [Name]   | [Reason] |
-| [Name]   | [Reason] |
+| [Name]   | [Reason]                                                    |
+| [Name]   | [Reason]                                                    |
+| [Name]   | [Reason]                                                    |
 
 **Consequences:**
 - Positive: [benefits of selected approach]
@@ -476,19 +476,19 @@ Source: user-stories.md
 ```
 
 ### Component Descriptions
-| Component | Responsibility | Technology | Notes |
-|-----------|---------------|------------|-------|
-| [Name]    | [What it does] | [Stack]   | [Constraints] |
+| Component | Responsibility | Technology | Notes         |
+| --------- | -------------- | ---------- | ------------- |
+| [Name]    | [What it does] | [Stack]    | [Constraints] |
 
 ### Layer Boundaries & Responsibilities
 
-| Layer | Responsibility | What Belongs Here | What Does NOT Belong |
-|-------|---------------|-------------------|---------------------|
-| UI Layer | Render, user input, local UI state | Components, event handlers, display logic | Business rules, API calls, data transformations |
-| State Layer | Client-side data, cache, sync | Query hooks, stores, optimistic updates | UI rendering, business validation |
-| Domain Logic | Business rules, validation, transformations | Services, validators, calculators | UI concerns, persistence details |
-| Persistence | Data storage, queries, migrations | DB operations, schema definitions | Business logic, UI state |
-| Integration Adapters | External API communication | API clients, response mappers, retry logic | Business rules, UI concerns |
+| Layer                | Responsibility                              | What Belongs Here                          | What Does NOT Belong                            |
+| -------------------- | ------------------------------------------- | ------------------------------------------ | ----------------------------------------------- |
+| UI Layer             | Render, user input, local UI state          | Components, event handlers, display logic  | Business rules, API calls, data transformations |
+| State Layer          | Client-side data, cache, sync               | Query hooks, stores, optimistic updates    | UI rendering, business validation               |
+| Domain Logic         | Business rules, validation, transformations | Services, validators, calculators          | UI concerns, persistence details                |
+| Persistence          | Data storage, queries, migrations           | DB operations, schema definitions          | Business logic, UI state                        |
+| Integration Adapters | External API communication                  | API clients, response mappers, retry logic | Business rules, UI concerns                     |
 
 ### Data Flow (Request Lifecycle)
 ```
@@ -540,11 +540,11 @@ interface EntityName {
 
 ### Type Contracts Between Layers
 
-| Type Location | Purpose | Derives From |
-|--------------|---------|--------------|
-| `schema.ts` (DB) | Source of truth for persistence | - |
-| `api/types.ts` | API request/response shapes | DB schema |
-| `client/types.ts` | Client-side representations | API types |
+| Type Location     | Purpose                         | Derives From |
+| ----------------- | ------------------------------- | ------------ |
+| `schema.ts` (DB)  | Source of truth for persistence | -            |
+| `api/types.ts`    | API request/response shapes     | DB schema    |
+| `client/types.ts` | Client-side representations     | API types    |
 
 **Type Flow:**
 ```
@@ -559,9 +559,9 @@ interface EntityName {
 
 ### Validation Rules Per Entity
 
-| Entity | Field | Validation | Layer Enforced |
-|--------|-------|------------|----------------|
-| [Entity] | [field] | [rule: required, min/max, regex, etc.] | [UI, API, DB] |
+| Entity   | Field   | Validation                             | Layer Enforced |
+| -------- | ------- | -------------------------------------- | -------------- |
+| [Entity] | [field] | [rule: required, min/max, regex, etc.] | [UI, API, DB]  |
 
 ---
 
@@ -571,8 +571,8 @@ interface EntityName {
 **Rationale:** [Why this database]
 
 ### Tables/Collections
-| Name | Purpose | Indexes | Notes |
-|------|---------|---------|-------|
+| Name    | Purpose   | Indexes   | Notes   |
+| ------- | --------- | --------- | ------- |
 | [table] | [purpose] | [indexes] | [notes] |
 
 ### Migration Strategy
@@ -603,10 +603,10 @@ interface ResponseBody {
 ```
 
 **Errors:**
-| Code | Condition | Response |
-|------|-----------|----------|
+| Code | Condition     | Response               |
+| ---- | ------------- | ---------------------- |
 | 400  | Invalid input | `{ error: "message" }` |
-| 404  | Not found | `{ error: "message" }` |
+| 404  | Not found     | `{ error: "message" }` |
 
 ### Data Flow Diagram (Per Feature)
 
@@ -628,12 +628,12 @@ Logging Points:
 
 ### Request Lifecycle
 
-| Phase | What Happens | Logs To Emit |
-|-------|--------------|--------------|
-| Entry | Parse request, extract auth | `request_id`, `user_id`, `action` |
-| Validation | Schema + business rule checks | Validation errors (sanitized) |
-| Execution | DB/external calls | Operation type, duration |
-| Response | Format and return | Status code, total duration |
+| Phase      | What Happens                  | Logs To Emit                      |
+| ---------- | ----------------------------- | --------------------------------- |
+| Entry      | Parse request, extract auth   | `request_id`, `user_id`, `action` |
+| Validation | Schema + business rule checks | Validation errors (sanitized)     |
+| Execution  | DB/external calls             | Operation type, duration          |
+| Response   | Format and return             | Status code, total duration       |
 
 ---
 
@@ -653,8 +653,8 @@ Before finalizing an integration, ask:
 **Documentation:** [Link]
 
 **Key Endpoints Used:**
-| Endpoint | Purpose | Notes |
-|----------|---------|-------|
+| Endpoint   | Purpose   | Notes         |
+| ---------- | --------- | ------------- |
 | [endpoint] | [purpose] | [constraints] |
 
 **Error Handling:**
@@ -665,10 +665,10 @@ Before finalizing an integration, ask:
 
 When an action triggers secondary operations, document the chain:
 
-| Trigger Action | Side Effects | Failure Handling |
-|---------------|--------------|------------------|
+| Trigger Action       | Side Effects                                  | Failure Handling                       |
+| -------------------- | --------------------------------------------- | -------------------------------------- |
 | [User upgrades plan] | Update permissions, send email, log analytics | [Each independent; partial success OK] |
-| [Item deleted] | Clean up references, notify subscribers | [Queue for retry on failure] |
+| [Item deleted]       | Clean up references, notify subscribers       | [Queue for retry on failure]           |
 
 **Event Flow:**
 ```
@@ -681,16 +681,16 @@ When an action triggers secondary operations, document the chain:
 
 ### Idempotency Patterns
 
-| Operation | Idempotency Strategy | Key Generation |
-|-----------|---------------------|----------------|
-| [Webhook receipt] | Dedupe by event ID | `event.id` |
+| Operation            | Idempotency Strategy   | Key Generation             |
+| -------------------- | ---------------------- | -------------------------- |
+| [Webhook receipt]    | Dedupe by event ID     | `event.id`                 |
 | [Payment processing] | Idempotency key header | `user_id:action:timestamp` |
-| [Batch sync] | Upsert pattern | Entity natural key |
+| [Batch sync]         | Upsert pattern         | Entity natural key         |
 
 ### Circuit Breaker / Graceful Degradation
 
-| Service | Fallback Behavior | Circuit Trigger |
-|---------|------------------|-----------------|
+| Service        | Fallback Behavior                                         | Circuit Trigger     |
+| -------------- | --------------------------------------------------------- | ------------------- |
 | [External API] | [Return cached data / Show degraded UI / Queue for retry] | [3 failures in 60s] |
 
 ---
@@ -718,36 +718,36 @@ interface AppState {
 
 ### Caching Strategy (Detailed)
 
-| Data Type | Cache Location | TTL | Invalidation Trigger |
-|-----------|---------------|-----|---------------------|
-| [User profile] | [React Query / Zustand] | [5 min] | [On mutation, on focus] |
-| [List data] | [React Query] | [1 min] | [On create/update/delete] |
-| [Static config] | [localStorage] | [24h] | [On app version change] |
+| Data Type       | Cache Location          | TTL     | Invalidation Trigger      |
+| --------------- | ----------------------- | ------- | ------------------------- |
+| [User profile]  | [React Query / Zustand] | [5 min] | [On mutation, on focus]   |
+| [List data]     | [React Query]           | [1 min] | [On create/update/delete] |
+| [Static config] | [localStorage]          | [24h]   | [On app version change]   |
 
 ### Derived/Computed Values
 
-| Computed Value | Derived From | Recompute Trigger |
-|---------------|--------------|-------------------|
-| [Total count] | [Individual item statuses] | [Any status change] |
-| [Progress %] | [Completed / Total] | [Item completion] |
+| Computed Value | Derived From               | Recompute Trigger   |
+| -------------- | -------------------------- | ------------------- |
+| [Total count]  | [Individual item statuses] | [Any status change] |
+| [Progress %]   | [Completed / Total]        | [Item completion]   |
 
 **Rule:** Compute on read, do NOT store derived values.
 
 ### Optimistic Updates
 
-| Action | Optimistic Behavior | Rollback On Failure |
-|--------|--------------------|--------------------|
-| [Create item] | Append to list with temp ID | Remove from list, show error |
-| [Delete item] | Remove from list immediately | Restore item, show error |
-| [Update item] | Update in place | Revert to previous, show error |
+| Action        | Optimistic Behavior          | Rollback On Failure            |
+| ------------- | ---------------------------- | ------------------------------ |
+| [Create item] | Append to list with temp ID  | Remove from list, show error   |
+| [Delete item] | Remove from list immediately | Restore item, show error       |
+| [Update item] | Update in place              | Revert to previous, show error |
 
 ### Offline Support (if applicable)
 
-| Scenario | Behavior |
-|----------|----------|
-| [Offline read] | [Serve from cache / Show offline indicator] |
-| [Offline write] | [Queue locally / Block with message] |
-| [Reconnect] | [Sync queue / Refresh queries] |
+| Scenario        | Behavior                                    |
+| --------------- | ------------------------------------------- |
+| [Offline read]  | [Serve from cache / Show offline indicator] |
+| [Offline write] | [Queue locally / Block with message]        |
+| [Reconnect]     | [Sync queue / Refresh queries]              |
 
 ---
 
@@ -768,11 +768,11 @@ interface AppState {
 
 ### Input Validation Strategy
 
-| Layer | Validation Type | Tools/Libraries |
-|-------|----------------|-----------------|
-| UI | Format, required fields, UX feedback | [Zod, React Hook Form] |
-| API | Schema validation, sanitization | [Zod, express-validator] |
-| DB | Constraints, foreign keys, triggers | [DB-native constraints] |
+| Layer | Validation Type                      | Tools/Libraries          |
+| ----- | ------------------------------------ | ------------------------ |
+| UI    | Format, required fields, UX feedback | [Zod, React Hook Form]   |
+| API   | Schema validation, sanitization      | [Zod, express-validator] |
+| DB    | Constraints, foreign keys, triggers  | [DB-native constraints]  |
 
 **Validation Flow:**
 ```
@@ -783,13 +783,13 @@ interface AppState {
 
 ### Security Measures
 
-| Concern | Approach | Implementation |
-|---------|----------|----------------|
-| CORS | [Restrict to known origins] | [cors middleware config] |
-| Rate Limiting | [X requests per user per minute] | [express-rate-limit / Cloudflare] |
-| Input Sanitization | [Escape HTML, validate types] | [DOMPurify, Zod] |
-| Sensitive Data | [Never log tokens, PII, passwords] | [Log sanitizer middleware] |
-| API Keys | [Server-side only, env vars] | [.env, secret manager] |
+| Concern            | Approach                           | Implementation                    |
+| ------------------ | ---------------------------------- | --------------------------------- |
+| CORS               | [Restrict to known origins]        | [cors middleware config]          |
+| Rate Limiting      | [X requests per user per minute]   | [express-rate-limit / Cloudflare] |
+| Input Sanitization | [Escape HTML, validate types]      | [DOMPurify, Zod]                  |
+| Sensitive Data     | [Never log tokens, PII, passwords] | [Log sanitizer middleware]        |
+| API Keys           | [Server-side only, env vars]       | [.env, secret manager]            |
 
 ### What NEVER Gets Logged
 
@@ -807,8 +807,8 @@ interface AppState {
 **Environments:** [dev, staging, prod]
 
 ### Environment Variables
-| Variable | Purpose | Required |
-|----------|---------|----------|
+| Variable   | Purpose   | Required |
+| ---------- | --------- | -------- |
 | [VAR_NAME] | [purpose] | [yes/no] |
 
 ### Deployment
@@ -826,12 +826,12 @@ interface AppState {
 
 **STANDARD GATES (ordered cheapest/fastest first):**
 
-| Priority | Gate       | Command            | Purpose                      |
-| -------- | ---------- | ------------------ | ---------------------------- |
-| 1        | Type Check | `[command]`        | Structural errors (fastest)  |
-| 2        | Lint       | `[command]`        | Style + convention violations|
-| 3        | Test       | `[command]`        | Behavior verification        |
-| 4        | Build      | `[command]`        | Production build (pre-deploy)|
+| Priority | Gate       | Command     | Purpose                       |
+| -------- | ---------- | ----------- | ----------------------------- |
+| 1        | Type Check | `[command]` | Structural errors (fastest)   |
+| 2        | Lint       | `[command]` | Style + convention violations |
+| 3        | Test       | `[command]` | Behavior verification         |
+| 4        | Build      | `[command]` | Production build (pre-deploy) |
 
 **SELF-CORRECTION LOOP:**
 ```
@@ -861,19 +861,19 @@ interface AppState {
 
 ### Performance Considerations
 
-| Area | Strategy | Threshold |
-|------|----------|-----------|
-| Bundle Size | [Code splitting, tree shaking] | [< 200KB initial] |
-| API Response | [Pagination, field selection] | [< 200ms p95] |
-| DB Queries | [Indexes, query optimization] | [< 50ms p95] |
-| Images/Assets | [Lazy loading, CDN, compression] | [LCP < 2.5s] |
+| Area          | Strategy                         | Threshold         |
+| ------------- | -------------------------------- | ----------------- |
+| Bundle Size   | [Code splitting, tree shaking]   | [< 200KB initial] |
+| API Response  | [Pagination, field selection]    | [< 200ms p95]     |
+| DB Queries    | [Indexes, query optimization]    | [< 50ms p95]      |
+| Images/Assets | [Lazy loading, CDN, compression] | [LCP < 2.5s]      |
 
 ### Feature Flags
 
 **Approach:** [Env vars / Config service / Feature flag service]
 
-| Flag | Purpose | Default | Environments |
-|------|---------|---------|--------------|
+| Flag                | Purpose               | Default | Environments                 |
+| ------------------- | --------------------- | ------- | ---------------------------- |
 | [FEATURE_X_ENABLED] | [Gates new feature X] | [false] | [true in dev, false in prod] |
 
 **Implementation:**
@@ -891,13 +891,13 @@ if (flags.isEnabled('feature_x')) {
 ## 14. Dependencies
 
 ### Runtime Dependencies
-| Package | Version | Purpose | Rationale |
-|---------|---------|---------|-----------|
+| Package | Version  | Purpose   | Rationale    |
+| ------- | -------- | --------- | ------------ |
 | [name]  | [^x.y.z] | [purpose] | [why chosen] |
 
 ### Dev Dependencies
-| Package | Version | Purpose |
-|---------|---------|---------|
+| Package | Version  | Purpose   |
+| ------- | -------- | --------- |
 | [name]  | [^x.y.z] | [purpose] |
 
 ### Dependency Tree (Key Relationships)
@@ -916,25 +916,25 @@ if (flags.isEnabled('feature_x')) {
 
 ### Log Levels
 
-| Level | When to Use | Example |
-|-------|-------------|---------|
-| ERROR | Unexpected failures, needs attention | API call failed after retries |
-| WARN | Recoverable issues, degraded state | Rate limit approaching, fallback used |
-| INFO | Key business events, audit trail | User created, payment processed |
-| DEBUG | Development troubleshooting | Request/response details, state changes |
+| Level | When to Use                          | Example                                 |
+| ----- | ------------------------------------ | --------------------------------------- |
+| ERROR | Unexpected failures, needs attention | API call failed after retries           |
+| WARN  | Recoverable issues, degraded state   | Rate limit approaching, fallback used   |
+| INFO  | Key business events, audit trail     | User created, payment processed         |
+| DEBUG | Development troubleshooting          | Request/response details, state changes |
 
 ### Debug Logging for Implementation
 
 When writing implementation code, emit logs at these points:
 
-| Code Location | What to Log | Level |
-|--------------|-------------|-------|
-| Function entry (complex) | Input params (sanitized) | DEBUG |
-| External API call | Service, endpoint, duration | INFO/DEBUG |
-| State mutation | Before/after (summarized) | DEBUG |
-| Error caught | Error type, context, stack | ERROR |
-| Retry attempt | Attempt #, delay, reason | WARN |
-| Background job start/end | Job ID, duration, result | INFO |
+| Code Location            | What to Log                 | Level      |
+| ------------------------ | --------------------------- | ---------- |
+| Function entry (complex) | Input params (sanitized)    | DEBUG      |
+| External API call        | Service, endpoint, duration | INFO/DEBUG |
+| State mutation           | Before/after (summarized)   | DEBUG      |
+| Error caught             | Error type, context, stack  | ERROR      |
+| Retry attempt            | Attempt #, delay, reason    | WARN       |
+| Background job start/end | Job ID, duration, result    | INFO       |
 
 **Log Format:**
 ```typescript
@@ -949,12 +949,12 @@ logger.info('action_completed', {
 
 ### Key Events to Track
 
-| Event | Purpose | Data Points |
-|-------|---------|-------------|
-| [User signup] | Funnel tracking | Source, timestamp |
-| [Core action completed] | Usage metrics | User, action, duration |
-| [Error occurred] | Debugging | Error type, stack, context |
-| [External API call] | Performance, debugging | Service, endpoint, status, duration |
+| Event                   | Purpose                | Data Points                         |
+| ----------------------- | ---------------------- | ----------------------------------- |
+| [User signup]           | Funnel tracking        | Source, timestamp                   |
+| [Core action completed] | Usage metrics          | User, action, duration              |
+| [Error occurred]        | Debugging              | Error type, stack, context          |
+| [External API call]     | Performance, debugging | Service, endpoint, status, duration |
 
 ---
 
@@ -962,17 +962,17 @@ logger.info('action_completed', {
 
 ### Background Jobs
 
-| Job | Trigger | Frequency | Timeout | Failure Handling |
-|-----|---------|-----------|---------|------------------|
-| [Sync external data] | [Cron / Webhook / Manual] | [Every 5 min] | [30s] | [Retry 3x, then alert] |
-| [Process queue] | [Queue not empty] | [Continuous] | [60s per item] | [Dead letter queue] |
+| Job                  | Trigger                   | Frequency     | Timeout        | Failure Handling       |
+| -------------------- | ------------------------- | ------------- | -------------- | ---------------------- |
+| [Sync external data] | [Cron / Webhook / Manual] | [Every 5 min] | [30s]          | [Retry 3x, then alert] |
+| [Process queue]      | [Queue not empty]         | [Continuous]  | [60s per item] | [Dead letter queue]    |
 
 ### Rate Limit Handling
 
-| Service | Rate Limit | Strategy |
-|---------|------------|----------|
-| [External API] | [100/min] | [Queue + exponential backoff] |
-| [Own API] | [1000/min per user] | [429 response + retry-after header] |
+| Service        | Rate Limit          | Strategy                            |
+| -------------- | ------------------- | ----------------------------------- |
+| [External API] | [100/min]           | [Queue + exponential backoff]       |
+| [Own API]      | [1000/min per user] | [429 response + retry-after header] |
 
 **Backoff Pattern:**
 ```
@@ -985,11 +985,11 @@ Attempt 5: fail, queue for manual retry
 
 ### Retry Logic
 
-| Operation Type | Max Retries | Backoff | Idempotent |
-|---------------|-------------|---------|------------|
-| [Read operations] | 3 | Exponential | Yes |
-| [Write operations] | 2 | Linear | Must be |
-| [Webhooks] | 5 | Exponential | Yes (dedupe) |
+| Operation Type     | Max Retries | Backoff     | Idempotent   |
+| ------------------ | ----------- | ----------- | ------------ |
+| [Read operations]  | 3           | Exponential | Yes          |
+| [Write operations] | 2           | Linear      | Must be      |
+| [Webhooks]         | 5           | Exponential | Yes (dedupe) |
 
 ### Agent Loop Pattern (if applicable)
 
@@ -1022,14 +1022,14 @@ For AI-assisted automation or long-running workflows:
 
 ### Error Handling Strategy
 
-| Layer | Error Type | Handling | User Feedback |
-|-------|-----------|----------|---------------|
-| UI | Validation | Inline field errors | Immediate, specific |
-| UI | Network | Toast + retry option | "Connection issue, retry?" |
-| API | Validation | 400 + error details | Passed to UI |
-| API | Auth | 401/403 + redirect | "Please log in" |
-| API | Server | 500 + logged | "Something went wrong" |
-| Background | Any | Retry + dead letter | None (admin alert) |
+| Layer      | Error Type | Handling             | User Feedback              |
+| ---------- | ---------- | -------------------- | -------------------------- |
+| UI         | Validation | Inline field errors  | Immediate, specific        |
+| UI         | Network    | Toast + retry option | "Connection issue, retry?" |
+| API        | Validation | 400 + error details  | Passed to UI               |
+| API        | Auth       | 401/403 + redirect   | "Please log in"            |
+| API        | Server     | 500 + logged         | "Something went wrong"     |
+| Background | Any        | Retry + dead letter  | None (admin alert)         |
 
 ### Error Propagation
 
@@ -1054,20 +1054,20 @@ For AI-assisted automation or long-running workflows:
 
 ### Graceful Degradation
 
-| Failure | Degraded Behavior | User Communication |
-|---------|------------------|-------------------|
-| [External API down] | [Serve cached data, mark stale] | [Banner: "Data may be outdated"] |
+| Failure             | Degraded Behavior               | User Communication                       |
+| ------------------- | ------------------------------- | ---------------------------------------- |
+| [External API down] | [Serve cached data, mark stale] | [Banner: "Data may be outdated"]         |
 | [Auth service down] | [Allow read-only, block writes] | [Toast: "Login temporarily unavailable"] |
-| [Database slow] | [Extend timeouts, show loading] | [Spinner + "Taking longer than usual"] |
+| [Database slow]     | [Extend timeouts, show loading] | [Spinner + "Taking longer than usual"]   |
 
 ### Recovery Patterns
 
-| Scenario | Recovery Action |
-|----------|----------------|
+| Scenario                | Recovery Action                                 |
+| ----------------------- | ----------------------------------------------- |
 | Partial failure (batch) | Continue with successful items, report failures |
-| Transient error | Auto-retry with backoff |
-| Persistent error | Circuit breaker, alert, manual intervention |
-| Data inconsistency | Reconciliation job, admin tools |
+| Transient error         | Auto-retry with backoff                         |
+| Persistent error        | Circuit breaker, alert, manual intervention     |
+| Data inconsistency      | Reconciliation job, admin tools                 |
 
 ---
 
@@ -1075,8 +1075,8 @@ For AI-assisted automation or long-running workflows:
 
 ### Optimistic Locking
 
-| Entity | Lock Strategy | Conflict Resolution |
-|--------|--------------|---------------------|
+| Entity            | Lock Strategy                     | Conflict Resolution                |
+| ----------------- | --------------------------------- | ---------------------------------- |
 | [Shared resource] | [Version field / updatedAt check] | [Last write wins / Merge / Reject] |
 
 **Pattern:**
@@ -1091,11 +1091,11 @@ await save(entity);
 
 ### Race Condition Mitigations
 
-| Scenario | Risk | Mitigation |
-|----------|------|------------|
-| [Double submit] | Duplicate records | [Disable button + idempotency key] |
-| [Concurrent edits] | Lost updates | [Optimistic locking + conflict UI] |
-| [Counter increment] | Wrong total | [Atomic DB operation] |
+| Scenario            | Risk              | Mitigation                         |
+| ------------------- | ----------------- | ---------------------------------- |
+| [Double submit]     | Duplicate records | [Disable button + idempotency key] |
+| [Concurrent edits]  | Lost updates      | [Optimistic locking + conflict UI] |
+| [Counter increment] | Wrong total       | [Atomic DB operation]              |
 
 ### Conflict Resolution UI
 
@@ -1110,46 +1110,46 @@ When conflicts occur, present user with options:
 
 ### Test Types Per Layer
 
-| Layer | Test Type | Coverage Goal | Tools |
-|-------|-----------|---------------|-------|
-| UI Components | Unit | Critical components | [Vitest, Testing Library] |
-| State/Hooks | Unit | Business logic hooks | [Vitest] |
-| API Endpoints | Integration | All endpoints | [Supertest, Vitest] |
-| Full Flows | E2E | Critical user paths | [Playwright] |
+| Layer         | Test Type   | Coverage Goal        | Tools                     |
+| ------------- | ----------- | -------------------- | ------------------------- |
+| UI Components | Unit        | Critical components  | [Vitest, Testing Library] |
+| State/Hooks   | Unit        | Business logic hooks | [Vitest]                  |
+| API Endpoints | Integration | All endpoints        | [Supertest, Vitest]       |
+| Full Flows    | E2E         | Critical user paths  | [Playwright]              |
 
 ### What to Test
 
-| Priority | What | Why |
-|----------|------|-----|
-| HIGH | Critical user flows (auth, core action) | Breaking = users blocked |
-| HIGH | Business logic (calculations, validations) | Breaking = wrong data |
-| MEDIUM | Error handling paths | Breaking = bad UX |
-| LOW | Edge cases, rare scenarios | Defer until stable |
+| Priority | What                                       | Why                      |
+| -------- | ------------------------------------------ | ------------------------ |
+| HIGH     | Critical user flows (auth, core action)    | Breaking = users blocked |
+| HIGH     | Business logic (calculations, validations) | Breaking = wrong data    |
+| MEDIUM   | Error handling paths                       | Breaking = bad UX        |
+| LOW      | Edge cases, rare scenarios                 | Defer until stable       |
 
 ### Mocking Strategy
 
-| Dependency | Mock Approach |
-|------------|---------------|
-| External APIs | [MSW handlers / fixture responses] |
-| Database | [In-memory DB / Test DB with reset] |
-| Auth | [Mock user context / Test tokens] |
-| Time/Date | [Fake timers / Inject clock] |
+| Dependency    | Mock Approach                       |
+| ------------- | ----------------------------------- |
+| External APIs | [MSW handlers / fixture responses]  |
+| Database      | [In-memory DB / Test DB with reset] |
+| Auth          | [Mock user context / Test tokens]   |
+| Time/Date     | [Fake timers / Inject clock]        |
 
 ### Test Data
 
-| Approach | Use Case |
-|----------|----------|
-| Factories | Generate valid entities with overrides |
-| Fixtures | Static known-good data for specific scenarios |
-| Seed scripts | Populate test DB with realistic data |
+| Approach     | Use Case                                      |
+| ------------ | --------------------------------------------- |
+| Factories    | Generate valid entities with overrides        |
+| Fixtures     | Static known-good data for specific scenarios |
+| Seed scripts | Populate test DB with realistic data          |
 
 ### Coverage Expectations (by phase)
 
-| Phase | Coverage Target | Focus |
-|-------|----------------|-------|
-| Tracer bullet | ~20% | Critical path only |
-| Build out | ~50% | All happy paths |
-| Polish | ~70% | + Error paths, edge cases |
+| Phase         | Coverage Target | Focus                     |
+| ------------- | --------------- | ------------------------- |
+| Tracer bullet | ~20%            | Critical path only        |
+| Build out     | ~50%            | All happy paths           |
+| Polish        | ~70%            | + Error paths, edge cases |
 
 ---
 
