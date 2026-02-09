@@ -2,7 +2,7 @@
 name: debug
 description: Dual-path bug investigation with ranked evidence
 ---
-
+<!-- Purpose: use any time you have a bug and you need more confidence about the root cause -->
 Investigate this bug: $ARGUMENTS
 
 You are the main orchestrator. Spawn two `general` subagents in parallel via the Task tool.
