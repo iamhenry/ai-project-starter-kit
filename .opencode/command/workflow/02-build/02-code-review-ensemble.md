@@ -1,6 +1,7 @@
 ---
 name: code-review-ensemble
 description: Fan out code review to multiple AI models in parallel and synthesize results
+purpose: Use when I want to merge the feature branch into main and need confidence
 ---
 
 # Code Review Ensemble
@@ -49,12 +50,12 @@ Expand these aliases to full provider/model format:
 <!-- Only heavy-hitter frontier models -->
 <!-- model list can be seen at `opencode models` in a terminal -->
 
-| Alias    | Full Model Name                   |
-| -------- | --------------------------------- |
-| `opus`   | `firmware/claude-opus-4-5`        |
-| `gemini` | `firmware/gemini-3-pro-preview`   |
-| `gpt`    | `openai/gpt-5.2-low`              |
-| `codex`  | `openai/gpt-5.2-codex-medium`     |
+| Alias    | Full Model Name                               |
+| -------- | --------------------------------------------- |
+| `opus`   | `google/antigravity-claude-opus-4-6-thinking` |
+| `gemini` | `google/antigravity-gemini-3-pro`             |
+| `gpt`    | `openai/gpt-5.2`                              |
+| `codex`  | `openai/gpt-5.3-codex`                        |
 
 Users can also specify full model names directly.
 
@@ -106,6 +107,15 @@ IMPORTANT: First, run the appropriate git command to get the changes:
 - If scope is "branch": run `git diff {base_branch}...HEAD`
 
 Then perform the code review following the instructions above.
+
+After completing the review, write the final output as markdown to the repository root using this exact filename pattern:
+
+- `review-{alias}.md` (examples: `review-opus.md`, `review-gemini.md`)
+
+If file write fails, print the final review between markers:
+
+- `###REVIEW_START###`
+- `###REVIEW_END###`
 ```
 
 ### Step 4: Send Commands to Each Window
@@ -113,7 +123,7 @@ Then perform the code review following the instructions above.
 For each model/window:
 
 ```bash
-tmux send-keys -t ensemble-review:{alias} 'opencode run --model {full_model_name} --format json "{escaped_prompt}"; echo "###DONE###"' C-m
+tmux send-keys -t ensemble-review:{alias} 'opencode run --model {full_model_name} "{escaped_prompt}"; echo "###DONE###"' C-m
 ```
 
 ### Step 5: Patient Polling
@@ -136,13 +146,23 @@ Reviews can take 10-15 minutes - keep waiting as long as output grows.
 
 ### Step 6: Capture Results
 
-For each completed window:
+For each completed window, capture results in this order:
+
+1. **File-first (default):** Read markdown file from repo root:
 
 ```bash
-tmux capture-pane -p -S - -t ensemble-review:{alias} | grep '"type":"text"' | sed 's/.*"text":"\([^"]*\)".*/\1/'
+cat review-{alias}.md
 ```
 
-Extract the clean text response from JSON output.
+2. **Fallback (if file missing):** Extract marker-delimited review text from tmux pane:
+
+```bash
+tmux capture-pane -p -S - -t ensemble-review:{alias}
+```
+
+Capture content between `###REVIEW_START###` and `###REVIEW_END###`.
+
+3. **If neither exists:** mark model status as `Error` (or `Timeout` if stagnant timeout triggered) and continue.
 
 ### Step 7: Cleanup
 
@@ -351,5 +371,5 @@ Cleaning up tmux session...
 ## Dependencies
 
 - `tmux` - for parallel session management
-- `opencode run` - for running models with `--model` and `--format json` flags
+- `opencode run` - for running models with `--model` and inline prompt
 - `_ai/tools/quality/code-review.md` - review instructions template
