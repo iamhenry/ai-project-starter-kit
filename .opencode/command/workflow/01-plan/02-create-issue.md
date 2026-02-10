@@ -288,23 +288,26 @@ Once implementation is complete, verify code quality by running these checks in 
 
 <!-- Only include when the task has UI changes. Delete this section if not applicable. -->
 
-Verify the implementation visually in the browser. The agent uses the `chrome-devtools` skill (Puppeteer) to automate these steps and capture screenshots as evidence.
+Verify the implementation visually in the browser. The agent uses the Playwright CLI skill to automate these steps, record interactive flows as video evidence, and capture screenshots for static UI checks.
 
 **Guidelines:**
 - 3-5 checkpoints covering the core happy-path flow
-- Mark 2-3 key moments with `📸` for screenshot capture
+- If a step is an interactive flow, mark it with `🎥` and record it
+- If a step is a static visual check, mark it with `📸` for screenshot capture
+- Mark 2-3 key moments with evidence tags (`🎥` and/or `📸`)
+- Recordings saved to `_ai/task/{SLUG}/recordings/{step}.webm`
 - Screenshots saved to `_ai/task/{SLUG}/screenshots/{step}.png`
 
 **Example:**
 1. Navigate to `http://localhost:3000/settings`
 2. 📸 Verify the new "Notifications" tab renders (screenshot: initial state)
-3. Toggle notification preference — verify toggle animates and state persists
+3. 🎥 Start recording, toggle notification preference, and verify toggle animates and state persists (recording: settings-toggle-flow)
 4. 📸 Verify success toast appears (screenshot: confirmation)
-5. Refresh page — verify preference persisted
+5. 🎥 Refresh page and verify preference persisted, then stop recording (recording: persistence-check-flow)
 
 ---
 
-[Generate 3-5 verification checkpoints for the core flow. Mark 2-3 moments with 📸.]
+[Generate 3-5 verification checkpoints for the core flow. Mark 2-3 moments with `🎥` and/or `📸` based on flow vs static checks.]
 
 ### Manual QA Checklist
 
