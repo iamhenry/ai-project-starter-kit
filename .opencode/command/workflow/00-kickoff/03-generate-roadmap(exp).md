@@ -4,7 +4,8 @@
 - this new  Tracer Bullet Vertical Slice Method focuses on one core journey or user story that's chord to the MVP
 `(ex. # Core Flow Home: (Conversation List) → FAB → Capture/Gallery → Image Processing → New Conversation View (with Receipt Component showing parsed items)`
 
-# HIGHLY Experimental Roadmap.md Parallel Task Execution
+## Inputs
+1. output from: `.opencode/command/workflow/00-kickoff/02-technical-requirements.md` as `tech-adr.md`
 
 ## Purpose
 1.  Break down work into granular tasks.

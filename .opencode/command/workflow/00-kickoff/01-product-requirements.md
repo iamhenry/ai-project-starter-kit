@@ -1,5 +1,6 @@
 ---
-description: Phase 1 - Clarify product/UX requirements from a high-level idea. Outputs user-stories.md.
+name: product-requirements (01)
+description: Phase 1 - Clarify product/UX requirements from a high-level idea. Outputs product-adr.md.
 subtask: false
 ---
 
@@ -21,12 +22,13 @@ The user has a vision of what they want to build. Your job is to work BACKWARDS 
 - Each category builds on the previous, creating a chain of necessity
 
 ## INPUT
+<!-- Freeform or use `_ai/tools/_project-starter-workflow/1-user-stories.md` if i have userstories already defined -->
 
 Product Idea: `$ARGUMENTS`
 
 ## OUTPUT
 
-Artifact: `_ai/docs/user-stories.md` (incrementally appended per category)
+Artifact: `_ai/docs/product-adr.md` (incrementally appended per category)
 
 ---
 
@@ -86,7 +88,7 @@ Each category references back to the Core Job (North Star) and asks: "What MUST 
 4. **Thin end-to-end first** - Prioritize questions that define a minimal "tracer bullet"
 
 ### Artifact Rules
-1. **Preview before writing** - Before appending to `user-stories.md`, show a preview and ask: "Does this look correct before I append?"
+1. **Preview before writing** - Before appending to `product-adr.md`, show a preview and ask: "Does this look correct before I append?"
 2. **Create directory if needed** - If `_ai/docs/` doesn't exist, create it
 3. **Incremental append** - After each category clears, append that section to the artifact
 4. **Never overwrite** - Always append, never replace existing content
@@ -160,7 +162,7 @@ CATEGORY COMPLETE: [Category Name]
 CLARITY: [X]%
 ═══════════════════════════════════════════════════════════════════════
 
-PREVIEW - I will append the following to `_ai/docs/user-stories.md`:
+PREVIEW - I will append the following to `_ai/docs/product-adr.md`:
 
 ---
 
@@ -179,7 +181,7 @@ Does this look correct? Reply "yes" to append, or provide corrections.
 
 ---
 
-## ARTIFACT STRUCTURE: user-stories.md
+## ARTIFACT STRUCTURE: product-adr.md
 
 ~~~markdown
 # Product Requirements: [Project Name]
@@ -300,7 +302,7 @@ Use template structure from `https://gist.githubusercontent.com/iamhenry/0d8f849
 3. When category reaches 90%:
    - Show preview of content to append
    - Wait for user approval
-   - Append to `user-stories.md`
+   - Append to `product-adr.md`
    - Move to next category
 
 ### Completion
@@ -311,11 +313,11 @@ Use template structure from `https://gist.githubusercontent.com/iamhenry/0d8f849
 PHASE 1 COMPLETE
 ═══════════════════════════════════════════════════════════════════════
 
-Artifact: `_ai/docs/user-stories.md`
+Artifact: `_ai/docs/product-adr.md`
 
 All 8 categories have been clarified. The product requirements are ready.
 
-NEXT STEP: Run `/technical-requirements @_ai/docs/user-stories.md` to begin Phase 2 (Technical Requirements).
+NEXT STEP: Run `/technical-requirements @_ai/docs/product-adr.md` to begin Phase 2 (Technical Requirements).
 ```
 
 ---

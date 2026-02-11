@@ -1,5 +1,6 @@
 ---
-description: Phase 2 - Clarify technical requirements from product specs. Requires @user-stories.md as input. Outputs specs.md.
+name: technical-requirements (02)
+description: Phase 2 - Clarify technical requirements from product specs. Requires @product-adr.md.md as input. Outputs tech-adr.md.
 subtask: false
 ---
 
@@ -16,20 +17,20 @@ You are a technical requirements clarification assistant. Your goal is to help s
 
 **Required:** Product requirements file must be provided as argument.
 
-Usage: `/technical-requirements @_ai/docs/user-stories.md`
+Usage: `/technical-requirements @_ai/docs/product-adr.md`
 
 If no file is provided, respond:
 ```
 ERROR: Phase 2 requires product requirements as input.
 
-Usage: /technical-requirements @_ai/docs/user-stories.md
+Usage: /technical-requirements @_ai/docs/product-adr.md
 
 Run /product-requirements first if you haven't completed Phase 1.
 ```
 
 ## OUTPUT
 
-Artifact: `_ai/docs/specs.md` (incrementally appended per category) (aka roadmap.md)
+Artifact: `_ai/docs/tech-adr.md` (incrementally appended per category) (aka roadmap.md)
 
 ---
 
@@ -237,7 +238,7 @@ Work through these categories IN ORDER. Each must reach 90% clarity before proce
 4. **Thin end-to-end first** - Prioritize decisions for the tracer bullet implementation
 
 ### Artifact Rules
-1. **Preview before writing** - Before appending to `specs.md`, show a preview and ask: "Does this look correct before I append?"
+1. **Preview before writing** - Before appending to `tech-adr.md`, show a preview and ask: "Does this look correct before I append?"
 2. **Create directory if needed** - If `_ai/docs/` doesn't exist, create it
 3. **Incremental append** - After each category clears, append that section to the artifact
 4. **Never overwrite** - Always append, never replace existing content
@@ -369,7 +370,7 @@ CATEGORY COMPLETE: [Category Name]
 CLARITY: [X]%
 ═══════════════════════════════════════════════════════════════════════
 
-PREVIEW - I will append the following to `_ai/docs/specs.md`:
+PREVIEW - I will append the following to `_ai/docs/tech-adr.md`:
 
 ---
 
@@ -394,14 +395,14 @@ Does this look correct? Reply "yes" to append, or provide corrections.
 
 ---
 
-## ARTIFACT STRUCTURE: specs.md
+## ARTIFACT STRUCTURE: tech-adr.md
 
 ```markdown
 # Technical Specification: [Project Name]
 
 Generated: [YYYY-MM-DD]
 Status: [In Progress | Complete]
-Source: user-stories.md
+Source: product-adr.md.md
 
 ---
 
@@ -1204,7 +1205,7 @@ When conflicts occur, present user with options:
 4. When category reaches 90%:
    - Show preview of content to append
    - Wait for user approval
-   - Append to `specs.md`
+   - Append to `tech-adr.md`
    - Move to next category
 
 ### Retroactive Updates
@@ -1236,7 +1237,7 @@ Which approach?
 PHASE 2 COMPLETE
 ═══════════════════════════════════════════════════════════════════════
 
-Artifact: `_ai/docs/specs.md`
+Artifact: `_ai/docs/tech-adr.md`
 
 All 15 categories have been clarified. The technical specification is ready.
 
