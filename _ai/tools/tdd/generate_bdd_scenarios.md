@@ -12,7 +12,6 @@ When generating Gherkin scenarios, follow these guidelines:
 - Ensure the requirements are precise, actionable, and aligned with user interactions or system processes.
 - Omit irrelevant scenarios.
 - When generating files, use the format: `bdd-[filename].md`
-- Use the `write_to_file` tool to create the scenario files.
 
 # Behavior-Focused Scenario Template
 
