@@ -16,7 +16,7 @@ SKIP when:
 - URL is user's own project
 - User just wants to clone/fork
 
-Convert GitHub repos into text format using the CLI - output streams to stdout by default.
+Convert GitHub repos into text format using the CLI. By default, gitingest writes to `digest.txt`; use `-o -` to stream to stdout.
 
 ## STREAMING ONLY (HARD DEFAULT)
 
@@ -29,7 +29,7 @@ ALWAYS stream to stdout with `-o -`. DO NOT:
 Only write to disk if user EXPLICITLY requests it.
 
 ```bash
-# CORRECT - streams to stdout
+# CORRECT: streams to stdout (recommended default)
 gitingest https://github.com/user/repo -o -
 gitingest https://github.com/user/repo -i "*.ts" -o -
 
@@ -51,7 +51,7 @@ pipx install gitingest
 ### Linux Notes
 
 - If `pip install --user` fails with PEP 668 error, use `pipx install gitingest` instead.
-- If `gitingest: command not found`, ensure `~/.local/bin` is on PATH. Run `pipx ensurepath` then restart your shell.
+- If `gitingest: command not found` after `pipx install`, ensure `~/.local/bin` is on PATH. Run `pipx ensurepath`, restart your shell, then verify `command -v gitingest`.
 - Verify: `gitingest --help` or `pipx list | grep gitingest`
 
 ## Default Usage (Streaming to stdout)
