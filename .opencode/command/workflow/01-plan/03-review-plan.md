@@ -263,11 +263,7 @@ The summary section captures that the plan was reviewed thoroughly. Individual r
 
 <!-- Only include sections below if they require ACTION. Omit sections that are optimal. -->
 
-## Section: [Document section being reviewed]
-
-**Recommendation**: [Specific action to simplify]
-
-**Reason**: [YAGNI/KISS/SOLID/DRY - which principle is violated]
+## #1 [Brief recommendation title]
 
 **Evidence**:
 
@@ -278,8 +274,61 @@ The summary section captures that the plan was reviewed thoroughly. Individual r
   - If not performed: [Justification - why existing codebase evidence is sufficient]
 - Justification: [brief tradeoff analysis]
 
+**Principle violated**: [YAGNI/KISS/SOLID/DRY]
+
+**Issue**: [What needs simplification - 1 sentence]
+
+**Options:**
+
+- [ ] **(a) [Recommended action]** ⭐ RECOMMENDED
+  - Why: [brief rationale]
+  - Evidence: [file:line or doc URL]
+
+- [ ] **(b) [Alternative action]**
+  - Why: [brief rationale]
+  - Tradeoff: [what you give up]
+
+- [ ] **(c) [Another alternative]**
+  - Why: [brief rationale]
+  - Tradeoff: [what you give up]
+
+- [ ] **(d) Custom: [your answer]**
+
+---
+
+## #2 [Next recommendation title]
+
+**Evidence**:
+
+- Current plan: [what the plan proposes]
+- Codebase findings: [specific file paths, line numbers, patterns found]
+- Web search: [Performed/Not performed]
+  - If performed: [URLs, official docs, framework recommendations]
+  - If not performed: [Justification - why existing codebase evidence is sufficient]
+- Justification: [brief tradeoff analysis]
+
+**Principle violated**: [YAGNI/KISS/SOLID/DRY]
+
+**Issue**: [What needs simplification - 1 sentence]
+
+**Options:**
+
+- [ ] **(a) [Recommended action]** ⭐ RECOMMENDED
+  - Why: [brief rationale]
+  - Evidence: [file:line or doc URL]
+
+- [ ] **(b) [Alternative action]**
+  - Why: [brief rationale]
+  - Tradeoff: [what you give up]
+
+- [ ] **(c) [Another alternative]**
+  - Why: [brief rationale]
+  - Tradeoff: [what you give up]
+
+- [ ] **(d) Custom: [your answer]**
+
 <!--
-Repeat this format for each section/recommendation.
+Repeat this format for each recommendation.
 All recommendations MUST be grounded in verifiable evidence from codebase or official documentation.
 -->
 ```
