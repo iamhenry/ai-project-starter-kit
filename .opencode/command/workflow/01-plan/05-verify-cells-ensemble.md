@@ -100,7 +100,8 @@ Verify that the cells created from the ROADMAP.md plan are:
 - [ ] All tasks within each milestone have a corresponding task cell
 - [ ] Task titles match roadmap task titles
 - [ ] Task descriptions include: file paths, code snippets, patterns, gotchas
-- [ ] Acceptance criteria are specific and testable
+- [ ] Acceptance criteria are **measurable** (specific values/thresholds) AND **testable** (verifiable conditions)
+- [ ] Each AC answers "How would I verify this passes?" with concrete method
 - [ ] Dependencies match execution plan (BLOCKING, PARALLEL, DEPENDENT)
 
 ### For Structure:

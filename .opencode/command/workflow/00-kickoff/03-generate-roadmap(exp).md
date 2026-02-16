@@ -243,6 +243,13 @@ Data Flow:
   - [ ] 1.2. Implement a database service layer to create a new recipe record. For now, the `name` can be hardcoded (e.g., "New Recipe").
   - Files: `db/schema.ts`, `services/dbService.ts`
   - Branch Name: `feature/db-recipe-schema`
+  
+  **Acceptance Criteria Guidelines:**
+  - Must be **measurable**: Include specific values, thresholds, or observable states
+  - Must be **testable**: Answer "How would I verify this passes?" 
+  - ❌ Avoid: "The feature works correctly"
+  - ✅ Use: "POST /api/recipes returns 201 with `{ id, name, ingredients }` schema"
+  
   - Acceptance Criteria: A `recipes` table schema is defined, and a service function can write a new record to it.
   - Complexity: 2
 - [ ] 2. ✅ Build the API Endpoint for Recipe Creation

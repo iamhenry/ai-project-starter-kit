@@ -116,26 +116,37 @@ Create tasks using this comprehensive template (used for both GitHub issues and 
 
 ### Acceptance Criteria
 
-[Generate specific, measurable outcomes that define task completion based on the task description. Format as checkboxes.]
+[Generate acceptance criteria that are **measurable** and **testable**. Each criterion must include verifiable conditions, not just desired states. Format as checkboxes.]
+
+**MEASURABLE Format Examples:**
+- ✅ `API endpoint returns 200 status code with valid response schema` (testable via automated test)
+- ✅ `Button click triggers navigation to /dashboard within 100ms` (measurable latency)
+- ❌ `User has a good experience` (subjective, not measurable)
+
+**TESTABLE Requirements:**
+Each AC must answer: "How would I verify this passes?" 
+- Include expected outputs, states, or side effects
+- Specify exact values, ranges, or conditions when possible
+- Reference specific files, functions, or endpoints affected
 
 ### User Story
 
-[Generate one high-impact user story in the format: "As a [user type], I want [functionality] so that [benefit/value]". Include 1-2 specific acceptance criteria that focus on the most critical user-facing behaviors or outcomes.]
+[Generate one high-impact user story in the format: "As a [user type], I want [functionality] so that [benefit/value]". Include 1-2 acceptance criteria following the measurable/testable format above, focusing on the most critical user-facing behaviors or outcomes.]
 
 ### Gherkin BDD Scenarios
 
-[Generate primary (happy path) and secondary (edge case) scenarios in Given-When-Then format, user-focused with 1-2 acceptance criteria each:]
+[Generate primary (happy path) and secondary (edge case) scenarios in Given-When-Then format. Each scenario must include testable acceptance criteria with expected outputs/states:]
 
 ```md
 ### Scenario: [User action and outcome]
 
 Given [user state/precondition]
 When [user action]
-Then [user-visible outcome]
+Then [user-visible outcome with verifiable condition]
 
 Acceptance Criteria:
 
-- [Observable outcome]
+- [Measurable outcome: specific value/threshold/state]
 ```
 ````
 
