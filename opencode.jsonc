@@ -5,7 +5,8 @@
   "formatter": false,
   "instructions": [
     "CLAUDE.md",
-    ".opencode/napkin.md"
+    ".opencode/napkin.md",
+    "_ai/docs/ETHOS.md"
   ],
   "plugin": [
     "@tarquinen/opencode-dcp@latest", // (https://github.com/Tarquinen/opencode-dynamic-context-pruning)

@@ -74,9 +74,10 @@ Organized by decision domain: WHY → HOW → WHO
 ### INTERACTION (Who we serve)
 
 12) SIMPLE UX, FEWER STATES  
-- IDEA: Prefer fewer, clearer states over many subtle ones. Label things so a non‑technical person understands them in seconds.  
-- EXAMPLE: Use a single clear badge or status instead of multiple overlapping badges that might confuse users.  
-- HEURISTIC QUESTION: COULD A NEW USER EXPLAIN THIS STATUS OR LABEL BACK TO ME IN ONE SENTENCE?
+- IDEA: Prefer fewer, clearer states over many subtle ones. Primary actions should reflect real system state, and impossible actions should not be available. Label things so a non‑technical person understands them in seconds.  
+- EXAMPLE: Swap one primary action from "Generate" to "Cancel" while work is active instead of showing two competing buttons or allowing a second invalid submit.  
+- EXAMPLE: Use a single clear badge or status instead of multiple overlapping badges that might confuse users. 
+- HEURISTIC QUESTION: DOES THE PRIMARY ACTION MATCH WHAT THE SYSTEM CAN ACTUALLY DO RIGHT NOW, AND CAN A NEW USER EXPLAIN IT IN ONE SENTENCE?
 
 13) MINIMIZE FRICTION  
 - IDEA: Good UX reduces effort to complete actions. Fewer clicks, simpler flows, less cognitive load = less frustration.  
