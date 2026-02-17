@@ -219,10 +219,14 @@ Work through these categories IN ORDER. Each must reach 90% clarity before proce
 2. **Numbered options required** - Every question MUST provide 3-5 numbered options
 3. **User-focused framing** - Frame questions around user impact, not implementation details
 4. **Complete option format** - Each option MUST include: UX, When this matters, Pro, Con, Complexity with time estimate, Technical details
-5. **Grounded suggestions only** - Do NOT make up suggestions. If uncertain:
-   - State explicitly: "I need to research this"
-   - Use web search to find best practices, library comparisons, architecture patterns
-   - Then present grounded options with citations
+5. **Grounded suggestions only (adaptive)** - Memory is a starting point, not final evidence.
+   - Use retrieval when claims are factual and impactful (pricing, API behavior, security, limits, version-specific behavior)
+   - Skip retrieval when the decision is preference-only and does not depend on external facts
+   - Be liberal with focused verification subagents when factual uncertainty exists; prefer quick verification over unverified memory
+   - Keep verification subagents narrow: 1 for quick checks, up to 3 for deep checks
+   - If uncertain, state explicitly: "I need to research this"
+   - Source priority: Official docs > Maintainer docs/repo > Recent issues/changelog > Third-party blogs
+   - Then present grounded options with citations (URL + accessed date + version/date context)
 6. **Reference product requirements** - Tie technical decisions back to product needs
 7. **Favor idiomatic & pragmatic** - Weight recommendations toward options that are idiomatic to the stack and pragmatic for solo dev context
 
@@ -293,6 +297,10 @@ OPTIONS:
    - Con: [User/product risk]
    - Complexity: [Low/Medium/High] | [Time estimate]
    - Technical: [1-2 sentences for engineering record]
+   - Verification Needed: [No | Quick | Deep] - [one-line reason]
+   - Verification Path: [None | Quick subagent | Deep subagents] - [why]
+   - Evidence (if verification needed): [Source URL, accessed YYYY-MM-DD, version/date]
+   - Confidence: [High/Medium/Low] + [one-line reason]
 
 2. [DESCRIPTIVE NAME]
    - UX: [What user sees; what could go wrong - single line]
@@ -301,6 +309,10 @@ OPTIONS:
    - Con: [User/product risk]
    - Complexity: [Low/Medium/High] | [Time estimate]
    - Technical: [1-2 sentences for engineering record]
+   - Verification Needed: [No | Quick | Deep] - [one-line reason]
+   - Verification Path: [None | Quick subagent | Deep subagents] - [why]
+   - Evidence (if verification needed): [Source URL, accessed YYYY-MM-DD, version/date]
+   - Confidence: [High/Medium/Low] + [one-line reason]
 
 3. [DESCRIPTIVE NAME]
    - UX: [What user sees; what could go wrong - single line]
@@ -309,6 +321,10 @@ OPTIONS:
    - Con: [User/product risk]
    - Complexity: [Low/Medium/High] | [Time estimate]
    - Technical: [1-2 sentences for engineering record]
+   - Verification Needed: [No | Quick | Deep] - [one-line reason]
+   - Verification Path: [None | Quick subagent | Deep subagents] - [why]
+   - Evidence (if verification needed): [Source URL, accessed YYYY-MM-DD, version/date]
+   - Confidence: [High/Medium/Low] + [one-line reason]
 
 4. [Search for best practices]
    - I'll research current best practices and library options for this
@@ -327,6 +343,9 @@ RECOMMENDATION: [1-2 sentences - favor idiomatic/pragmatic options; tie to solo 
 | Pro/Con           | Scannable tradeoffs framed as user/product value  |
 | Complexity        | Includes time estimate to help prioritize         |
 | Technical         | Full engineering context for implementation       |
+| Verification Needed | Signals if retrieval is required and why        |
+| Evidence          | Citation details when verification is used        |
+| Confidence        | Makes uncertainty explicit for decision quality   |
 | Recommendation    | Opinionated guidance tied to constraints          |
 
 ---
@@ -1201,8 +1220,16 @@ When conflicts occur, present user with options:
 ### Category Loop
 1. Display applicability check (self-assessed) for the category
 2. If applicable: ask one question at a time with numbered options
-3. Track clarity after each answer
-4. When category reaches 90%:
+3. After each user answer, run Verification Triage:
+   - Decision type: Preference | Factual | High-risk factual
+   - Confidence: High (>=85%) | Medium (50-84%) | Low (<50%)
+   - Action:
+     - Preference + High confidence -> proceed without retrieval
+     - Factual + Medium confidence -> quick check (1 official source)
+     - High-risk factual or Low confidence -> deep check (2+ sources, spawn 1-3 focused subagents when useful)
+     - Default for factual/high-risk factual decisions: favor focused subagent verification unless recent, high-confidence evidence is already available
+4. Track clarity after each answer (use verified facts when retrieval is triggered)
+5. When category reaches 90%:
    - Show preview of content to append
    - Wait for user approval
    - Append to `tech-adr.md`
@@ -1250,22 +1277,28 @@ NEXT STEP: Create `roadmap.md` from the Implementation Roadmap section and begin
 
 ## WEB SEARCH GUIDANCE
 
-When you need to ground suggestions:
+Use adaptive retrieval. Not every answer requires verification.
 
-1. **Trigger phrases:**
-   - "I need to research current best practices for..."
-   - "Let me compare libraries for..."
-   - "I'll search for architecture patterns for..."
+1. **When to retrieve evidence:**
+   - Claims about API docs/SDK behavior, auth/security rules, pricing/free tiers, quotas/rate limits, compliance, or version-specific implementation
+   - Any claim with medium/low confidence
+   - Any claim where being wrong causes user trust loss, rework, or security risk
 
-2. **Search, then present:**
-   - Perform web search
-   - Compare options with version numbers, stars, maintenance status
-   - Synthesize findings into numbered options
-   - Cite sources briefly
+2. **When retrieval is optional:**
+   - Preference-only choices (naming, UX style, sequencing) that do not depend on external facts
 
-3. **Examples of when to search:**
-   - Database comparisons (SQLite vs Postgres vs Supabase)
-   - State management libraries (Zustand vs Jotai vs Redux)
-   - Notification service options (FCM, OneSignal, Pusher)
-   - Hosting platform comparisons
-   - API design patterns for specific use cases
+3. **Source quality order:**
+   - Official docs first
+   - Then maintainer docs/repo/changelog
+   - Then recent community sources for supporting context
+
+4. **Retrieval levels:**
+   - No verification: proceed directly
+   - Quick check: 1 official source
+   - Deep check: 2+ sources, include official docs, spawn focused subagents when useful
+   - Prefer subagent retrieval for fast-changing facts (pricing, limits, SDK/API behavior)
+
+5. **Output requirements (when retrieval used):**
+   - Include source URL, accessed date, and version/date context
+   - If evidence is stale/weak, say so explicitly
+   - If sources conflict, show disagreement, choose conservative default, and note follow-up validation
