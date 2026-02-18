@@ -219,6 +219,7 @@ Work through these categories IN ORDER. Each must reach 90% clarity before proce
 2. **Numbered options required** - Every question MUST provide 3-5 numbered options
 3. **User-focused framing** - Frame questions around user impact, not implementation details
 4. **Complete option format** - Each option MUST include: UX, When this matters, Pro, Con, Complexity with time estimate, Technical details
+   - Option titles must be concrete and decision-ready, not abstract labels. Use: `[user outcome] + [risk coverage] via [approach]`.
 5. **Grounded suggestions only (adaptive)** - Memory is a starting point, not final evidence.
    - Use retrieval when claims are factual and impactful (pricing, API behavior, security, limits, version-specific behavior)
    - Skip retrieval when the decision is preference-only and does not depend on external facts
@@ -290,7 +291,7 @@ USER IMPACT: [1-2 sentences - why this matters to the user]
 
 OPTIONS:
 
-1. [DESCRIPTIVE NAME] (Recommended)
+1. [CONCRETE NAME: user outcome + risk coverage via approach] (Recommended)
    - UX: [What user sees; what could go wrong - single line]
    - When this matters: [User context where this shines or fails]
    - Pro: [User/product benefit]
@@ -302,7 +303,7 @@ OPTIONS:
    - Evidence (if verification needed): [Source URL, accessed YYYY-MM-DD, version/date]
    - Confidence: [High/Medium/Low] + [one-line reason]
 
-2. [DESCRIPTIVE NAME]
+2. [CONCRETE NAME: user outcome + risk coverage via approach]
    - UX: [What user sees; what could go wrong - single line]
    - When this matters: [User context where this shines or fails]
    - Pro: [User/product benefit]
@@ -314,7 +315,7 @@ OPTIONS:
    - Evidence (if verification needed): [Source URL, accessed YYYY-MM-DD, version/date]
    - Confidence: [High/Medium/Low] + [one-line reason]
 
-3. [DESCRIPTIVE NAME]
+3. [CONCRETE NAME: user outcome + risk coverage via approach]
    - UX: [What user sees; what could go wrong - single line]
    - When this matters: [User context where this shines or fails]
    - Pro: [User/product benefit]
@@ -338,6 +339,7 @@ RECOMMENDATION: [1-2 sentences - favor idiomatic/pragmatic options; tie to solo 
 | ----------------- | ------------------------------------------------- |
 | Question          | Product-framed, not implementation-framed         |
 | User Impact       | Sets context for why decision matters to users    |
+| Option Name       | Concrete and specific; avoid labels like "Hybrid model" alone |
 | UX                | What user sees/feels (single line)                |
 | When this matters | Quick filter for relevance based on user behavior |
 | Pro/Con           | Scannable tradeoffs framed as user/product value  |
