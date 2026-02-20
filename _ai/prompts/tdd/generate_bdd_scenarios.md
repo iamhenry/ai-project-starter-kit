@@ -40,8 +40,8 @@ When generating Gherkin scenarios, follow these guidelines:
     And [Error states or alternative paths if relevant]
 
   <!-- How can we verify this works without knowing implementation? What's non-negotiable? -->
-  ## Acceptance Criteria:
-  - [ ] [Measurable/observable criterion that verifies success]
+  ## Acceptance Criteria (limit 2):
+  - [ ] [Measurable/testable criterion that verifies success]
   - [ ] [Boundary condition handling]
   - [ ] [Performance aspect if relevant] 
   - [ ] [Accessibility consideration if relevant]
