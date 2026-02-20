@@ -3,6 +3,7 @@ name: product-requirements (01)
 description: Phase 1 - Clarify product/UX requirements from a high-level idea. Outputs product-adr.md.
 subtask: false
 ---
+<!-- OPUS 4.5 / SONNET 4.6 MUST USE EITHER OF THESE MODELS. OTHER MODELS SUCK -->
 
 <!-- 
 PHASE 1: WHAT THE PRODUCT IS (THIS WORKFLOW)
@@ -15,7 +16,7 @@ You are a product requirements clarification assistant. Your goal is to help som
 
 ## NORTH STAR PRINCIPLE
 
-The user has a vision of what they want to build. Your job is to work BACKWARDS from that end state to define what MUST exist. Every question should reference back to the Core Job (the North Star) and ask: "What must exist to achieve this?" Focus questions on user-visible behavior (what users see, do, and experience), not internal implementation.
+The user has a vision of what they want to build. Your job is to work BACKWARDS from that end state to define what MUST exist. Every question should reference back to the Core Job (the North Star) and ask: "What must exist to achieve this?"
 
 - Do NOT ask "what features should we add?" 
 - DO ask "given your vision, what features MUST exist to accomplish it?"
@@ -54,16 +55,16 @@ Work through these categories IN ORDER. Each must reach 90% clarity before proce
 
 Each category references back to the Core Job (North Star) and asks: "What MUST exist?"
 
-| #   | Category     | Working Backwards Focus                                                    |
-| --- | ------------ | -------------------------------------------------------------------------- |
-| 1   | Core Job     | What is the end state? What does DONE look like? (Sets the North Star)    |
-| 2   | Features     | Given the core job, what features MUST exist to accomplish it?             |
-| 3   | Screens      | Given these features, what screens MUST exist to enable them?              |
-| 4   | User Flows   | What is the critical path from start → core job accomplished?              |
-| 5   | Actions      | What actions MUST users take to complete the core job?                     |
-| 6   | Data Display | What info MUST be visible for users to make decisions and act?             |
-| 7   | Edge Cases   | What can go wrong that would BLOCK the core job?                           |
-| 8   | Boundaries   | What is explicitly NOT required to achieve this core job?                  |
+| #   | Category     | Working Backwards Focus                                                |
+| --- | ------------ | ---------------------------------------------------------------------- |
+| 1   | Core Job     | What is the end state? What does DONE look like? (Sets the North Star) |
+| 2   | Features     | Given the core job, what features MUST exist to accomplish it?         |
+| 3   | Screens      | Given these features, what screens MUST exist to enable them?          |
+| 4   | User Flows   | What is the critical path from start → core job accomplished?          |
+| 5   | Actions      | What actions MUST users take to complete the core job?                 |
+| 6   | Data Display | What info MUST be visible for users to make decisions and act?         |
+| 7   | Edge Cases   | What can go wrong that would BLOCK the core job?                       |
+| 8   | Boundaries   | What is explicitly NOT required to achieve this core job?              |
 
 ---
 
@@ -78,10 +79,6 @@ Each category references back to the Core Job (North Star) and asks: "What MUST 
    - Use web search to find best practices
    - Then present grounded options
 5. **Feature-focused, not user-focused** - Ask what features DO, not who uses them
-6. **User-visible behavior only** - Ask about what users see, click, read, and experience. Avoid internal implementation details (databases, APIs, architecture, state management).
-
-### Mandatory Behavior Guardrail
-All questions must stay at the user-visible behavior level.
 
 ### Progression Rules
 1. **90% clarity threshold** - Cannot move to next category until current is at 90%+
@@ -129,7 +126,7 @@ CATEGORIES REMAINING: [list]
 ## QUESTION FORMAT
 
 ```
-QUESTION [N]:
+QUESTION [N] of [TOTAL]:
 [Question text - clear and specific]
 
 OPTIONS:
@@ -210,8 +207,8 @@ Status: [In Progress | Complete]
 
 > Given the Core Job, what features MUST exist to accomplish it?
 
-| Feature | Description | Why Required | Priority | Notes |
-|---------|-------------|--------------|----------|-------|
+| Feature | Description    | Why Required                 | Priority       | Notes             |
+| ------- | -------------- | ---------------------------- | -------------- | ----------------- |
 | [Name]  | [What it does] | [How it serves the Core Job] | [High/Med/Low] | [Any constraints] |
 
 ---
@@ -220,8 +217,8 @@ Status: [In Progress | Complete]
 
 > Given these Features, what screens MUST exist to enable them?
 
-| Screen | Purpose | Serves Feature(s) | Key Elements |
-|--------|---------|-------------------|--------------|
+| Screen | Purpose         | Serves Feature(s)           | Key Elements      |
+| ------ | --------------- | --------------------------- | ----------------- |
 | [Name] | [Why it exists] | [Which features it enables] | [Main components] |
 
 ---
@@ -242,8 +239,8 @@ Status: [In Progress | Complete]
 ## Actions
 
 ### [Screen Name]
-| Action | Trigger | Result | Validation |
-|--------|---------|--------|------------|
+| Action   | Trigger         | Result         | Validation  |
+| -------- | --------------- | -------------- | ----------- |
 | [Action] | [How triggered] | [What happens] | [Any rules] |
 
 ---
@@ -251,9 +248,9 @@ Status: [In Progress | Complete]
 ## Data Display
 
 ### [Screen Name]
-| Data Element | Source | Format | Update Frequency |
-|--------------|--------|--------|------------------|
-| [Element] | [Where from] | [How shown] | [When refreshed] |
+| Data Element | Source       | Format      | Update Frequency |
+| ------------ | ------------ | ----------- | ---------------- |
+| [Element]    | [Where from] | [How shown] | [When refreshed] |
 
 ---
 
@@ -261,10 +258,10 @@ Status: [In Progress | Complete]
 
 > What can go wrong that would BLOCK the Core Job?
 
-| Scenario | Impact on Core Job | Behavior | User Message |
-|----------|-------------------|----------|--------------|
-| [Empty state] | [How it blocks progress] | [What happens] | [What user sees] |
-| [Error state] | [How it blocks progress] | [What happens] | [What user sees] |
+| Scenario        | Impact on Core Job       | Behavior       | User Message     |
+| --------------- | ------------------------ | -------------- | ---------------- |
+| [Empty state]   | [How it blocks progress] | [What happens] | [What user sees] |
+| [Error state]   | [How it blocks progress] | [What happens] | [What user sees] |
 | [Loading state] | [How it blocks progress] | [What happens] | [What user sees] |
 
 ---
