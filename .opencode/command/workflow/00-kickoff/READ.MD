@@ -1,7 +1,7 @@
 # WORKFLOW
 This workflow is from idea to product spec. It has not been testing on individual features. Mostly brand new project.
 
-## PHASE 1
+## KICKOFF
 1. Freeform ideas then convert to users stories gherking using `_ai/tools/tdd/generate_bdd_scenarios.md`
 2. Define Product Specs using  `.opencode/command/project-kickoff/01-product-requirements.md`
 3. Feed product specs to tech wizard `.opencode/command/project-kickoff/02-technical-requirements.md`
