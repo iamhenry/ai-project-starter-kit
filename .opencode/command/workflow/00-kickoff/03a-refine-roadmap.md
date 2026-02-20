@@ -1,5 +1,5 @@
 ```
-- Use when I need to review and flush out spec.md from `kickoff` workflow, technical-requirements.md
+- Use when I need to review and flush out ROADMAP.md from `kickoff` workflow, /technical-requirements
 - This is a prompt (not a slash command) to pass into `.opencode/command/workflow/01-plan/multi-perspective-ensemble.md`
 ```
 
