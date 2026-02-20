@@ -1,3 +1,8 @@
+---
+name: generate-roadmap (03)
+description: Generate a brand new Roadmap from technical requirements
+subtask: false
+---
 // My Notes
 - think about how the roadmap steps will be affected by TDD (writing tests first) and if it makes sense to me
 - if it doesnt, restructure the milestone slices to focus on logic first → implementation (follow unit → integration tdd flow)
@@ -6,6 +11,8 @@
 
 ## Inputs
 1. output from: `.opencode/command/workflow/00-kickoff/02-technical-requirements.md` as `tech-adr.md`
+
+---
 
 ## Purpose
 1.  Break down work into granular tasks.
@@ -149,15 +156,6 @@ The roadmap must be structured around delivering thin, end-to-end user functiona
     *   **Performance & Security:** Optimization, error monitoring, rate limiting, security audits.
     *   **Business Logic:** Subscription/monetization integration, analytics, user onboarding tours.
 *   **Outcome:** A feature-complete, robust, and delightful application ready for launch.
-
----
-
-# Requirements
-
-*   `USER-STORIES.md`
-*   Potentially: Deepwiki MCP URL to github repo of the codebase/boilerplate i plan to use
-*   `ARCHITECTURE.MD` (if available)
-*   `TECHNICAL-REQUIREMENTS.md`
 
 ---
 
