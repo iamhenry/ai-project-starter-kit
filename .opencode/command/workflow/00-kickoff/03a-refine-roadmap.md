@@ -1,5 +1,7 @@
-> Use when I need to review and flush out spec.md from `kickoff` workflow, technical-requirements.md
-> This is a prompt (not a slash command) to pass into `.opencode/command/workflow/01-plan/multi-perspective-ensemble.md`
+```
+- Use when I need to review and flush out spec.md from `kickoff` workflow, technical-requirements.md
+- This is a prompt (not a slash command) to pass into `.opencode/command/workflow/01-plan/multi-perspective-ensemble.md`
+```
 
 # Instructions
 Carefully review this entire plan for me and come up with your best revisions in terms of better architecture, what low hanging fruit can enhance current experience, changed features, etc. to make it better, more robust/reliable, more performant, more compelling/useful, etc.
