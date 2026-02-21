@@ -2,6 +2,8 @@
 name: product-requirements (01)
 description: Phase 1 - Clarify product/UX requirements from a high-level idea. Outputs product-adr.md.
 subtask: false
+verrsion: 1.0.0
+date: 2026-02-20 9:50 PM PST
 ---
 <!-- OPUS 4.5 / SONNET 4.6 MUST USE EITHER OF THESE MODELS. OTHER MODELS SUCK -->
 
