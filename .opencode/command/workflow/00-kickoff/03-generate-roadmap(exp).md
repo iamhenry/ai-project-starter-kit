@@ -180,6 +180,26 @@ The roadmap must be structured around delivering thin, end-to-end user functiona
 *   4-5: High-complexity tasks like complex state management, defining new core data structures/API contracts, performance optimization.
 *   Ensure tasks are broken down at least 3 levels deep. **Even tasks with higher overall complexity (4-5) should be decomposed into smaller, independent sub-tasks (ideally 1-2 complexity each) suitable for individual assignment by an agent and frequent integration.**
 
+### Code Snippets
+*   Include **exact code** inline with tasks when relevant—not all tasks require snippets.
+*   Use snippets for: schema definitions, type definitions, function signatures, API contracts, component implementations.
+*   Place snippets directly after the task checkbox, before subtasks.
+*   Keep scope minimal: show only what's being added/modified.
+*   Use fenced code blocks with appropriate language tag.
+
+**Example:**
+- [ ] 1. ⚠️ Define Database Schema
+  ```typescript
+  // db/schema.ts
+  export const recipes = pgTable('recipes', {
+    id: serial('id').primaryKey(),
+    name: text('name').notNull(),
+    ingredients: jsonb('ingredients').$type<string[]>().notNull(),
+  });
+  ```
+  - [ ] 1.1. Run migration to create table
+  - Files: `db/schema.ts`
+
 ---
 
 # Template
@@ -237,34 +257,73 @@ Data Flow:
 
 **Tasks**:
 - [ ] 1. ⚠️ Define Database Schema and Backend Service
-  - [ ] 1.1. Define a Drizzle/Prisma schema for a `recipes` table (e.g., `id`, `name`, `ingredients`, `createdAt`).
-  - [ ] 1.2. Implement a database service layer to create a new recipe record. For now, the `name` can be hardcoded (e.g., "New Recipe").
+  ```typescript
+  // db/schema.ts
+  export const recipes = pgTable('recipes', {
+    id: serial('id').primaryKey(),
+    name: text('name').notNull(),
+    ingredients: jsonb('ingredients').$type<string[]>().notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  });
+  
+  // services/dbService.ts
+  export async function createRecipe(ingredients: string[]) {
+    return db.insert(recipes).values({
+      name: 'New Recipe',
+      ingredients,
+    }).returning();
+  }
+  ```
+  - [ ] 1.1. Define Drizzle schema for `recipes` table
+  - [ ] 1.2. Implement `createRecipe` service function
   - Files: `db/schema.ts`, `services/dbService.ts`
   - Branch Name: `feature/db-recipe-schema`
-  
-  **Acceptance Criteria Guidelines:**
-  - Must be **measurable**: Include specific values, thresholds, or observable states
-  - Must be **testable**: Answer "How would I verify this passes?" 
-  - ❌ Avoid: "The feature works correctly"
-  - ✅ Use: "POST /api/recipes returns 201 with `{ id, name, ingredients }` schema"
-  
   - Acceptance Criteria: A `recipes` table schema is defined, and a service function can write a new record to it.
   - Complexity: 2
 - [ ] 2. ✅ Build the API Endpoint for Recipe Creation
-  - [ ] 2.1. Create the API route `app/api/recipes/+api.ts`.
-  - [ ] 2.2. Implement a `POST` handler that takes `ingredients` from the request body.
-  - [ ] 2.3. Use the `dbService` to save the new recipe and return the newly created record.
-  - File: `app/api/recipes/+api.ts`
+  ```typescript
+  // app/api/recipes/route.ts
+  export async function POST(request: Request) {
+    const { ingredients } = await request.json();
+    const recipe = await createRecipe(ingredients);
+    return Response.json(recipe, { status: 201 });
+  }
+  ```
+  - [ ] 2.1. Create API route handler for POST requests
+  - [ ] 2.2. Parse request body and call dbService
+  - File: `app/api/recipes/route.ts`
   - Branch Name: `feature/api-create-recipe`
-  - Acceptance Criteria: The `POST /api/recipes` endpoint successfully saves data to the database and returns the created object.
+  - Acceptance Criteria: The `POST /api/recipes` endpoint saves data and returns the created object.
   - Complexity: 2
 - [ ] 3. ✅ Build Minimal UI to Create and Display Recipe
-  - [ ] 3.1. Create a UI with a text input, a "Save" button, and a display area for the result.
-  - [ ] 3.2. Implement client-side logic to call the `POST /api/recipes` endpoint.
-  - [ ] 3.3. On a successful response, use state management to store the returned recipe object and render its name/ingredients.
-  - File: `app/index.tsx`
+  ```tsx
+  // app/page.tsx
+  export default function Page() {
+    const [ingredients, setIngredients] = useState('');
+    const [recipe, setRecipe] = useState(null);
+    
+    const handleSave = async () => {
+      const res = await fetch('/api/recipes', {
+        method: 'POST',
+        body: JSON.stringify({ ingredients: ingredients.split(',') }),
+      });
+      setRecipe(await res.json());
+    };
+    
+    return (
+      <div>
+        <input value={ingredients} onChange={e => setIngredients(e.target.value)} />
+        <button onClick={handleSave}>Save</button>
+        {recipe && <div>{recipe.name}: {recipe.ingredients.join(', ')}</div>}
+      </div>
+    );
+  }
+  ```
+  - [ ] 3.1. Create form with input and submit button
+  - [ ] 3.2. Call API on submit and store result in state
+  - File: `app/page.tsx`
   - Branch Name: `feature/ui-recipe-loop`
-  - Acceptance Criteria: A user can input ingredients, click save, and see the data returned from the live API displayed on the screen.
+  - Acceptance Criteria: User can input ingredients, save, and see the returned data.
   - Complexity: 2
 
 ---
@@ -284,19 +343,45 @@ Data Flow:
 
 **Tasks**:
 - [ ] 1. ⚠️ Enhance API to call AI service
-  - [ ] 1.1. Add the necessary SDK to call a real AI recipe generation service.
-  - [ ] 1.2. In the `POST /api/recipes` handler, before saving to the DB, call the AI service to get a recipe name.
-  - [ ] 1.3. Add error handling for the AI service call.
-  - File: `app/api/recipes/+api.ts`
+  ```typescript
+  // services/aiService.ts
+  export async function generateRecipeName(ingredients: string[]): Promise<string> {
+    const response = await aiClient.generate({
+      prompt: `Create a recipe name using: ${ingredients.join(', ')}`,
+    });
+    return response.name;
+  }
+  
+  // app/api/recipes/route.ts (updated)
+  export async function POST(request: Request) {
+    const { ingredients } = await request.json();
+    const name = await generateRecipeName(ingredients);
+    const recipe = await createRecipe(ingredients, name);
+    return Response.json(recipe, { status: 201 });
+  }
+  ```
+  - [ ] 1.1. Add AI SDK and create `generateRecipeName` function
+  - [ ] 1.2. Integrate AI call into POST handler before save
+  - [ ] 1.3. Add error handling for AI service failures
+  - Files: `services/aiService.ts`, `app/api/recipes/route.ts`
   - Branch Name: `feature/api-real-ai`
-  - Acceptance Criteria: The API endpoint successfully calls the AI service to get a recipe name.
+  - Acceptance Criteria: API endpoint calls AI service and returns recipe with generated name.
   - Complexity: 3
 - [ ] 2. ✅ Save AI-generated name to Database
-  - [ ] 2.1. Use the name from the AI response when calling the `dbService` to create the recipe record.
-  - [ ] 2.2. Ensure the full recipe object (with the AI-generated name) is returned to the client.
-  - File: `app/api/recipes/+api.ts`
+  ```typescript
+  // services/dbService.ts (updated)
+  export async function createRecipe(ingredients: string[], name: string) {
+    return db.insert(recipes).values({
+      name,
+      ingredients,
+    }).returning();
+  }
+  ```
+  - [ ] 2.1. Update `createRecipe` to accept name parameter
+  - [ ] 2.2. Return full recipe object with AI-generated name to client
+  - File: `services/dbService.ts`
   - Branch Name: `feature/api-save-ai-recipe`
-  - Acceptance Criteria: After a successful AI response, the generated recipe name is persisted to the database.
+  - Acceptance Criteria: AI-generated name is persisted and returned in response.
   - Complexity: 2
 
 ---
@@ -311,19 +396,48 @@ Data Flow:
 
 **Tasks**:
 - [ ] 1. ⚠️ Create an API endpoint to fetch recipe history
-  - [ ] 1.1. In `app/api/recipes/+api.ts`, implement a `GET` handler.
-  - [ ] 1.2. Use the `dbService` to retrieve all saved recipes from the database.
-  - File: `app/api/recipes/+api.ts`
+  ```typescript
+  // app/api/recipes/route.ts (add GET handler)
+  export async function GET() {
+    const allRecipes = await db.select().from(recipes).orderBy(desc(recipes.createdAt));
+    return Response.json(allRecipes);
+  }
+  ```
+  - [ ] 1.1. Implement GET handler to query all recipes
+  - [ ] 1.2. Return recipes ordered by most recent first
+  - File: `app/api/recipes/route.ts`
   - Branch Name: `feature/api-get-recipes`
-  - Acceptance Criteria: A `GET /api/recipes` endpoint is created that returns all recipe records from the database.
+  - Acceptance Criteria: `GET /api/recipes` returns all recipe records from database.
   - Complexity: 2
 - [ ] 2. ✅ Build the Recipe History UI
-  - [ ] 2.1. Create a new screen/page component for the recipe history list.
-  - [ ] 2.2. On page load, call the `GET /api/recipes` endpoint to fetch the data.
-  - [ ] 2.3. Render the list of recipe names, handling loading and empty states.
-  - File: `app/history.tsx`
+  ```tsx
+  // app/history/page.tsx
+  export default function HistoryPage() {
+    const [recipes, setRecipes] = useState([]);
+    const [loading, setLoading] = useState(true);
+    
+    useEffect(() => {
+      fetch('/api/recipes')
+        .then(res => res.json())
+        .then(data => { setRecipes(data); setLoading(false); });
+    }, []);
+    
+    if (loading) return <div>Loading...</div>;
+    if (recipes.length === 0) return <div>No recipes yet</div>;
+    
+    return (
+      <ul>
+        {recipes.map(r => <li key={r.id}>{r.name}</li>)}
+      </ul>
+    );
+  }
+  ```
+  - [ ] 2.1. Create history page component with fetch on mount
+  - [ ] 2.2. Handle loading and empty states
+  - [ ] 2.3. Render list of recipe names
+  - File: `app/history/page.tsx`
   - Branch Name: `feature/ui-recipe-history`
-  - Acceptance Criteria: The history UI page fetches from `/api/recipes` on load and displays the list of recipe names.
+  - Acceptance Criteria: History page fetches `/api/recipes` and displays list of recipe names.
   - Complexity: 2
 
 ---
@@ -340,23 +454,80 @@ Objective: Enhance the user experience with smooth animations, clear loading sta
 
 **Tasks**:
 - [ ] 1. 🔄 Implement loading skeletons
-  - [ ] 1.1. While the recipe history list is fetching, display placeholder skeleton components instead of a blank screen.
-  - File: `app/history.tsx`, `components/RecipeSkeleton.tsx`
+  ```tsx
+  // components/RecipeSkeleton.tsx
+  export function RecipeSkeleton() {
+    return (
+      <div className="animate-pulse flex space-x-4">
+        <div className="rounded-full bg-gray-200 h-10 w-10"></div>
+        <div className="flex-1 space-y-2 py-1">
+          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+        </div>
+      </div>
+    );
+  }
+  
+  // app/history/page.tsx (updated)
+  if (loading) return <RecipeSkeleton />;
+  ```
+  - [ ] 1.1. Create `RecipeSkeleton` component with placeholder styling
+  - [ ] 1.2. Replace "Loading..." text with skeleton in history page
+  - Files: `components/RecipeSkeleton.tsx`, `app/history/page.tsx`
   - Branch Name: `feature/ui-loading-skeletons`
-  - Acceptance Criteria: Skeleton loaders are displayed on the history page before the recipe data is rendered.
+  - Acceptance Criteria: Skeleton loaders display on history page before data renders.
   - Complexity: 2
 - [ ] 2. 🔄 Add interaction feedback
-  - [ ] 2.1. After a recipe is successfully generated and saved, show a "Recipe Saved!" toast notification.
-  - [ ] 2.2. Animate list items appearing on the history page.
-  - Files: `app/index.tsx`, `app/history.tsx`
+  ```tsx
+  // app/page.tsx (updated)
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState('');
+  
+  const handleSave = async () => {
+    setSaving(true);
+    const res = await fetch('/api/recipes', { /* ... */ });
+    setRecipe(await res.json());
+    setToast('Recipe saved!');
+    setSaving(false);
+    setTimeout(() => setToast(''), 3000);
+  };
+  
+  return (
+    <>
+      {toast && <div className="toast">{toast}</div>}
+      <button disabled={saving}>{saving ? 'Saving...' : 'Save'}</button>
+    </>
+  );
+  ```
+  - [ ] 2.1. Add toast notification on successful recipe save
+  - [ ] 2.2. Add loading state to save button during submission
+  - Files: `app/page.tsx`
   - Branch Name: `feature/ui-interaction-feedback`
-  - Acceptance Criteria: A toast notification is displayed on successful recipe generation; list items on the history page animate in.
+  - Acceptance Criteria: Toast shows on save; button shows loading state.
   - Complexity: 2
 - [ ] 3. 🔄 Refine the Design System
-  - [ ] 3.1. Ensure consistent typography, spacing, and color usage across all screens.
-  - [ ] 3.2. Create reusable button and input components with variants.
-  - Files: `styles/global.css`, `components/ui/Button.tsx`
+  ```tsx
+  // components/ui/Button.tsx
+  interface ButtonProps {
+    variant?: 'primary' | 'secondary';
+    children: React.ReactNode;
+    onClick?: () => void;
+    disabled?: boolean;
+  }
+  
+  export function Button({ variant = 'primary', children, ...props }: ButtonProps) {
+    const base = 'px-4 py-2 rounded font-medium';
+    const variants = {
+      primary: 'bg-blue-600 text-white hover:bg-blue-700',
+      secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300',
+    };
+    return <button className={`${base} ${variants[variant]}`} {...props}>{children}</button>;
+  }
+  ```
+  - [ ] 3.1. Create reusable `Button` component with variants
+  - [ ] 3.2. Ensure consistent typography/spacing across screens
+  - Files: `components/ui/Button.tsx`, `app/globals.css`
   - Branch Name: `feature/ui-design-system-refinement`
-  - Acceptance Criteria: Reusable, styled components for Button and Input are created and used; app-wide styles (color, typography) are consistent.
+  - Acceptance Criteria: Reusable Button component created and used across app; styles consistent.
   - Complexity: 3
 ```
