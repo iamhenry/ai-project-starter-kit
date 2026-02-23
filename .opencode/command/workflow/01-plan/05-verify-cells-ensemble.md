@@ -39,11 +39,14 @@ Proceed? [Y/n]
 
 ## Model Aliases
 
-| Alias    | Full Model Name                 | Provider |
-| -------- | ------------------------------- | -------- |
-| `opus`   | `firmware/claude-opus-4-5`      | Firmware |
-| `gemini` | `firmware/gemini-3-pro-preview` | Google   |
-| `gpt`    | `openai/gpt-5.2`                | OpenAI   |
+| Alias    | Full Model Name                 | Provider  |
+| -------- | ------------------------------- | --------- |
+| `opus`   | `anthropic/claude-opus-4-6`     | Anthropic |
+| `sonnet` | `anthropic/claude-sonnet-4-6`   | Anthropic |
+| `gemini` | `firmware/gemini-3-pro-preview` | Google    |
+| `gpt`    | `openai/gpt-5.2`                | OpenAI    |
+| `glm`    | `ollama-cloud/glm-5`            | Ollama    |
+| `kimi`   | `ollama-cloud/kimi-k2.5`        | Ollama    |
 
 Users can also specify full model names directly.
 
