@@ -97,8 +97,9 @@ Trigger Phase 2 if any of these are true:
 For each issue identified:
 
 - File: `path/to/file.ts:42–45` or `path/to/file.ts:42`
-- Severity: High / Medium / Low
+- Severity: High / Medium / Low / `[THEORETICAL]`
 - Perspective: Phase 1 / Phase 2 / Both
+- Evidence: Quote the specific line(s) that prove the problem exists
 - Issue: Brief description of the problem
 - Why This Severity: Explain impact or potential harm
 - Suggestion: Recommend a specific fix or approach
@@ -116,9 +117,17 @@ export function formatDate(date: Date) {
 
 ## 🧮 Severity Guidelines
 
-- HIGH — Must fix before release: crashes, regressions, data loss, security flaws, memory/race bugs
-- MEDIUM — Should fix soon: architectural drift, test gaps, performance concerns
-- LOW — Optional fix: style, naming, minor smells, doc improvements
+Before assigning severity, apply this test:
+> **"Can I point to a specific line of code that demonstrates this problem?"**
+> - YES → assign based on impact below
+> - NO → it's speculation; downgrade one level or flag as `[THEORETICAL]`
+
+- HIGH — Must fix before release: crashes, regressions, data loss, security flaws, memory/race bugs  
+  _Requires: direct evidence in the diff, not a chain of "could" statements_
+- MEDIUM — Should fix soon: architectural drift, test gaps, performance concerns  
+  _Requires: observable pattern in the code, not just a possible future state_
+- LOW — Optional fix: style, naming, minor smells, doc improvements  
+  _Theoretical risks belong here by default unless evidence elevates them_
 
 ---
 
