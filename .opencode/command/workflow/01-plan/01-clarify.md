@@ -588,28 +588,24 @@ Confidence: [X]% ([Low | Medium | High] - [description])
 
 ### Dimension: [Dimension Name]
 
-**Q1: [Question text]**
-[Brief context of why this matters]
+### Q1: [Plain-English user outcome question]
+[1-2 sentence context explaining the real-world situation in plain English]
 
-(a) **[Option 1]**
-
+(a) **[Option 1 stated as a user-facing outcome]** ⭐ RECOMMENDED
 - Tradeoff: [rational and explanation]
-- Benefit: [rational and explanation]
+- Benefit: [why this is the most practical option for user value + maintainability]
 
-(b) **[Option 2]**
-
+(b) **[Option 2 stated as a user-facing outcome]**
 - Tradeoff: [rational and explanation]
-- Benefit: [rational and explanation]
+- Benefit: [why this is the most practical option for user value + maintainability]
 
-(c) **[Option 3]**
-
+(c) **[Option 3 stated as a user-facing outcome]**
 - Tradeoff: [rational and explanation]
-- Benefit: [rational and explanation]
+- Benefit: [why this is the most practical option for user value + maintainability]
 
-(d) **[Option 4]**
-
+(d) **[Option 4 stated as a user-facing outcome]**
 - Tradeoff: [rational and explanation]
-- Benefit: [rational and explanation]
+- Benefit: [why this is the most practical option for user value + maintainability]
 
 **Recommended:** ([letter]) [Brief rationale] — Aligns with: [PRINCIPLE NAME from ETHOS.md]
 
