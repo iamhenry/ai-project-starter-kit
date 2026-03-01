@@ -15,6 +15,8 @@ Research a codebase before touching it. Parallel research → synthesis → 3 ra
 
 Spawn all three simultaneously using the Task tool with `subagent_type: voyager`.
 
+**Evidence requirement:** All agents must cite findings with code snippets, file paths, and line numbers. No assertions without evidence. If results are thin or inconclusive, note gaps explicitly in Phase 2 — do not proceed with assumptions.
+
 ### Agent 1: Code Archaeology
 > What does this code do today, and how?
 
@@ -68,6 +70,8 @@ Use `references/approach-template.md` for consistent output format.
 Rank by: **minimal diff + style alignment first** → more involved last.
 
 For each option ask: *"Would a maintainer approve this PR without asking for changes?"*
+
+Reason from first principles: work backwards from the goal — what is the simplest change that satisfies the requirement without introducing concepts the codebase doesn't already use?
 
 ---
 
