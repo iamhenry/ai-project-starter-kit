@@ -1,6 +1,6 @@
 ---
 name: gather-context
-description: Research-first SOP before implementing any code change. Use when starting any task that involves modifying an existing codebase — features, bugs, refactors, open source contributions. Triggers on: "I want to work on X", "help me implement/fix/refactor X", "gather context for X", "let's work on this". Launches 3 parallel voyager subagents to map current behavior, dependencies/blast radius, and codebase style — then presents 3 ranked approaches (minimal diff first) for user approval before any code is written.
+description: Research first SOP before implementing any code change. Use when starting any task that involves modifying an existing codebase features bugs refactors open source contributions. Triggers when I want to work on X help me implement or fix or refactor X gather context for X lets work on this. Launches 3 parallel voyager subagents to map current behavior dependencies blast radius and codebase style then presents 3 ranked approaches minimal diff first for user approval before any code is written.
 ---
 
 # Gather Context
