@@ -73,6 +73,18 @@ After all 3 agents return, combine findings:
 3. **Style rules** — the extracted cheatsheet from Agent 3
 4. **Blast radius** — scope of impact from Agent 2
 
+## Decision Heuristics (Apply to every proposal)
+
+Use these as hard filters before presenting options:
+
+1. **Reuse first (DRY):** prefer existing modules/components/patterns over new ones.
+2. **KISS:** choose the least complex approach that meets requirements.
+3. **YAGNI:** do not add extensibility/abstractions unless current requirement needs it.
+4. **Single source of truth:** avoid duplicated state/data paths.
+5. **User trust/safety:** no risky shortcuts that could create silent bad outcomes.
+
+If an option violates any filter, either fix it or explicitly mark why the tradeoff is unavoidable.
+
 ---
 
 ## Phase 3 — Present 3 Approaches
@@ -82,11 +94,13 @@ Choose output mode by task type:
 - Implementation requested -> use `references/approach-template.md`.
 - Analysis-only requested (review/validation/investigation) -> use `references/review-verdict-template.md`.
 
-Rank by: **minimal diff + style alignment first** → more involved last.
+Rank by: **minimal diff + style alignment + reuse/simplicity first** → more involved last.
 
 For each option ask: *"Would a maintainer approve this PR without asking for changes?"*
 
 Reason from first principles: work backwards from the goal — what is the simplest change that satisfies the requirement without introducing concepts the codebase doesn't already use?
+
+For each option, include one line in this format: `Why this option: reuses <existing thing>, adds <nothing/new X only if needed now>, expected effort <Low/Med/High>.`
 
 ---
 
