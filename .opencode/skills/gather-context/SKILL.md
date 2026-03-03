@@ -1,19 +1,31 @@
 ---
 name: gather-context
-description: Research first SOP before implementing any code change. Use when starting any task that involves modifying an existing codebase features bugs refactors open source contributions. Triggers when I want to work on X help me implement or fix or refactor X gather context for X lets work on this. Launches 3 parallel voyager subagents to map current behavior dependencies blast radius and codebase style then presents 3 ranked approaches minimal diff first for user approval before any code is written.
+description: Research-first SOP for any codebase task implementation debugging refactor architecture review or claim validation. If user explicitly says gather context invocation is mandatory. Launches 3 parallel voyager subagents to map current behavior dependencies blast radius and codebase style. Then either outputs 3 ranked implementation approaches or an analysis-only verdict report with evidence.
 ---
 
 # Gather Context
 
-Research a codebase before touching it. Parallel research → synthesis → 3 ranked approaches → wait for approval.
+Research a codebase before touching it. Parallel research -> synthesis -> task-mode output.
 
 **Primary goal for open source:** Changes must look like the maintainer wrote them. Minimal diff. Maximum style alignment.
+
+## Trigger Rules
+
+- If the user explicitly asks to "gather context", you MUST invoke this skill.
+- Use this skill for implementation tasks and analysis-only tasks:
+  - Implement/fix/refactor requests
+  - Code review comment validation
+  - "Is this claim true?" investigation
+  - Architecture/blast-radius assessment before coding
+- If evidence is missing or inconclusive, return `Unclear` with exactly what context is missing.
 
 ---
 
 ## Phase 1 — Launch 3 Voyager Agents in Parallel
 
 Spawn all three simultaneously using the Task tool with `subagent_type: voyager`.
+
+Default: always launch all 3. Only skip an agent if the task is truly trivial; if skipped, explain why.
 
 **Evidence requirement:** All agents must cite findings with code snippets, file paths, and line numbers. No assertions without evidence. If results are thin or inconclusive, note gaps explicitly in Phase 2 — do not proceed with assumptions.
 
@@ -65,7 +77,10 @@ After all 3 agents return, combine findings:
 
 ## Phase 3 — Present 3 Approaches
 
-Use `references/approach-template.md` for consistent output format.
+Choose output mode by task type:
+
+- Implementation requested -> use `references/approach-template.md`.
+- Analysis-only requested (review/validation/investigation) -> use `references/review-verdict-template.md`.
 
 Rank by: **minimal diff + style alignment first** → more involved last.
 
@@ -77,6 +92,17 @@ Reason from first principles: work backwards from the goal — what is the simpl
 
 ## Phase 4 — Hard Stop
 
-Present the 3 options and **wait for explicit user selection**.
+Implementation mode: present the 3 options and **wait for explicit user selection**.
 
-Do not begin implementation until the user picks an approach.
+Analysis-only mode: stop after verdict report. Do not propose implementation unless user asks.
+
+## Analysis-Only Verdict Standard
+
+When the task is validation/review (no code edits requested), each claim must include:
+
+1. Verdict: `Valid` | `Invalid` | `Unclear`
+2. Evidence: direct citation(s) with file path and line number
+3. Blast radius: who/what is affected if claim is true
+4. Confidence: high/medium/low with one-sentence rationale
+
+No verdict without direct code evidence.
