@@ -22,6 +22,7 @@ Use this format when presenting the 3 options after research is complete.
 **How:** [Brief implementation sketch — no full code]
 **Rationale:** [Why a maintainer would choose this]
 **Tradeoffs:** [What you give up]
+**Regression probe:** [One concrete check proving no duplicate trigger/clobber regression]
 **Diff size:** Small / Medium / Large
 **Style alignment:** High / Medium / Low
 
@@ -33,6 +34,7 @@ Use this format when presenting the 3 options after research is complete.
 **How:** [Brief implementation sketch]
 **Rationale:** [Why this might be preferred]
 **Tradeoffs:** [What you give up]
+**Regression probe:** [One concrete check proving no duplicate trigger/clobber regression]
 **Diff size:** Small / Medium / Large
 **Style alignment:** High / Medium / Low
 
@@ -44,6 +46,7 @@ Use this format when presenting the 3 options after research is complete.
 **How:** [Brief implementation sketch]
 **Rationale:** [Why this might be preferred]
 **Tradeoffs:** [What you give up]
+**Regression probe:** [One concrete check proving no duplicate trigger/clobber regression]
 **Diff size:** Small / Medium / Large
 **Style alignment:** High / Medium / Low
 
