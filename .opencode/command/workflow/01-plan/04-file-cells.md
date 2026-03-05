@@ -13,7 +13,7 @@ Convert the provided document into hive cells (epic + subtasks) for swarm execut
 
 ### PHASE 1: Document Analysis
 
-Read the document and extract:
+Read the document and **identify line ranges** (do NOT duplicate content into cells):
 
 | Element             | What to Find                                                  |
 | ------------------- | ------------------------------------------------------------- |
@@ -24,6 +24,29 @@ Read the document and extract:
 | ADRs/Decisions      | Architectural choices (decision records, "why" sections)      |
 | Out of Scope        | Explicit exclusions                                           |
 | Patterns            | Auth, styling, utilities mentioned in codebase sections       |
+
+**CRITICAL:** Never duplicate code snippets into cells. Reference line ranges instead.
+- Format: `plan.md:L15-L42` (filepath + line range in one reference)
+- Workers read directly from source document
+- Prevents drift when plan.md updates
+
+---
+
+### RESPONSIBILITY SPLIT
+
+**Workers read plan.md for:**
+- Code snippets (implementation details)
+- Acceptance criteria (success conditions)
+- Styling reference (UI patterns)
+- Error handling (failure modes)
+
+**Cells contain only:**
+- SOURCE_REF: filepath + line range
+- GOAL: 1-line objective
+- FILES: paths to modify
+- DAG dependencies
+
+This ensures plan.md stays the single source of truth.
 
 ---
 
@@ -75,15 +98,18 @@ TIME ESTIMATE: {from document or calculated}
 
 **Subtask Description Template:**
 ```
-MANDATORY: Read {document_path} before starting.
+SOURCE_REF: {document_path}:L{start}-L{end}
+GOAL: {one-line high-level objective}
+FILES: {file_paths to create/modify}
 
-TASK SPEC: L{start}-L{end}
-CODE SNIPPET: L{start}-L{end}
+---
 
-FILES: {file_paths}
+MANDATORY: Read {document_path}:L{start}-L{end} before starting.
+
+TASK SPEC: {document_path}:L{start}-L{end}
+CODE SNIPPET: {document_path}:L{start}-L{end}
+
 NOTE: {directory creation if new path, other special instructions}
-
-{One-line task description}
 
 ADR: {relevant decisions with line refs if applicable}
 
@@ -94,11 +120,16 @@ DAG_DEPENDS_ON_IDS: {comma-separated cell IDs or PENDING_RESOLUTION}
 ```
 
 **Rules:**
-- Always include BOTH task spec AND code snippet line ranges
+- **SOURCE_REF + GOAL + FILES** are mandatory in every subtask (shared_context pattern)
+- Include filepath in all line references: `plan.md:L15-L42`
+- Never duplicate code snippets—workers read from source document
 - Add directory creation notes for new paths
 - Reference ADRs inline where relevant
 - Include DAG dependency lines in every subtask description
 - Verification is handled by `swarm_complete` (built-in)
+- For each milestone, add one terminal task cell: `Verify + Commit milestone work`.
+- Terminal gate cell MUST depend on all prior task cells in the same milestone.
+- Gate cell acceptance MUST require committing milestone changes so Husky pre-commit runs; on hook failure, create fix task(s) and retry commit.
 
 ---
 
@@ -118,12 +149,15 @@ DAG_DEPENDS_ON_IDS: {comma-separated cell IDs or PENDING_RESOLUTION}
 Re-read document and verify:
 
 - [ ] Every deliverable file has a corresponding cell
-- [ ] Line references are accurate (task spec matches document)
+- [ ] No code snippets duplicated in cells (only filepath:line references)
+- [ ] Line references include filepath: `plan.md:L15-L42` format
 - [ ] Wave groupings make sense (no circular dependencies)
 - [ ] Every non-Wave-1 task has explicit predecessors
 - [ ] Cell `dependencies` arrays match DAG plan (no text-only dependencies)
 - [ ] Missing context added (directory creation, patterns, ADR notes)
 - [ ] Acceptance criteria in each cell
+- [ ] Every milestone has exactly one terminal `Verify + Commit milestone work` cell
+- [ ] Terminal gate cell depends on all other cells in its milestone
 
 Update cells with corrections via `hive_update` if needed.
 
