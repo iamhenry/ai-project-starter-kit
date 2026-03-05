@@ -28,10 +28,11 @@ Spawn all four simultaneously using the Task tool with `subagent_type: voyager`.
 ### Agent 2: Dependency Map
 > What breaks if we touch this?
 
-- Map callers (what depends on this code)
-- Map callees (what this code depends on)
+- Map callers and callback/event consumers (what depends on this code, including who reacts to emitted/invoked behavior)
+- Map callees and callback/event producers (what this code depends on, including what it emits/invokes)
+- Capture invocation cardinality and order for critical interactions (once vs multiple, before vs after)
 - Identify public API surface vs internal details
-- Assess blast radius: files, modules, tests at risk
+- Assess blast radius: files, modules, tests, and cross-component behavioral side effects at risk
 - Flag any breaking change risks
 
 ### Agent 3: UX Behavior
@@ -80,6 +81,8 @@ After all 4 agents return, combine findings:
 Use `references/approach-template.md` for consistent output format.
 
 Rank by: **minimal diff + style alignment first** → more involved last.
+
+Each option must include one regression probe describing how to verify no duplicate trigger/clobber regressions were introduced.
 
 For each option ask: *"Would a maintainer approve this PR without asking for changes?"*
 
