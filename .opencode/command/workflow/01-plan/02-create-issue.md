@@ -310,21 +310,20 @@ Use the `verification` skill to prove the task works before commit. When browser
 - **Blocked Conditions**: Missing auth, data, environment, or tooling that would prevent reliable verification
 
 **Evidence rules:**
-- Use `🎥` for interaction-heavy or async transitions that need motion/timing proof
-- Use `📸` for static proof states
+- Use `📸` when a static screenshot is enough to prove the outcome
+- Use `🎥` when the user journey requires interaction or async state changes; prefer one recording for the full sequence instead of multiple short clips
 - Save browser artifacts to `_ai/task/{SLUG}/verification/videos/{step}.webm`
 - Save browser artifacts to `_ai/task/{SLUG}/verification/screenshots/{step}.png`
 
 **Example (`browser-flow`):**
 1. Open `http://localhost:3000/create`
-2. 📸 Verify the model selector renders and the intended model can be selected
-3. 🎥 Select a model, enter a prompt, submit, and verify the request starts
-4. 📸 Verify the loading or progress state appears as expected
-5. 🎥 Verify generated images render successfully and match the completed state
+2. Decide the lightest proof: use `📸` if a static state is enough, or `🎥` if the flow needs interaction proof
+3. If using `🎥`, record one full sequence: select model -> enter prompt -> submit -> wait for completion -> verify generated images render
+4. If using `📸`, capture the one or two proof states that clearly show success
 
 ---
 
-[Generate a verification gate plan with 3-5 checkpoints for the primary flow and 0-1 regression checks. Mark evidence only where it materially proves success or failure.]
+[Generate a verification gate plan with 3-5 checkpoints for the primary flow and 0-1 regression checks. Use the lightest evidence plan that proves success or failure. Prefer a single full-flow video for interactive journeys and screenshots only for static proof states.]
 
 #### Phase 3: Commit Changes
 
