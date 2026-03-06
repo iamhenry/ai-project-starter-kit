@@ -1,6 +1,6 @@
 ---
 name: gather-context
-description: Research first SOP before implementing any code change. Use when starting any task that involves modifying an existing codebase features bugs refactors open source contributions. Triggers when I want to work on X help me implement or fix or refactor X gather context for X lets work on this. Launches 3 parallel voyager subagents to map current behavior dependencies blast radius and codebase style then presents 3 ranked approaches minimal diff first for user approval before any code is written.
+description: Research first SOP before implementing any code change. Use when starting any task that involves modifying an existing codebase features bugs refactors open source contributions. Triggers when I want to work on X help me implement or fix or refactor X gather relevant context for X lets work on this. Launches 4 parallel voyager subagents to map current behavior dependencies blast radius and codebase style then presents 3 ranked approaches minimal diff first for user approval before any code is written.
 ---
 
 # Gather Context
@@ -11,9 +11,32 @@ Research a codebase before touching it. Parallel research → synthesis → 3 ra
 
 ---
 
-## Phase 1 — Launch 4 Voyager Agents in Parallel
+## Phase 1 — Define Target Scenario, Then Launch 4 Voyager Agents in Parallel
+
+Before launching subagents, generate exactly 1 Gherkin scenario from the original user query. Keep it minimal and targeted. We are defining the smallest user-visible contract for a simple enhancement, not a full spec.
+
+Use this format:
+
+### Scenario: [User action and outcome]
+
+Given [user state/precondition]
+When [user action]
+Then [user-visible outcome with verifiable condition]
+
+Acceptance Criteria:
+
+- [Measurable outcome: specific value/threshold/state]
+
+Rules:
+- Generate exactly 1 scenario
+- Base it on the original user query, not on implementation guesses
+- Keep it user-visible, testable, falsifiable, and implementation-agnostic
+- Keep it minimal and targeted to the enhancement being requested
+- This scenario is the target goal for all subagents
 
 Spawn all four simultaneously using the Task tool with `subagent_type: voyager`.
+
+Pass the scenario to every subagent as part of its task context so research stays anchored to the same target behavior.
 
 **Evidence requirement:** All agents must cite findings with code snippets, file paths, and line numbers. No assertions without evidence. If results are thin or inconclusive, note gaps explicitly in Phase 2 — do not proceed with assumptions.
 
@@ -67,12 +90,13 @@ Output: A concise **style cheatsheet** — bullet points only, no prose.
 
 After all 4 agents return, combine findings:
 
-1. **Current UX** — what the user sees and can do today (from Agent 3, surfaced here verbatim)
-2. **Post-change UX** — what the user will see after the change (from Agent 3, surfaced here verbatim)
-3. **Current behavior** — what the code does today
-4. **Constraints** — what must not change (public API, test contracts, style rules)
-5. **Style rules** — the extracted cheatsheet from Agent 4
-6. **Blast radius** — scope of impact from Agent 2
+1. **Original scenario** — the single target scenario from Phase 1, surfaced verbatim
+2. **Current UX** — what the user sees and can do today (from Agent 3, surfaced here verbatim)
+3. **Post-change UX** — what the user will see after the change (from Agent 3, surfaced here verbatim)
+4. **Current behavior** — what the code does today
+5. **Constraints** — what must not change (public API, test contracts, style rules)
+6. **Style rules** — the extracted cheatsheet from Agent 4
+7. **Blast radius** — scope of impact from Agent 2
 
 ---
 
