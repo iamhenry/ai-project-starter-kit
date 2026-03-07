@@ -282,43 +282,57 @@ Start every checklist item with an **ALL CAPS** Action Verb followed by a colon.
 
 [Generate the actual implementation checklist following the format above]
 
-#### Phase 2: Quality Gates
+#### Phase 2: Verification Gate
 
-Once implementation is complete, verify code quality by running these checks in order:
+Once implementation is complete, verify the task outcome before attempting a commit. Choose the lightest verification mode that can prove the core user flow works:
 
-- [ ] **Type Safety**: Run type checking to verify no type errors exist
-- [ ] **Code Linting**: Run linting to ensure code follows project standards
-- [ ] **Build Verification**: Run build process to confirm no compilation errors
-- [ ] **Regression Testing**: Run existing test suite to ensure no functionality broke (DO NOT create new tests unless explicitly requested)
+- [ ] **Browser Flow**: Use when the task depends on multi-step UI behavior, async transitions, or end-to-end interaction in the browser
+- [ ] **Browser Static**: Use when screenshots are enough to prove visible UI changes
+- [ ] **Non-Browser**: Use when backend, CLI, API, or data checks provide a stronger proof than browser automation
 
-**NOTE**: These quality gates are SEPARATE from implementation. Run them AFTER completing all implementation tasks. Use the project's configured commands (check package.json scripts or project documentation for specific commands).
-
----
-
-### Browser Verification Plan
-
-<!-- Only include when the task has UI changes. Delete this section if not applicable. -->
-
-Verify the implementation visually in the browser. The agent uses the Playwright CLI skill to automate these steps, record interactive flows as video evidence, and capture screenshots for static UI checks.
-
-**Guidelines:**
-- 3-5 checkpoints covering the core happy-path flow
-- If a step is an interactive flow, mark it with `🎥` and record it
-- If a step is a static visual check, mark it with `📸` for screenshot capture
-- Mark 2-3 key moments with evidence tags (`🎥` and/or `📸`)
-- Recordings saved to `_ai/task/{SLUG}/recordings/{step}.webm`
-- Screenshots saved to `_ai/task/{SLUG}/screenshots/{step}.png`
-
-**Example:**
-1. Navigate to `http://localhost:3000/settings`
-2. 📸 Verify the new "Notifications" tab renders (screenshot: initial state)
-3. 🎥 Start recording, toggle notification preference, and verify toggle animates and state persists (recording: settings-toggle-flow)
-4. 📸 Verify success toast appears (screenshot: confirmation)
-5. 🎥 Refresh page and verify preference persisted, then stop recording (recording: persistence-check-flow)
+**NOTE**: This phase is SEPARATE from implementation and from commit. The goal is to prove the intended task behavior works end to end, not just to run code quality commands.
 
 ---
 
-[Generate 3-5 verification checkpoints for the core flow. Mark 2-3 moments with `🎥` and/or `📸` based on flow vs static checks.]
+### Verification Gate Plan
+
+<!-- Include when the task needs explicit post-implementation validation. Pick the smallest mode that can prove the task works. -->
+
+Use the `verification-gate` skill to prove the task works before commit. When browser evidence is needed, the verification-gate skill should rely on the `agent-browser` skill for browser actions, screenshots, and recordings.
+
+**Required fields:**
+- **Verification Mode**: `browser-flow`, `browser-static`, or `non-browser`
+- **Objective**: The single main outcome that must be proven
+- **Primary Flow**: 3-5 checkpoints covering the core happy-path flow
+- **Regression Check**: 1 lightweight adjacent behavior check when relevant
+- **Evidence Plan**: Mark proof points with `🎥` and/or `📸` only when needed
+- **Pass Criteria**: Exact condition that counts as success
+- **Blocked Conditions**: Missing auth, data, environment, or tooling that would prevent reliable verification
+
+**Evidence rules:**
+- Use `📸` when a static screenshot is enough to prove the outcome
+- Use `🎥` when the user journey requires interaction or async state changes; prefer one recording for the full sequence instead of multiple short clips
+- Save browser artifacts to `_ai/task/{SLUG}/verification/videos/{step}.webm`
+- Save browser artifacts to `_ai/task/{SLUG}/verification/screenshots/{step}.png`
+
+**Example (`browser-flow`):**
+1. Open `http://localhost:3000/create`
+2. Decide the lightest proof: use `📸` if a static state is enough, or `🎥` if the flow needs interaction proof
+3. If using `🎥`, record one full sequence: select model -> enter prompt -> submit -> wait for completion -> verify generated images render
+4. If using `📸`, capture the one or two proof states that clearly show success
+
+---
+
+[Generate a verification gate plan with 3-5 checkpoints for the primary flow and 0-1 regression checks. Use the lightest evidence plan that proves success or failure. Prefer a single full-flow video for interactive journeys and screenshots only for static proof states.]
+
+#### Phase 3: Commit Changes
+
+Once verification passes, commit the work using the repo's normal commit conventions.
+
+- [ ] **Create Commit**: Attempt the commit after Phase 2 passes
+- [ ] **Handle Hook Failures**: If commit hooks fail, inspect the output, fix the issues, and retry the commit
+
+**NOTE**: Do not bypass commit hooks. Treat hook failures as feedback that must be resolved before the task is considered complete.
 
 ### Manual QA Checklist
 
@@ -354,7 +368,7 @@ Verify the implementation visually in the browser. The agent uses the Playwright
 - **Specify implementation details** as bullet points under each subtask
 - **Avoid broad terms**: No "system", "integration", "complete" in task titles
 - **DO NOT include test creation** in implementation tasks unless explicitly requested in the task description
-- **Quality gates** (typecheck, lint, build, test) should be listed SEPARATELY in Phase 2 after implementation tasks
+- **Verification gate** should be listed in Phase 2 after implementation tasks; **commit + hook remediation** should be listed separately in Phase 3
 - Distinguish between "writing code" and "running validation commands"
 
 ## Good vs Bad Task Examples
