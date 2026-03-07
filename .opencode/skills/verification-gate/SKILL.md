@@ -1,5 +1,5 @@
 ---
-name: verification
+name: verification-gate
 description: Reusable verification gate for completed work before commit or merge. Use when implementation is done and Claude must prove the task works, verify the main user flow, choose between browser-flow, browser-static, or non-browser validation, and return a PASS/FAIL/BLOCKED verdict with evidence. When browser verification is needed, rely on the agent-browser skill for browser actions, screenshots, and recordings.
 ---
 

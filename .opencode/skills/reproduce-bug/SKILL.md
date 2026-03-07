@@ -1,5 +1,5 @@
 ---
-name: reproduce
+name: reproduce-bug
 description: Lightweight SOP for reproducing bugs and proving whether a reported issue can be triggered. Use when Claude needs to reproduce a bug, validate a bug report, capture a repro video or screenshot, and return a clear REPRODUCED/NOT_REPRODUCED/BLOCKED result. When browser-based reproduction is needed, rely on the dogfood skill for browser setup, navigation, and evidence capture.
 ---
 

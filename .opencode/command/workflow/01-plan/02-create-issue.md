@@ -298,7 +298,7 @@ Once implementation is complete, verify the task outcome before attempting a com
 
 <!-- Include when the task needs explicit post-implementation validation. Pick the smallest mode that can prove the task works. -->
 
-Use the `verification` skill to prove the task works before commit. When browser evidence is needed, the verification skill should rely on the `agent-browser` skill for browser actions, screenshots, and recordings.
+Use the `verification-gate` skill to prove the task works before commit. When browser evidence is needed, the verification-gate skill should rely on the `agent-browser` skill for browser actions, screenshots, and recordings.
 
 **Required fields:**
 - **Verification Mode**: `browser-flow`, `browser-static`, or `non-browser`
