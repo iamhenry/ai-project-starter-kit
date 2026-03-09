@@ -22,8 +22,6 @@ Before research, frame the task from the issue/request itself.
 
 If the issue is underspecified in a way that would materially change the implementation, stop here and ask 1-3 targeted questions instead of forcing options.
 
----
-
 ## Phase 1 — Define Target Scenario, Then Launch 4 Voyager Agents in Parallel
 
 Before launching subagents, generate exactly 1 Gherkin scenario from the original user query. Keep it minimal and targeted. We are defining the smallest user-visible contract for a simple enhancement, not a full spec.
@@ -121,7 +119,13 @@ Use these as hard filters before presenting options:
 4. **Single source of truth:** avoid duplicated state/data paths.
 5. **User trust/safety:** no risky shortcuts that could create silent bad outcomes.
 
-If an option violates any filter, either fix it or explicitly mark why the tradeoff is unavoidable.
+1. **Original scenario** — the single target scenario from Phase 1, surfaced verbatim
+2. **Current UX** — what the user sees and can do today (from Agent 3, surfaced here verbatim)
+3. **Post-change UX** — what the user will see after the change (from Agent 3, surfaced here verbatim)
+4. **Current behavior** — what the code does today
+5. **Constraints** — what must not change (public API, test contracts, style rules)
+6. **Style rules** — the extracted cheatsheet from Agent 4
+7. **Blast radius** — scope of impact from Agent 2
 
 ---
 

@@ -52,10 +52,12 @@ Expand these aliases to full provider/model format:
 
 | Alias    | Full Model Name                               |
 | -------- | --------------------------------------------- |
-| `opus`   | `google/antigravity-claude-opus-4-6-thinking` |
-| `gemini` | `google/antigravity-gemini-3-pro`             |
+| `sonnet` | `anthropic/claude-sonnet-4-6`                 |
+| `gemini` | `ollama-cloud/gemini-3-flash-preview`         |
 | `gpt`    | `openai/gpt-5.2`                              |
 | `codex`  | `openai/gpt-5.3-codex`                        |
+| `glm`    | `ollama-cloud/glm-5`                          |
+| `kimi`   | `ollama-cloud/glm-5`                          |
 
 Users can also specify full model names directly.
 
@@ -66,6 +68,19 @@ Users can also specify full model names directly.
 - Split models by comma, trim whitespace
 - Expand aliases to full model names
 - Validate scope is one of: staged, unstaged, latest-commit, branch
+
+### Step 1b: Compute Output Directory
+
+```bash
+TIMESTAMP=$(date +%Y-%m-%d)
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+SLUG=$(echo "$BRANCH" | sed 's/[^a-zA-Z0-9-]/-/g')
+REPO_ROOT=$(git rev-parse --show-toplevel)
+OUTPUT_DIR="${REPO_ROOT}/_ai/task/${TIMESTAMP}-${SLUG}"
+mkdir -p "$OUTPUT_DIR"
+```
+
+Example: `_ai/task/2026-02-27-feat-add-nano-banana-pro-model/`
 
 ### Step 2: Create Tmux Session
 
@@ -79,7 +94,7 @@ tmux new-window -t ensemble-review -n {model3-alias}
 
 ### Step 3: Build Review Prompt
 
-Read the code review instructions from `_ai/tools/quality/code-review.md` and construct the prompt:
+Read the code review instructions from `_ai/prompts/quality/code-review.md` and construct the prompt:
 
 ```markdown
 You are performing a code review.
@@ -108,9 +123,11 @@ IMPORTANT: First, run the appropriate git command to get the changes:
 
 Then perform the code review following the instructions above.
 
-After completing the review, write the final output as markdown to the repository root using this exact filename pattern:
+After completing the review, write the final output as markdown to this exact absolute path:
 
-- `review-{alias}.md` (examples: `review-opus.md`, `review-gemini.md`)
+- `{OUTPUT_DIR}/review-{alias}.md` (examples: `{OUTPUT_DIR}/review-opus.md`, `{OUTPUT_DIR}/review-gemini.md`)
+
+IMPORTANT: Write ONLY to this path. Do NOT write any files to /tmp, your home directory, or any other location outside this path.
 
 If file write fails, print the final review between markers:
 
@@ -122,9 +139,16 @@ If file write fails, print the final review between markers:
 
 For each model/window:
 
+IMPORTANT: Pass the prompt via stdin using a heredoc piped to `opencode run --model {full_model_name} -`. Do NOT write the prompt to any file, temp directory, or disk location.
+
 ```bash
-tmux send-keys -t ensemble-review:{alias} 'opencode run --model {full_model_name} "{escaped_prompt}"; echo "###DONE###"' C-m
+tmux send-keys -t ensemble-review:{alias} 'cat <<'"'"'PROMPT'"'"' | opencode run --model {full_model_name} -
+{prompt_content}
+PROMPT
+echo "###DONE###"' C-m
 ```
+
+> Note: Use single-quote heredoc (`<<'PROMPT'`) to prevent shell expansion of the prompt content. This avoids escaping issues with backticks, `$`, and special characters in the prompt.
 
 ### Step 5: Patient Polling
 
@@ -148,10 +172,10 @@ Reviews can take 10-15 minutes - keep waiting as long as output grows.
 
 For each completed window, capture results in this order:
 
-1. **File-first (default):** Read markdown file from repo root:
+1. **File-first (default):** Read markdown file from output directory:
 
 ```bash
-cat review-{alias}.md
+cat {OUTPUT_DIR}/review-{alias}.md
 ```
 
 2. **Fallback (if file missing):** Extract marker-delimited review text from tmux pane:
