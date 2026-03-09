@@ -21,6 +21,19 @@ Research a codebase before touching it. Parallel research -> synthesis -> task-m
 
 ---
 
+## Phase 0 — Issue Intake
+
+Before research, frame the task from the issue/request itself.
+
+- Restate the issue in plain language
+- Extract explicit acceptance criteria
+- Mark assumptions and missing product decisions
+- Classify the task: `bug` | `feature` | `refactor` | `claim-check`
+
+If the issue is underspecified in a way that would materially change the implementation, stop here and ask 1-3 targeted questions instead of forcing options.
+
+---
+
 ## Phase 1 — Launch 3 Voyager Agents in Parallel
 
 Spawn all three simultaneously using the Task tool with `subagent_type: voyager`.
@@ -101,6 +114,17 @@ For each option ask: *"Would a maintainer approve this PR without asking for cha
 Reason from first principles: work backwards from the goal — what is the simplest change that satisfies the requirement without introducing concepts the codebase doesn't already use?
 
 For each option, include one line in this format: `Why this option: reuses <existing thing>, adds <nothing/new X only if needed now>, expected effort <Low/Med/High>.`
+
+After the user selects an option, emit a workflow handoff packet with:
+
+- Chosen approach
+- Implementation steps
+- Verification steps
+- PR summary bullets
+- Files likely to change
+- Tests to add/update
+- Risks / rollback notes
+- Commit/PR summary draft
 
 ---
 
