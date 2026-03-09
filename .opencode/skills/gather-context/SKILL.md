@@ -5,11 +5,22 @@ description: Research first SOP before implementing any code change. Use when st
 
 # Gather Context
 
-Research a codebase before touching it. Parallel research → synthesis → 3 ranked approaches → wait for approval.
+Research a codebase before touching it. Parallel research -> synthesis -> 3 ranked approaches -> wait for approval.
 
 **Primary goal for open source:** Changes must look like the maintainer wrote them. Minimal diff. Maximum style alignment.
 
 ---
+
+## Phase 0 — Issue Intake
+
+Before research, frame the task from the issue/request itself.
+
+- Restate the issue in plain language
+- Extract explicit acceptance criteria
+- Mark assumptions and missing product decisions
+- Classify the task: `bug` | `feature` | `refactor` | `claim-check`
+
+If the issue is underspecified in a way that would materially change the implementation, stop here and ask 1-3 targeted questions instead of forcing options.
 
 ## Phase 1 — Define Target Scenario, Then Launch 4 Voyager Agents in Parallel
 
@@ -98,19 +109,48 @@ After all 4 agents return, combine findings:
 6. **Style rules** — the extracted cheatsheet from Agent 4
 7. **Blast radius** — scope of impact from Agent 2
 
+## Decision Heuristics (Apply to every proposal)
+
+Use these as hard filters before presenting options:
+
+1. **Reuse first (DRY):** prefer existing modules/components/patterns over new ones.
+2. **KISS:** choose the least complex approach that meets requirements.
+3. **YAGNI:** do not add extensibility/abstractions unless current requirement needs it.
+4. **Single source of truth:** avoid duplicated state/data paths.
+5. **User trust/safety:** no risky shortcuts that could create silent bad outcomes.
+
+1. **Original scenario** — the single target scenario from Phase 1, surfaced verbatim
+2. **Current UX** — what the user sees and can do today (from Agent 3, surfaced here verbatim)
+3. **Post-change UX** — what the user will see after the change (from Agent 3, surfaced here verbatim)
+4. **Current behavior** — what the code does today
+5. **Constraints** — what must not change (public API, test contracts, style rules)
+6. **Style rules** — the extracted cheatsheet from Agent 4
+7. **Blast radius** — scope of impact from Agent 2
+
 ---
 
 ## Phase 3 — Present 3 Approaches
 
 Use `references/approach-template.md` for consistent output format.
 
-Rank by: **minimal diff + style alignment first** → more involved last.
+Rank by: **minimal diff + style alignment first** -> more involved last.
 
 Each option must include one regression probe describing how to verify no duplicate trigger/clobber regressions were introduced.
 
 For each option ask: *"Would a maintainer approve this PR without asking for changes?"*
 
 Reason from first principles: work backwards from the goal — what is the simplest change that satisfies the requirement without introducing concepts the codebase doesn't already use?
+
+After the user selects an option, emit a workflow handoff packet with:
+
+- Chosen approach
+- Implementation steps
+- Verification steps
+- PR summary bullets
+- Files likely to change
+- Tests to add/update
+- Risks / rollback notes
+- Commit/PR summary draft
 
 ---
 
