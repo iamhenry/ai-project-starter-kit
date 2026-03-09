@@ -7,7 +7,7 @@ Before writing any code, produce a preflight plan for the current task.
 
 ## Rules
 - DO NOT edit any files yet. This is planning only.
-- When implementation begins: touch only what is strictly necessary. No refactors, no cleanup, no extras. One minimal targeted edit per concern.
+- When implementation begins: touch only what is scope.
 
 ## Step 1 — Gherkin Scenarios
 Write as many scenarios as the task requires. Each gets exactly 1–2 acceptance criteria.
@@ -24,5 +24,4 @@ AC:
 
 ## Step 2 — Pseudocode Plan
 Plain-english steps only. No real code syntax.
-Use indentation for nesting. One line = one action or decision.
 Flag unknowns as [ASSUMPTION: ...].
