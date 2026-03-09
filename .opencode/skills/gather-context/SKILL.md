@@ -1,23 +1,13 @@
 ---
 name: gather-context
-description: Research-first SOP for any codebase task implementation debugging refactor architecture review or claim validation. If user explicitly says gather context invocation is mandatory. Launches 3 parallel voyager subagents to map current behavior dependencies blast radius and codebase style. Then either outputs 3 ranked implementation approaches or an analysis-only verdict report with evidence.
+description: Research first SOP before implementing any code change. Use when starting any task that involves modifying an existing codebase features bugs refactors open source contributions. Triggers when I want to work on X help me implement or fix or refactor X gather relevant context for X lets work on this. Launches 4 parallel voyager subagents to map current behavior dependencies blast radius and codebase style then presents 3 ranked approaches minimal diff first for user approval before any code is written.
 ---
 
 # Gather Context
 
-Research a codebase before touching it. Parallel research -> synthesis -> task-mode output.
+Research a codebase before touching it. Parallel research -> synthesis -> 3 ranked approaches -> wait for approval.
 
 **Primary goal for open source:** Changes must look like the maintainer wrote them. Minimal diff. Maximum style alignment.
-
-## Trigger Rules
-
-- If the user explicitly asks to "gather context", you MUST invoke this skill.
-- Use this skill for implementation tasks and analysis-only tasks:
-  - Implement/fix/refactor requests
-  - Code review comment validation
-  - "Is this claim true?" investigation
-  - Architecture/blast-radius assessment before coding
-- If evidence is missing or inconclusive, return `Unclear` with exactly what context is missing.
 
 ---
 
@@ -34,11 +24,32 @@ If the issue is underspecified in a way that would materially change the impleme
 
 ---
 
-## Phase 1 — Launch 3 Voyager Agents in Parallel
+## Phase 1 — Define Target Scenario, Then Launch 4 Voyager Agents in Parallel
 
-Spawn all three simultaneously using the Task tool with `subagent_type: voyager`.
+Before launching subagents, generate exactly 1 Gherkin scenario from the original user query. Keep it minimal and targeted. We are defining the smallest user-visible contract for a simple enhancement, not a full spec.
 
-Default: always launch all 3. Only skip an agent if the task is truly trivial; if skipped, explain why.
+Use this format:
+
+### Scenario: [User action and outcome]
+
+Given [user state/precondition]
+When [user action]
+Then [user-visible outcome with verifiable condition]
+
+Acceptance Criteria:
+
+- [Measurable outcome: specific value/threshold/state]
+
+Rules:
+- Generate exactly 1 scenario
+- Base it on the original user query, not on implementation guesses
+- Keep it user-visible, testable, falsifiable, and implementation-agnostic
+- Keep it minimal and targeted to the enhancement being requested
+- This scenario is the target goal for all subagents
+
+Spawn all four simultaneously using the Task tool with `subagent_type: voyager`.
+
+Pass the scenario to every subagent as part of its task context so research stays anchored to the same target behavior.
 
 **Evidence requirement:** All agents must cite findings with code snippets, file paths, and line numbers. No assertions without evidence. If results are thin or inconclusive, note gaps explicitly in Phase 2 — do not proceed with assumptions.
 
@@ -53,13 +64,24 @@ Default: always launch all 3. Only skip an agent if the task is truly trivial; i
 ### Agent 2: Dependency Map
 > What breaks if we touch this?
 
-- Map callers (what depends on this code)
-- Map callees (what this code depends on)
+- Map callers and callback/event consumers (what depends on this code, including who reacts to emitted/invoked behavior)
+- Map callees and callback/event producers (what this code depends on, including what it emits/invokes)
+- Capture invocation cardinality and order for critical interactions (once vs multiple, before vs after)
 - Identify public API surface vs internal details
-- Assess blast radius: files, modules, tests at risk
+- Assess blast radius: files, modules, tests, and cross-component behavioral side effects at risk
 - Flag any breaking change risks
 
-### Agent 3: Style Fingerprint
+### Agent 3: UX Behavior
+> What does the user see today, and what will they see after?
+
+Given the feature/change being investigated, trace the user-facing path — not the code path.
+
+- **Current UX** — step by step what the user sees and can do today (screens, states, limits, caps, hidden elements)
+- **Post-change UX** — same walkthrough after the proposed change; explicitly call out anything that stays blocked, hidden, or broken
+
+The main agent must tell this agent what feature is being added/changed so it can focus the trace. Output must be two clearly labelled sections: **Current UX** and **Post-change UX**. No prose beyond what is needed to describe user-visible behavior. Flag any gap where the post-change UX does not match user expectations.
+
+### Agent 4: Style Fingerprint
 > How does this codebase write code?
 
 Start with files adjacent to the task. Expand repo-wide when touching shared infrastructure.
@@ -79,12 +101,15 @@ Output: A concise **style cheatsheet** — bullet points only, no prose.
 
 ## Phase 2 — Synthesize
 
-After all 3 agents return, combine findings:
+After all 4 agents return, combine findings:
 
-1. **Current behavior** — what the code does today
-2. **Constraints** — what must not change (public API, test contracts, style rules)
-3. **Style rules** — the extracted cheatsheet from Agent 3
-4. **Blast radius** — scope of impact from Agent 2
+1. **Original scenario** — the single target scenario from Phase 1, surfaced verbatim
+2. **Current UX** — what the user sees and can do today (from Agent 3, surfaced here verbatim)
+3. **Post-change UX** — what the user will see after the change (from Agent 3, surfaced here verbatim)
+4. **Current behavior** — what the code does today
+5. **Constraints** — what must not change (public API, test contracts, style rules)
+6. **Style rules** — the extracted cheatsheet from Agent 4
+7. **Blast radius** — scope of impact from Agent 2
 
 ## Decision Heuristics (Apply to every proposal)
 
@@ -102,18 +127,15 @@ If an option violates any filter, either fix it or explicitly mark why the trade
 
 ## Phase 3 — Present 3 Approaches
 
-Choose output mode by task type:
+Use `references/approach-template.md` for consistent output format.
 
-- Implementation requested -> use `references/approach-template.md`.
-- Analysis-only requested (review/validation/investigation) -> use `references/review-verdict-template.md`.
+Rank by: **minimal diff + style alignment first** -> more involved last.
 
-Rank by: **minimal diff + style alignment + reuse/simplicity first** → more involved last.
+Each option must include one regression probe describing how to verify no duplicate trigger/clobber regressions were introduced.
 
 For each option ask: *"Would a maintainer approve this PR without asking for changes?"*
 
 Reason from first principles: work backwards from the goal — what is the simplest change that satisfies the requirement without introducing concepts the codebase doesn't already use?
-
-For each option, include one line in this format: `Why this option: reuses <existing thing>, adds <nothing/new X only if needed now>, expected effort <Low/Med/High>.`
 
 After the user selects an option, emit a workflow handoff packet with:
 
@@ -130,17 +152,6 @@ After the user selects an option, emit a workflow handoff packet with:
 
 ## Phase 4 — Hard Stop
 
-Implementation mode: present the 3 options and **wait for explicit user selection**.
+Present the 3 options and **wait for explicit user selection**.
 
-Analysis-only mode: stop after verdict report. Do not propose implementation unless user asks.
-
-## Analysis-Only Verdict Standard
-
-When the task is validation/review (no code edits requested), each claim must include:
-
-1. Verdict: `Valid` | `Invalid` | `Unclear`
-2. Evidence: direct citation(s) with file path and line number
-3. Blast radius: who/what is affected if claim is true
-4. Confidence: high/medium/low with one-sentence rationale
-
-No verdict without direct code evidence.
+Do not begin implementation until the user picks an approach.
