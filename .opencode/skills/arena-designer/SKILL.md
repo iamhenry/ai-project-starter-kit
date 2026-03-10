@@ -182,6 +182,9 @@ Fastest path to ready:
 - Long-running loops are fine; require a review cadence, not a 5-minute cycle
 - Every irreversible or high-risk action needs a hard stop
 - Ask: if the worker optimized ONLY this score, could it produce something you'd reject? If yes, add a constraint or secondary metric
+- When the work loop has distinct stages with different tools, note per-stage failure handling — a failure at one stage should not force a restart from the beginning
+- When tools have per-use costs, define the budget per cycle and per period — not just total budget
+- When verification sources have different speeds, act on the fastest reliable signal and adjust strategy on the slower ones
 
 ## Brief example
 
