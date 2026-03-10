@@ -180,8 +180,6 @@ Fastest path to ready:
 - Favor shorter feedback loops over perfect end metrics
 - Use leading indicators when lagging business metrics are slow
 - Long-running loops are fine; require a review cadence, not a 5-minute cycle
-- Every success claim must be backed by a named verification source
-- Every permission should be explicit
 - Every irreversible or high-risk action needs a hard stop
 - Ask: if the worker optimized ONLY this score, could it produce something you'd reject? If yes, add a constraint or secondary metric
 

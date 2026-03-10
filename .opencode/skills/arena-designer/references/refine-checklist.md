@@ -22,6 +22,7 @@ If yes, the loop is open again. Fix closure first.
 - Are actions too broad or too risky?
 - Is the worker choosing high-leverage actions?
 - Is it stuck repeating low-value work?
+- Are the operating principles leading to good decisions? Should any be updated?
 
 ## 4. Memory quality
 
