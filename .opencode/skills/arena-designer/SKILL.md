@@ -22,11 +22,11 @@ Keep it simple. Use heuristics, not rigid frameworks.
 
 The arena is only valid if the agent can:
 
-1. Observe the relevant world state
-2. Act on the environment
-3. Verify whether the action helped
-4. Record what happened for the next cycle
-5. Continue autonomously without waiting on human judgment
+1. **Observe** the relevant world state
+2. **Act** on the environment
+3. **Verify** whether the action helped
+4. **Record** what happened for the next cycle
+5. **Continue** autonomously without waiting on human judgment
 
 Treat this as the acceptance criteria for the arena.
 
@@ -68,6 +68,12 @@ Restate the mission in one sentence:
 
 Separate the **north star** from the **operational score**.
 
+Ask these anchor questions to ground the mission:
+
+1. What can you measure today? (reveals available verification surface)
+2. What tools and accounts do you already have? (reveals environment)
+3. What's the fastest thing you could change and see a result? (reveals the tightest loop)
+
 Example:
 
 - North star: `$10k/month iOS revenue`
@@ -89,6 +95,7 @@ Rules:
 - `NOT READY` if any gate is unresolved
 - Resolve ambiguity before proceeding
 - If the goal is too broad, derive a smaller operational objective that best advances the mission
+- A goal is too broad if it requires more than one distinct observe-act-verify loop. Narrow to the single loop with the most signal or that unblocks other loops.
 
 Do not use `needs work`. Use only `READY` or `NOT READY`.
 
@@ -176,6 +183,7 @@ Fastest path to ready:
 - Every success claim must be backed by a named verification source
 - Every permission should be explicit
 - Every irreversible or high-risk action needs a hard stop
+- Ask: if the worker optimized ONLY this score, could it produce something you'd reject? If yes, add a constraint or secondary metric
 
 ## Brief example
 
