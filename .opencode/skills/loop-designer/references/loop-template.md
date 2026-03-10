@@ -55,6 +55,7 @@ version: [current version numnber]
 - Study what's already working before inventing from scratch
 - Explore broadly when score is flat; exploit when score is improving
 - [Add domain-specific judgment the worker needs to make good decisions]
+- [What this worker should NEVER do — anti-patterns learned from failure]
 
 ## Work Loop
 [Write domain-specific steps. Do not copy generic observe-act-verify. Example:]

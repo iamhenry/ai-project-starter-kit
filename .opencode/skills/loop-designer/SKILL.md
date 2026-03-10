@@ -133,6 +133,10 @@ Keep the worker focused on heuristics and operating principles.
 Do not over-specify tactics that the worker should discover through iteration.
 When the score has components, define diagnostic combinations that tell the worker WHERE things are going wrong, not just that they're going wrong.
 
+If the worker produces content, communicates with humans, or makes judgment calls that reflect a brand or perspective, also generate a `soul.md` using `references/soul-template.md`. If the worker is purely mechanical (data pipelines, code optimization, monitoring), skip the soul.
+
+If the worker produces content, communicates with humans, or makes judgment calls that reflect a brand or perspective, also generate a `soul.md` using `references/soul-template.md`. If the worker is purely mechanical (data pipelines, code optimization, monitoring), skip the soul.
+
 ### 5) Proof of loop
 
 Define one short first cycle that proves the loop works.
