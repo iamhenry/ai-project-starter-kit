@@ -40,6 +40,12 @@ version: [current version numnber]
 ### Off-limits
 - [things the worker must never touch]
 
+### Inputs
+[Third-party content, data sources, or assets this worker consumes. For each:]
+| Input | Source | Quota / Limit | Legal constraint | If exhausted |
+| --- | --- | --- | --- | --- |
+| [e.g. hook videos] | [e.g. YouTube scraper] | [e.g. 10/day] | [e.g. grey zone — fair use] | [e.g. pause, find new creator] |
+
 ## On Start
 [What the worker reads FIRST when starting a new cycle or fresh session.]
 

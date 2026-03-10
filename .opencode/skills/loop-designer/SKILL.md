@@ -135,8 +135,6 @@ When the score has components, define diagnostic combinations that tell the work
 
 If the worker produces content, communicates with humans, or makes judgment calls that reflect a brand or perspective, also generate a `soul.md` using `references/soul-template.md`. If the worker is purely mechanical (data pipelines, code optimization, monitoring), skip the soul.
 
-If the worker produces content, communicates with humans, or makes judgment calls that reflect a brand or perspective, also generate a `soul.md` using `references/soul-template.md`. If the worker is purely mechanical (data pipelines, code optimization, monitoring), skip the soul.
-
 ### 5) Proof of loop
 
 Define one short first cycle that proves the loop works.
@@ -192,6 +190,9 @@ Fastest path to ready:
 - When verification sources have different speeds, act on the fastest reliable signal and adjust strategy on the slower ones
 - A human touchpoint that requires no judgment (e.g., tapping "post" to avoid bot detection) does not break closure — note it in the Work Loop as a manual relay step
 - Identify platform-specific constraints that affect how the worker can act — some actions may need workarounds or manual relay steps
+- If the worker consumes third-party content, data, or assets, treat them as constrained inputs: check availability, quota, legal/ethical limits, and what happens when they run out
+- If a platform can silently penalize the worker (shadow ban, suppressed reach, rate throttle), define a detection signal — e.g. if score drops >X% for Y consecutive cycles, suspect platform penalty, pause, and escalate
+- When the worker produces outputs in batches, score at the batch level after sufficient time for signal to stabilize — not per individual output
 
 ## Brief example
 
