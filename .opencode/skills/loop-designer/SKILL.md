@@ -1,10 +1,10 @@
 ---
-name: arena-designer
-description: Design a closed autonomous worker skill for a measurable goal. Use when the user wants to create an agentic loop, digital worker, autonomous operator, long-running agent, or SKILL.md that can observe act verify record and continue with minimal human intervention.
-version: 1.0
+name: loop-designer
+description: Design a closed autonomous loop for a measurable goal. Use when the user wants to create an agentic loop, digital worker, autonomous operator, long-running agent, or SKILL.md that can observe act verify record and continue with minimal human intervention.
+version: 1.1
 ---
 
-# Arena Designer
+# Loop Designer
 
 Turn a goal into a closed-loop `SKILL.md` for an autonomous worker.
 
@@ -20,7 +20,7 @@ Keep it simple. Use heuristics, not rigid frameworks.
 
 ## Closed Loop Test
 
-The arena is only valid if the agent can:
+The loop is only valid if the agent can:
 
 1. **Observe** the relevant world state
 2. **Act** on the environment
@@ -28,7 +28,7 @@ The arena is only valid if the agent can:
 4. **Record** what happened for the next cycle
 5. **Continue** autonomously without waiting on human judgment
 
-Treat this as the acceptance criteria for the arena.
+Treat this as the acceptance criteria for the loop.
 
 If any item fails, the result is `NOT READY`.
 
@@ -131,6 +131,7 @@ Write the worker around these sections:
 
 Keep the worker focused on heuristics and operating principles.
 Do not over-specify tactics that the worker should discover through iteration.
+When the score has components, define diagnostic combinations that tell the worker WHERE things are going wrong, not just that they're going wrong.
 
 ### 5) Proof of loop
 
@@ -159,7 +160,7 @@ Use `references/refine-checklist.md` when results are noisy or delayed.
 
 ## Output format
 
-When `READY`, write a worker `SKILL.md` using `references/arena-template.md`.
+When `READY`, write a worker `SKILL.md` using `references/loop-template.md`.
 
 When `NOT READY`, return:
 
@@ -185,12 +186,14 @@ Fastest path to ready:
 - When the work loop has distinct stages with different tools, note per-stage failure handling — a failure at one stage should not force a restart from the beginning
 - When tools have per-use costs, define the budget per cycle and per period — not just total budget
 - When verification sources have different speeds, act on the fastest reliable signal and adjust strategy on the slower ones
+- A human touchpoint that requires no judgment (e.g., tapping "post" to avoid bot detection) does not break closure — note it in the Work Loop as a manual relay step
+- Identify platform-specific constraints that affect how the worker can act — some actions may need workarounds or manual relay steps
 
 ## Brief example
 
 Mission: increase iOS revenue to `$10k/month` using ASO and social content.
 
-Good arena shape:
+Good loop shape:
 
 - North star: monthly revenue
 - Operational score: weekly installs, content CTR, app-store conversion
