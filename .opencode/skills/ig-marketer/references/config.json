@@ -1,0 +1,40 @@
+{
+  "_note": "Replace all placeholder values before running Cycle 0. Never commit this file with real keys.",
+  "postiz": {
+    "apiKey": "POSTIZ_API_KEY_HERE",
+    "baseUrl": "https://api.postiz.com",
+    "integrationIds": {
+      "instagram": "INSTAGRAM_INTEGRATION_ID_HERE"
+    }
+  },
+  "revenuecat": {
+    "v2SecretKey": "RC_V2_SECRET_KEY_HERE",
+    "projectId": "RC_PROJECT_ID_HERE"
+  },
+  "fal": {
+    "enabled": false,
+    "apiKey": "FAL_API_KEY_HERE",
+    "budgetCeilingUSD": 30
+  },
+  "app": {
+    "name": "YOUR_APP_NAME",
+    "niche": "NICHE_DESCRIPTION (e.g. sobriety, fitness, productivity)",
+    "appStoreUrl": "https://apps.apple.com/app/YOUR_APP",
+    "instagramHandle": "@YOUR_APP_HANDLE",
+    "hashtagSeeds": ["#NICHE_TAG_1", "#NICHE_TAG_2", "#NICHE_TAG_3"],
+    "githubRepo": "https://github.com/YOUR_ORG/YOUR_REPO",
+    "supportNotes": ""
+  },
+  "goal": {
+    "mrrTargetUSD": 10000
+  },
+  "carousel": {
+    "command": "/zero-proof-carousel",
+    "_note": "The slash command or script that generates carousel content.json + renders PNG slides for this app. Update if using a different command."
+  },
+  "posting": {
+    "timezone": "America/Los_Angeles",
+    "defaultTimes": ["08:00", "16:30", "19:00"],
+    "privacyDefault": "DRAFT"
+  }
+}

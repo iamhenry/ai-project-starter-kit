@@ -1,0 +1,36 @@
+{
+  "_note": "Seed playbook — initialized before Cycle 0. All values are starting assumptions. Update after every 5-post batch score.",
+  "version": "1.0",
+  "lastUpdated": null,
+  "cycleCount": 0,
+  "phase": "warmup",
+
+  "hashtag_clusters": {
+    "niche":   ["#sobriety", "#sobercurious", "#alcoholfree", "#soberlife", "#sobermovement"],
+    "wellness": ["#mentalhealth", "#wellness", "#selfcare", "#mindfulness", "#recovery"],
+    "broad":   ["#selfimprovement", "#healthylifestyle", "#habits", "#motivation", "#growthmindset"]
+  },
+  "activeHashtagCluster": "niche",
+
+  "postingTimes": {
+    "tested": [],
+    "winning": null,
+    "defaultSchedule": ["08:00", "16:30", "19:00"]
+  },
+
+  "formatMix": {
+    "carousel": 1.0,
+    "reel": 0.0,
+    "note": "Start carousel-only. Introduce reels after Day 14. Adjust ratio based on batch scores."
+  },
+
+  "_ctaNote": "Seed with 2-4 CTA variants for your specific app before Cycle 0. Agent will test and promote winners.",
+  "ctaVariants": [],
+  "activeCTA": null,
+
+  "winningHooks": [],
+  "droppedTopics": [],
+
+  "_topicNote": "Agent discovers topics through niche research (agent-browser + web search). Do not pre-seed this list — let experiments drive it.",
+  "topicBacklog": []
+}
