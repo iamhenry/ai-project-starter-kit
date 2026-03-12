@@ -30,9 +30,9 @@ version: [current version numnber]
 ## Environment
 
 ### Action-to-Tool Map
-| Action | Tool / API | Access | Verification source |
-| --- | --- | --- | --- |
-| [observe / act / verify task] | [specific tool] | [ready/setup-needed/missing] | [where truth comes from] |
+| Action | Tool / API | Access | Checkpoint | Verification source |
+| --- | --- | --- | --- | --- |
+| [observe / act / verify task] | [specific tool] | [ready/setup-needed/missing] | [autonomous/human-relay/human-approval] | [where truth comes from] |
 
 ### Permissions
 - [credential or integration]
@@ -89,7 +89,13 @@ version: [current version numnber]
 - Best-known playbook: [file/path/system]
 - Next cycle reads first: [file/path/system]
 
-Each log entry should capture: `date | action taken | result | score delta | kept or discarded | reasoning`
+Each log entry is one JSON object per line (JSONL). At minimum:
+
+```jsonl
+{"id": "cycle-001", "date": "...", "action": "...", "result": "...", "score_delta": 0.0, "status": "keep|discard|fail", "reasoning": "..."}
+```
+
+Extend with domain-specific fields as needed (e.g., `module`, `test_time_ms`, `views`, `conversions`).
 
 ## Safety
 - Hard stops: [unsafe actions]
