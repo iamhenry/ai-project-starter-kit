@@ -25,27 +25,27 @@ version: 1.0
 - North star check: monthly revenue via RevenueCat — if installs grow but revenue doesn't, the problem is in the app (onboarding, paywall, retention), not the content
 
 ## Verification Surface
-| What to check | How to check | Good looks like | Cadence |
-| --- | --- | --- | --- |
-| Video views per post | TikTok/IG analytics API | trending up vs previous batch | weekly |
-| Profile visits | Platform analytics | > 2% of views convert to profile visit | weekly |
-| App store page views | App Store Connect API | trending up week-over-week | weekly |
-| Organic installs | App Store Connect API | trending up week-over-week | weekly |
-| Revenue | RevenueCat API | tracking toward $10k/month | monthly |
+| What to check        | How to check            | Good looks like                        | Cadence |
+| -------------------- | ----------------------- | -------------------------------------- | ------- |
+| Video views per post | TikTok/IG analytics API | trending up vs previous batch          | weekly  |
+| Profile visits       | Platform analytics      | > 2% of views convert to profile visit | weekly  |
+| App store page views | App Store Connect API   | trending up week-over-week             | weekly  |
+| Organic installs     | App Store Connect API   | trending up week-over-week             | weekly  |
+| Revenue              | RevenueCat API          | tracking toward $10k/month             | monthly |
 
 ## Environment
 
 ### Action-to-Tool Map
-| Action | Tool / API | Access | Checkpoint | Verification source |
-| --- | --- | --- | --- | --- |
-| Research trending hooks | TikTok Creative Center, web search | ready | autonomous | trending topics/sounds list |
-| Research competitors | Platform search, web research | ready | autonomous | competitor-research.json |
-| Generate slideshow images | AI image generation + node-canvas | ready | autonomous | rendered images in output dir |
-| Write hooks and CTAs | AI generation | ready | autonomous | content draft in memory |
-| Schedule/draft content | Postiz API or platform drafts | ready | human-relay | human adds trending sound, reviews, taps publish |
-| Pull video analytics | TikTok/IG analytics API | setup-needed | autonomous | analytics response |
-| Pull install data | App Store Connect API | ready | autonomous | installs count |
-| Pull revenue data | RevenueCat API | ready | autonomous | MRR figure |
+| Action                    | Tool / API                         | Access       | Checkpoint  | Verification source                              |
+| ------------------------- | ---------------------------------- | ------------ | ----------- | ------------------------------------------------ |
+| Research trending hooks   | TikTok Creative Center, web search | ready        | autonomous  | trending topics/sounds list                      |
+| Research competitors      | Platform search, web research      | ready        | autonomous  | competitor-research.json                         |
+| Generate slideshow images | AI image generation + node-canvas  | ready        | autonomous  | rendered images in output dir                    |
+| Write hooks and CTAs      | AI generation                      | ready        | autonomous  | content draft in memory                          |
+| Schedule/draft content    | Postiz API or platform drafts      | ready        | human-relay | human adds trending sound, reviews, taps publish |
+| Pull video analytics      | TikTok/IG analytics API            | setup-needed | autonomous  | analytics response                               |
+| Pull install data         | App Store Connect API              | ready        | autonomous  | installs count                                   |
+| Pull revenue data         | RevenueCat API                     | ready        | autonomous  | MRR figure                                       |
 
 ### Permissions
 - Read/write to content workspace and memory files
@@ -59,12 +59,12 @@ version: 1.0
 - Do not reuse exact content across platforms — adapt each piece
 
 ### Inputs
-| Input | Source | Quota / Limit | Legal constraint | If exhausted |
-| --- | --- | --- | --- | --- |
-| Trending hooks/sounds | TikTok Creative Center | free tier | n/a | fall back to web research |
-| AI image generation | API (DALL-E, Flux, etc.) | budget: $50/month | respect content policy | reduce batch size |
-| Analytics data | Platform APIs | rate limited | n/a | retry with backoff |
-| Competitor content | Public platform data | n/a | do not copy — analyze patterns only | n/a |
+| Input                 | Source                   | Quota / Limit     | Legal constraint                    | If exhausted              |
+| --------------------- | ------------------------ | ----------------- | ----------------------------------- | ------------------------- |
+| Trending hooks/sounds | TikTok Creative Center   | free tier         | n/a                                 | fall back to web research |
+| AI image generation   | API (DALL-E, Flux, etc.) | budget: $50/month | respect content policy              | reduce batch size         |
+| Analytics data        | Platform APIs            | rate limited      | n/a                                 | retry with backoff        |
+| Competitor content    | Public platform data     | n/a               | do not copy — analyze patterns only | n/a                       |
 
 ## On Start
 
@@ -108,13 +108,13 @@ New accounts need 7-14 days of organic activity before posting marketing content
 
 ## Diagnostic Matrix
 
-| Views | Installs | Diagnosis | Action |
-| --- | --- | --- | --- |
-| High | High | Content is working — scale it | Double down: create 3 variations of the winning hook/angle |
-| High | Low | Reach is good, conversion is weak | Fix CTA, app store listing, or landing page. Test new CTAs. |
-| Low | High | Content converts but isn't seen | Fix hooks, posting times, hashtags. The angle works — get it in front of more people. |
-| Low | Low | Fundamentally off | Full reset — new content angle, new audience targeting, new hook style |
-| High views + High installs + Low revenue | — | App issue, not content issue | Pause posting. Escalate to human. Problem is onboarding, paywall, or retention. |
+| Views                                    | Installs | Diagnosis                         | Action                                                                                |
+| ---------------------------------------- | -------- | --------------------------------- | ------------------------------------------------------------------------------------- |
+| High                                     | High     | Content is working — scale it     | Double down: create 3 variations of the winning hook/angle                            |
+| High                                     | Low      | Reach is good, conversion is weak | Fix CTA, app store listing, or landing page. Test new CTAs.                           |
+| Low                                      | High     | Content converts but isn't seen   | Fix hooks, posting times, hashtags. The angle works — get it in front of more people. |
+| Low                                      | Low      | Fundamentally off                 | Full reset — new content angle, new audience targeting, new hook style                |
+| High views + High installs + Low revenue | —        | App issue, not content issue      | Pause posting. Escalate to human. Problem is onboarding, paywall, or retention.       |
 
 ## Memory
 - Results log: `results.jsonl`
@@ -123,9 +123,9 @@ New accounts need 7-14 days of organic activity before posting marketing content
 - Next cycle reads first: `results.jsonl`, then `playbook.json`
 
 Each log entry is one JSON object per line (JSONL):
-```jsonl
+~~~jsonl
 {"id": "cycle-004", "date": "2025-02-10", "platform": "tiktok", "batch_size": 4, "variable_tested": "question-style hook", "hook_example": "POV: you just found the app that...", "cta": "link in bio", "views_avg": 12400, "profile_visits": 310, "installs_delta": 45, "score_delta": 45, "status": "keep", "reasoning": "Question hooks outperformed statement hooks by 3x on views. Profile visit rate 2.5% vs 1.1% baseline. Clear winner — add to playbook."}
-```
+~~~
 
 ## Safety
 - Hard stops: never purchase ads, never engage with other accounts, never exceed image generation budget
