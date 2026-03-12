@@ -1,7 +1,7 @@
 ---
 name: loop-designer
 description: Design a closed autonomous loop for a measurable goal. Use when the user wants to create an agentic loop, digital worker, autonomous operator, long-running agent, or SKILL.md that can observe act verify record and continue with minimal human intervention.
-version: 1.2
+version: 1.3
 ---
 
 # Loop Designer
@@ -100,7 +100,7 @@ Check these five gates:
 2. **Speed** - Is there a bounded review cadence for learning?
 3. **Environment** - Is the action space clear and toolable?
 4. **Failure cost** - Can bad iterations be contained or reverted?
-5. **Traces** - Can the worker leave a structured experiment log and durable learnings? The log must define a read-back format the worker consumes at cycle start. At minimum: identifier, action, result, score delta, status (keep/discard/fail), and reasoning.
+5. **Traces** - Can the worker leave a structured experiment log and durable learnings? The log must use a structured, machine-readable format (JSONL recommended). Each entry must include at minimum: identifier, date, action, result, score delta, status (keep/discard/fail), and reasoning. The worker must read this log at cycle start.
 
 Example — Failure cost gate:
 
@@ -168,6 +168,8 @@ Write the worker around these sections:
 Keep the worker focused on heuristics and operating principles.
 Do not over-specify tactics that the worker should discover through iteration.
 When the score has components, define diagnostic combinations that tell the worker WHERE things are going wrong, not just that they're going wrong.
+
+See `references/example-worker.md` for a complete example of a finished worker skill.
 
 Include a **stall rule** in the Work Loop: define what "stuck" looks like (score flat or degrading for N consecutive cycles) and what the worker does about it (pause, widen search, escalate to human). N should be proportional to the feedback cadence. For fully-autonomous workers, this is mandatory. For human-reviewed workers, the review cadence serves as implicit escalation.
 
