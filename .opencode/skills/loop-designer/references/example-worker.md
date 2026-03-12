@@ -20,7 +20,7 @@ version: 1.0
 ## Operational Score
 - Primary score: weekly organic installs
 - Direction: higher is better
-- Review cadence: weekly (content needs 3-7 days for signal to stabilize)
+- Review cadence: daily iteration — pull analytics, generate, post. Score batches after 3-5 posts to smooth out noise.
 - Leading indicators: video views (reach), profile visits (interest), app store page views (intent)
 - North star check: monthly revenue via RevenueCat — if installs grow but revenue doesn't, the problem is in the app (onboarding, paywall, retention), not the content
 
@@ -79,7 +79,7 @@ version: 1.0
 - One variable per cycle. Test one thing at a time — a new hook style, a new CTA, a new content angle. Don't change everything at once or you can't attribute what worked.
 - Hooks matter most. A great CTA on a video nobody watches is worthless. Prioritize hooks and thumbnails first, CTAs second, content format third.
 - Simplicity criterion: if a simple talking-head video performs as well as a complex slideshow, prefer the simpler format. Less production effort = more cycles = faster learning.
-- Score at the batch level. Individual posts are noisy. Score a batch of 3-5 posts with the same strategy after 7 days, not individual posts after 24 hours.
+- Score at the batch level. Individual posts are noisy. After 3-5 posts with the same strategy, score the batch — don't overreact to a single post's performance.
 - Study what wins. When a post overperforms, understand WHY before making variations. When a post underperforms, don't just try again — understand what didn't land.
 - Platform-native first. Content that looks like an ad gets suppressed. Content that looks like a real person sharing something gets reach.
 
@@ -91,13 +91,12 @@ version: 1.0
 4. Diagnose using the matrix below — identify WHERE things are working or breaking
 5. Update `playbook.json` if a strategy proved effective or was definitively discarded
 6. Research: scan trending hooks, competitor content, and creative center for new angles
-7. Generate next batch: 3-5 content pieces testing ONE variable against the current best strategy
+7. Generate next content piece testing ONE variable against the current best strategy
 8. Draft content to scheduling tool — human reviews, adds sound, and publishes
-9. Wait for signal to stabilize (7 days minimum per batch)
-10. Repeat from step 1
+9. Repeat from step 1 tomorrow
 
 ### Stall Rule
-If weekly installs have not grown for 4 consecutive cycles: pause content creation. Review the full experiment log — are all content angles exhausted? Is the problem reach (hooks), interest (content quality), or intent (CTA/landing page)? If reach is the bottleneck and multiple hook styles have been tested, escalate to human — the issue may be platform suppression, account health, or audience saturation. If installs grow but revenue doesn't, escalate immediately — the problem is in the app, not the content.
+If installs have not grown over 4 consecutive weeks (measured weekly against rolling average): pause content creation. Review the full experiment log — are all content angles exhausted? Is the problem reach (hooks), interest (content quality), or intent (CTA/landing page)? If reach is the bottleneck and multiple hook styles have been tested, escalate to human — the issue may be platform suppression, account health, or audience saturation. If installs grow but revenue doesn't, escalate immediately — the problem is in the app, not the content.
 
 ### Platform Warmup
 New accounts need 7-14 days of organic activity before posting marketing content. During warmup:
@@ -135,13 +134,14 @@ Each log entry is one JSON object per line (JSONL):
 ## Closed Loop Test
 - [x] Can observe the relevant world state (analytics APIs: views, installs, revenue)
 - [x] Can act on the environment (generate and draft content for human to publish)
-- [x] Can verify whether the action helped (compare installs to baseline after 7 days)
+- [x] Can verify whether the action helped (compare daily analytics and batch scores to baseline)
 - [x] Can record what happened for the next cycle (results.jsonl, playbook.json)
 - [x] Can continue autonomously without human judgment (diagnostic matrix drives next action; human only performs mechanical publish step)
 
 ## Proof of Loop
-- Cycle 0: pull current installs, revenue, and any existing content performance. Record as baseline. Create no content.
-- Cycle 1: research 3 trending hooks, generate 3 test slideshows with one content angle, draft to scheduling tool. Human publishes. Wait 7 days.
-- Cycle 2: pull analytics for cycle 1 batch. Score against baseline. Record result. Diagnose using matrix. Generate next batch testing one new variable.
-- Expected proof: by end of cycle 2, the worker has a baseline, one scored experiment, and a clear next action from the diagnostic matrix.
+- Cycle 0 (day 1): pull current installs, revenue, and any existing content performance. Record as baseline. Create no content.
+- Cycle 1 (day 2): research trending hooks, generate 1 test slideshow, draft to scheduling tool. Human publishes.
+- Cycle 2 (day 3): pull analytics for cycle 1 post. Generate next piece testing same angle. Human publishes.
+- Cycle 3-5 (days 4-6): continue daily posts. After post 5, score the batch against baseline. Record result. Diagnose using matrix.
+- Expected proof: by end of day 6, the worker has a baseline, one scored batch, and a clear next action from the diagnostic matrix.
 ```
