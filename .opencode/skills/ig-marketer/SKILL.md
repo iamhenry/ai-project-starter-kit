@@ -246,9 +246,7 @@ Runs every cycle after Step 3. Uses whatever newly scored entries exist — no m
 
 **Step 5 (Human): Publish**
 
-Human opens Postiz inbox → adds trending audio → publishes. This closes the loop — the post published here becomes the input to Step 1 of the next cycle.
-
-This step is non-negotiable. Instagram detects and penalizes automated publishing patterns. The 30-second manual publish also lets you add a trending sound, which significantly boosts reach in the algorithm.
+Human opens Postiz inbox → publishes. This closes the loop — the post published here becomes the input to Step 1 of the next cycle.
 
 **Research (every cycle + deeper dive any time score drops 2 consecutive cycles):**
 
@@ -351,7 +349,7 @@ All paths are relative to the skill's own directory (wherever this SKILL.md live
 - [x] Act: generate content (carousels, reels, or other formats) using tools in `references/`; draft to Postiz
 - [x] Verify: analytics vs baseline every cycle via diagnostic matrix
 - [x] Record: `references/results.jsonl` — append-only JSONL, read in full at every cycle start, stale entries cleaned automatically
-- [x] Continue: diagnostic matrix drives next action autonomously; human only performs the mechanical 30-second publish step
+- [x] Continue: diagnostic matrix drives next action autonomously; human only publishes
 
 ## Proof of Loop
 
