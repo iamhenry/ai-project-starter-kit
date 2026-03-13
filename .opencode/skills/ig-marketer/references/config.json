@@ -42,8 +42,11 @@
     "mrrTargetUSD": 10000
   },
   "carousel": {
-    "command": "/zero-proof-carousel",
-    "_note": "The slash command or script that satisfies references/carousel-contract.md for this app. Update if using a different command."
+    "projectDir": "PATH_TO_REMOTION_PROJECT (e.g. tools/carousel)",
+    "composition": "REMOTION_COMPOSITION_ID (the composition that renders carousel slides)",
+    "slideCount": 5,
+    "renderScript": "OPTIONAL_PATH_TO_RENDER_SCRIPT (leave blank to use npx remotion still directly)",
+    "_note": "See references/carousel-workflow.md for invocation. The Remotion project must satisfy references/carousel-contract.md."
   },
   "posting": {
     "timezone": "America/Los_Angeles",

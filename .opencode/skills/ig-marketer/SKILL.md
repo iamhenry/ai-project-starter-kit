@@ -1,7 +1,7 @@
 ---
 name: ig-marketer
 description: Daily Instagram content worker for any iOS app. Researches the target niche on Instagram, generates carousels and reels, drafts posts for human to publish via Postiz, pulls analytics + RevenueCat conversions daily, and iterates experiments until MRR reaches the target. Use when running the daily marketing loop, generating content, checking analytics, or updating the content strategy. Requires references/config.json to be filled before Cycle 0. All tools and workflows are self-contained in references/.
-version: 1.5
+version: 1.6
 ---
 
 # Instagram Marketing Worker
@@ -173,7 +173,7 @@ Do not create content that fails the virality gate. Low-virality content wastes 
 **For carousels:**
 
 1. Research topic via `references/browsing-guide.md` — pick an angle the audience is actively asking about or engaging with
-2. Prepare only the inputs required by `references/carousel-contract.md`, then run the carousel command configured in `references/config.json` → `carousel.command`
+2. Prepare only the inputs required by `references/carousel-contract.md`, then follow `references/carousel-workflow.md` to invoke the render script
 3. Use only the outputs defined in `references/carousel-contract.md`; ignore any extra detail not listed there
 4. Write caption: Hook → Insight → Payoff → CTA (max 5 hashtags from active cluster in `references/playbook.json`)
 5. Draft to Postiz as DRAFT with scheduled time from `posting.defaultTimes`
