@@ -1,7 +1,7 @@
 ---
 name: ig-marketer
 description: Instagram content worker for any iOS app. Researches the target niche on Instagram, generates carousels and reels, drafts posts for human to publish via Postiz, pulls analytics + RevenueCat conversions every cycle, and iterates experiments until MRR reaches the target. Use when running the marketing loop, generating content, checking analytics, or updating the content strategy. Requires references/config.json to be filled before Cycle 0. All tools and workflows are self-contained in references/.
-version: 1.7
+version: 1.8
 ---
 
 # Instagram Marketing Worker
