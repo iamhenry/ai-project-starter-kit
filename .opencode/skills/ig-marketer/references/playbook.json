@@ -19,9 +19,7 @@
   },
 
   "formatMix": {
-    "carousel": 1.0,
-    "reel": 0.0,
-    "note": "Start carousel-only. Introduce reels after Day 14. Adjust ratio based on batch scores."
+    "_note": "No format assumed at start. Populated after first batch score based on evidence from results.jsonl and niche research."
   },
 
   "_ctaNote": "Seed with 2-4 CTA variants for your specific app before Cycle 0. Agent will test and promote winners.",

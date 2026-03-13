@@ -1,7 +1,7 @@
 ---
 name: ig-marketer
 description: Daily Instagram content worker for any iOS app. Researches the target niche on Instagram, generates carousels and reels, drafts posts for human to publish via Postiz, pulls analytics + RevenueCat conversions daily, and iterates experiments until MRR reaches the target. Use when running the daily marketing loop, generating content, checking analytics, or updating the content strategy. Requires references/config.json to be filled before Cycle 0. All tools and workflows are self-contained in references/.
-version: 1.3
+version: 1.4
 ---
 
 # Instagram Marketing Worker
@@ -106,7 +106,7 @@ Every session, in this order:
 - **One variable per experiment.** Test hook style OR topic OR CTA OR format OR posting time — never two at once. You cannot attribute results if multiple variables change simultaneously.
 - **Score batches, not individuals.** Individual posts are noise. Score after every 5 consecutive posts with the same strategy. Don't react to a single post's result.
 - **Reach before conversion.** If nobody sees the post, CTA quality is irrelevant. Fix reach first (hooks, posting time, hashtags), then optimize conversion downstream.
-- **Format is a variable.** Carousels educate and get saved. Reels get discovered. Memes spread. Track formats separately. Let data decide the mix — not assumption. Start with carousels (most portable pipeline), introduce other formats after warmup once you have a baseline.
+- **Format is a variable.** Carousels educate and get saved. Reels get discovered. Memes spread. Track formats separately. Let data decide the mix — not assumption. No format is assumed by default. Research determines format choice every cycle.
 - **Platform-native first.** Content that looks like genuine value gets algorithmic reach. Content that looks like an ad gets buried. Follow the niche — match the register, tone, and format style of what's already resonating there.
 - **Simplicity criterion.** If a simpler approach performs equally, prefer it. A plain carousel with a great hook outperforms a polished reel with a weak one. Less production effort = more cycles = faster learning.
 - **Trust is the only real asset here.** Claims made in content are a promise to the audience. Accuracy matters. When uncertain, qualify ("for most people", "research suggests"). Never sensationalize or overstate.
@@ -156,14 +156,9 @@ RevenueCat: GET /projects/{id}/metrics/overview — pull new_subscriptions for l
 
 **DAILY — Step 2: Content generation**
 
-Format decision (agent chooses based on results.jsonl):
+**Format decision (agent chooses based on research + results.jsonl):**
 
-- Days 1–14 (warmup): carousels only
-- Days 15–28: introduce 1 reel per week as experiment, rest carousels
-- Day 29+: agent allocates format mix based on batch comparison data
-
-**Content type decision:**
-Research first (see `references/browsing-guide.md`). Let what's resonating in the niche inform the format choice — carousel, reel remix, meme, single image. The agent decides based on evidence, not defaults.
+Research first (see `references/browsing-guide.md`). Observe what format is actually resonating in the niche right now — carousel, reel, meme, single image. Cross-reference with `results.jsonl` format performance after the first batch. The agent decides format based on evidence every cycle. No format is assumed or scheduled by phase.
 
 **Virality gate (required before creating any post):**
 Score the planned content idea against the 5-question virality check in `references/virality-model.md`.
@@ -275,7 +270,7 @@ Update `references/competitor-research.json` with new patterns.
 | Views                                 | New subscribers | Diagnosis                    | Action                                                                                          |
 | ------------------------------------- | --------------- | ---------------------------- | ----------------------------------------------------------------------------------------------- |
 | High                                  | High            | Working — scale it           | Create 3 variations of the winning hook immediately. Keep all other variables constant.         |
-| High                                  | Low             | Hook good, conversion broken | Rotate CTA on slide 6. Audit App Store listing. Test different caption structures.              |
+| High                                  | Low             | Hook good, conversion broken | Rotate CTA. If carousel: check CTA placement. If reel: check end card/caption. Audit App Store listing. Test different caption structures. |
 | Low                                   | High            | Converts but not seen        | Fix hook/thumbnail. Try different posting time. Test a different hashtag cluster.               |
 | Low                                   | Low             | Fundamentally off            | New topic angle. Different format. Run research cycle. Study what's working in niche right now. |
 | High views + High installs + flat MRR | —               | App issue, not content       | Pause posting. Escalate to human. Problem is onboarding, paywall, or pricing — not content.     |
@@ -360,8 +355,8 @@ All paths are relative to the skill's own directory (wherever this SKILL.md live
 ## Proof of Loop
 
 - **Cycle 0 (Day 1):** Bootstrap `output/` dirs if missing. Pull current state — RevenueCat MRR, Instagram followers, zero post history. Record as baseline entry in `references/results.jsonl`. Generate no content. Confirm Postiz is connected and analytics endpoint returns data.
-- **Cycle 1 (Day 2):** Research first topic via agent-browser. Generate first warmup carousel. Draft to Postiz. Human publishes (no CTA). Append pending entry.
-- **Cycles 2–14:** Daily carousel, warmup phase. Track view trend. No CTAs.
+- **Cycle 1 (Day 2):** Research niche via agent-browser. Generate first warmup post — format is research-driven, not assumed. Draft to Postiz. Human publishes (no CTA). Append pending entry.
+- **Cycles 2–14:** Daily post, warmup phase. Format chosen per research each cycle. Track view trend. No CTAs.
 - **Cycle 15:** First CTA post. Begin subscriber attribution window (72h). Record first conversion-attributed entry.
 - **Cycle 20 (5-post batch):** First batch score. Playbook updated with initial findings. Diagnostic matrix applied to real data.
 - **Expected proof by Day 21:** Baseline established, one full batch scored, playbook seeded with evidence, morning report running daily.

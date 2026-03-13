@@ -96,18 +96,18 @@ Read `probe_1.png` to identify:
 
 ## Step 3 — Generate New Hook and CTA
 
-Using the original hook text and the app defined in `references/config.json`:
+Using the original hook text, the source video's engagement signals, and the app defined in `references/config.json`:
 
-**Hook (2 lines):**
-- Keep the source video's structural premise (setup / punchline, before / after, etc.)
-- Replace the original topic with an angle relevant to the app's niche
-- Line 1: setup (max ~12 words). Line 2: punchline (max ~10 words)
-- Short, punchy, native to the format
+**Hook:**
+- Adapt the original hook to an angle relevant to the app's niche and the topic researched this cycle
+- Format and structure follow from what resonated in research — do not impose a fixed line count or structure
+- Fit the length and style to how text physically renders on the video (constrained by `TEXT_ZONE_H` from Step 2)
+- Must pass the virality gate in `references/virality-model.md` before proceeding
 
-**CTA (2–3 lines):**
-- Drive a specific action: download the app (name + handle from config.json)
-- Conversational, not ad-copy stiff
-- Vary angles: curiosity, benefit, social proof, challenge
+**CTA:**
+- Drive the action determined by the current experiment variable in `references/playbook.json` → `activeCTA`
+- If `activeCTA` is null, choose the CTA angle that best matches the topic and hook from the `ctaVariants` list
+- Style, line count, and placement follow from what reads clearly at the render size — not a prescribed template
 
 Generate 3 hook options + 3 CTA options. Present for one user confirmation before rendering.
 
