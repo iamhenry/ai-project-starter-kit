@@ -68,6 +68,42 @@ Before creating any post, score the planned content against these 5 questions. E
 
 ---
 
+## Performance Baseline (agent-computed, not hardcoded)
+
+The thresholds below are **bootstrap priors only** — used for the first 5 posts when no account data exists. After batch 1, the agent replaces them with its own computed baseline derived from `results.jsonl`. Internal data always wins over these priors.
+
+### Bootstrap priors (cycles 1–5 only)
+
+| Signal          | Bootstrap threshold | What it means            |
+| --------------- | ------------------- | ------------------------ |
+| Views           | > 300               | Algorithm pushed it out  |
+| Save rate       | > 3% of views       | Strong utility signal    |
+| Profile visits  | > 1.5% of views     | Curiosity / intent       |
+| Watch-through   | > 50% (reels only)  | Hook + content both held |
+
+### After batch 1: agent computes and writes its own baseline here
+
+After scoring the first 5 posts, the agent computes:
+- `avg_views` — mean views across all scored entries in results.jsonl
+- `avg_save_rate` — mean (saves / views) across scored entries
+- `avg_profile_visit_rate` — mean (profile_visits / views)
+- `top_format` — format with highest avg save rate so far
+
+These replace the bootstrap thresholds. The agent rewrites the table below after every batch score:
+
+| Signal         | Current baseline | Source (batch #) | Last updated |
+| -------------- | ---------------- | ---------------- | ------------ |
+| avg_views      | —                | bootstrap        | —            |
+| avg_save_rate  | —                | bootstrap        | —            |
+| avg_visit_rate | —                | bootstrap        | —            |
+| top_format     | —                | bootstrap        | —            |
+
+**How to use this baseline:** when writing `reasoning.vs_baseline` in results.jsonl, compare the actual cycle outcome to the current baseline values here. A post is "above baseline" if views AND save rate both exceed current averages. A post is "below baseline" if both are under. Mixed results = flag for closer review.
+
+**Threshold drift rule:** if the baseline shifts >50% in either direction across two consecutive batches, note the cause. Likely signals: account growing (good), content category shift, or algorithm change.
+
+---
+
 ## How the Agent Updates This Model
 
 **After every batch score (every 5 posts):**

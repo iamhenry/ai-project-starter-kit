@@ -1,7 +1,7 @@
 ---
 name: ig-marketer
 description: Daily Instagram content worker for any iOS app. Researches the target niche on Instagram, generates carousels and reels, drafts posts for human to publish via Postiz, pulls analytics + RevenueCat conversions daily, and iterates experiments until MRR reaches the target. Use when running the daily marketing loop, generating content, checking analytics, or updating the content strategy. Requires references/config.json to be filled before Cycle 0. All tools and workflows are self-contained in references/.
-version: 1.4
+version: 1.5
 ---
 
 # Instagram Marketing Worker
@@ -111,6 +111,7 @@ Every session, in this order:
 - **Simplicity criterion.** If a simpler approach performs equally, prefer it. A plain carousel with a great hook outperforms a polished reel with a weak one. Less production effort = more cycles = faster learning.
 - **Trust is the only real asset here.** Claims made in content are a promise to the audience. Accuracy matters. When uncertain, qualify ("for most people", "research suggests"). Never sensationalize or overstate.
 - **Shadow ban detection.** If post views drop >60% for 2 consecutive posts with no content change → suspect Instagram suppression. Pause posting immediately. Surface to human with evidence.
+- **Self-heal before escalating.** When something breaks, try to recover once before involving the human. Match the recovery to the failure type: transient errors (timeouts, rate limits) warrant a retry; blocked resources (auth walls, missing files) warrant a fallback or graceful skip; ambiguous failures warrant stopping and surfacing. Always record what failed and what was attempted in `reasoning.skipped_steps`. Never silently skip a step — an unrecorded skip is worse than a flagged failure.
 
 ## Work Loop
 
@@ -196,7 +197,7 @@ Immediately after drafting content, append a new entry:
   "id": "cycle-NNN",
   "date": "YYYY-MM-DD",
   "type": "post",
-  "format": "carousel|reel",
+  "format": "carousel|reel|meme|single-image",
   "topic": "...",
   "hook_style": "question|statement|pov|listicle",
   "cta": "...",
@@ -209,7 +210,15 @@ Immediately after drafting content, append a new entry:
   "score_delta": null,
   "status": "pending",
   "phase": "growth",
-  "notes": "..."
+  "reasoning": {
+    "why_topic": "what research signal led to this topic choice",
+    "why_format": "what evidence drove the format decision (niche observation, results.jsonl data, or bootstrap default)",
+    "virality_score": 0,
+    "virality_notes": "which of the 5 questions passed/failed and why",
+    "vs_baseline": "how this cycle's outcome compares to account baseline (populated after analytics pull)",
+    "skipped_steps": "any step skipped + why (error, fallback, or intentional)",
+    "outcome_hypothesis": "what you expect to learn from this post and what result would confirm or refute it"
+  }
 }
 ```
 
@@ -316,10 +325,10 @@ All paths are relative to the skill's own directory (wherever this SKILL.md live
   "id": "cycle-001",
   "date": "YYYY-MM-DD",
   "type": "post",
-  "format": "carousel|reel",
+  "format": "carousel|reel|meme|single-image",
   "topic": "[topic researched by agent]",
   "hook_style": "question|statement|pov|listicle",
-  "cta": "[app CTA from config]",
+  "cta": "[app CTA from config, or null for warmup]",
   "posting_time": "HH:MM",
   "hashtag_set": "niche|wellness|broad",
   "views": 0,
@@ -329,7 +338,15 @@ All paths are relative to the skill's own directory (wherever this SKILL.md live
   "score_delta": 0,
   "status": "keep",
   "phase": "warmup",
-  "notes": "Day 1 warmup post — no CTA used"
+  "reasoning": {
+    "why_topic": "browsing showed high engagement on this angle in niche hashtag feed",
+    "why_format": "70% of top posts in niche this week were single images — matched that signal",
+    "virality_score": 4,
+    "virality_notes": "passed hook tension, specificity, emotional resonance, niche-native — failed shareable premise",
+    "vs_baseline": "no baseline yet — bootstrap cycle",
+    "skipped_steps": "none",
+    "outcome_hypothesis": "expect 200–400 views at warmup stage; high save rate would validate topic angle"
+  }
 }
 ```
 
