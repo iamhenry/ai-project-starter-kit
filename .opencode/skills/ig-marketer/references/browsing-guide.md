@@ -1,7 +1,9 @@
 # Niche Research — Browsing Guide
 
-Self-contained instructions for researching a niche on Instagram and TikTok without logging in.
-Uses agent-browser (CLI tool). No external skills required.
+Self-contained instructions for researching the niche on Instagram.
+Uses agent-browser (CLI tool). No external skills required. No permission needed — run autonomously.
+
+**Auth failures:** If Instagram redirects to a login wall or throws a captcha, do not retry. Flag to human with the URL and error, then fall back to web search (see Fallback section).
 
 ---
 
@@ -61,11 +63,53 @@ Extract from snapshot:
 - Emotional angle (fear, pride, curiosity, humor, identity)
 - Content gaps (topics present in comments but not posts)
 
-### 2. Browse adjacent niches
+### 2. Competitor account deep-dive
+
+Identify 3–5 active accounts in the niche from the hashtag feed above. Prioritise accounts that appear repeatedly across multiple hashtags or have high visible engagement. For each account:
+
+```bash
+npx agent-browser open https://www.instagram.com/<handle>/
+npx agent-browser wait --load networkidle
+npx agent-browser snapshot -i
+npx agent-browser close
+```
+
+Extract per account:
+- **Format mix** — ratio of carousels, reels, single images in the last 12 posts
+- **Posting frequency** — estimated cadence from visible timestamps
+- **Hook patterns** — first line of their top 3 most-engaged posts
+- **CTA style** — what action they drive (download, comment, save, visit link)
+- **Best vs. average engagement** — if visible, note the gap between top post and typical post (signals what's exceptional vs. baseline)
+- **Trending audio** — any recurring audio/sound used across recent reels
+
+Do not record usernames or follower counts in competitor-research.json. Record patterns and signals only.
+
+### 3. Browse adjacent niches
 
 Identify 2–3 adjacent communities your audience likely overlaps with. Browse their top hashtags the same way. Look for content angles that are performing there but haven't crossed into the primary niche yet.
 
-### 3. Find remix candidates
+### 4. App Store competitor research
+
+Browse competitor apps in the same category. Use `references/config.json` → `app.appStoreUrl` as anchor — find 3–5 competing apps from the "You might also like" section or category rankings.
+
+For each competitor app:
+
+```bash
+npx agent-browser open <APP_STORE_URL>
+npx agent-browser wait --load networkidle
+npx agent-browser snapshot -i
+npx agent-browser close
+```
+
+Extract:
+- **Lead benefit** — what outcome they open with in the description
+- **Screenshot story** — what moments/features they highlight (reveals what converts)
+- **Rating + review count** — rough market validation signal
+- **Review language** — if visible, exact words users use to describe the problem the app solves (these are content angles)
+
+Cross-reference with hook patterns from steps 1–2. If competitor App Store copy uses a frame that's also getting high engagement on Instagram, that's a validated angle worth testing in the virality gate.
+
+### 5. Find remix candidates
 
 When looking for a reel to remix:
 
@@ -105,15 +149,33 @@ After each research session, update `references/competitor-research.json`:
 ```json
 {
   "lastResearchDate": "YYYY-MM-DD",
-  "accounts": [],
   "nicheInsights": {
     "topHookPatterns": [],
     "contentGaps": [],
     "formatMix": {},
     "emotionalAngles": [],
-    "adjacentNiches": []
-  }
+    "adjacentNiches": [],
+    "trendingAudio": []
+  },
+  "competitorAccounts": [
+    {
+      "formatMix": "e.g. 70% reels, 30% carousels",
+      "postingFrequency": "e.g. ~5x/week",
+      "topHooks": [],
+      "ctaStyle": "",
+      "engagementRange": "e.g. top post ~3x avg engagement",
+      "notes": ""
+    }
+  ],
+  "appStoreInsights": [
+    {
+      "leadBenefit": "",
+      "screenshotAngles": [],
+      "reviewLanguage": [],
+      "notes": ""
+    }
+  ]
 }
 ```
 
-Record patterns, not individual post data. No usernames, no follower counts, no PII.
+Record patterns and signals only. No usernames, handles, app names, follower counts, or PII.
