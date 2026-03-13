@@ -30,7 +30,7 @@
   },
   "carousel": {
     "command": "/zero-proof-carousel",
-    "_note": "The slash command or script that generates carousel content.json + renders PNG slides for this app. Update if using a different command."
+    "_note": "The slash command or script that satisfies references/carousel-contract.md for this app. Update if using a different command."
   },
   "posting": {
     "timezone": "America/Los_Angeles",

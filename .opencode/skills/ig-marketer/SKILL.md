@@ -40,7 +40,7 @@ version: 1.3
 | ------------------------------------- | -------------------------------------------------------------------------------------------- | ---------------------- | ----------------------------- | --------------------------------- |
 | Browse Instagram niche                | agent-browser CLI — see `references/browsing-guide.md`                                       | setup-needed (install) | autonomous                    | competitor-research.json updated  |
 | Find and download source reel         | agent-browser → yt-dlp + ffmpeg — see `references/reel-workflow.md`                          | ready                  | autonomous                    | .mp4 exists in `output/reels/`    |
-| Generate carousel content             | Carousel command configured for this app (see `references/config.json` → `carousel.command`) | ready                  | autonomous                    | PNG slides in `output/carousels/` |
+| Generate carousel content             | Carousel command configured for this app (must satisfy `references/carousel-contract.md`)     | ready                  | autonomous                    | PNG slides in `output/carousels/` |
 | Generate background images (optional) | fal.ai API — key in `references/config.json`                                                 | setup-needed           | autonomous                    | image file in `output/assets/`    |
 | Remix a reel                          | Follow `references/reel-workflow.md` end-to-end                                              | ready                  | autonomous                    | .mp4 in `output/reels/`           |
 | Draft post to Postiz inbox            | Postiz API POST /posts                                                                       | setup-needed           | human-relay (human publishes) | post appears in Postiz inbox      |
@@ -177,9 +177,10 @@ Do not create content that fails the virality gate. Low-virality content wastes 
 **For carousels:**
 
 1. Research topic via `references/browsing-guide.md` — pick an angle the audience is actively asking about or engaging with
-2. Run the carousel command configured for this app (`references/config.json` → `carousel.command`) → generates content + renders PNGs to `output/carousels/`
-3. Write caption: Hook → Insight → Payoff → CTA (max 5 hashtags from active cluster in `references/playbook.json`)
-4. Draft to Postiz as DRAFT with scheduled time from `posting.defaultTimes`
+2. Prepare only the inputs required by `references/carousel-contract.md`, then run the carousel command configured in `references/config.json` → `carousel.command`
+3. Use only the outputs defined in `references/carousel-contract.md`; ignore any extra detail not listed there
+4. Write caption: Hook → Insight → Payoff → CTA (max 5 hashtags from active cluster in `references/playbook.json`)
+5. Draft to Postiz as DRAFT with scheduled time from `posting.defaultTimes`
 
 **For reel remixes (when research shows video is performing better):**
 
