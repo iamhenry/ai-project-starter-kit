@@ -28,7 +28,7 @@ version: 1.7
 | Post views             | Postiz GET /analytics/post/{id}                    | Trending up vs previous cycle                | Every cycle (previous cycle's post) |
 | Post saves             | Postiz GET /analytics/post/{id}                    | See bootstrap priors in `references/virality-model.md` | Every cycle (previous cycle's post) |
 | Profile visits         | Postiz GET /analytics/platform/{id}                | See bootstrap priors in `references/virality-model.md` | Every cycle (previous cycle's post) |
-| New paying subscribers | RevenueCat GET /projects/{id}/metrics              | Trending up week-over-week                   | Every cycle (72h attribution window) |
+| New paying subscribers | RevenueCat GET /projects/{id}/metrics              | Trending up week-over-week                   | Every cycle (since previous cycle's post) |
 | MRR                    | RevenueCat GET /projects/{id}/metrics              | Tracking toward $10k/month                   | Monthly                   |
 | Format comparison      | `references/results.jsonl` (relative to skill dir) | Carousel vs reel — one format has clear lead | Every cycle — inferred from results.jsonl running totals |
 
@@ -90,14 +90,14 @@ Every cycle, in this order:
 5. Read `references/virality-model.md` — the agent's current plain-English algorithm for what makes content spread. This informs every content decision this cycle.
 6. **Bootstrap check:** if `playbook.json → cycleCount == 0` → this is the first cycle. Fill `cycle-000` in results.jsonl with today's date + actual RevenueCat MRR + Instagram follower count. Confirm Postiz and RevenueCat connections return data. Set `playbook.json → cycleCount = 1`. Output bootstrap report (see format below). End cycle — generate no content. This path never runs again once cycleCount > 0.
 7. Pull Postiz analytics for the post from the **previous cycle** (look up the most recent `"status": "pending"` entry in results.jsonl by post ID)
-8. Pull RevenueCat new subscriber delta for the 72h window following that post
+8. Pull RevenueCat new subscriber delta for the window since the previous cycle's `posting_time` (read from results.jsonl)
 9. Identify the current diagnostic quadrant (see Work Loop)
 10. Generate and output the morning report
 
 **Morning report format (output every cycle start):**
 
 ```
-📊 [YYYY-MM-DD] Score: +N subscribers (72h) | Views: Xk avg (last 3 posts) | Quadrant: [HIGH/LOW views × HIGH/LOW subs]
+📊 [YYYY-MM-DD] Score: +N subscribers (since last post) | Views: Xk avg (last 3 posts) | Quadrant: [HIGH/LOW views × HIGH/LOW subs]
 🎯 This cycle: [one specific action — e.g. "Post carousel using question hook with niche hashtag cluster" or "Run research cycle — score dropped 2 consecutive posts"]
 ⚠️  [flag or "No flags"]
 ```
@@ -131,7 +131,7 @@ Every cycle, run these steps:
 
 ```
 Postiz: GET /analytics/post/{id} for the post from the previous cycle (most recent pending entry in results.jsonl)
-RevenueCat: GET /projects/{id}/metrics/overview — pull new_subscriptions for the 72h window following that post
+RevenueCat: GET /projects/{id}/metrics/overview — pull new_subscriptions since the previous cycle's posting_time (from results.jsonl)
 ```
 
 - Record results by updating the matching `pending` entry in `references/results.jsonl` → set status to `keep`, `discard`, or `fail`
@@ -208,7 +208,7 @@ Immediately after drafting content, append a new entry:
 }
 ```
 
-Status starts as `"pending"`. Updated to `"keep"`, `"discard"`, or `"fail"` after analytics pull 48h later.
+Status starts as `"pending"`. Updated to `"keep"`, `"discard"`, or `"fail"` when the next cycle pulls analytics.
 
 **Stale cleanup:** At every cycle start, scan results.jsonl for entries where `status === "pending"` AND `date < today - 5 days`. Update those entries to `status: "stale"` with `notes: "No analytics data after 5 days — possible Postiz connection issue"`.
 
@@ -216,17 +216,9 @@ Status starts as `"pending"`. Updated to `"keep"`, `"discard"`, or `"fail"` afte
 
 ---
 
-**Step 4 (Human): Publish**
+**Step 4: Reflect + Update**
 
-Human opens Postiz inbox → adds trending audio → publishes.
-
-This step is non-negotiable. Instagram detects and penalizes automated publishing patterns. The 30-second manual publish also lets you add a trending sound, which significantly boosts reach in the algorithm.
-
----
-
-**Step 5: Reflect + Update**
-
-Runs every cycle after Step 1. Uses whatever newly scored entries exist — no minimum threshold.
+Runs every cycle after Step 3. Uses whatever newly scored entries exist — no minimum threshold.
 
 1. Compute running averages across all scored entries in results.jsonl: avg views, avg save rate, avg profile visit rate, total attributed subscribers
 2. Update `references/virality-model.md` performance baseline table with new computed averages
@@ -249,6 +241,14 @@ Runs every cycle after Step 1. Uses whatever newly scored entries exist — no m
    - If anything concrete found (copy misalignment, onboarding signal, App Store gap, UX signal, retention hypothesis) → append to `references/app-feedback.md` using the format defined in that file
 6. Output cycle summary: this cycle's score vs baseline, what changed in playbook, what changed in virality model, next experiment variable
 7. Increment `playbook.json → cycleCount` by 1
+
+---
+
+**Step 5 (Human): Publish**
+
+Human opens Postiz inbox → adds trending audio → publishes. This closes the loop — the post published here becomes the input to Step 1 of the next cycle.
+
+This step is non-negotiable. Instagram detects and penalizes automated publishing patterns. The 30-second manual publish also lets you add a trending sound, which significantly boosts reach in the algorithm.
 
 **Research (every cycle + deeper dive any time score drops 2 consecutive cycles):**
 
@@ -362,14 +362,13 @@ CYCLE START (agent)
   1. Read memory: results.jsonl → playbook → competitor-research → virality-model
   2. Pull analytics for the post published at the end of the PREVIOUS cycle
   3. Score it → update that results.jsonl entry → identify quadrant → output morning report
-  4. Research niche → choose format from evidence
-  5. Generate content → virality gate → draft to Postiz → append pending entry to results.jsonl
-  6. Reflect + Update: recompute baseline, update playbook + virality model, output cycle summary
+  4. Research niche → generate content → virality gate → draft to Postiz → append pending entry
+  5. Reflect + Update: recompute baseline, update playbook + virality model, output cycle summary
 
 CYCLE END (human)
-  7. Human publishes from Postiz inbox
+  6. Human publishes from Postiz inbox  ← loop closes here
 
-The pending entry appended in step 5 becomes the target of step 2 in the next cycle.
+The pending entry appended in step 4 becomes the target of step 2 in the next cycle.
 ```
 
 **Bootstrap (auto-detected, runs once):** If `playbook.json → cycleCount == 0`, the agent records the baseline state (MRR, follower count), confirms connections, and exits without generating content. Once `cycleCount` is incremented to 1, this path never runs again.
