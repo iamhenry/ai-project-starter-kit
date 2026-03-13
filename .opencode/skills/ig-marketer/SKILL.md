@@ -1,7 +1,7 @@
 ---
 name: ig-marketer
-description: Daily Instagram content worker for any iOS app. Researches the target niche on Instagram, generates carousels and reels, drafts posts for human to publish via Postiz, pulls analytics + RevenueCat conversions daily, and iterates experiments until MRR reaches the target. Use when running the daily marketing loop, generating content, checking analytics, or updating the content strategy. Requires references/config.json to be filled before Cycle 0. All tools and workflows are self-contained in references/.
-version: 1.6
+description: Instagram content worker for any iOS app. Researches the target niche on Instagram, generates carousels and reels, drafts posts for human to publish via Postiz, pulls analytics + RevenueCat conversions every cycle, and iterates experiments until MRR reaches the target. Use when running the marketing loop, generating content, checking analytics, or updating the content strategy. Requires references/config.json to be filled before Cycle 0. All tools and workflows are self-contained in references/.
+version: 1.7
 ---
 
 # Instagram Marketing Worker
@@ -11,13 +11,13 @@ version: 1.6
 - North star: reach the MRR target defined in `references/config.json` → `goal.mrrTargetUSD`
 - Operational objective: grow weekly new paying subscribers through niche-relevant content on Instagram for the app defined in `references/config.json` → `app`
 - Stop condition: MRR sustained at target for 2 consecutive months — OR — 8 consecutive weeks of zero subscriber growth (stall rule)
-- Autonomy mode: semi-autonomous — human publishes all posts (Instagram bot detection). Agent generates, drafts, analyzes, and recommends daily.
+- Autonomy mode: semi-autonomous — human publishes all posts (Instagram bot detection). Agent generates, drafts, analyzes, and recommends every cycle.
 
 ## Operational Score
 
 - Primary score: new paying subscribers per week (RevenueCat)
 - Direction: higher is better
-- Review cadence: daily analytics pull; batch score after every 5 consecutive posts
+- Review cadence: analytics pull every cycle; playbook + virality model updated every cycle after analytics pull
 - Leading indicators (fast proxies): post views (reach), saves (content value signal), profile visits (download intent)
 - North star check: monthly MRR via RevenueCat — if subscriber count grows but MRR doesn't, the problem is the app (onboarding, paywall, pricing), not the content
 
@@ -25,12 +25,12 @@ version: 1.6
 
 | What to check          | How to check                                       | Good looks like                              | Cadence                   |
 | ---------------------- | -------------------------------------------------- | -------------------------------------------- | ------------------------- |
-| Post views             | Postiz GET /analytics/post/{id}                    | Trending up vs previous batch                | Daily (48h after publish) |
-| Post saves             | Postiz GET /analytics/post/{id}                    | See bootstrap priors in `references/virality-model.md` | Daily (48h after publish) |
-| Profile visits         | Postiz GET /analytics/platform/{id}                | See bootstrap priors in `references/virality-model.md` | Batch (every 5 posts)     |
-| New paying subscribers | RevenueCat GET /projects/{id}/metrics              | Trending up week-over-week                   | Daily (72h attribution)   |
+| Post views             | Postiz GET /analytics/post/{id}                    | Trending up vs previous cycle                | Every cycle (previous cycle's post) |
+| Post saves             | Postiz GET /analytics/post/{id}                    | See bootstrap priors in `references/virality-model.md` | Every cycle (previous cycle's post) |
+| Profile visits         | Postiz GET /analytics/platform/{id}                | See bootstrap priors in `references/virality-model.md` | Every cycle (previous cycle's post) |
+| New paying subscribers | RevenueCat GET /projects/{id}/metrics              | Trending up week-over-week                   | Every cycle (72h attribution window) |
 | MRR                    | RevenueCat GET /projects/{id}/metrics              | Tracking toward $10k/month                   | Monthly                   |
-| Format comparison      | `references/results.jsonl` (relative to skill dir) | Carousel vs reel — one format has clear lead | Every 10 posts            |
+| Format comparison      | `references/results.jsonl` (relative to skill dir) | Carousel vs reel — one format has clear lead | Every cycle — inferred from results.jsonl running totals |
 
 ## Environment
 
@@ -60,7 +60,7 @@ version: 1.6
 
 - Never purchase ads, boost posts, or spend money beyond fal.ai budget ceiling
 - Never like, comment, follow, or DM any Instagram account — bot detection risk
-- Never post more than 1x/day during warmup (first 14 calendar days)
+- Never post more than 1x per cycle
 - Never log individual subscriber PII from RevenueCat — aggregate metrics only
 - Never make specific medical, legal, or clinical outcome claims in content
 - Never modify `SKILL.md` or `soul.md` — these are read-only. Flag the human if an urgent change is needed.
@@ -80,31 +80,39 @@ version: 1.6
 
 ## On Start
 
-Every session, in this order:
+Every cycle, in this order:
 
 0. **Bootstrap directories** (first-run or new environment): ensure `references/` and `output/carousels/`, `output/reels/`, `output/assets/` exist. Create if missing. Do not fail if they already exist.
 1. Read `references/results.jsonl` — full history of every cycle: what was tested, what scored, what failed, what's pending
 2. Check for stale entries: any entry with `"status": "pending"` older than 5 days → update to `"status": "stale"` with note
 3. Read `references/playbook.json` — current best-known hooks, topics, CTAs, hashtag clusters, format mix, posting times
 4. Read `references/competitor-research.json` — niche patterns and content gaps observed so far
-5. Read `references/virality-model.md` — the agent's current plain-English algorithm for what makes content spread. This informs every content decision today.
-6. Pull Postiz analytics for all posts published 48–72h ago
-7. Pull RevenueCat new subscriber delta for the same 72h window
-8. Identify the current diagnostic quadrant (see Work Loop)
-9. Generate and output the standardized morning report
+5. Read `references/virality-model.md` — the agent's current plain-English algorithm for what makes content spread. This informs every content decision this cycle.
+6. **Bootstrap check:** if `playbook.json → cycleCount == 0` → this is the first cycle. Fill `cycle-000` in results.jsonl with today's date + actual RevenueCat MRR + Instagram follower count. Confirm Postiz and RevenueCat connections return data. Set `playbook.json → cycleCount = 1`. Output bootstrap report (see format below). End cycle — generate no content. This path never runs again once cycleCount > 0.
+7. Pull Postiz analytics for the post from the **previous cycle** (look up the most recent `"status": "pending"` entry in results.jsonl by post ID)
+8. Pull RevenueCat new subscriber delta for the 72h window following that post
+9. Identify the current diagnostic quadrant (see Work Loop)
+10. Generate and output the morning report
 
-**Morning report format (output every session start):**
+**Morning report format (output every cycle start):**
 
 ```
 📊 [YYYY-MM-DD] Score: +N subscribers (72h) | Views: Xk avg (last 3 posts) | Quadrant: [HIGH/LOW views × HIGH/LOW subs]
-🎯 Today: [one specific action — e.g. "Post carousel using question hook with niche hashtag cluster" or "Run research cycle — score dropped 2 consecutive posts"]
+🎯 This cycle: [one specific action — e.g. "Post carousel using question hook with niche hashtag cluster" or "Run research cycle — score dropped 2 consecutive posts"]
+⚠️  [flag or "No flags"]
+```
+
+**Bootstrap report format (Cycle 0 only):**
+
+```
+🚀 [YYYY-MM-DD] Bootstrap complete | MRR: $X | Followers: N | Postiz: ✓ | RevenueCat: ✓
 ⚠️  [flag or "No flags"]
 ```
 
 ## Operating Principles
 
 - **One variable per experiment.** Test hook style OR topic OR CTA OR format OR posting time — never two at once. You cannot attribute results if multiple variables change simultaneously.
-- **Score batches, not individuals.** Individual posts are noise. Score after every 5 consecutive posts with the same strategy. Don't react to a single post's result.
+- **Use trends, not single posts.** Log every post. React to direction after 2 consecutive posts point the same way. One post is a data point — two is a signal — three is a trend. Don't over-index on any single result.
 - **Reach before conversion.** If nobody sees the post, CTA quality is irrelevant. Fix reach first (hooks, posting time, hashtags), then optimize conversion downstream.
 - **Format is a variable.** Carousels educate and get saved. Reels get discovered. Memes spread. Track formats separately. Let data decide the mix — not assumption. No format is assumed by default. Research determines format choice every cycle.
 - **Platform-native first.** Content that looks like genuine value gets algorithmic reach. Content that looks like an ad gets buried. Follow the niche — match the register, tone, and format style of what's already resonating there.
@@ -115,37 +123,15 @@ Every session, in this order:
 
 ## Work Loop
 
-### Phase 1: Warmup (Days 1–14)
-
-**Goal: algorithmic trust. NOT installs or subscribers yet.**
-
-If Instagram sees a new/low-follower account posting marketing content immediately, it throttles reach from day one.
-
-**Daily action (Days 1–14):**
-
-- Research what content is resonating in the niche right now (see `references/browsing-guide.md`) — observe format, hook style, emotional angle, and topic patterns before deciding what to make
-- Generate 1 post. Content type is open: carousel, meme, single image, short-form video — let the research guide the format choice. No CTA, no app name, no "download" language during warmup.
-- Draft to Postiz inbox
-- Human publishes with trending audio if applicable
-- Record cycle in results.jsonl with `"phase": "warmup"`
-
-**Warmup complete:** After 14 calendar days. Hard timer — no observation heuristic needed.
-
-After Day 14: transition to Phase 2. Update `references/playbook.json` → set `"phase": "growth"`.
+Every cycle, run these steps:
 
 ---
 
-### Phase 2: Growth (Day 15+)
-
-**Every day**, run these steps:
-
----
-
-**DAILY — Step 1: Analytics pull** (run after previous day's post has 48h of data)
+**Step 1: Analytics pull** (scores the post published at the end of the previous cycle)
 
 ```
-Postiz: GET /analytics/post/{id} for posts published 48–72h ago
-RevenueCat: GET /projects/{id}/metrics/overview — pull new_subscriptions for last 72h window
+Postiz: GET /analytics/post/{id} for the post from the previous cycle (most recent pending entry in results.jsonl)
+RevenueCat: GET /projects/{id}/metrics/overview — pull new_subscriptions for the 72h window following that post
 ```
 
 - Record results by updating the matching `pending` entry in `references/results.jsonl` → set status to `keep`, `discard`, or `fail`
@@ -155,7 +141,7 @@ RevenueCat: GET /projects/{id}/metrics/overview — pull new_subscriptions for l
 
 ---
 
-**DAILY — Step 2: Content generation**
+**Step 2: Content generation**
 
 **Format decision (agent chooses based on research + results.jsonl):**
 
@@ -168,7 +154,7 @@ Score the planned content idea against the 5-question virality check in `referen
 - Score 3: revise the hook or specificity, then re-score
 - Score 0–2: discard — research a new angle before proceeding
 
-Do not create content that fails the virality gate. Low-virality content wastes the daily posting slot and sends negative signals to the algorithm.
+Do not create content that fails the virality gate. Low-virality content wastes the cycle's posting slot and sends negative signals to the algorithm.
 
 **For carousels:**
 
@@ -188,7 +174,7 @@ Do not create content that fails the virality gate. Low-virality content wastes 
 
 ---
 
-**DAILY — Step 3: Append cycle to results.jsonl**
+**Step 3: Append cycle to results.jsonl**
 
 Immediately after drafting content, append a new entry:
 
@@ -224,13 +210,13 @@ Immediately after drafting content, append a new entry:
 
 Status starts as `"pending"`. Updated to `"keep"`, `"discard"`, or `"fail"` after analytics pull 48h later.
 
-**Stale cleanup:** At every session start, scan results.jsonl for entries where `status === "pending"` AND `date < today - 5 days`. Update those entries to `status: "stale"` with `notes: "No analytics data after 5 days — possible Postiz connection issue"`.
+**Stale cleanup:** At every cycle start, scan results.jsonl for entries where `status === "pending"` AND `date < today - 5 days`. Update those entries to `status: "stale"` with `notes: "No analytics data after 5 days — possible Postiz connection issue"`.
 
 **Archive rule:** When results.jsonl exceeds 500 lines, copy to `references/results-archive-YYYY-MM-DD.jsonl` and reset results.jsonl.
 
 ---
 
-**HUMAN RELAY — Step 4: Human publishes**
+**Step 4 (Human): Publish**
 
 Human opens Postiz inbox → adds trending audio → publishes.
 
@@ -238,35 +224,33 @@ This step is non-negotiable. Instagram detects and penalizes automated publishin
 
 ---
 
-**WEEKLY — Step 5: Batch scoring** (every 5 posts)
+**Step 5: Reflect + Update**
 
-When `results.jsonl` has 5 new `keep` or `discard` entries since last batch:
+Runs every cycle after Step 1. Uses whatever newly scored entries exist — no minimum threshold.
 
-1. Compute for the batch: avg views, avg save rate, avg profile visit rate, total attributed subscribers
-2. Compare to previous batch and to baseline
-3. Apply the diagnostic matrix → determine which action to take
-4. Update `references/playbook.json`:
+1. Compute running averages across all scored entries in results.jsonl: avg views, avg save rate, avg profile visit rate, total attributed subscribers
+2. Update `references/virality-model.md` performance baseline table with new computed averages
+3. Update `references/playbook.json`:
    - Promote winning hooks → `winningHooks` array
    - Retire underperforming topics → `droppedTopics` array
    - Update `activeHashtagCluster` if a different cluster showed better reach
    - Update `activeFormat` mix percentages
    - Record best posting time if time experiments have run
-5. **Update `references/virality-model.md`:**
-   - Look at the 2 highest-scoring posts. What hook, format, or angle did they share? Append to Evidence Log.
+4. **Update `references/virality-model.md` Evidence Log:**
+   - Look at the 2 highest-scoring posts in results.jsonl. What hook, format, or angle did they share? Append to Evidence Log.
    - Look at the 2 lowest-scoring posts. What was weak? Append to Evidence Log.
    - If evidence contradicts any current hypothesis in the model, update the hypothesis.
    - Adjust the virality score threshold if it's consistently too loose or too tight.
    - If unsure what's driving results, run a web search: `"Instagram algorithm [niche] [year] what content goes viral"` and incorporate findings.
-6. **App intelligence check** (write to `references/app-feedback.md` only if triggered):
-   - Review the diagnostic quadrant. If views are high but MRR is flat, or a specific content angle is clearly converting but not reflected in the App Store listing or onboarding — investigate.
+5. **App intelligence check** — only run if current quadrant is "High views + flat MRR". Skip entirely otherwise.
    - Read the GitHub repo via gitingest CLI (use cached `references/app-brief.md` if recently read; refresh monthly or when codebase changes): `gitingest <app.githubRepo> -o -`
    - Browse the App Store listing via agent-browser (`app.appStoreUrl` in config.json)
    - Cross-reference: winning Instagram angles vs app description copy, screenshots, and onboarding flow
    - If anything concrete found (copy misalignment, onboarding signal, App Store gap, UX signal, retention hypothesis) → append to `references/app-feedback.md` using the format defined in that file
-   - If nothing concrete to report, skip — do not write padding entries
-7. Output weekly summary: batch score, what changed in playbook, what changed in virality model, next experiment variable
+6. Output cycle summary: this cycle's score vs baseline, what changed in playbook, what changed in virality model, next experiment variable
+7. Increment `playbook.json → cycleCount` by 1
 
-**Research (beginning of each week + any day score drops 2 consecutive posts):**
+**Research (every cycle + deeper dive any time score drops 2 consecutive cycles):**
 
 Follow `references/browsing-guide.md`. Use the hashtag seeds from `references/config.json` → `app.hashtagSeeds`. Also explore adjacent niches discovered through research.
 
@@ -294,7 +278,7 @@ Update `references/competitor-research.json` with new patterns.
 
 ## On End
 
-At the close of every daily session, before exiting:
+At the close of every cycle, before exiting:
 
 1. **Improvement notes** — reflect on today's work. If there is anything genuine to record (ambiguous instruction, missing tool, improvised step not covered by the skill, soul.md misalignment) → append to `references/improvement-notes.md` using the format defined in that file. If nothing to report, skip. Do NOT pad.
 2. Do NOT modify `SKILL.md` or `soul.md`. If an urgent change is needed, write a note in improvement-notes.md and flag the human.
@@ -316,7 +300,7 @@ All paths are relative to the skill's own directory (wherever this SKILL.md live
 - App intelligence feedback (append-only): `references/app-feedback.md`
 - Session improvement notes (append-only): `references/improvement-notes.md`
 
-**Every session reads in this order:** results.jsonl (full) → playbook.json → competitor-research.json → virality-model.md → then pull live analytics.
+**Every cycle reads in this order:** results.jsonl (full) → playbook.json → competitor-research.json → virality-model.md → then pull live analytics.
 
 **JSONL schema:**
 
@@ -328,7 +312,7 @@ All paths are relative to the skill's own directory (wherever this SKILL.md live
   "format": "carousel|reel|meme|single-image",
   "topic": "[topic researched by agent]",
   "hook_style": "question|statement|pov|listicle",
-  "cta": "[app CTA from config, or null for warmup]",
+  "cta": "[app CTA from config]",
   "posting_time": "HH:MM",
   "hashtag_set": "niche|wellness|broad",
   "views": 0,
@@ -337,15 +321,15 @@ All paths are relative to the skill's own directory (wherever this SKILL.md live
   "new_subscribers_72h": 0,
   "score_delta": 0,
   "status": "keep",
-  "phase": "warmup",
+  "phase": "growth",
   "reasoning": {
     "why_topic": "browsing showed high engagement on this angle in niche hashtag feed",
-    "why_format": "70% of top posts in niche this week were single images — matched that signal",
+    "why_format": "70% of top posts in niche this cycle were single images — matched that signal",
     "virality_score": 4,
     "virality_notes": "passed hook tension, specificity, emotional resonance, niche-native — failed shareable premise",
-    "vs_baseline": "no baseline yet — bootstrap cycle",
+    "vs_baseline": "first scored entry — using bootstrap priors from virality-model.md",
     "skipped_steps": "none",
-    "outcome_hypothesis": "expect 200–400 views at warmup stage; high save rate would validate topic angle"
+    "outcome_hypothesis": "expect 200–400 views; high save rate would validate topic angle"
   }
 }
 ```
@@ -365,15 +349,29 @@ All paths are relative to the skill's own directory (wherever this SKILL.md live
 
 - [x] Observe: Postiz analytics (views, saves, profile visits) + RevenueCat (new subscribers, MRR)
 - [x] Act: generate content (carousels, reels, or other formats) using tools in `references/`; draft to Postiz
-- [x] Verify: daily analytics vs baseline; batch score every 5 posts via diagnostic matrix
-- [x] Record: `references/results.jsonl` — append-only JSONL, read in full at every session start, stale entries cleaned automatically
+- [x] Verify: analytics vs baseline every cycle via diagnostic matrix
+- [x] Record: `references/results.jsonl` — append-only JSONL, read in full at every cycle start, stale entries cleaned automatically
 - [x] Continue: diagnostic matrix drives next action autonomously; human only performs the mechanical 30-second publish step
 
 ## Proof of Loop
 
-- **Cycle 0 (Day 1):** Bootstrap `output/` dirs if missing. Pull current state — RevenueCat MRR, Instagram followers, zero post history. Record as baseline entry in `references/results.jsonl`. Generate no content. Confirm Postiz is connected and analytics endpoint returns data.
-- **Cycle 1 (Day 2):** Research niche via agent-browser. Generate first warmup post — format is research-driven, not assumed. Draft to Postiz. Human publishes (no CTA). Append pending entry.
-- **Cycles 2–14:** Daily post, warmup phase. Format chosen per research each cycle. Track view trend. No CTAs.
-- **Cycle 15:** First CTA post. Begin subscriber attribution window (72h). Record first conversion-attributed entry.
-- **Cycle 20 (5-post batch):** First batch score. Playbook updated with initial findings. Diagnostic matrix applied to real data.
-- **Expected proof by Day 21:** Baseline established, one full batch scored, playbook seeded with evidence, morning report running daily.
+Every cycle runs the same steps in the same order. The loop is closed by the human publish at the end — the data from that post becomes the input to Step 1 of the next cycle.
+
+```
+CYCLE START (agent)
+  1. Read memory: results.jsonl → playbook → competitor-research → virality-model
+  2. Pull analytics for the post published at the end of the PREVIOUS cycle
+  3. Score it → update that results.jsonl entry → identify quadrant → output morning report
+  4. Research niche → choose format from evidence
+  5. Generate content → virality gate → draft to Postiz → append pending entry to results.jsonl
+  6. Reflect + Update: recompute baseline, update playbook + virality model, output cycle summary
+
+CYCLE END (human)
+  7. Human publishes from Postiz inbox
+
+The pending entry appended in step 5 becomes the target of step 2 in the next cycle.
+```
+
+**Bootstrap (auto-detected, runs once):** If `playbook.json → cycleCount == 0`, the agent records the baseline state (MRR, follower count), confirms connections, and exits without generating content. Once `cycleCount` is incremented to 1, this path never runs again.
+
+**Proof by Cycle 10:** results.jsonl has 10 scored entries, playbook reflects real hook and format data, virality model evidence log has entries — every decision is driven by evidence, not bootstrap assumptions.

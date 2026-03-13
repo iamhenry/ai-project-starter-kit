@@ -1,9 +1,9 @@
 {
-  "_note": "Seed playbook — initialized before Cycle 0. All values are starting assumptions. Update after every 5-post batch score.",
+  "_note": "Seed playbook — initialized before Cycle 0. All values are starting assumptions. Update every cycle after analytics pull. Each cycle's data informs the next cycle's decisions.",
   "version": "1.0",
   "lastUpdated": null,
   "cycleCount": 0,
-  "phase": "warmup",
+  "phase": "growth",
 
   "hashtag_clusters": {
     "niche":   ["#sobriety", "#sobercurious", "#alcoholfree", "#soberlife", "#sobermovement"],
@@ -19,7 +19,7 @@
   },
 
   "formatMix": {
-    "_note": "No format assumed at start. Populated after first batch score based on evidence from results.jsonl and niche research."
+    "_note": "No format assumed at start. Populated after first scored entry exists. Updated every cycle from results.jsonl."
   },
 
   "_ctaNote": "Seed with 2-4 CTA variants for your specific app before Cycle 0. Agent will test and promote winners.",

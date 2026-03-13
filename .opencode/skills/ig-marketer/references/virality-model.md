@@ -2,7 +2,7 @@
 
 This file is owned and updated by the agent. It is a living plain-English description of what makes content go viral in this niche, based on accumulated research and experiment data.
 
-The agent reads this file at every session start. After each batch score and each research cycle, the agent updates this file with new evidence. No human edits needed.
+The agent reads this file at every cycle start. After each cycle (analytics pull + content creation), the agent updates this file with new evidence. No human edits needed.
 
 ---
 
@@ -70,7 +70,9 @@ Before creating any post, score the planned content against these 5 questions. E
 
 ## Performance Baseline (agent-computed, not hardcoded)
 
-The thresholds below are **bootstrap priors only** — used for the first 5 posts when no account data exists. After batch 1, the agent replaces them with its own computed baseline derived from `results.jsonl`. Internal data always wins over these priors.
+The thresholds below are **bootstrap priors only** — used until the first scored entry exists in `results.jsonl`.
+
+After that, the agent computes a running baseline from the full history in `results.jsonl` (which is append-only and never modified) and **rewrites the summary table below** each cycle. The table is a computed snapshot, not a record — `results.jsonl` is the record. Internal data always wins over these priors.
 
 ### Bootstrap priors (before batch 1 is scored)
 
@@ -81,33 +83,33 @@ The thresholds below are **bootstrap priors only** — used for the first 5 post
 | Profile visits  | > 1.5% of views     | Curiosity / intent       |
 | Watch-through   | > 50% (reels only)  | Hook + content both held |
 
-### After batch 1: agent computes and writes its own baseline here
+### After first scored entry: agent computes and writes its own baseline here
 
-After scoring the first 5 posts, the agent computes:
+After the first scored entry exists in results.jsonl, the agent computes:
 - `avg_views` — mean views across all scored entries in results.jsonl
 - `avg_save_rate` — mean (saves / views) across scored entries
 - `avg_profile_visit_rate` — mean (profile_visits / views)
 - `top_format` — format with highest avg save rate so far
 
-These replace the bootstrap thresholds. The agent rewrites the table below after every batch score:
+These replace the bootstrap thresholds. The agent rewrites the table below after every cycle. On the very first cycle there is no prior data — skip this step and use bootstrap priors until the first scored entry exists.
 
-| Signal         | Current baseline | Source (batch #) | Last updated |
-| -------------- | ---------------- | ---------------- | ------------ |
-| avg_views      | —                | bootstrap        | —            |
-| avg_save_rate  | —                | bootstrap        | —            |
-| avg_visit_rate | —                | bootstrap        | —            |
-| top_format     | —                | bootstrap        | —            |
+| Signal         | Current baseline | Sessions scored | Last updated |
+| -------------- | ---------------- | --------------- | ------------ |
+| avg_views      | —                | 0               | —            |
+| avg_save_rate  | —                | 0               | —            |
+| avg_visit_rate | —                | 0               | —            |
+| top_format     | —                | 0               | —            |
 
 **How to use this baseline:** when writing `reasoning.vs_baseline` in results.jsonl, compare the actual cycle outcome to the current baseline values here. A post is "above baseline" if views AND save rate both exceed current averages. A post is "below baseline" if both are under. Mixed results = flag for closer review.
 
-**Threshold drift rule:** if the baseline shifts >50% in either direction across two consecutive batches, note the cause. Likely signals: account growing (good), content category shift, or algorithm change.
+**Threshold drift rule:** if the baseline shifts >50% in either direction across two consecutive cycles, note the cause. Likely signals: account growing (good), content category shift, or algorithm change.
 
 ---
 
 ## How the Agent Updates This Model
 
-**After every batch score (every 5 posts):**
-- Look at the 2 highest-scoring posts in the batch. What did they have in common? Add finding to "Evidence" section below.
+**After every cycle's analytics pull:**
+- Look at the 2 highest-scoring posts in results.jsonl. What did they have in common? Add finding to "Evidence" section below.
 - Look at the 2 lowest-scoring posts. What was weak? Add finding.
 - Adjust any hypothesis above that the evidence contradicts.
 
@@ -124,11 +126,11 @@ These replace the bootstrap thresholds. The agent rewrites the table below after
 
 ## Evidence Log
 
-_Agent appends findings here after each batch score. Newest entries at the top._
+_Agent appends findings here after each cycle's analytics pull. Newest entries at the top._
 
 | Date | Batch | Finding                                        | Model change |
 | ---- | ----- | ---------------------------------------------- | ------------ |
-| —    | —     | No data yet — populate after first batch score | —            |
+| —    | —     | No data yet — populate after first scored cycle | —            |
 
 ---
 
