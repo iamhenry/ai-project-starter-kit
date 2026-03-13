@@ -30,7 +30,7 @@ These are the signals the agent uses to score content retroactively and calibrat
 
 ---
 
-## Initial Virality Hypotheses (agent updates these based on evidence)
+## Initial Virality Hypotheses
 
 These are starting assumptions. The agent replaces them with evidence-backed findings as experiments run.
 
@@ -72,7 +72,7 @@ Before creating any post, score the planned content against these 5 questions. E
 
 The thresholds below are **bootstrap priors only** — used for the first 5 posts when no account data exists. After batch 1, the agent replaces them with its own computed baseline derived from `results.jsonl`. Internal data always wins over these priors.
 
-### Bootstrap priors (cycles 1–5 only)
+### Bootstrap priors (before batch 1 is scored)
 
 | Signal          | Bootstrap threshold | What it means            |
 | --------------- | ------------------- | ------------------------ |

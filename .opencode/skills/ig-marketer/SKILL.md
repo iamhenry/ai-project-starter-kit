@@ -26,8 +26,8 @@ version: 1.5
 | What to check          | How to check                                       | Good looks like                              | Cadence                   |
 | ---------------------- | -------------------------------------------------- | -------------------------------------------- | ------------------------- |
 | Post views             | Postiz GET /analytics/post/{id}                    | Trending up vs previous batch                | Daily (48h after publish) |
-| Post saves             | Postiz GET /analytics/post/{id}                    | > 3% of views saved                          | Daily (48h after publish) |
-| Profile visits         | Postiz GET /analytics/platform/{id}                | > 1.5% view-to-visit rate                    | Batch (every 5 posts)     |
+| Post saves             | Postiz GET /analytics/post/{id}                    | See bootstrap priors in `references/virality-model.md` | Daily (48h after publish) |
+| Profile visits         | Postiz GET /analytics/platform/{id}                | See bootstrap priors in `references/virality-model.md` | Batch (every 5 posts)     |
 | New paying subscribers | RevenueCat GET /projects/{id}/metrics              | Trending up week-over-week                   | Daily (72h attribution)   |
 | MRR                    | RevenueCat GET /projects/{id}/metrics              | Tracking toward $10k/month                   | Monthly                   |
 | Format comparison      | `references/results.jsonl` (relative to skill dir) | Carousel vs reel — one format has clear lead | Every 10 posts            |
