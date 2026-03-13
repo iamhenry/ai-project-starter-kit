@@ -1,6 +1,6 @@
 # Improvement Notes
 
-Append-only reflection log. Written by the agent at the end of every daily session.
+Append-only reflection log. Written by the agent at the end of every cycle.
 
 **Rules:**
 - Only write if there is something genuine to say. No padding, no filler.

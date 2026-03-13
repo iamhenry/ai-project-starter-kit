@@ -1,5 +1,5 @@
 {
-  "_note": "Populated by agent during weekly research cycles via agent-browser. Read at session start.",
+  "_note": "Populated by agent every session via agent-browser. Read at session start.",
   "lastResearchDate": null,
   "accounts": [],
   "nicheInsights": {

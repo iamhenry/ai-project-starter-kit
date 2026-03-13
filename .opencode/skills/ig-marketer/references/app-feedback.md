@@ -1,6 +1,6 @@
 # App Intelligence Feedback
 
-Append-only. Written during batch scoring (every 5 posts) — only when there is something concrete and actionable to record.
+Append-only. Written during each cycle's analytics review — only when the diagnostic quadrant shows high views + flat MRR. Skip entirely if that signal is absent.
 
 **Trigger conditions (write when ANY of these apply):**
 - Views are high but MRR is flat → possible misalignment between Instagram content and app value prop / onboarding

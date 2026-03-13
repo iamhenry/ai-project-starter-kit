@@ -44,7 +44,7 @@ The snapshot returns a structured accessibility tree. Extract:
 
 ## Research Workflow
 
-Run at the start of each week, and any time score drops 2 consecutive posts.
+Run every session. Run a deeper competitor dive any time score drops 2 consecutive posts.
 
 ### 1. Browse niche hashtags
 
