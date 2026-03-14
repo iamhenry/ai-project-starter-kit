@@ -1,7 +1,7 @@
 ---
 name: ig-marketer
 description: Instagram content worker for any iOS app. Researches the target niche on Instagram, generates carousel slideshows, drafts posts for human to publish via Postiz, pulls analytics + RevenueCat conversions every cycle, and iterates hook/CTA experiments until MRR reaches the target. Use when running the marketing loop, generating content, checking analytics, or updating the content strategy. Requires references/config.json to be filled before Cycle 0. All tools and workflows are self-contained in references/.
-version: 2.0
+version: 2.1
 ---
 
 # Instagram Marketing Worker
@@ -88,7 +88,7 @@ Every cycle, in this order:
 3. Read `references/playbook.json` — current best-known hooks, topics, CTAs, hashtag clusters, format mix, posting times
 4. Read `references/competitor-research.json` — niche patterns and content gaps observed so far
 5. Read `references/virality-model.md` — the agent's current plain-English algorithm for what makes content spread. This informs every content decision this cycle.
-6. **Bootstrap check:** if `playbook.json → cycleCount == 0` → this is the first cycle. Fill `cycle-000` in results.jsonl with today's date + actual RevenueCat MRR + Instagram follower count. Confirm Postiz and RevenueCat connections return data. Set `playbook.json → cycleCount = 1`. Output bootstrap report (see format below). End cycle — generate no content. This path never runs again once cycleCount > 0.
+6. **Baseline record:** if `playbook.json → cycleCount == 0` → this is the first cycle. Record baseline MRR + follower count in the cycle entry. Confirm Postiz and RevenueCat connections return data. Set `playbook.json → cycleCount = 1` after drafting content. Continue to content generation normally — first cycle produces content like all others.
 7. Pull Postiz analytics for the post from the **previous cycle** (look up the most recent `"status": "pending"` entry in results.jsonl by post ID)
 8. Pull RevenueCat new subscriber delta for the window since the previous cycle's `posting_time` (read from results.jsonl)
 9. Identify the current diagnostic quadrant (see Work Loop)
@@ -102,10 +102,11 @@ Every cycle, in this order:
 ⚠️  [flag or "No flags"]
 ```
 
-**Bootstrap report format (Cycle 0 only):**
+**Baseline metrics (first cycle only):**
 
+First cycle records baseline in the cycle entry and outputs:
 ```
-🚀 [YYYY-MM-DD] Bootstrap complete | MRR: $X | Followers: N | Postiz: ✓ | RevenueCat: ✓
+🚀 [YYYY-MM-DD] Baseline recorded | MRR: $X | Followers: N | Postiz: ✓ | RevenueCat: ✓
 ⚠️  [flag or "No flags"]
 ```
 
@@ -384,6 +385,6 @@ CYCLE END (human)
 The pending entry appended in step 4 becomes the target of step 2 in the next cycle.
 ```
 
-**Bootstrap (auto-detected, runs once):** If `playbook.json → cycleCount == 0`, the agent records the baseline state (MRR, follower count), confirms connections, and exits without generating content. Once `cycleCount` is incremented to 1, this path never runs again.
+**Baseline recording (runs once on Cycle 1):** If `playbook.json → cycleCount == 0`, the agent records baseline MRR and follower count in the cycle entry and confirms API connections. Content generation proceeds normally. Once `cycleCount` is incremented to 1, this baseline isalready recorded in the first cycle's entry.
 
-**Proof by Cycle 10:** results.jsonl has 10 scored entries, playbook reflects real hook and format data, virality model evidence log has entries — every decision is driven by evidence, not bootstrap assumptions.
+**Proof by Cycle 10:** results.jsonl has 10 scored entries, playbook reflects real hook and format data, virality model evidence log has entries — every decision is driven by evidence.
