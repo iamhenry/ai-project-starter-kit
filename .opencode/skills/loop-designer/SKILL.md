@@ -24,6 +24,7 @@ Think of it as designing an arena: you define the playing field (environment), t
 - Pick the fastest trustworthy feedback
 - Map every required action to a specific tool
 - Persist learnings between cycles
+- Be opinionated about process, neutral on tactics
 - Do not emit the worker skill until the loop is closed
 
 ## Closed Loop Test
