@@ -26,7 +26,7 @@ These are the signals the agent uses to score content retroactively and calibrat
 | Saves              | Perceived future value — "I want this again"                      | High save rate (>3%) = strong utility or emotion |
 | Profile visits     | Curiosity triggered — viewer wanted to know more about the source | High = content created identity pull             |
 | Share rate         | Social currency — viewer wanted to pass this on                   | Any sharing = strong virality signal             |
-| Watch-through rate | For reels — did people stay to the end?                           | >50% completion = hook + content both working    |
+| Watch-through rate | For reels (secondary format) — did people stay to the end?        | >50% completion = hook + content both working    |
 
 ---
 
@@ -38,13 +38,13 @@ These are starting assumptions. The agent replaces them with evidence-backed fin
 Content that opens with a tension, a surprising contrast, or a question the viewer is already asking themselves performs better than content that opens with a statement of fact. The first line determines whether the algorithm shows it to anyone.
 
 **Format virality:**
-Carousels get saved. Reels get shared and discovered. Memes get shared fastest but convert least. The right format depends on the current goal: reach (reels/memes) vs. conversion (carousels). Track separately.
+Different formats have different viral mechanics on different platforms and in different niches. The agent discovers which formats perform through experimentation — no format is pre-characterized. Track each format separately in results.jsonl. Let accumulated data reveal which formats drive reach vs. conversion in this specific niche.
 
 **Emotional register:**
 Content that makes someone feel understood or seen spreads faster than content that informs. Information is shareable. Emotional resonance is viral.
 
 **Specificity:**
-Specific, concrete content outperforms generic advice. "Why you feel exhausted at day 3" outperforms "recovery tips." Specificity signals expertise and signals that the creator knows the audience's exact experience.
+Specific, concrete content outperforms generic advice. A post addressing a precise pain point the audience recognizes outperforms broad tips. Specificity signals expertise and signals that the creator knows the audience's exact experience.
 
 **Niche-fit:**
 Content that looks like it belongs in this niche (uses the right tone, vocabulary, visual style) gets shared within the niche. Content that looks imported from outside gets ignored.
@@ -76,12 +76,14 @@ After that, the agent computes a running baseline from the full history in `resu
 
 ### Bootstrap priors (before batch 1 is scored)
 
+**These are generic platform averages used only until the first scored entry exists.** They are not niche-specific predictions. After the first scored cycle, the agent overwrites this entire section with computed baselines from `results.jsonl`. Do not treat these as targets — they are placeholder thresholds to avoid having no reference point on day 1.
+
 | Signal          | Bootstrap threshold | What it means            |
 | --------------- | ------------------- | ------------------------ |
 | Views           | > 300               | Algorithm pushed it out  |
 | Save rate       | > 3% of views       | Strong utility signal    |
 | Profile visits  | > 1.5% of views     | Curiosity / intent       |
-| Watch-through   | > 50% (reels only)  | Hook + content both held |
+| Watch-through   | > 50% (reels only — secondary format)  | Hook + content both held |
 
 ### After first scored entry: agent computes and writes its own baseline here
 

@@ -48,7 +48,7 @@ Run every session. Run a deeper competitor dive any time score drops 2 consecuti
 
 ### 1. Browse niche hashtags
 
-Load the hashtags seeded in `references/config.json` → `app.hashtagSeeds`. For each:
+Discover relevant hashtags for the niche. Start from the niche description in `references/config.json` → `app.niche` and the Instagram handle in `app.instagramHandle`. Browse the account's existing posts, the explore page, and web search to identify 3–5 active hashtags. If `references/playbook.json` already has discovered `hashtag_clusters` from previous cycles, use those. For each hashtag:
 
 ```bash
 npx agent-browser open https://www.instagram.com/explore/tags/<HASHTAG>/
@@ -84,9 +84,11 @@ Extract per account:
 
 Do not record usernames or follower counts in competitor-research.json. Record patterns and signals only.
 
-### 3. Browse adjacent niches
+### 3. Browse adjacent niches (inspiration only)
 
 Identify 2–3 adjacent communities your audience likely overlaps with. Browse their top hashtags the same way. Look for content angles that are performing there but haven't crossed into the primary niche yet.
+
+**Constraint:** Use findings as inspiration for hooks and angles only. All content must target `config.json → app.niche`. Never create content for an adjacent niche directly.
 
 ### 4. App Store competitor research
 
@@ -109,7 +111,9 @@ Extract:
 
 Cross-reference with hook patterns from steps 1–2. If competitor App Store copy uses a frame that's also getting high engagement on Instagram, that's a validated angle worth testing in the virality gate.
 
-### 5. Find remix candidates
+### 5. Find remix candidates (secondary format — gated)
+
+**Gate:** Only applicable after 10+ scored carousel entries exist in results.jsonl AND the diagnostic matrix suggests a format change. If these conditions are not met, skip this section entirely.
 
 When looking for a reel to remix:
 

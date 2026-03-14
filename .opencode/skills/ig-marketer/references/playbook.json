@@ -1,34 +1,31 @@
 {
-  "_note": "Seed playbook — initialized before Cycle 0. All values are starting assumptions. Update every cycle after analytics pull. Each cycle's data informs the next cycle's decisions.",
-  "version": "1.0",
+  "_note": "Empty playbook — all values are discovered through research and experimentation. Nothing is pre-seeded. Every field starts empty and gets populated as the agent runs cycles, pulls analytics, and identifies what works.",
+  "version": "2.0",
   "lastUpdated": null,
   "cycleCount": 0,
   "phase": "growth",
 
-  "hashtag_clusters": {
-    "niche":   ["#sobriety", "#sobercurious", "#alcoholfree", "#soberlife", "#sobermovement"],
-    "wellness": ["#mentalhealth", "#wellness", "#selfcare", "#mindfulness", "#recovery"],
-    "broad":   ["#selfimprovement", "#healthylifestyle", "#habits", "#motivation", "#growthmindset"]
-  },
-  "activeHashtagCluster": "niche",
+  "hashtag_clusters": {},
+  "activeHashtagCluster": null,
+  "_hashtagNote": "Agent discovers hashtag clusters through niche research (browsing + web search). No pre-seeded clusters. Populate after first research cycle.",
 
   "postingTimes": {
     "tested": [],
-    "winning": null,
-    "defaultSchedule": ["08:00", "16:30", "19:00"]
+    "winning": null
   },
+  "_postingNote": "Default posting times live in config.json. This section tracks experimented times and winning time once discovered.",
 
   "formatMix": {
     "_note": "No format assumed at start. Populated after first scored entry exists. Updated every cycle from results.jsonl."
   },
 
-  "_ctaNote": "Seed with 2-4 CTA variants for your specific app before Cycle 0. Agent will test and promote winners.",
+  "_ctaNote": "Agent discovers effective CTAs through experimentation. May start with app's natural CTA from config.json brand voice, then iterate.",
   "ctaVariants": [],
   "activeCTA": null,
 
   "winningHooks": [],
   "droppedTopics": [],
 
-  "_topicNote": "Agent discovers topics through niche research (agent-browser + web search). Do not pre-seed this list — let experiments drive it.",
+  "_topicNote": "Agent discovers topics through niche research (browsing + web search). Do not pre-seed this list — let experiments drive it.",
   "topicBacklog": []
 }

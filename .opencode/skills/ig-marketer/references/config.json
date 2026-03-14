@@ -31,10 +31,9 @@
   },
   "app": {
     "name": "YOUR_APP_NAME",
-    "niche": "NICHE_DESCRIPTION (e.g. sobriety, fitness, productivity)",
+    "niche": "NICHE_DESCRIPTION (e.g. fitness, productivity, personal finance)",
     "appStoreUrl": "https://apps.apple.com/app/YOUR_APP",
     "instagramHandle": "@YOUR_APP_HANDLE",
-    "hashtagSeeds": ["#NICHE_TAG_1", "#NICHE_TAG_2", "#NICHE_TAG_3"],
     "githubRepo": "https://github.com/YOUR_ORG/YOUR_REPO",
     "supportNotes": ""
   },
