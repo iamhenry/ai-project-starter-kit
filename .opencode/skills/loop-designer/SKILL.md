@@ -153,7 +153,19 @@ Example:
 
 If any required action is `missing`, the loop is `NOT READY`.
 
-### 4) Define the worker
+### 4) System sanity check
+
+Before writing the worker, answer these five questions about the loop as a system:
+
+1. **Throughput** — How many cycles per period? (e.g., 7 cycles/week)
+2. **Latency** — How long is one cycle? (e.g., ~15 min observe + act + verify)
+3. **Reliability** — What's the expected failure rate? (e.g., 1 in 10 cycles fails due to API timeout)
+4. **Cost** — What does one cycle cost? (e.g., ~$0.02 in API calls + ~$0.05 in LLM tokens)
+5. **Recovery** — What's the restart cost after a mid-cycle failure? (e.g., re-pull metrics, no lost work)
+
+If any answer reveals the loop is impractical (too slow for the goal's timeline, too expensive per cycle, too fragile to run unattended), redesign before proceeding.
+
+### 5) Define the worker
 
 Write the worker around these sections:
 
@@ -166,8 +178,8 @@ Write the worker around these sections:
 - Safety
 - Closed Loop Test
 
-Keep the worker focused on heuristics and operating principles.
-Do not over-specify tactics that the worker should discover through iteration.
+**Contracts vs tactics:** Be explicit about contracts — what tools to use, what formats to produce, how to score, when to stop, what's off-limits. Be open about tactics — what to try, what order to explore, what creative choices to make. Litmus test: if a step specifies *which tool to call* or *what format to produce*, it's a contract — keep it. If it specifies *what the agent should decide*, it's over-specified — remove it and let the agent discover it through iteration.
+
 When the score has components, define diagnostic combinations that tell the worker WHERE things are going wrong, not just that they're going wrong.
 
 See `references/example-worker.md` for a complete example of a finished worker skill.
@@ -178,7 +190,7 @@ Include a **simplicity criterion** in the Operating Principles: when improvement
 
 If the worker produces content, communicates with humans, or makes judgment calls that reflect a brand or perspective, also generate a `soul.md` using `references/soul-template.md`. If the worker is purely mechanical (data pipelines, code optimization, monitoring), skip the soul.
 
-### 5) Proof of loop
+### 6) Proof of loop
 
 The first cycle must be **observation-only** — measure the current state before changing anything. This establishes the baseline all future cycles are scored against.
 
@@ -194,7 +206,7 @@ Example — right (separates baseline from first action):
 - **Cycle 0:** pull current installs, CTR, conversion rate. Record as baseline. Change nothing.
 - **Cycle 1:** make one bounded change (e.g., update one keyword). Verify the delta against baseline. Record result.
 
-### 6) Refine mode
+### 7) Refine mode
 
 When refining an existing worker:
 
