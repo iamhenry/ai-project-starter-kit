@@ -71,9 +71,9 @@ Produce one of two outcomes:
 
 ## Workflow
 
-### 0) Role discovery (optional)
+### 0) Role discovery
 
-Use this step when the user has a job description, a job link, or only a vague idea of the role they want to automate. Skip it if the user already has a clear, specific goal.
+Every worker starts here. The user provides a job description, a job link, or a vague idea of the role they want to automate. The agent extracts a structured role brief before moving to mission intake.
 
 If the user hasn't provided a job description or a clear goal, ask:
 
@@ -119,7 +119,7 @@ The trimmed role brief becomes the starting input for Step 1.
 
 ### 1) Mission intake
 
-If a role brief exists from Step 0, use it as the starting point — the trimmed responsibilities, metrics, and tools inform the mission, score, and environment below.
+Use the trimmed role brief from Step 0 as the starting point — the responsibilities, metrics, and tools inform the mission, score, and environment below.
 
 Restate the mission in one sentence:
 
