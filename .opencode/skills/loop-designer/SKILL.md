@@ -79,9 +79,17 @@ If the user hasn't provided a job description or a clear goal, ask:
 
 > Do you have a job description for this role (a link or paste), or would you like me to research similar roles to build a starting point?
 
-**Path A — job description provided:**
+**Research**
 
-Extract these from the job description:
+Regardless of input quality:
+
+1. Search for 4-5 real job descriptions that match the user's description
+2. Synthesize the common responsibilities across them
+3. Surface responsibilities the user may not have considered
+
+**Extract**
+
+From the user's input and the research, extract:
 
 1. **Responsibilities** — list each distinct responsibility
 2. **Metrics / KPIs** — explicit or implied success measures
@@ -92,14 +100,7 @@ Extract these from the job description:
    - `human-relay` — human performs a mechanical step (no judgment)
    - `human-judgment` — requires human decision-making
 
-**Path B — vague description provided:**
-
-1. Search for 2-3 real job descriptions that match the user's description
-2. Synthesize the common responsibilities across them
-3. Surface responsibilities the user may not have considered
-4. Present the same structured output as Path A
-
-**Role brief output:**
+**Present**
 
 Present the extracted role as a table:
 
@@ -108,6 +109,10 @@ Present the extracted role as a table:
 | e.g. Create short-form video content | automatable | views, engagement rate | AI video gen, scheduling API |
 | e.g. Respond to community comments | human-judgment | response time, sentiment | platform native |
 | e.g. Publish content to platform | human-relay | posting cadence | scheduling tool |
+
+**Clarify and narrow**
+
+Before trimming, ask targeted questions to resolve any ambiguity — unclear responsibilities, missing context (target audience, scale, platform, success criteria), or contradictions between the user's input and what the research surfaced.
 
 After presenting, tell the user:
 
