@@ -1,7 +1,7 @@
 ---
 name: loop-designer
 description: Design a closed autonomous loop for a measurable goal. Use when the user wants to create an agentic loop, digital worker, autonomous operator, long-running agent, or SKILL.md that can observe act verify record and continue with minimal human intervention.
-version: 1.3
+version: 1.4
 ---
 
 # Loop Designer
@@ -51,12 +51,16 @@ Use this skill when the user wants to:
 - design an agentic loop around a business goal
 - turn a fuzzy goal into a measurable worker mission
 - create or refine a worker `SKILL.md`
+- convert a job description into an autonomous worker
+- figure out what a role involves before designing a worker
 
 Examples:
 
 - "Design an ASO worker to grow iOS revenue to $10k MRR"
 - "Create an autonomous content worker that grows downloads"
 - "Turn this ops process into a closed loop"
+- "Here's a job description — turn it into a digital worker"
+- "I need someone to handle Twitter marketing — what does that role look like?"
 
 ## Outputs
 
@@ -67,7 +71,55 @@ Produce one of two outcomes:
 
 ## Workflow
 
+### 0) Role discovery
+
+Every worker starts here. The user provides a job description, a job link, or a vague idea of the role they want to automate. The agent extracts a structured role brief before moving to mission intake.
+
+If the user hasn't provided a job description or a clear goal, ask:
+
+> Do you have a job description for this role (a link or paste), or would you like me to research similar roles to build a starting point?
+
+**Path A — job description provided:**
+
+Extract these from the job description:
+
+1. **Responsibilities** — list each distinct responsibility
+2. **Metrics / KPIs** — explicit or implied success measures
+3. **Tools / platforms** — mentioned or implied by the responsibilities
+4. **Constraints** — brand guidelines, compliance, budget, team dependencies
+5. **Autonomy classification** — for each responsibility, classify:
+   - `automatable` — can be done by an agent end-to-end
+   - `human-relay` — human performs a mechanical step (no judgment)
+   - `human-judgment` — requires human decision-making
+
+**Path B — vague description provided:**
+
+1. Search for 2-3 real job descriptions that match the user's description
+2. Synthesize the common responsibilities across them
+3. Surface responsibilities the user may not have considered
+4. Present the same structured output as Path A
+
+**Role brief output:**
+
+Present the extracted role as a table:
+
+| Responsibility | Autonomy | Implied metric | Implied tool |
+| --- | --- | --- | --- |
+| e.g. Create short-form video content | automatable | views, engagement rate | AI video gen, scheduling API |
+| e.g. Respond to community comments | human-judgment | response time, sentiment | platform native |
+| e.g. Publish content to platform | human-relay | posting cadence | scheduling tool |
+
+After presenting, tell the user:
+
+- Which responsibilities can likely close the loop (automatable + human-relay)
+- Which ones can't (human-judgment) and why
+- Ask the user to trim: "Which of these do you want the worker to handle?"
+
+The trimmed role brief becomes the starting input for Step 1.
+
 ### 1) Mission intake
+
+Use the trimmed role brief from Step 0 as the starting point — the responsibilities, metrics, and tools inform the mission, score, and environment below.
 
 Restate the mission in one sentence:
 
