@@ -17,7 +17,7 @@ version: 1.0
   - Formula: `sum(position × popularity) / sum(popularity)` for all tracked keywords where the app ranks
   - Unranked keywords count as position 250
 - Direction: lower is better (position 1 = top of search)
-- Review cadence: daily observation, action cycles every `config.cadence.act_days` days (default 28)
+- Review cadence: daily observation, action cycles every `config.cadence.act_days` days (default 14). Agent self-adjusts based on signal quality.
 - Leading indicators:
   - Number of keywords where app ranks in top 10
   - Number of keywords where app ranks at all (vs unranked)
@@ -122,9 +122,9 @@ This worker is app-agnostic. Before running, create a `config.json` in the worke
   },
   "cadence": {
     "observe_hours": 24,
-    "act_days": 28,
-    "verify_preliminary_day": 10,
-    "verify_final_day": 21,
+    "act_days": 14,
+    "verify_preliminary_day": 5,
+    "verify_final_day": 10,
     "preferred_submit_days": ["tuesday", "wednesday"]
   },
   "autonomy": "semi-autonomous",
@@ -284,13 +284,13 @@ All files live in `config.data_dir` (default: `./aso-worker-data/`).
 
 Each line is one JSON object. Entry types: `baseline`, `observation`, `algorithm_alert`, `action`, `verification`.
 
-See `references/results-example.jsonl` for annotated examples of each entry type.
+See `references/results.jsonl` for annotated examples of each entry type.
 
 ### playbook.json format
 
 Accumulated keyword intelligence. Updated after each verification.
 
-See `references/playbook-example.json` for a complete example with all fields.
+See `references/playbook.json` for a complete example with all fields.
 
 ## Safety
 - **Hard stops:**

@@ -94,18 +94,19 @@
         },
         "act_days": {
           "type": "integer",
-          "default": 28,
-          "description": "Days between metadata submissions. 28 = review (~1d) + indexing (~3d) + settlement (~7d) + observation (~17d). ~13 cycles/year."
+          "default": 14,
+          "minimum": 7,
+          "description": "Days between metadata submissions. Default 14 = review (~1d) + indexing (~3d) + settlement (~7d) + observation (~3d). The agent may self-adjust this based on observed signal quality in results.jsonl — lengthen if signal is noisy, shorten if rankings settle faster than expected."
         },
         "verify_preliminary_day": {
           "type": "integer",
-          "default": 10,
-          "description": "Day after submission for preliminary ranking check (are new keywords indexing?)."
+          "default": 5,
+          "description": "Day after submission for preliminary ranking check (are new keywords indexing?). Default 5 = ~1d review + ~3d indexing + 1d buffer."
         },
         "verify_final_day": {
           "type": "integer",
-          "default": 21,
-          "description": "Day after submission for final measurement (did position improve?)."
+          "default": 10,
+          "description": "Day after submission for final measurement (did position improve?). Default 10 = rankings should be settled. Agent may increase if deltas are still volatile at measurement time."
         },
         "preferred_submit_days": {
           "type": "array",
@@ -116,12 +117,12 @@
       },
       "default": {
         "observe_hours": 24,
-        "act_days": 28,
-        "verify_preliminary_day": 10,
-        "verify_final_day": 21,
+        "act_days": 14,
+        "verify_preliminary_day": 5,
+        "verify_final_day": 10,
         "preferred_submit_days": ["tuesday", "wednesday"]
       },
-      "description": "Cycle timing. Defaults are research-backed for optimal signal-to-noise."
+      "description": "Cycle timing. Defaults are the fastest viable cadence (review ~1d + indexing ~3d + settlement ~7d + buffer ~3d = 14d). The agent self-adjusts based on observed signal quality — if rankings are still volatile at verify_final_day, the agent should increase it; if they stabilize sooner, the agent can tighten."
     },
     "autonomy": {
       "type": "string",
