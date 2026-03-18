@@ -238,7 +238,7 @@ Write the worker around these sections:
 - Safety
 - Closed Loop Test
 
-The worker must be self-contained. All files live within the skill directory: `SKILL.md` and `soul.md` (human-owned instructions), `references/` (schemas — human-owned), and `data/` (runtime artifacts — agent writes here). Define file ownership in the Memory section: which files the human owns (never modified by the agent), which the agent owns (results, playbook), and which are shared (config).
+The worker must be self-contained. All files live within the skill directory: `SKILL.md` and `soul.md` (human-owned instructions), `references/` (schemas, format examples — human-owned), and `data/` (runtime artifacts — agent writes here). Define file ownership in the Memory section: which files the human owns (never modified by the agent), which the agent owns (results, playbook), and which are shared (config). Format examples and data schemas belong in `references/` as separate files — the SKILL.md should point to them (e.g., "See `references/results.jsonl`"), never inline JSON/JSONL blocks.
 
 **Contracts vs tactics:** Be explicit about contracts — what tools to use, what formats to produce, how to score, when to stop, what's off-limits. Be open about tactics — what to try, what order to explore, what creative choices to make. Litmus test: if a step specifies *which tool to call* or *what format to produce*, it's a contract — keep it. If it specifies *what the agent should decide*, it's over-specified — remove it and let the agent discover it through iteration. Express thresholds as heuristics with examples, not hard-coded numbers — if a threshold might change with context, write it as a guideline (e.g., "high difficulty, such as >50") rather than a fixed rule.
 

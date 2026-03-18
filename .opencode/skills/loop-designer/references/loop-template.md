@@ -105,8 +105,10 @@ Extend with domain-specific fields as needed (e.g., `module`, `test_time_ms`, `v
 <skillname>/
   SKILL.md              # instructions (human-owned)
   soul.md               # judgment principles (human-owned, if needed)
-  references/           # schemas (human-owned)
+  references/           # schemas and examples (human-owned)
     config.schema.json
+    results.jsonl       # example entries
+    playbook.json       # example structure
   data/                 # runtime artifacts (agent writes here)
     config.json         # app config (shared)
     results.jsonl       # experiment log (agent-owned)
@@ -117,7 +119,7 @@ Extend with domain-specific fields as needed (e.g., `module`, `test_time_ms`, `v
 | File | Owner | Agent may |
 | --- | --- | --- |
 | SKILL.md, soul.md | Human | Read only. Never modify. |
-| references/* | Human | Read only. |
+| references/* | Human | Read only. Use as format reference. |
 | data/config.json | Shared | Read always. Write only designated tunable fields. |
 | data/results.jsonl | Agent | Append entries. Archive when large. |
 | data/playbook.json | Agent | Read and rewrite after each verification. |

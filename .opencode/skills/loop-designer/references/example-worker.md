@@ -128,7 +128,7 @@ New accounts need 7-14 days of organic activity before posting marketing content
 | File | Owner | Agent may |
 | --- | --- | --- |
 | This SKILL.md, soul.md | Human | Read only. Never modify. |
-| references/* | Human | Read only. |
+| references/* | Human | Read only. Use as format reference. |
 | data/config.json | Shared | Read always. Write only tunable parameters. |
 | data/results.jsonl | Agent | Append entries. Archive when large. |
 | data/playbook.json | Agent | Read and rewrite after each verification. |
@@ -139,8 +139,10 @@ New accounts need 7-14 days of organic activity before posting marketing content
 ugc-content-marketer/
   SKILL.md              # instructions (human-owned)
   soul.md               # judgment principles (human-owned)
-  references/           # schemas (human-owned)
+  references/           # schemas and examples (human-owned)
     config.schema.json
+    results.jsonl       # example entries
+    playbook.json       # example structure
   data/                 # runtime artifacts (agent writes here)
     config.json
     results.jsonl
