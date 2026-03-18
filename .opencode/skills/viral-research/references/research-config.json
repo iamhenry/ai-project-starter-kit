@@ -1,0 +1,65 @@
+{
+  "_note": "Fill all placeholder values before starting a research session. This file scopes all research to a specific niche and target account.",
+
+  "niche": {
+    "name": "NICHE_NAME (e.g., sobriety, fitness, productivity)",
+    "description": "NICHE_DESCRIPTION — a 1-2 sentence description of the target audience and their core concern",
+    "keywords": [
+      "KEYWORD_1 (e.g., sobriety myths)",
+      "KEYWORD_2 (e.g., quit drinking)",
+      "KEYWORD_3 (e.g., alcohol free lifestyle)"
+    ],
+    "hashtags": [
+      "#HASHTAG_1 (e.g., #sober)",
+      "#HASHTAG_2 (e.g., #sobercurious)",
+      "#HASHTAG_3 (e.g., #alcoholfree)"
+    ],
+    "adjacentNiches": [
+      "ADJACENT_1 (e.g., mental health, mindfulness)",
+      "ADJACENT_2 (e.g., wellness, self-improvement)"
+    ]
+  },
+
+  "targetAccount": {
+    "handle": "@YOUR_HANDLE",
+    "followerCount": 0,
+    "currentPhase": "phase-1",
+    "_phaseNote": "phase-1 (0-1K), phase-2 (1K-10K), phase-3 (10K+). Determines which format tiers to prioritize."
+  },
+
+  "targetApp": {
+    "name": "YOUR_APP_NAME",
+    "appStoreUrl": "https://apps.apple.com/app/YOUR_APP",
+    "description": "APP_DESCRIPTION — what the app does in one sentence"
+  },
+
+  "research": {
+    "minReelsPerSession": 8,
+    "maxReelsPerSession": 15,
+    "facelessOnly": true,
+    "prioritizeFormats": ["T1", "T2", "P3"],
+    "_formatNote": "Which format tiers to focus on. Adjust based on currentPhase and brand strategy.",
+    "premiumBrandReferences": [
+      "calm",
+      "headspace",
+      "whoop",
+      "ouraring",
+      "duolingo"
+    ],
+    "_premiumNote": "Premium brand accounts to study for production quality reference, even if outside the niche."
+  },
+
+  "production": {
+    "tools": {
+      "videoRenderer": "remotion",
+      "imageGenerator": "fal.ai",
+      "designSystem": "figma"
+    },
+    "constraints": {
+      "maxDurationSeconds": 10,
+      "resolution": "720x1280",
+      "format": "mp4",
+      "codec": "h264"
+    }
+  }
+}

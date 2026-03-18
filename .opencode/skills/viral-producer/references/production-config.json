@@ -1,0 +1,67 @@
+{
+  "_note": "Fill all placeholder values before first production session. This config is niche-agnostic — swap values for any app/niche.",
+
+  "niche": {
+    "name": "NICHE_NAME",
+    "description": "NICHE_DESCRIPTION"
+  },
+
+  "account": {
+    "handle": "@YOUR_HANDLE",
+    "followerCount": 0,
+    "currentPhase": "phase-1",
+    "_phaseNote": "phase-1 (0-1K): T1+T2+P3. phase-2 (1K-10K): T3+T4+P3. phase-3 (10K+): all tiers."
+  },
+
+  "app": {
+    "name": "YOUR_APP_NAME",
+    "appStoreUrl": "https://apps.apple.com/app/YOUR_APP",
+    "tagline": "YOUR_APP_TAGLINE",
+    "keywordCTA": "YOUR_KEYWORD (e.g., ZEROPROOF)",
+    "_ctaNote": "The keyword used in 'Comment [KEYWORD] for...' CTAs. Keep it short, memorable, and tied to your brand."
+  },
+
+  "brand": {
+    "primaryColor": "#000000",
+    "accentColor": "#FFFFFF",
+    "fontFamily": "Inter",
+    "fontWeight": "bold",
+    "_note": "These values are used by Remotion compositions for consistent visual identity."
+  },
+
+  "fal": {
+    "enabled": false,
+    "apiKey": "FAL_API_KEY_HERE",
+    "budgetCeilingUSD": 30,
+    "_note": "Monthly budget for fal.ai image/video generation. Fall back to stock/gradients if hit."
+  },
+
+  "remotion": {
+    "projectDir": "PATH_TO_REMOTION_PROJECT",
+    "compositions": {
+      "T1": "MemeReel",
+      "T2": "QuoteCard",
+      "T3": "TextCard",
+      "T4": "TruthBomb",
+      "P1": "FunctionalLoop",
+      "P2": "DataVizHumor",
+      "P3": "CulturalEdutainment"
+    },
+    "_note": "Composition IDs must match the Remotion project's registered compositions."
+  },
+
+  "posting": {
+    "timezone": "America/Los_Angeles",
+    "defaultTimes": ["08:00", "16:30", "19:00"],
+    "privacyDefault": "DRAFT",
+    "_note": "Reels are always drafted, never published directly. Human makes the final publish decision."
+  },
+
+  "constraints": {
+    "maxDurationSeconds": 10,
+    "resolution": "720x1280",
+    "format": "mp4",
+    "codec": "h264",
+    "facelessOnly": true
+  }
+}
