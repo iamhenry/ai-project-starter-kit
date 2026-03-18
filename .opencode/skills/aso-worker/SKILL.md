@@ -292,9 +292,19 @@ Log cadence changes to `results.jsonl`. Update `config.json` when adjusting.
 | Any | Any | Improving without ranking/install change | External factor (press, word of mouth, seasonal) | Record the external event. Don't attribute to keyword changes. |
 
 ## Memory
-- Config: `config.json` — app identity, thresholds, cadence settings
-- Results log: `results.jsonl` — every observation, proposal, and outcome
-- Playbook: `playbook.json` — current best keyword strategy and learnings
+
+### Ownership
+| File | Owner | Agent may |
+| --- | --- | --- |
+| `SKILL.md` | Human | Read only. Never modify. |
+| `soul.md` | Human | Read only. Never modify. |
+| `config.schema.json` | Human | Read only. Never modify. |
+| `config.json` | Shared | Read always. Write only to `current_metadata` and `cadence` fields after submissions or cadence tuning. Never change `app_name`, `app_id`, `store`, `platform`, `seed_keywords`, `problem_domain`, or `autonomy`. |
+| `results.jsonl` | Agent | Append entries. Archive when large. |
+| `playbook.json` | Agent | Read and rewrite after each verification. |
+
+The human programs the worker by editing `SKILL.md` and `soul.md`. The agent programs itself by evolving `playbook.json` and tuning `config.json` cadence. These boundaries are strict.
+
 - Next cycle reads first: `config.json` → `results.jsonl` (tail) → `playbook.json`
 - **Size management:** On start, read the recent tail of `results.jsonl` (enough to understand the last few cycles). For deeper analysis (stall rule), read further back. When the file gets large, archive older entries to `results-archive.jsonl` to keep the active file manageable.
 
@@ -314,6 +324,7 @@ See `references/playbook.json` for a complete example with all fields.
 
 ## Safety
 - **Hard stops:**
+  - Never modify `SKILL.md`, `soul.md`, or `config.schema.json` — these are human-owned instructions
   - Never use trademarked terms, competitor names, or irrelevant keywords (Apple §2.3.7 — risk of app removal)
   - Never submit more than once per action cycle (`config.cadence.act_days`)
   - Never modify app description without human approval
