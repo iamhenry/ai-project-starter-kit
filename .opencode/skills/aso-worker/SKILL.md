@@ -164,6 +164,7 @@ This worker is app-agnostic. Before running, create a `config.json` in the worke
 
 ### Strategy
 - **Every cycle is an experiment.** Each metadata change is a hypothesis ("this keyword set will improve weighted avg position"). The cycle proves or disproves it. The result — not the hypothesis — drives the next cycle. Never repeat a failed experiment without a new variable.
+- **Always move forward, never revert.** A cycle that worsens rankings is not a failure — it's data. The keywords that hurt tell you something about what Apple's algorithm values for this app. Extract the learning, add to `playbook.json.learnings`, and design the next cycle to avoid the same pattern. Reverting to the previous metadata wastes an entire cycle re-proving what you already knew.
 - **Start with competitors, not imagination.** Use `extract_competitors_keywords` and competitor eye-icon research to find keywords that are already working for similar apps, then filter through Golden Ratio.
 - **Low authority = low difficulty.** A new app with 0 ratings cannot compete on Diff >50 keywords. Target Diff <30 until the app has 50+ ratings. Re-evaluate thresholds when app crosses rating milestones (10, 50, 100, 500).
 - **Explore broadly when stuck, exploit when improving.** If rankings are flat after 2 cycles, try a completely different keyword angle. If rankings are improving, make incremental refinements to the winning strategy.
@@ -256,7 +257,11 @@ If weighted average position has not improved after 3 consecutive action cycles:
 1. Review the full experiment log — are all keyword angles exhausted? Check `playbook.json.keyword_angles_untried` for remaining options.
 2. Cross-reference with install data: are installs growing despite flat rankings? If yes, the current keywords may be fine — the score is misleading. Check conversion funnel instead.
 3. Check if the problem is keyword selection (wrong keywords) or authority (app needs more ratings/downloads to rank). Use app's current rating count as the signal — if still <50 ratings, authority is likely the bottleneck.
-4. If keyword selection: try a fundamentally different seed keyword angle. Use `search_app_store` with problem-domain queries to find new competitor clusters. Update `playbook.json.keyword_angles_untried`.
+4. If keyword selection: escalate creativity:
+   a. **Combine near-misses.** Look at keywords classified `neutral` (moved <3 positions). These almost worked. Try combining them with winning keywords or placing them in stronger metadata positions (subtitle instead of keywords field).
+   b. **Mine fresh competitors.** Use `search_app_store` with problem-domain queries to find new apps that launched recently. New apps in top 10 = they found an angle you haven't tried. Extract their keywords.
+   c. **Flip the angle.** If you've been targeting the problem ("sobriety tracker"), try the aspiration ("healthy living") or the trigger ("quit drinking"). Explore adjacent problem domains from `config.problem_domain`.
+   d. **Re-read ALL learnings.** Read every entry in `playbook.json.learnings` as a batch. Look for meta-patterns: are failures clustered around a difficulty range? A keyword type? A metadata position? The pattern across failures is often more useful than any single failure.
 5. If authority: pause metadata changes. The bottleneck is downloads and ratings, not keywords. Escalate to human — recommend content marketing, review prompts, or other growth tactics.
 6. If 5 consecutive cycles with no improvement: halt the loop and alert human.
 
