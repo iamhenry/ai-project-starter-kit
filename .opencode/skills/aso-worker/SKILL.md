@@ -22,6 +22,8 @@ version: 1.0
   - Number of keywords where app ranks in top 10
   - Number of keywords where app ranks at all (vs unranked)
   - Keywords field utilization (% of 100 chars used)
+  - Installs trend (weekly, via `asc analytics`)
+  - Conversion rate: impressions → product page views → installs (via `asc analytics`)
 - North star check: monthly revenue via RevenueCat — if rankings improve but revenue doesn't, the problem is conversion (screenshots, description, paywall), not keywords
 
 ## Verification Surface
@@ -30,6 +32,8 @@ version: 1.0
 | Keyword rankings | Astro: `search_rankings`, `app_keywords` | weighted avg position trending down | daily |
 | Ranking anomalies | Astro: `ranking_anomalies` | no unexplained drops >10 positions | daily |
 | Keyword portfolio health | Astro: `analyze_aso_health` | no keywords with Diff >70 or Pop <20 | per cycle |
+| Install volume | `asc analytics` | weekly installs trending up | weekly |
+| Conversion funnel | `asc analytics` | impressions → page views → installs improving | per cycle |
 | Keywords field utilization | `asc metadata keywords diff` | >90% of 100 chars used | per cycle |
 | Metadata waste | Check title/subtitle tokens not duplicated in keywords | 0 wasted tokens | per cycle |
 | App review status | `asc status --app "$APP_ID"` | submission approved, not rejected | after submission |
@@ -60,6 +64,8 @@ version: 1.0
 | Submit for review | `asc submit create --confirm` | ready | semi-auto | submission created |
 | Check submission status | `asc status --app "$APP_ID"` | ready | autonomous | status returned |
 | Get app ratings | Astro MCP: `get_app_ratings` | ready | autonomous | ratings data |
+| Pull install/conversion analytics | `asc analytics --app "$APP_ID"` | ready | autonomous | analytics report (installs, impressions, page views) |
+| Generate weekly insights | `asc insights --app "$APP_ID"` | ready | autonomous | weekly trend summary |
 | Read/write experiment log | filesystem: `results.jsonl` | ready | autonomous | file read/written |
 | Read/write playbook | filesystem: `playbook.json` | ready | autonomous | file read/written |
 
@@ -85,6 +91,8 @@ version: 1.0
 | Competitor keywords | Astro MCP: `extract_competitors_keywords` | keyword must be tracked first | only returns Pop >5 | track keyword first, then extract |
 | App Store search results | Astro MCP: `search_app_store` | max 100 results per query | live search | use different seed terms |
 | App Store Connect metadata | `asc` CLI | Apple API rate limits | review takes ~1 day | wait for approval |
+| Install/conversion analytics | `asc analytics` | Apple API rate limits | data available ~24h delayed | use last available data |
+| Weekly insights | `asc insights` | Apple API rate limits | generated from analytics data | use analytics directly |
 
 ## Config
 
@@ -134,13 +142,14 @@ This worker is app-agnostic. Before running, create a `config.json` in the worke
 ## On Start
 
 1. Read `config.json` — load app identity, thresholds, cadence, current metadata
-2. Read `results.jsonl` — understand what keywords have been tested and their outcomes
-3. Read `playbook.json` — current best-known keyword strategy (winning keywords, what to avoid, metadata template)
+2. Read `results.jsonl` — understand what keywords have been tested and their outcomes. Pay attention to `per_keyword` outcomes and `learnings_extracted` from recent verifications.
+3. Read `playbook.json` — current best-known keyword strategy. Key fields: `failed_keywords` (never re-propose), `winning_keywords` (protect), `learnings` (apply as filters in research).
 4. Pull latest rankings from Astro for all tracked keywords
-5. Compute current operational score (weighted avg position)
-6. Compare score to baseline and last cycle's score
-7. Determine cycle phase: OBSERVE (daily check) or ACT (28-day action window)
-8. If ACT phase: proceed to Work Loop. If OBSERVE phase: log daily rankings and stop.
+5. Pull install/conversion analytics via `asc analytics` (if last pull was >7 days ago)
+6. Compute current operational score (weighted avg position)
+7. Compare score to baseline and last cycle's score. Check install trend.
+8. Determine cycle phase: OBSERVE (daily check) or ACT (28-day action window)
+9. If ACT phase: proceed to Work Loop. If OBSERVE phase: log daily rankings and stop.
 
 ## Operating Principles
 
@@ -154,9 +163,11 @@ This worker is app-agnostic. Before running, create a `config.json` in the worke
 - **One variable at a time.** When updating metadata, change either the keywords field OR the title/subtitle — not both. This lets you attribute ranking changes to a specific change.
 
 ### Strategy
+- **Every cycle is an experiment.** Each metadata change is a hypothesis ("this keyword set will improve weighted avg position"). The cycle proves or disproves it. The result — not the hypothesis — drives the next cycle. Never repeat a failed experiment without a new variable.
 - **Start with competitors, not imagination.** Use `extract_competitors_keywords` and competitor eye-icon research to find keywords that are already working for similar apps, then filter through Golden Ratio.
-- **Low authority = low difficulty.** A new app with 0 ratings cannot compete on Diff >50 keywords. Target Diff <30 until the app has 50+ ratings.
+- **Low authority = low difficulty.** A new app with 0 ratings cannot compete on Diff >50 keywords. Target Diff <30 until the app has 50+ ratings. Re-evaluate thresholds when app crosses rating milestones (10, 50, 100, 500).
 - **Explore broadly when stuck, exploit when improving.** If rankings are flat after 2 cycles, try a completely different keyword angle. If rankings are improving, make incremental refinements to the winning strategy.
+- **Compound learnings.** Read `playbook.json.learnings` before every research phase. Each cycle should produce at least one new learning. Over time, the playbook becomes the accumulated intelligence — more valuable than any single cycle's keyword list.
 - **Simplicity wins.** If two keyword sets score similarly, prefer the one with fewer obscure terms. Simpler keywords = more predictable ranking behavior.
 
 ### Safety
@@ -172,8 +183,10 @@ This worker is app-agnostic. Before running, create a `config.json` in the worke
 2. Compute current weighted average position
 3. Check for ranking anomalies (drops >10 positions)
 4. If anomaly detected: log it, tag the keyword as `anomaly` in Astro, add note with date
-5. Log daily score to `results.jsonl` as an observation entry
-6. If not in ACT window: stop here
+5. **Algorithm change detection:** If ≥30% of tracked keywords shift ≥5 positions in the same direction on the same day (and no metadata was submitted recently), flag as suspected algorithm change. Log to results.jsonl with type `algorithm_alert`. Do NOT make metadata changes until rankings re-stabilize (2-3 consecutive days of <5% daily variance).
+6. Pull install/conversion data via `asc analytics` (weekly cadence is sufficient — skip if last pull was <7 days ago)
+7. Log daily score to `results.jsonl` as an observation entry
+8. If not in ACT window: stop here
 
 ### Phase B: Action Cycle (every 28 days)
 
@@ -185,16 +198,19 @@ This worker is app-agnostic. Before running, create a `config.json` in the worke
 5. Compute keywords field utilization (chars used / 100)
 
 **B2. Research new keywords**
-1. Get keyword suggestions from Astro for current seed keywords
-2. Search App Store for competitors ranking on seed keywords
-3. Extract competitor keywords via `extract_competitors_keywords`
-4. For each candidate keyword:
+1. **Read playbook.json first.** Load `failed_keywords` (never re-propose these), `winning_keywords` (protect these), `learnings` (apply these as filters), and `keyword_angles_untried` (explore these).
+2. Get keyword suggestions from Astro for current seed keywords AND any `keyword_angles_untried` from the playbook
+3. Search App Store for competitors ranking on seed keywords
+4. Extract competitor keywords via `extract_competitors_keywords`
+5. For each candidate keyword:
+   - **Reject if in `playbook.json.failed_keywords`** — don't re-test what already failed
    - Filter through Golden Ratio (Pop ≥ min, Diff ≤ max)
    - Check semantic relevance to `problem_domain`
    - Check it's not a brand name (search App Store — if top result is an exact-match brand app, skip)
    - Check if competitors have this exact phrase in their title (if not = opportunity)
-5. Add promising candidates to Astro tracking via `add_keywords`
-6. Tag new candidates as `candidate` in Astro
+   - Apply any pattern-based filters from `playbook.json.learnings` (e.g., if a learning says "keywords containing 'free' attract wrong audience", filter those out)
+6. Add promising candidates to Astro tracking via `add_keywords`
+7. Tag new candidates as `candidate` in Astro
 
 **B3. Optimize metadata**
 1. Rank all candidate keywords by the Golden Ratio score: `popularity / (difficulty + 1)`
@@ -221,27 +237,40 @@ This worker is app-agnostic. Before running, create a `config.json` in the worke
 **B5. Verify (Day 10 + Day 21 after submission)**
 1. Day 10 (preliminary): check if new keywords are appearing in rankings at all. If completely absent, suspect metadata issue.
 2. Day 21 (final): compute weighted avg position delta vs pre-submission baseline
-3. For each keyword change, determine: did position improve, stay flat, or worsen?
-4. Update `results.jsonl` entry with final score_delta and status: `keep` (improved), `discard` (no change), `fail` (worsened)
-5. Update `playbook.json` with learnings
+3. **Per-keyword outcome tracking:** For EACH keyword that was added, removed, or changed:
+   - Record: keyword, position_before, position_after, position_delta, popularity, difficulty
+   - Classify: `keep` (position improved ≥3), `neutral` (position changed <3), `fail` (position worsened ≥3 or still unranked after 2 cycles)
+4. **Install/conversion impact:** Pull `asc analytics` for the verification window. Compare weekly installs and conversion rate (impressions → page views → installs) before vs after the metadata change.
+5. Update `results.jsonl` entry with: aggregate score_delta, per-keyword outcomes, install delta, conversion delta
+6. **Extract learnings for playbook.json:**
+   - Move `keep` keywords to `winning_keywords`
+   - Move `fail` keywords to `failed_keywords`
+   - Look for patterns: do failed keywords share traits (e.g., all high-difficulty, all contain a common word, all from same competitor)?
+   - Formulate a learning sentence if a pattern exists (e.g., "Keywords with difficulty >40 consistently fail for this app's authority level")
+   - Add the learning to `playbook.json.learnings`
+   - Move explored angles from `keyword_angles_untried` to `keyword_angles_tried`
+7. **Threshold adjustment check:** If app's total ratings have crossed a threshold (10, 50, 100, 500), recommend loosening `golden_ratio.max_difficulty` by 10 in the next cycle. Log the recommendation — don't auto-change config.
 
 ### Stall Rule
 If weighted average position has not improved after 3 consecutive action cycles (84 days):
-1. Review the full experiment log — are all keyword angles exhausted?
-2. Check if the problem is keyword selection (wrong keywords) or authority (app needs more ratings/downloads to rank)
-3. If keyword selection: try a fundamentally different seed keyword angle. Use `search_app_store` with problem-domain queries to find new competitor clusters.
-4. If authority: pause metadata changes. The bottleneck is downloads and ratings, not keywords. Escalate to human — recommend content marketing, review prompts, or other growth tactics.
-5. If 5 consecutive cycles with no improvement: halt the loop and alert human.
+1. Review the full experiment log — are all keyword angles exhausted? Check `playbook.json.keyword_angles_untried` for remaining options.
+2. Cross-reference with install data: are installs growing despite flat rankings? If yes, the current keywords may be fine — the score is misleading. Check conversion funnel instead.
+3. Check if the problem is keyword selection (wrong keywords) or authority (app needs more ratings/downloads to rank). Use app's current rating count as the signal — if still <50 ratings, authority is likely the bottleneck.
+4. If keyword selection: try a fundamentally different seed keyword angle. Use `search_app_store` with problem-domain queries to find new competitor clusters. Update `playbook.json.keyword_angles_untried`.
+5. If authority: pause metadata changes. The bottleneck is downloads and ratings, not keywords. Escalate to human — recommend content marketing, review prompts, or other growth tactics.
+6. If 5 consecutive cycles with no improvement: halt the loop and alert human.
 
 ## Diagnostic Matrix
 
-| Rankings | Revenue | Diagnosis | Action |
-| --- | --- | --- | --- |
-| Improving | Improving | Working — stay the course | Exploit: refine winning keywords, target slightly harder ones |
-| Improving | Flat | Rankings help but conversion is weak | Escalate: problem is app listing (screenshots, description) or app itself (paywall, onboarding) |
-| Flat | Flat | Keywords aren't moving the needle | Explore: try different keyword angles, different competitor clusters |
-| Worsening | Any | Something broke | Investigate: check for Apple algorithm change, competitor surge, or metadata rejection. Revert to last known-good keywords if possible. |
-| Any | Improving without ranking change | External factor (press, word of mouth) | Record the external event. Don't attribute to keyword changes. |
+| Rankings | Installs | Revenue | Diagnosis | Action |
+| --- | --- | --- | --- | --- |
+| Improving | Improving | Improving | Working — full funnel healthy | Exploit: refine winning keywords, target slightly harder ones |
+| Improving | Improving | Flat | Rankings drive traffic but monetization is weak | Escalate: problem is paywall, pricing, or onboarding |
+| Improving | Flat | Flat | Rankings help but impressions aren't converting to page views | Escalate: problem is app icon, screenshots, or title/subtitle appeal |
+| Flat | Flat | Flat | Keywords aren't moving the needle | Explore: try different keyword angles, different competitor clusters |
+| Worsening (broad, ≥30% of keywords) | Dropping | Any | Suspected algorithm change | Freeze metadata changes. Wait 2-3 days for stabilization. Log `algorithm_alert`. Compare against ASO community reports. |
+| Worsening (narrow, 1-3 keywords) | Stable | Any | Competitor surge on specific keywords | Research who's now outranking you. Consider pivoting those keywords to lower-diff alternatives. |
+| Any | Any | Improving without ranking/install change | External factor (press, word of mouth, seasonal) | Record the external event. Don't attribute to keyword changes. |
 
 ## Memory
 - Config: `config.json` — app identity, thresholds, cadence settings
@@ -256,10 +285,11 @@ All files live in `config.data_dir` (default: `./aso-worker-data/`).
 Each line is one JSON object:
 
 ```jsonl
-{"id": "cycle-000", "type": "baseline", "date": "2026-03-17", "app_id": "6746278101", "weighted_avg_position": null, "keywords_tracked": 0, "keywords_ranked": 0, "top10_count": 0, "keywords_field": "", "keywords_field_utilization": 0, "status": "baseline", "reasoning": "Cycle 0: no keywords tracked yet. Establishing baseline."}
+{"id": "cycle-000", "type": "baseline", "date": "2026-03-17", "app_id": "6746278101", "weighted_avg_position": null, "keywords_tracked": 0, "keywords_ranked": 0, "top10_count": 0, "keywords_field": "", "keywords_field_utilization": 0, "weekly_installs": 0, "conversion_rate": null, "status": "baseline", "reasoning": "Cycle 0: no keywords tracked yet. Establishing baseline."}
 {"id": "cycle-000-obs-d1", "type": "observation", "date": "2026-03-18", "weighted_avg_position": 187.3, "keywords_tracked": 24, "keywords_ranked": 3, "top10_count": 0, "anomalies": [], "status": "logged"}
-{"id": "cycle-001", "type": "action", "date": "2026-04-14", "change_type": "keywords_field", "before": "old,keywords,here", "after": "new,optimized,keywords", "keywords_added": ["sober tracker", "quit alcohol"], "keywords_removed": ["generic term"], "rationale": "Swapped low-pop keywords for higher Golden Ratio candidates from competitor analysis", "score_before": 187.3, "status": "proposed"}
-{"id": "cycle-001", "type": "verification", "date": "2026-04-25", "day": 10, "score_after": 142.1, "score_delta": -45.2, "new_rankings": ["sober tracker: #34", "quit alcohol: #67"], "status": "keep", "reasoning": "Both new keywords indexing. Weighted avg dropped 45 positions (good). Keep this direction."}
+{"id": "cycle-000-obs-d3", "type": "algorithm_alert", "date": "2026-03-20", "keywords_affected_pct": 42, "avg_shift": -8.3, "direction": "down", "status": "monitoring", "reasoning": "42% of tracked keywords dropped avg 8 positions. No metadata submitted. Suspected algorithm change. Freezing actions until stabilized."}
+{"id": "cycle-001", "type": "action", "date": "2026-04-14", "change_type": "keywords_field", "before": "old,keywords,here", "after": "new,optimized,keywords", "keywords_added": ["sober tracker", "quit alcohol"], "keywords_removed": ["generic term"], "rationale": "Swapped low-pop keywords for higher Golden Ratio candidates from competitor analysis", "score_before": 187.3, "installs_before": 12, "conversion_before": 0.023, "status": "proposed"}
+{"id": "cycle-001-verify-d10", "type": "verification", "date": "2026-04-25", "day": 10, "score_after": 142.1, "score_delta": -45.2, "per_keyword": [{"keyword": "sober tracker", "position_before": 250, "position_after": 34, "delta": -216, "pop": 28, "diff": 22, "outcome": "keep"}, {"keyword": "quit alcohol", "position_before": 250, "position_after": 67, "delta": -183, "pop": 31, "diff": 35, "outcome": "keep"}, {"keyword": "generic term", "position_before": 89, "position_after": null, "delta": null, "pop": 12, "diff": 8, "outcome": "removed"}], "installs_after": 19, "installs_delta": 7, "conversion_after": 0.031, "status": "keep", "reasoning": "Both new keywords indexing. Weighted avg dropped 45 positions (good). Installs up 58%. Keep this direction.", "learnings_extracted": ["Low-diff sobriety keywords (<30) index quickly for new apps", "Removing pop<20 keywords had no negative impact"]}
 ```
 
 ### playbook.json format
@@ -299,8 +329,10 @@ Each line is one JSON object:
   - App review rejection → halt, log rejection reason, alert human
   - 3 consecutive cycles with no ranking improvement → review strategy, consider authority problem
   - 5 consecutive cycles with no improvement → halt loop, alert human
+  - **Algorithm change detected** (≥30% of keywords shift ≥5 positions same direction, no recent submission) → freeze metadata changes, log `algorithm_alert`, wait 2-3 days for stabilization before resuming
   - Rankings drop >20 positions across multiple keywords simultaneously → suspect algorithm change or penalty, halt and alert
   - Revenue growing but rankings flat → don't touch keywords, the current state is working via other channels
+  - Installs dropping despite stable/improving rankings → escalate: problem is external (seasonality, market shift, competitor launch)
 
 ## Closed Loop Test
 - [x] Can observe the relevant world state (Astro MCP: rankings, popularity, difficulty, competitor data)
