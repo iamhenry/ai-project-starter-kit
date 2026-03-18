@@ -83,7 +83,7 @@ version: 1.0
 - Study what wins. When a post overperforms, understand WHY before making variations. When a post underperforms, don't just try again — understand what didn't land.
 - Platform-native first. Content that looks like an ad gets suppressed. Content that looks like a real person sharing something gets reach.
 - Resilience: if an analytics API is unavailable, skip the pull, log the gap, and don't make decisions on stale data. If content generation fails, retry once — if it fails again, move to the next cycle. A partial cycle is better than no cycle.
-- Cold start: early cycles (first 2-3 weeks) should explore broadly — test many different hook styles, content angles, CTAs. Later cycles should exploit what's working and prune what isn't. Cycle 1 should look nothing like cycle 20.
+- Cold start: match confidence to data. With no history, explore broadly (e.g., test diverse hook styles, content angles, CTAs). As patterns emerge, shift to exploiting what works and pruning what doesn't.
 - Learn forward: never revert to a previous strategy just because the current one failed. Understand WHY it failed, record the learning, and try something genuinely new.
 
 ## Work Loop
@@ -139,10 +139,8 @@ New accounts need 7-14 days of organic activity before posting marketing content
 ugc-content-marketer/
   SKILL.md              # instructions (human-owned)
   soul.md               # judgment principles (human-owned)
-  references/           # schemas and examples (human-owned)
+  references/           # schemas (human-owned)
     config.schema.json
-    results.jsonl       # example entries
-    playbook.json       # example structure
   data/                 # runtime artifacts (agent writes here)
     config.json
     results.jsonl

@@ -102,10 +102,8 @@ This worker is self-contained. All files live within the skill directory:
 aso-worker/
   SKILL.md                        # instructions (human-owned)
   soul.md                         # judgment principles (human-owned)
-  references/                     # templates and schema (human-owned)
+  references/                     # schemas (human-owned)
     config.schema.json
-    results.jsonl                  # example entries
-    playbook.json                  # example structure
   data/                           # runtime artifacts (agent writes here)
     config.json                    # app config (shared)
     results.jsonl                  # experiment log (agent-owned)
@@ -329,13 +327,26 @@ All runtime files live in `data/` within the skill directory.
 
 Each line is one JSON object. Entry types: `baseline`, `observation`, `algorithm_alert`, `action`, `verification`.
 
-See `references/results.jsonl` for annotated examples of each entry type.
+```jsonl
+{"id": "cycle-001-verify", "type": "verification", "date": "2026-04-25", "score_after": 142.1, "score_delta": -45.2, "per_keyword": [{"keyword": "sober tracker", "position_before": 250, "position_after": 34, "delta": -216, "outcome": "keep"}], "installs_delta": 7, "status": "keep", "reasoning": "New keywords indexing well", "learnings_extracted": ["Low-diff keywords index quickly for new apps"]}
+```
+
+Extend with domain-specific fields as needed. The `per_keyword` array tracks individual keyword outcomes.
 
 ### playbook.json format
 
 Accumulated keyword intelligence. Updated after each verification.
 
-See `references/playbook.json` for a complete example with all fields.
+```json
+{
+  "winning_keywords": ["sober tracker", "alcohol free"],
+  "failed_keywords": ["sobriety app"],
+  "keyword_angles_tried": ["sobriety tracking", "quit drinking"],
+  "keyword_angles_untried": ["dry january", "mocktails"],
+  "metadata_template": { "title": "...", "subtitle": "...", "keywords": "..." },
+  "learnings": ["Low-diff sobriety keywords index quickly for new apps"]
+}
+```
 
 ## Safety
 - **Hard stops:**

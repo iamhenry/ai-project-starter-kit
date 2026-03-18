@@ -105,10 +105,8 @@ Extend with domain-specific fields as needed (e.g., `module`, `test_time_ms`, `v
 <skillname>/
   SKILL.md              # instructions (human-owned)
   soul.md               # judgment principles (human-owned, if needed)
-  references/           # schemas, examples, templates (human-owned)
+  references/           # schemas (human-owned)
     config.schema.json
-    results.jsonl       # example log entries
-    playbook.json       # example playbook structure
   data/                 # runtime artifacts (agent writes here)
     config.json         # app config (shared)
     results.jsonl       # experiment log (agent-owned)
