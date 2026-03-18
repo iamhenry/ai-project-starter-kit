@@ -1,251 +1,212 @@
-# Reel Remix Workflow
+# Reel Workflow
 
-Self-contained instructions for downloading and remixing an Instagram or TikTok reel.
-No external skills or repos required.
+Two paths: **Original Reel** (generate from scratch) and **Remix** (adapt an existing viral reel).
 
 ---
 
-## Pre-flight — Install Dependencies (once per environment)
+## Instagram Reels Specs
 
-```bash
-_install() {
-  local pkg=$1
-  if [[ "$OSTYPE" == "darwin"* ]]; then
-    brew install "$pkg"
-  elif command -v apt-get &>/dev/null; then
-    sudo apt-get install -y "$pkg"
-  elif command -v dnf &>/dev/null; then
-    sudo dnf install -y "$pkg"
-  elif command -v pacman &>/dev/null; then
-    sudo pacman -S --noconfirm "$pkg"
-  else
-    echo "ERROR: Cannot auto-install $pkg — unsupported package manager. Install manually." >&2
-    exit 1
-  fi
-}
+These are Instagram's technical requirements. All reels must meet these regardless of visual style.
 
-if ! command -v yt-dlp &>/dev/null; then
-  if [[ "$OSTYPE" == "darwin"* ]]; then
-    brew install yt-dlp
-  else
-    pip3 install yt-dlp --user 2>/dev/null || pip install yt-dlp --user
-  fi
-fi
+- **Dimensions:** 1080×1920 (9:16 portrait)
+- **Duration:** 15–90 seconds recommended for discovery (max 3 minutes, but shorter performs better)
+- **Frame rate:** 30fps
+- **Codec:** H.264 video + AAC audio
+- **No watermarks** from other platforms (TikTok, CapCut) — Instagram penalizes these
+- **Generate images at `portrait_4_3`** (1440×1920) using the model in `config.json` → `fal.defaultImageModel`. This produces images slightly larger than 1080×1920 — Remotion downscales them (sharp, no quality loss, no wasted pixels)
 
-command -v ffmpeg &>/dev/null || _install ffmpeg
-command -v magick &>/dev/null || _install imagemagick
+---
+
+## Rendering Engine: Remotion
+
+All reels are rendered using Remotion.
+
+**Project structure (separated):**
+
+```
+/home/node/remotion-runtime/          # Remotion tool (shared across skills)
+├── src/
+│   ├── index.ts       # Entry point
+│   ├── Root.tsx       # Composition definition
+│   └── Reel.tsx       # Main reel component
+├── public/             # Images + audio go here before render
+├── package.json        # Dependencies
+└── remotion.config.ts
+
+skills/ig-marketer/scripts/           # Reel code (part of skill, shareable)│   ├── Reel.tsx        # Component definition (copied to runtime)
+│   ├── Root.tsx        # Composition definition
+│   └── index.ts        # Entry point
 ```
 
+**How it works:**
+1. Scripts in `scripts/` define the component structure (shareable, versioned with skill)2. Runtime at `/home/node/remotion-runtime/` has the actual Remotion installation
+3. When rendering, copy scripts to runtime, add assets to public/, render, move output back
+
+### How the Reel component works
+
+The `Reel` component renders a **6-slide reel** (hook + 4 content + CTA). Props:
+
+- `images: string[]` — 5 filenames in `public/` (or full URLs): 1 hook image + 4 content images
+- `hookText: string` — text overlay on slide 1 (centered, large)
+- `sceneTexts: string[]` — text overlays for slides 2-5 (4 entries, bottom-positioned)
+- `ctaText: string` — text on slide 6 (CTA card)
+- `audioFile: string` — filename in `public/`
+- `secondsPerScene: number` — duration per image scene (use 3)
+
+Built-in features:
+- **Ken Burns zoom:** Each scene zooms 100% → 106% over its duration
+- **Fade transitions:** 0.5s crossfade between scenes via `@remotion/transitions`
+- **Text overlays:** Spring-animated text on every slide — hook (centered, bold) and content slides (bottom-positioned with glass-blur background)
+- **CTA card:** Black card with spring-scale text + "⬇ Link in bio"
+- **Audio:** Plays the selected track across the full reel
+
+### Render command
+
+```bash
+# Copy component files to runtime
+cp skills/ig-marketer/scripts/*.tsx /home/node/remotion-runtime/src/
+cp skills/ig-marketer/scripts/*.ts /home/node/remotion-runtime/src/ 2>/dev/null || true# Copy assets to runtime public/cpcp output/assets/audio/*.mp3 /home/node/remotion-runtime/public/ 2>/dev/null || truecp output/assets/scene-*.png /home/node/remotion-runtime/public/ 2>/dev/null || true
+
+# Render (6-slide reel: 5 images + CTA card)
+cd /home/node/remotion-runtime
+npx remotion render src/index.ts Reel \
+  --props='{"images":["scene-1.png","scene-2.png","scene-3.png","scene-4.png","scene-5.png"],"hookText":"Your hook here","sceneTexts":["Point 1","Point 2","Point 3","Point 4"],"ctaText":"Your CTA here","audioFile":"calm-reflective.mp3","secondsPerScene":3}' \
+  --output=out/reel.mp4 \
+  --codec=h264
+
+# Move output back to skill output folder
+mv /home/node/remotion-runtime/out/reel.mp4 skills/ig-marketer/output/reels/<date>-<topic>/reel.mp4
+```
+
+### Adapting the template
+
+The agent can modify `src/Reel.tsx` to change:
+- Animation style (zoom amount, transition type, text position)
+- Typography (font size, color, shadow)
+- CTA design (colors, layout)
+- Scene timing
+
+Read the Remotion skill at `skills/remotion/SKILL.md` for best practices on animations, transitions, text, and timing.
+
 ---
 
-## Step 1 — Download Source Video
+## Path A: Original Reel
+
+Create a reel from scratch using generated images + audio.
+
+### Steps1. **Generate images** via fal.ai using model from `config.json` → `fal.defaultImageModel`, size from `fal.defaultImageSize`
+2. **Copy images** to `output/assets/` as `scene-1.png`, `scene-2.png`, etc.
+3. **Get audio** from `output/assets/audio/<track>.mp3`
+4. **Sync to runtime:** Copy componentfiles + assets to `/home/node/remotion-runtime/`
+5. **Render** with the command above, passing the hook text, CTA text, and scene list
+6. **Move output** from runtime back to `output/reels/<date>-<topic>/reel.mp4`
+
+### Choosing audio
+
+Pick from `output/assets/audio/`:
+- `calm-reflective.mp3` — personal, vulnerable, introspective topics
+- `uplifting-hopeful.mp3` — progress, milestones, positive outcomes
+- `gentle-morning.mp3` — morning routines, fresh starts, daily habits
+- `determined-empowered.mp3` — willpower, overcoming urges, strength topics
+- `contemplative-deep.mp3` — deep reflection, identity, why-you-started topics
+
+Match the track to the reel's emotional register. When in doubt, `calm-reflective` is the safest default.
+
+### Output
+
+- `.mp4` in `output/reels/<date>-<topic>/`
+- Verify with ffprobe: 1080×1920, h264+aac, 15-90 seconds, 30fps
+
+---
+
+## Path B: Reel Remix
+
+Download and remix an existing high-performing reel with a new hook and CTA.
+
+### Steps
+
+1. **Download** source video with `yt-dlp`
+2. **Inspect** with ffprobe (dimensions, duration, audio)
+3. **Extract probe frames** to detect text zone
+4. **Generate** new hook + CTA text (3 options each, pass virality gate)
+5. **Render** hook overlay PNG and CTA frame PNG
+6. **Build** remixed video: overlay hook on original → append CTA → mux audio
+7. **Output** to `output/reels/<date>-<topic>/`
+
+### Pre-flight
+
+```bash
+# Ensure yt-dlp is available
+command -v yt-dlp || pip3 install yt-dlp --user
+```
+
+### Download + Inspect
 
 ```bash
 WORK_DIR="$(pwd)/reel-remix-work"
 mkdir -p "$WORK_DIR"
 yt-dlp --no-playlist -o "$WORK_DIR/original.mp4" "<SOURCE_URL>"
-```
 
-If yt-dlp fails (geo-block, login-required, private), surface the error — do not continue.
-
----
-
-## Step 2 — Inspect the Video
-
-```bash
 ffprobe -v quiet \
   -show_entries stream=codec_name,width,height,duration \
   -show_entries format=duration \
   -of default "$WORK_DIR/original.mp4"
 ```
 
-Extract and store:
-- `VIDEO_W` — width
-- `VIDEO_H` — height
-- `AUDIO_DUR` — total duration (master clock)
+### Text Zone Detection
 
-Extract 3 probe frames to detect the original caption text zone:
+Extract probe frames and detect where the original text sits:
 
 ```bash
 ffmpeg -i "$WORK_DIR/original.mp4" \
   -vf "select=eq(n\,0)+eq(n\,15)+eq(n\,30)" \
-  -vsync 0 "$WORK_DIR/probe_%d.png" -y 2>/dev/null
-
-TEXT_ZONE_H=9999
-for f in "$WORK_DIR"/probe_*.png; do
-  OFFSET=$(magick "$f" -fuzz 8% -trim -format "%O" info: 2>/dev/null \
-    | grep -oE '\+[0-9]+$' | tr -d '+')
-  [ -n "$OFFSET" ] && [ "$OFFSET" -lt "$TEXT_ZONE_H" ] && TEXT_ZONE_H=$OFFSET
-done
-
-if [ "$TEXT_ZONE_H" -eq 9999 ] || [ "$TEXT_ZONE_H" -lt 50 ]; then
-  echo "ERROR: Could not detect text zone. Inspect probe frames manually." >&2
-  exit 1
-fi
-
-TEXT_ZONE_H=$(( TEXT_ZONE_H + 150 ))
-echo "TEXT_ZONE_H=$TEXT_ZONE_H"
+  -vsync 0 "$WORK_DIR/probe_%d.png" -y
 ```
 
-Read `probe_1.png` to identify:
-- `HOOK_BG` — background color of the text zone (e.g. `black`, `white`)
-- `HOOK_FG` — text color (inverse of background)
-- The original hook text verbatim (input for copy generation)
+Read the probe frames visually to identify the text zone height and colors.
 
----
+### Hook + CTA Generation
 
-## Step 3 — Generate New Hook and CTA
+Generate 3 hook options + 3 CTA options. Present for confirmation. Must pass virality gate before proceeding.
 
-Using the original hook text, the source video's engagement signals, and the app defined in `references/config.json`:
+### Rendering Remix
 
-**Hook:**
-- Adapt the original hook to an angle relevant to the app's niche and the topic researched this cycle
-- Format and structure follow from what resonated in research — do not impose a fixed line count or structure
-- Fit the length and style to how text physically renders on the video (constrained by `TEXT_ZONE_H` from Step 2)
-- Must pass the virality gate in `references/virality-model.md` before proceeding
-
-**CTA:**
-- Drive the action determined by the current experiment variable in `references/playbook.json` → `activeCTA`
-- If `activeCTA` is null, choose the CTA angle that best matches the topic and hook from the `ctaVariants` list
-- Style, line count, and placement follow from what reads clearly at the render size — not a prescribed template
-
-Generate 3 hook options + 3 CTA options. Present for one user confirmation before rendering.
-
----
-
-## Step 4 — Confirmation Checkpoint (ONE PAUSE)
-
-```
-PROPOSED REMIX
-
-━━━ HOOK OPTIONS ━━━
-[1] Line 1 / Line 2
-[2] Line 1 / Line 2
-[3] Line 1 / Line 2
-
-━━━ CTA OPTIONS ━━━
-[A] Full CTA text (2-3 lines)
-[B] Full CTA text (2-3 lines)
-[C] Full CTA text (2-3 lines)
-
-━━━ OUTPUT ━━━
-output/reels/{MM-DD-YY}-{topic-slug}/{3-4-word-seo-filename}.mp4
-
-CTA duration: 3 seconds
-Reply with hook # and CTA letter (e.g. "2A") or request changes.
-```
-
----
-
-## Step 5 — Render Hook Overlay PNG
+Use Remotion if the remix is simple enough (overlay + CTA append). For complex remixes with existing video, ffmpeg is acceptable:
 
 ```bash
-if [[ "$OSTYPE" == "darwin"* ]]; then
-  FONT="Helvetica"
-else
-  magick -list font 2>/dev/null | grep -qi "DejaVu-Sans" && FONT="DejaVu-Sans" || FONT=""
-fi
-FONT_ARG=${FONT:+-font "$FONT"}
-
-LINE1_Y=$(( TEXT_ZONE_H / 2 - 40 ))
-LINE2_Y=$(( TEXT_ZONE_H / 2 + 40 ))
-
-magick -size ${VIDEO_W}x${TEXT_ZONE_H} xc:${HOOK_BG} \
-  $FONT_ARG \
-  -pointsize 48 \
-  -fill ${HOOK_FG} \
-  -draw "gravity North text 0,${LINE1_Y} '{{LINE_1}}'" \
-  -draw "gravity North text 0,${LINE2_Y} '{{LINE_2}}'" \
-  "$WORK_DIR/hook_overlay.png"
-```
-
-Read the PNG to verify text is centered and fully covers the original text zone.
-
----
-
-## Step 6 — Render CTA Frame PNG
-
-```bash
-magick -size ${VIDEO_W}x${VIDEO_H} xc:black \
-  $FONT_ARG \
-  -pointsize 54 \
-  -fill white \
-  -draw "gravity Center text 0,-50 '{{CTA_LINE_1}}'" \
-  -draw "gravity Center text 0,50 '{{CTA_LINE_2}}'" \
-  "$WORK_DIR/cta_frame.png"
-```
-
-For 3-line CTAs add: `-draw "gravity Center text 0,150 '{{CTA_LINE_3}}'"`. Read PNG to verify.
-
----
-
-## Step 7 — Extract Audio
-
-```bash
-ffmpeg -i "$WORK_DIR/original.mp4" -vn -c:a copy "$WORK_DIR/audio.aac" -y
-```
-
----
-
-## Step 8 — Build Remixed Video (no audio)
-
-```bash
+# Overlay hook on original
 ffmpeg -i "$WORK_DIR/original.mp4" \
   -i "$WORK_DIR/hook_overlay.png" \
   -filter_complex "[0:v][1:v]overlay=0:0" \
   -an -c:v libx264 -preset fast \
   "$WORK_DIR/remixed_full.mp4" -y
-```
 
----
-
-## Step 9 — Build Silent CTA Clip
-
-```bash
+# Create CTA clip
 ffmpeg -loop 1 -i "$WORK_DIR/cta_frame.png" \
-  -t 3 -r 30 -an \
-  -c:v libx264 -preset fast -pix_fmt yuv420p \
+  -t 3 -r 30 -an -c:v libx264 -preset fast -pix_fmt yuv420p \
   "$WORK_DIR/cta_silent.mp4" -y
-```
 
----
-
-## Step 10 — Concatenate + Mux Final Output
-
-```bash
+# Concatenate + mux audio
 cat > "$WORK_DIR/concat.txt" << EOF
 file '$WORK_DIR/remixed_full.mp4'
 file '$WORK_DIR/cta_silent.mp4'
 EOF
 
 ffmpeg -f concat -safe 0 -i "$WORK_DIR/concat.txt" \
-  -c:v libx264 -preset fast \
-  "$WORK_DIR/video_only.mp4" -y
-
-TOTAL_DUR=$(ffprobe -v quiet -show_entries format=duration -of csv=p=0 "$WORK_DIR/video_only.mp4")
-ffmpeg -stream_loop -1 -i "$WORK_DIR/audio.aac" \
-  -t "$TOTAL_DUR" -c:a aac \
-  "$WORK_DIR/audio_looped.m4a" -y
-
-# Output path relative to wherever the agent is running
-FOLDER="{MM-DD-YY}-{topic-slug}"
-OUTPUT_DIR="output/reels/${FOLDER}"
-mkdir -p "$OUTPUT_DIR"
+  -c:v libx264 -preset fast "$WORK_DIR/video_only.mp4" -y
 
 ffmpeg -i "$WORK_DIR/video_only.mp4" \
-  -i "$WORK_DIR/audio_looped.m4a" \
-  -c:v copy -c:a copy -shortest \
-  "$OUTPUT_DIR/{FILENAME}.mp4" -y
+  -stream_loop -1 -i "$WORK_DIR/audio.aac" \
+  -c:v copy -c:a aac -shortest \
+  "output/reels/<folder>/remix.mp4" -y
 ```
-
-Verify with ffprobe: duration ≈ AUDIO_DUR + 3s, h264 + aac streams present.
 
 ---
 
 ## Key Rules
 
-- All intermediate files go into `reel-remix-work/` (relative to cwd). Never use `/tmp`.
-- Output goes into `output/reels/` (relative to skill dir).
-- Audio covers the full output — loop original audio to fill video + CTA so the reel is never silent.
-- PNG overlay only — do not use ffmpeg drawtext (requires libfreetype which may be absent).
+- **Remotion for original reels.** It handles animations, text, and transitions properly.
+- **ffmpeg only for remix operations** (overlaying on existing video, concatenation, audio muxing).
+- All intermediate files go into working directories. Output goes into `output/reels/`.
+- Audio must cover the full reel — never silent.
 - One confirmation pause only — do not ask the user anything else unless there is an error.

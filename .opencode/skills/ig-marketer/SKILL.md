@@ -1,6 +1,6 @@
 ---
 name: ig-marketer
-description: Instagram content worker for any iOS app. Researches the target niche on Instagram, generates carousel slideshows, drafts posts for human to publish via Postiz, pulls analytics + RevenueCat conversions every cycle, and iterates hook/CTA experiments until MRR reaches the target. Use when running the marketing loop, generating content, checking analytics, or updating the content strategy. Requires references/config.json to be filled before Cycle 0. All tools and workflows are self-contained in references/.
+description: Instagram content worker for any iOS app. Researches the target niche via web search (marketing blogs, Reddit, creator newsletters — NO Instagram browsing), generates reels and carousels, sends drafts to human via Telegram for publishing, pulls analytics via Instagram Graph API + RevenueCat conversions every cycle, and iterates hook/visual/CTA experiments until MRR reaches the target. Use when running the marketing loop, generating content, checking analytics, or updating the content strategy. Requires references/config.json to be filled before Cycle 0. All tools and workflows are self-contained in references/.
 version: 2.1
 ---
 
@@ -11,53 +11,101 @@ version: 2.1
 - North star: reach the MRR target defined in `references/config.json` → `goal.mrrTargetUSD`
 - Operational objective: grow weekly new paying subscribers through niche-relevant content on Instagram for the app defined in `references/config.json` → `app`
 - Stop condition: MRR sustained at target for 2 consecutive months — OR — 8 consecutive weeks of zero subscriber growth (stall rule)
-- Autonomy mode: semi-autonomous — human publishes all posts (Instagram bot detection). Agent generates, drafts, analyzes, and recommends every cycle.
+- Autonomy mode: semi-autonomous — human publishes all posts from Instagram app (bot detection risk). Agent generates content, sends drafts via Telegram, analyzes via Instagram Graph API, and recommends every cycle.
 
 ## Operational Score
 
-- Primary score: new paying subscribers per week (RevenueCat)
+- **Primary score: views per post — target 100k+ views.** This is a viral content operation. Downloads and MRR follow reach.
+- Leading indicators (fast proxies): post views (reach), shares (virality signal), saves (content value signal), profile visits (download intent)
+- Lagging indicators: new paying subscribers per week (RevenueCat), MRR
 - Direction: higher is better
 - Review cadence: analytics pull every cycle; playbook + virality model updated every cycle after analytics pull
-- Leading indicators (fast proxies): post views (reach), saves (content value signal), profile visits (download intent)
 - North star check: monthly MRR via RevenueCat — if subscriber count grows but MRR doesn't, the problem is the app (onboarding, paywall, pricing), not the content
 
 ## Verification Surface
 
-| What to check          | How to check                                       | Good looks like                              | Cadence                   |
-| ---------------------- | -------------------------------------------------- | -------------------------------------------- | ------------------------- |
-| Post views             | Postiz GET /analytics/post/{id}                    | Trending up vs previous cycle                | Every cycle (previous cycle's post) |
-| Post saves             | Postiz GET /analytics/post/{id}                    | See bootstrap priors in `references/virality-model.md` | Every cycle (previous cycle's post) |
-| Profile visits         | Postiz GET /analytics/platform/{id}                | See bootstrap priors in `references/virality-model.md` | Every cycle (previous cycle's post) |
-| New paying subscribers | RevenueCat GET /projects/{id}/metrics              | Trending up week-over-week                   | Every cycle (since previous cycle's post) |
-| MRR                    | RevenueCat GET /projects/{id}/metrics              | Tracking toward $10k/month                   | Monthly                   |
-| Format comparison      | `references/results.jsonl` (relative to skill dir) | Carousel performance trending up             | Every cycle — inferred from results.jsonl running totals |
+| What to check          | How to check                                       | Good looks like                                        | Cadence                                                  |
+| ---------------------- | -------------------------------------------------- | ------------------------------------------------------ | -------------------------------------------------------- |
+| Post views             | Instagram Graph API: `GET /{media-id}/insights`    | Trending up vs previous cycle                          | Every cycle (previous cycle's post)                      |
+| Post saves             | Instagram Graph API: `GET /{media-id}/insights`    | See bootstrap priors in `references/virality-model.md` | Every cycle (previous cycle's post)                      |
+| Profile visits         | Instagram Graph API: `GET /{ig-user-id}/insights`  | See bootstrap priors in `references/virality-model.md` | Every cycle (previous cycle's post)                      |
+| New paying subscribers | RevenueCat GET /projects/{id}/metrics              | Trending up week-over-week                             | Every cycle (since previous cycle's post)                |
+| MRR                    | RevenueCat GET /projects/{id}/metrics              | Tracking toward $10k/month                             | Monthly                                                  |
+| Format comparison      | `references/results.jsonl` (relative to skill dir) | Reel vs carousel performance comparison                | Every cycle — inferred from results.jsonl running totals |
 
 ## Environment
 
+### Instagram Graph API Setup
+
+Before any Instagram API calls, load environment variables:
+
+```bash
+# Load env vars
+export $(grep -v '^#' /home/node/openclaw/.env | xargs)
+```
+
+Key environment variables (all loaded from `/home/node/openclaw/.env`):
+
+- `INSTAGRAM_ACCESS_TOKEN` — long-lived token (60 days, auto-refreshed via cron)
+- `INSTAGRAM_BUSINESS_ACCOUNT_ID` — Instagram Business Account ID
+- `FACEBOOK_PAGE_ID` — Facebook Page ID
+- `REVENUECAT_API_KEY` — RevenueCat API key
+- `REVENUECAT_PROJECT_ID` — RevenueCat project ID
+
+Common API calls:
+
+```bash
+# List recent media (find post IDs after human publishes)
+curl -s "https://graph.facebook.com/v22.0/${INSTAGRAM_BUSINESS_ACCOUNT_ID}/media?fields=id,caption,media_type,timestamp,like_count,comments_count&access_token=${INSTAGRAM_ACCESS_TOKEN}" | jq .
+
+# Per-post insights (carousel)
+curl -s "https://graph.facebook.com/v22.0/{media-id}/insights?metric=reach,saved,likes,comments,shares,total_interactions&access_token=${INSTAGRAM_ACCESS_TOKEN}" | jq .
+
+# Per-post insights (reel — includes views)
+curl -s "https://graph.facebook.com/v22.0/{media-id}/insights?metric=reach,saved,likes,comments,shares,total_interactions,views&access_token=${INSTAGRAM_ACCESS_TOKEN}" | jq .
+
+# Account-level insights
+curl -s "https://graph.facebook.com/v22.0/${INSTAGRAM_BUSINESS_ACCOUNT_ID}/insights?metric=reach,follower_count&period=day&access_token=${INSTAGRAM_ACCESS_TOKEN}" | jq .
+
+# Profile views (requires metric_type=total_value)
+curl -s "https://graph.facebook.com/v22.0/${INSTAGRAM_BUSINESS_ACCOUNT_ID}/insights?metric=profile_views&metric_type=total_value&period=day&access_token=${INSTAGRAM_ACCESS_TOKEN}" | jq .
+```
+
+**Media ID discovery:** After human publishes, call `GET /{ig-user-id}/media` and match the most recent post by timestamp/caption to find the media ID. Store the media ID in `results.jsonl` for that cycle's entry.
+
+**API quirks (v22.0):**
+
+- Reels: use `views` metric (not `plays` or `impressions`)
+- Carousels: `impressions` is deprecated — use `reach` instead
+- Profile views: requires `metric_type=total_value` parameter
+- Posts made before business account conversion have no insights
+
 ### Action-to-Tool Map
 
-| Action                                | Tool / API                                                                                   | Access                 | Checkpoint                    | Verification source               |
-| ------------------------------------- | -------------------------------------------------------------------------------------------- | ---------------------- | ----------------------------- | --------------------------------- |
-| Browse Instagram niche                | agent-browser CLI — see `references/browsing-guide.md`                                       | setup-needed (install) | autonomous                    | competitor-research.json updated  |
-| Find and download source reel         | agent-browser → yt-dlp + ffmpeg — see `references/reel-workflow.md`                          | ready                  | autonomous                    | .mp4 exists in `output/reels/` (secondary — only after 10+ scored carousel entries) |
-| Generate carousel content             | Carousel command configured for this app (must satisfy `references/carousel-contract.md`)     | ready                  | autonomous                    | PNG slides in `output/carousels/` |
-| Generate background images (optional) | fal.ai API — key in `references/config.json`                                                 | setup-needed           | autonomous                    | image file in `output/assets/`    |
-| Remix a reel                          | Follow `references/reel-workflow.md` end-to-end                                              | ready                  | autonomous                    | .mp4 in `output/reels/` (secondary — only after 10+ scored carousel entries) |
-| Draft post to Postiz inbox            | Postiz API POST /posts                                                                       | setup-needed           | human-relay (human publishes) | post appears in Postiz inbox      |
-| Pull post analytics                   | Postiz API GET /analytics/post/{id}                                                          | setup-needed           | autonomous                    | analytics JSON returned           |
-| Pull conversion data                  | RevenueCat GET /projects/{id}/metrics/overview                                               | ready                  | autonomous                    | subscriber count + MRR            |
-| Score experiments + update playbook   | AI analysis of results.jsonl                                                                 | ready                  | autonomous                    | playbook.json updated             |
+| Action                              | Tool / API                                                                                                                | Access | Checkpoint                    | Verification source               |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------ | ----------------------------- | --------------------------------- |
+| Research niche trends               | Web search + UGC blogs + Reddit — see `references/browsing-guide.md`. ⛔ NO instagram.com                                 | ready  | autonomous                    | competitor-research.json updated  |
+| Generate reel (primary)             | fal.ai images → Remotion render → .mp4 — see `references/reel-workflow.md`                                                | ready  | autonomous                    | .mp4 exists in `output/reels/`    |
+| Generate carousel (secondary)       | Carousel command configured for this app (must satisfy `references/carousel-contract.md`)                                 | ready  | autonomous                    | PNG slides in `output/carousels/` |
+| Generate images via fal.ai          | fal.ai API — model + size from `config.json` → `fal.defaultImageModel` / `fal.defaultImageSize`, key in env var `FAL_KEY` | ready  | autonomous                    | image file in `output/assets/`    |
+| Remix a reel                        | Follow `references/reel-workflow.md` remix path end-to-end                                                                | ready  | autonomous                    | .mp4 in `output/reels/`           |
+| Send draft to human via Telegram    | Send carousel images + caption in Telegram chat                                                                           | ready  | human-relay (human publishes) | images + caption received in chat |
+| Pull post analytics                 | Instagram Graph API: `GET /{media-id}/insights`                                                                           | ready  | autonomous                    | insights JSON returned            |
+| Discover published media ID         | Instagram Graph API: `GET /{ig-user-id}/media` — match by timestamp/caption                                               | ready  | autonomous                    | media ID stored in results.jsonl  |
+| Pull conversion data                | RevenueCat GET /projects/{id}/metrics/overview                                                                            | ready  | autonomous                    | subscriber count + MRR            |
+| Score experiments + update playbook | AI analysis of results.jsonl                                                                                              | ready  | autonomous                    | playbook.json updated             |
 
 ### Permissions
 
 - Read/write: `references/` (all memory files — relative to skill dir)
 - Read/write: `output/` (created on first run if missing — carousels, reels, assets)
-- agent-browser: read-only browsing only — domain allowlist: `instagram.com,tiktok.com`. No logins, no engagement actions, no form submissions.
-- Postiz API key: `references/config.json` (never log or commit)
-- RevenueCat V2 secret key: `references/config.json` (never log or commit)
+- agent-browser: App Store only. **Instagram is banned** — see Off-limits. No logins, no engagement actions, no form submissions on any site.
+- All secrets loaded from `/home/node/openclaw/.env` — never hardcode IDs or tokens in skill files
 
 ### Off-limits
 
+- **⛔ NEVER use agent-browser to visit instagram.com** — not for browsing, research, hashtags, profiles, explore, or anything else. Instagram has flagged the account for automated behavior. Any automated Instagram access risks permanent account disabling. This is a hard ban with zero exceptions.
+- **⛔ NEVER inject Instagram cookies into agent-browser** — the stealth-browser-auth method is banned for Instagram.
 - Never purchase ads, boost posts, or spend money beyond fal.ai budget ceiling
 - Never like, comment, follow, or DM any Instagram account — bot detection risk
 - Never post more than 1x per cycle
@@ -67,16 +115,16 @@ version: 2.1
 
 ### Inputs
 
-| Input                   | Source                                                                                                         | Quota / Limit          | Legal constraint                          | If exhausted                                                  |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------- | ----------------------------------------- | ------------------------------------------------------------- |
-| Topic ideas             | Agent researches niche on Instagram + web (no pre-seeded list)                                                 | Unlimited              | n/a                                       | Broaden search angles within the defined niche — seasonal trends, adjacent community overlaps for hook inspiration. Never create content targeting a different niche. |
-| Source reels for remix  | agent-browser finds on Instagram/TikTok → yt-dlp download                                                      | No hard limit          | Transformative use — new message, new CTA | Secondary format — only after 10+ scored carousel entries and diagnostic matrix suggests format change |
-| Instagram niche data    | Public Instagram (no login, agent-browser)                                                                     | No hard limit          | Read-only observation only                | Fall back to web search                                       |
-| RevenueCat metrics      | V2 API                                                                                                         | Rate limited           | Aggregate only — no individual PII        | Retry with exponential backoff                                |
-| fal.ai image generation | fal.ai API                                                                                                     | $30/month hard ceiling | Respect content policy                    | Fall back to gradient/solid backgrounds from carousel command |
-| App codebase            | GitHub repo (`app.githubRepo` in config.json) read via gitingest CLI → cached in `references/app-brief.md`    | Unlimited (read-only)  | Read-only, no forks or PRs                | Use cached app-brief.md if repo unavailable                   |
-| App Store listing       | agent-browser → `app.appStoreUrl` in config.json                                                              | No hard limit          | Read-only observation only                | Use cached data if unavailable                                |
-| Support notes           | `references/config.json` → `app.supportNotes` (optional, filled by human)                                     | n/a                    | n/a                                       | Skip if empty                                                 |
+| Input                   | Source                                                                                                                                                      | Quota / Limit          | Legal constraint                          | If exhausted                                                                                                                                                          |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Topic ideas             | Web search: marketing blogs, Reddit, niche communities, newsletters (no Instagram browsing). **3-month recency rule: discard anything older than 90 days.** | Unlimited              | n/a                                       | Broaden search angles within the defined niche — seasonal trends, adjacent community overlaps for hook inspiration. Never create content targeting a different niche. |
+| Source reels for remix  | Web search for viral reel URLs → yt-dlp download                                                                                                            | No hard limit          | Transformative use — new message, new CTA | Alternative format — use when research reveals a high-performing reel worth remixing                                                                                  |
+| Niche trend data        | Web search, UGC blogs (Later, Hootsuite, Buffer, Sprout Social), creator newsletters, Reddit                                                                | No hard limit          | n/a                                       | Broaden search terms, try adjacent niches for angle inspiration                                                                                                       |
+| RevenueCat metrics      | V2 API                                                                                                                                                      | Rate limited           | Aggregate only — no individual PII        | Retry with exponential backoff                                                                                                                                        |
+| fal.ai image generation | fal.ai API (env var `FAL_KEY`)                                                                                                                              | $10/month hard ceiling | Respect content policy                    | Fall back to gradient/solid backgrounds from carousel command                                                                                                         |
+| App codebase            | GitHub repo (`app.githubRepo` in config.json) read via gitingest CLI → cached in `references/app-brief.md`                                                  | Unlimited (read-only)  | Read-only, no forks or PRs                | Use cached app-brief.md if repo unavailable                                                                                                                           |
+| App Store listing       | agent-browser → `app.appStoreUrl` in config.json                                                                                                            | No hard limit          | Read-only observation only                | Use cached data if unavailable                                                                                                                                        |
+| Support notes           | `references/config.json` → `app.supportNotes` (optional, filled by human)                                                                                   | n/a                    | n/a                                       | Skip if empty                                                                                                                                                         |
 
 ## On Start
 
@@ -86,25 +134,27 @@ Every cycle, in this order:
 1. Read `references/results.jsonl` — full history of every cycle: what was tested, what scored, what failed, what's pending
 2. Check for stale entries: any entry with `"status": "pending"` older than 5 days → update to `"status": "stale"` with note
 3. Read `references/playbook.json` — current best-known hooks, topics, CTAs, hashtag clusters, format mix, posting times
-4. Read `references/competitor-research.json` — niche patterns and content gaps observed so far
-5. Read `references/virality-model.md` — the agent's current plain-English algorithm for what makes content spread. This informs every content decision this cycle.
-6. **Baseline record:** if `playbook.json → cycleCount == 0` → this is the first cycle. Record baseline MRR + follower count in the cycle entry. Confirm Postiz and RevenueCat connections return data. Set `playbook.json → cycleCount = 1` after drafting content. Continue to content generation normally — first cycle produces content like all others.
-7. Pull Postiz analytics for the post from the **previous cycle** (look up the most recent `"status": "pending"` entry in results.jsonl by post ID)
-8. Pull RevenueCat new subscriber delta for the window since the previous cycle's `posting_time` (read from results.jsonl)
-9. Identify the current diagnostic quadrant (see Work Loop)
-10. Generate and output the morning report
+4. Read `references/experiment-framework.md` — find the next queued experiment; this drives content decisions for the cycle
+5. Read `references/competitor-research.json` — niche patterns and content gaps observed so far
+6. Read `references/virality-model.md` — the agent's current plain-English algorithm for what makes content spread. This informs every content decision this cycle.
+7. **Baseline record:** if `playbook.json → cycleCount == 0` → this is the first cycle. Fill `cycle-000` in results.jsonl with today's date + actual RevenueCat MRR + Instagram follower count. Confirm Postiz and RevenueCat connections return data. Set `playbook.json → cycleCount = 1`. Output baseline metrics (see format below). Continue to content generation normally — first cycle produces content like all others. This path never runs again once cycleCount > 0.
+8. Pull Instagram Graph API analytics for the post from the **previous cycle** (look up the most recent `"status": "pending"` entry in results.jsonl by media ID)
+9. Pull RevenueCat new subscriber delta for the window since the previous cycle's `posting_time` (read from results.jsonl)
+10. Identify the current diagnostic quadrant (see Work Loop)
+11. Check experiment framework: what experiment is next in the queue? Output experiment context with the morning report.
+12. Generate and output the morning report
 
 **Morning report format (output every cycle start):**
 
 ```
 📊 [YYYY-MM-DD] Score: +N subscribers (since last post) | Views: Xk avg (last 3 posts) | Quadrant: [HIGH/LOW views × HIGH/LOW subs]
-🎯 This cycle: [one specific action — e.g. "Post carousel using question hook with niche hashtag cluster" or "Run research cycle — score dropped 2 consecutive posts"]
+🧪 Experiment: [exp-NNN] Testing [variable]=[value] | Batch progress: N/5
+🎯 This cycle: [one specific action — e.g. "Post reel using shock_stat hook per exp-001" or "Run research cycle — score dropped 2 consecutive posts"]
 ⚠️  [flag or "No flags"]
 ```
 
 **Baseline metrics (first cycle only):**
 
-First cycle records baseline in the cycle entry and outputs:
 ```
 🚀 [YYYY-MM-DD] Baseline recorded | MRR: $X | Followers: N | Postiz: ✓ | RevenueCat: ✓
 ⚠️  [flag or "No flags"]
@@ -112,12 +162,14 @@ First cycle records baseline in the cycle entry and outputs:
 
 ## Operating Principles
 
-- **One variable per experiment.** Test hook style OR topic OR CTA OR format OR posting time — never two at once. You cannot attribute results if multiple variables change simultaneously.
-- **Use trends, not single posts.** Log every post. React to direction after 2 consecutive posts point the same way. One post is a data point — two is a signal — three is a trend. Don't over-index on any single result.
-- **Reach before conversion.** If nobody sees the post, CTA quality is irrelevant. Fix reach first (hooks, posting time, hashtags), then optimize conversion downstream.
-- **Format is locked (carousel).** Carousel (slideshow) is the default format for every cycle. Fixing format isolates hook, topic, and CTA as the only variables — enabling faster learning. Reels are available as a secondary tool after 10+ scored carousel entries and only when the diagnostic matrix suggests a format change. Track format in results.jsonl for future analysis.
+- **One variable per experiment.** Test hook OR imagery OR CTA — never two at once. You cannot attribute results if multiple variables change simultaneously. See `references/experiment-framework.md` for the current experiment queue.
+- **Generate 3-5, post 1.** Every cycle, generate 3-5 variations of the current test variable (e.g., 5 different hooks). Score each against the virality model's 5-question gate. Render and send ONLY the highest-scoring variation. Log all variations in results.jsonl (`reasoning.discarded_variations`) — the losers are still data.
+- **Use trends, not single posts.** Log every post. React to direction after 2 consecutive posts point the same way. One post is a data point — two is a signal — three is a trend.
+- **Reach before conversion.** Test hooks first, then imagery, then CTA — this order is prescribed. If nobody sees the post, CTA quality is irrelevant.
+- **Locked format: 6-slide reel.** Every post uses the same structure: slide 1 (hook image + hook text), slides 2-5 (content images + text overlays), slide 6 (CTA card). This is NOT a variable — it's the proven format. Rendered via Remotion with `hookText`, `sceneTexts[]`, and `ctaText` props. Specs: 1080×1920, 15-20s total, 3s per scene + 3s CTA, h264+aac, 30fps.
+- **Three experiment variables only.** The agent tests exactly three things: (1) hook text on slide 1, (2) imagery style across slides 1-5, (3) CTA text on slide 6. Format, structure, duration, and specs are locked. See `references/experiment-framework.md` for the active experiment queue and controls.
 - **Platform-native first.** Content that looks like genuine value gets algorithmic reach. Content that looks like an ad gets buried. Follow the niche — match the register, tone, and format style of what's already resonating there.
-- **Simplicity criterion.** If a simpler approach performs equally, prefer it. A plain carousel with a great hook outperforms a polished production with a weak one. Less production effort = more cycles = faster learning. This is why carousel is the locked default format — fast to produce, fast to iterate.
+- **Simplicity criterion.** If a simpler approach performs equally, prefer it. A great hook with simple visuals outperforms polished production with a weak hook. Less production effort = more cycles = faster learning.
 - **Trust is the only real asset here.** Claims made in content are a promise to the audience. Accuracy matters. When uncertain, qualify ("for most people", "research suggests"). Never sensationalize or overstate.
 - **Shadow ban detection.** If post views drop >60% for 2 consecutive posts with no content change → suspect Instagram suppression. Pause posting immediately. Surface to human with evidence.
 - **Self-healing accumulation.** Every cycle builds on the previous one. When results decline, the agent uses prior data to course-correct — not reset. The playbook and virality model grow richer over time. But no single past result constrains future decisions — the agent follows current evidence, not historical momentum. Two consecutive signals in the same direction warrant action. One data point is noise.
@@ -126,18 +178,37 @@ First cycle records baseline in the cycle entry and outputs:
 
 ## Work Loop
 
+**Before starting any cycle**, read `references/experiment-framework.md` to find the current experiment. The experiment framework prescribes which variable to test and which values to hold constant. The diagnostic matrix (below) still drives recovery when things break, but during normal operation, the experiment queue is the primary driver of content decisions.
+
 Every cycle, run these steps:
 
 ---
 
 **Step 1: Analytics pull** (scores the post published at the end of the previous cycle)
 
-```
-Postiz: GET /analytics/post/{id} for the post from the previous cycle (most recent pending entry in results.jsonl)
-RevenueCat: GET /projects/{id}/metrics/overview — pull new_subscriptions since the previous cycle's posting_time (from results.jsonl)
+```bash
+# Load env vars
+export $(grep -v '^#' /home/node/openclaw/.env | xargs)
+
+# Find the most recently published post (match by timestamp/caption to the pending entry in results.jsonl)
+curl -s "https://graph.facebook.com/v22.0/${INSTAGRAM_BUSINESS_ACCOUNT_ID}/media?fields=id,caption,media_type,timestamp,like_count,comments_count&limit=5&access_token=${INSTAGRAM_ACCESS_TOKEN}" | jq .
+
+# Pull insights for the matched media ID (carousel)
+curl -s "https://graph.facebook.com/v22.0/<media-id>/insights?metric=reach,saved,likes,comments,shares,total_interactions&access_token=${INSTAGRAM_ACCESS_TOKEN}" | jq .
+
+# Pull insights for the matched media ID (reel — includes views)
+curl -s "https://graph.facebook.com/v22.0/<media-id>/insights?metric=reach,saved,likes,comments,shares,total_interactions,views&access_token=${INSTAGRAM_ACCESS_TOKEN}" | jq .
+
+# Account-level: profile views
+curl -s "https://graph.facebook.com/v22.0/${INSTAGRAM_BUSINESS_ACCOUNT_ID}/insights?metric=profile_views&metric_type=total_value&period=day&access_token=${INSTAGRAM_ACCESS_TOKEN}" | jq .
+
+# RevenueCat metrics
+curl -s -H "Authorization: Bearer $REVENUECAT_API_KEY" \
+  "https://api.revenuecat.com/v2/projects/${REVENUECAT_PROJECT_ID}/metrics/overview"
 ```
 
-- Record results by updating the matching `pending` entry in `references/results.jsonl` → set status to `keep`, `discard`, or `fail`
+- Match the pending entry in results.jsonl to the published post by caption/timestamp, store the Instagram media ID
+- Record insights by updating the matching `pending` entry in `references/results.jsonl` → set status to `keep`, `discard`, or `fail`
 - Compare to baseline and previous batch
 - Apply diagnostic matrix (below) → identify current quadrant
 - Output morning report
@@ -148,9 +219,7 @@ RevenueCat: GET /projects/{id}/metrics/overview — pull new_subscriptions since
 
 **The diagnostic quadrant from Step 1 directs this step.** Do not start from scratch — the quadrant prescribes a specific action (see Diagnostic Matrix). Follow that action as the constraint for research and content creation this cycle.
 
-**Format: Carousel (slideshow) is the locked default.**
-
-The agent creates carousels every cycle. This is a deliberate constraint — fixing format means every experiment isolates a single variable (hook, topic, CTA, posting time). Reels are available as a tool (see `references/reel-workflow.md`) but only after 10+ scored carousel entries exist in results.jsonl AND the diagnostic matrix suggests a format change would help. Research within the quadrant's prescribed direction (see `references/browsing-guide.md`) to inform topic and hook — not format.
+**Format is locked:** 6-slide reel. Do not change the format. See `references/experiment-framework.md` for what variables to test.
 
 **Virality gate (required before creating any post):**
 Score the planned content idea against the 5-question virality check in `references/virality-model.md`.
@@ -161,27 +230,44 @@ Score the planned content idea against the 5-question virality check in `referen
 
 Do not create content that fails the virality gate. Low-virality content wastes the cycle's posting slot and sends negative signals to the algorithm.
 
-**For carousels:**
+**Content creation process (6-slide reel — batch generation):**
 
-1. Research topic via `references/browsing-guide.md` — pick an angle the audience is actively asking about or engaging with
-2. Prepare only the inputs required by `references/carousel-contract.md`, then follow `references/carousel-workflow.md` to invoke the render script
-3. Use only the outputs defined in `references/carousel-contract.md`; ignore any extra detail not listed there
-4. Write caption: Hook → Insight → Payoff → CTA (max 5 hashtags from discovered clusters in `references/playbook.json` — or from current research if playbook clusters are empty)
-5. Draft to Postiz as DRAFT with scheduled time from `posting.defaultTimes`
+1. **Read experiment framework** — check `references/experiment-framework.md` for the current experiment. This tells you which variable to test and what to hold constant.
+2. **Research topic** — check `references/recommended-sources.md` first, then `references/browsing-guide.md` for workflow. Pick an angle the audience is actively asking about or engaging with.
+3. **Generate 3-5 variations of the test variable:**
+   - If testing **hooks**: write 3-5 different hook texts (slide 1), keeping imagery style + CTA constant
+   - If testing **imagery**: write 3-5 different image prompts / visual styles, keeping hook + CTA constant
+   - If testing **CTA**: write 3-5 different CTA texts (slide 6), keeping hook + imagery constant
+4. **Score each variation** against the virality model's 5-question gate (hook tension, specificity, emotional resonance, sendability, watchability). Each question = 1 point, max 5.
+5. **Pick the winner** — highest score. Break ties with what's most unexpected or specific to the audience.
+6. **Log the discards** — store all variations in results.jsonl under `reasoning.discarded_variations` as `[{text, score, reason_not_picked}]`. These are data for future cycles.
+7. **Write the 6 slides** (using the winning variation):
+   - **Slide 1 (Hook):** Write hook text based on the experiment's hook type. This is the scroll-stopper.
+   - **Slides 2-5 (Content):** Write 4 content text overlays that deliver on the hook's promise. Each slide = one point, one sentence, specific and concrete.
+   - **Slide 6 (CTA):** Write CTA text based on the experiment's CTA type.
+8. **Generate imagery** — based on the experiment's imagery type:
+   - Generate AI images via fal.ai for each slide, then overlay text. Budget: `references/config.json` → `fal.budgetCeilingUSD`. **⚠️ Images must be photorealistic — no uncanny faces, plastic skin, weird hands, or over-saturated lighting.** If a generation looks obviously AI, re-generate with a different prompt. The sobriety niche is about authenticity — fake visuals kill credibility.
+9. **Write caption:** Hook → Insight → Payoff → CTA (max 5 hashtags from discovered clusters in `references/playbook.json` — or from current research if playbook clusters are empty)
 
-**For reel remixes (secondary format — gated):**
+**Rendering the 6-slide reel:**
 
-Only available after ALL of these conditions are met:
-- 10+ scored carousel entries exist in results.jsonl
-- Diagnostic matrix suggests format change (e.g. "Low views + Low subscribers" quadrant after multiple carousel experiments)
-- Agent has exhausted hook/CTA variations within carousel format
+10. Follow `references/reel-workflow.md` — copy 5 images (hook + 4 content) + audio to `/home/node/remotion-runtime/public/`, render with Remotion using props: `hookText`, `sceneTexts` (4 entries for slides 2-5), `ctaText`, `images` (5 entries), `audioFile`, `secondsPerScene: 3`
+11. Pick an audio track from `output/assets/audio/` that matches the reel's emotional register (see reel-workflow.md for mood guide)
+12. Send draft to human via Telegram:
 
-If conditions met:
-1. Use `references/browsing-guide.md` to find a high-engagement reel suitable for remixing
-2. Follow `references/reel-workflow.md` end-to-end: download → inspect → generate hook + CTA → confirm → render → save to `output/reels/`
-3. Draft output .mp4 to Postiz as DRAFT
+```bash
+openclaw message send --channel telegram --target $TELEGRAM_CHAT_ID \
+  --media output/reels/<file>.mp4 --message "🎬 Reel draft — <topic>"
+```
 
-**If fal.ai is enabled:** Use for background image generation when visuals need to be more compelling than a plain gradient. Hard stop at $30/month budget (`references/config.json` → `fal.budgetCeilingUSD`).
+Follow with caption:
+
+```bash
+openclaw message send --channel telegram --target $TELEGRAM_CHAT_ID \
+  --message "📋 Caption:\n\n<full caption text with hashtags>"
+```
+
+**fal.ai budget:** Hard stop at the ceiling in `references/config.json` → `fal.budgetCeilingUSD`. Track spend per cycle in results.jsonl reasoning.
 
 ---
 
@@ -194,10 +280,18 @@ Immediately after drafting content, append a new entry:
   "id": "cycle-NNN",
   "date": "YYYY-MM-DD",
   "type": "post",
-  "format": "carousel",
+  "format": "6-slide-reel",
   "topic": "...",
-  "hook_style": "question|statement|pov|listicle",
-  "cta": "...",
+  "hook_style": "shock_stat|question|curiosity_gap|contrarian|personal_story",
+  "hook_text": "exact hook text used on slide 1",
+  "scene_texts": [
+    "slide 2 text",
+    "slide 3 text",
+    "slide 4 text",
+    "slide 5 text"
+  ],
+  "imagery_style": "text-on-gradient|ai-generated|app-screenshots|stock|mixed",
+  "cta": "exact CTA text used on slide 6",
   "posting_time": "HH:MM",
   "hashtag_set": "cluster-a|cluster-b|broad",
   "views": null,
@@ -207,14 +301,23 @@ Immediately after drafting content, append a new entry:
   "score_delta": null,
   "status": "pending",
   "phase": "growth",
+  "experiment_id": "exp-NNN or null if not part of formal experiment batch",
   "reasoning": {
     "why_topic": "what research signal led to this topic choice",
-    "why_format": "what evidence drove the format decision (niche observation, results.jsonl data, or bootstrap default)",
     "virality_score": 0,
     "virality_notes": "which of the 5 questions passed/failed and why",
     "vs_baseline": "how this cycle's outcome compares to account baseline (populated after analytics pull)",
     "skipped_steps": "any step skipped + why (error, fallback, or intentional)",
-    "outcome_hypothesis": "what you expect to learn from this post and what result would confirm or refute it"
+    "outcome_hypothesis": "what you expect to learn from this post and what result would confirm or refute it",
+    "experiment_variable": "which variable is being tested (null if not part of experiment)",
+    "experiment_control": "what was held constant (null if not part of experiment)",
+    "discarded_variations": [
+      {
+        "text": "variation text",
+        "score": 3,
+        "reason_not_picked": "why it lost"
+      }
+    ]
   }
 }
 ```
@@ -255,18 +358,19 @@ Runs every cycle after Step 3. Uses whatever newly scored entries exist — no m
    - Browse the App Store listing via agent-browser (`app.appStoreUrl` in config.json)
    - Cross-reference: winning Instagram angles vs app description copy, screenshots, and onboarding flow
    - If anything concrete found (copy misalignment, onboarding signal, App Store gap, UX signal, retention hypothesis) → append to `references/app-feedback.md` using the format defined in that file
-7. Output cycle summary: this cycle's score vs baseline, what changed in playbook, what changed in virality model, next experiment variable
-8. Increment `playbook.json → cycleCount` by 1
+7. **Update experiment framework:** Score the current experiment in `references/experiment-framework.md` with actual metrics. If this completes a batch of 5, run the batch analysis template: rank results, pick the winner, lock it as a control variable, and rebuild the queue for the next variable.
+8. Output cycle summary: this cycle's score vs baseline, what changed in playbook, what changed in virality model, experiment result, next experiment
+9. Increment `playbook.json → cycleCount` by 1
 
 ---
 
 **Step 5 (Human): Publish**
 
-Human opens Postiz inbox → publishes. This closes the loop — the post published here becomes the input to Step 1 of the next cycle.
+Human receives carousel images + caption via Telegram → publishes from Instagram app. This closes the loop — the post published here becomes the input to Step 1 of the next cycle. The agent discovers the published post's media ID automatically via `GET /{ig-user-id}/media` at the start of the next cycle.
 
 **Research (every cycle + deeper dive any time score drops 2 consecutive cycles):**
 
-Follow `references/browsing-guide.md`. Use the niche description from `references/config.json` → `app.niche` and the Instagram handle to discover relevant hashtags through browsing. Adjacent niche research is for hook/angle inspiration only — all content targets the niche defined in `config.json → app.niche`.
+Start with `references/recommended-sources.md` for high-signal sources, then expand via general web search. Follow `references/browsing-guide.md` for research workflow. ⛔ Do NOT browse instagram.com — use web search only. Adjacent niche research is for hook/angle inspiration only — all content targets the niche defined in `config.json → app.niche`.
 
 Update `references/competitor-research.json` with new patterns.
 
@@ -274,13 +378,19 @@ Update `references/competitor-research.json` with new patterns.
 
 ### Diagnostic Matrix
 
-| Views                                 | New subscribers | Diagnosis                    | Action                                                                                          |
-| ------------------------------------- | --------------- | ---------------------------- | ----------------------------------------------------------------------------------------------- |
-| High                                  | High            | Working — scale it           | Create 3 variations of the winning hook immediately. Keep all other variables constant.         |
-| High                                  | Low             | Hook good, conversion broken | Rotate CTA. Check CTA placement and caption structure. Audit App Store listing. Test different caption structures. |
-| Low                                   | High            | Converts but not seen        | Fix hook/thumbnail. Try different posting time. Test a different hashtag cluster.               |
-| Low                                   | Low             | Fundamentally off            | New topic angle. Different format. Run research cycle. Study what's working in niche right now. |
-| High views + High installs + flat MRR | —               | App issue, not content       | Pause posting. Escalate to human. Problem is onboarding, paywall, or pricing — not content.     |
+Use this AFTER scoring each cycle. The quadrant tells you what's broken and exactly what to do next.
+
+**How to read it:** "High views" = above your current baseline in virality-model.md (or >500 views if no baseline yet). "High subs" = any new subscriber attributed to the post window.
+
+| Quadrant                                  | Signal                       | What's broken                                        | Exact next action                                                                                                                                                                                                                                                                                |
+| ----------------------------------------- | ---------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Q1: High views + High subs**            | 🟢 Working                   | Nothing — scale it                                   | Generate 3-5 variations of the SAME hook type. Keep imagery + CTA constant. Post the best one. You found signal — exploit it before moving on.                                                                                                                                                   |
+| **Q2: High views + Low subs**             | 🟡 Hook works, funnel broken | CTA or app landing                                   | 1. Skip ahead to CTA testing — generate 3-5 CTA variations with the current hook. 2. Check App Store listing (does it match what the reel promises?). 3. If CTA rotation doesn't fix it after 3 posts, escalate to Henry — problem is likely in-app (onboarding, paywall, pricing).              |
+| **Q3: Low views + High subs**             | 🟡 Converts but invisible    | Hook isn't stopping the scroll                       | Stay on hook testing. The content converts — the hook just isn't reaching people. Try a radically different hook type (if testing "question" hooks, try "shock stat" or "contrarian"). Don't touch imagery or CTA — they're working.                                                             |
+| **Q4: Low views + Low subs**              | 🔴 Nothing working           | Topic or angle is off                                | 1. Run a fresh research cycle — check competitor-research.json for what's getting engagement NOW. 2. Pull 3 new topic angles from the research. 3. Generate 3-5 hooks for each angle, score against virality model, pick the best. 4. If 3 consecutive Q4 results → pause and escalate to Henry. |
+| **High views + High installs + flat MRR** | 🔴 App problem               | Content is fine, app isn't converting trials to paid | STOP posting. Escalate to Henry immediately. The problem is onboarding, paywall, trial length, or pricing — not content. Posting more just burns audience goodwill.                                                                                                                              |
+
+**Key rule:** The diagnostic matrix overrides the experiment queue. If you're in Q1, don't move to the next experiment — double down on what's working. If you're in Q2, jump to CTA testing regardless of where the queue says you should be. The queue is the default path; the matrix is the override.
 
 ---
 
@@ -309,12 +419,14 @@ All paths are relative to the skill's own directory (wherever this SKILL.md live
 - Config + API keys: `references/config.json`
 - Virality algorithm (agent-owned, living doc): `references/virality-model.md`
 - Browsing instructions: `references/browsing-guide.md`
-- Reel remix pipeline (secondary format — gated): `references/reel-workflow.md`
+- Recommended research sources: `references/recommended-sources.md`
+- Reel pipeline (original + remix): `references/reel-workflow.md`
 - App codebase brief (cached, agent-refreshed): `references/app-brief.md`
 - App intelligence feedback (append-only): `references/app-feedback.md`
 - Session improvement notes (append-only): `references/improvement-notes.md`
+- Experiment framework (queue + controls): `references/experiment-framework.md`
 
-**Every cycle reads in this order:** results.jsonl (full) → playbook.json → competitor-research.json → virality-model.md → then pull live analytics.
+**Every cycle reads in this order:** results.jsonl (full) → playbook.json → experiment-framework.md → competitor-research.json → virality-model.md → then pull live analytics.
 
 **JSONL schema:**
 
@@ -323,7 +435,7 @@ All paths are relative to the skill's own directory (wherever this SKILL.md live
   "id": "cycle-001",
   "date": "YYYY-MM-DD",
   "type": "post",
-  "format": "carousel",
+  "format": "reel",
   "topic": "[topic researched by agent]",
   "hook_style": "question|statement|pov|listicle",
   "cta": "[app CTA from config]",
@@ -351,8 +463,8 @@ All paths are relative to the skill's own directory (wherever this SKILL.md live
 ## Safety
 
 - Hard stops: no ad purchases, no account engagement, no content claiming medical outcomes
-- Budget ceiling: fal.ai $30/month — if limit hit, fall back to solid or gradient backgrounds generated by the carousel command
-- Rate limits: Postiz and RevenueCat APIs — retry with exponential backoff (1s, 2s, 4s), max 3 retries
+- Budget ceiling: fal.ai $10/month — if limit hit, fall back to solid or gradient backgrounds generated by the carousel command
+- Rate limits: Instagram Graph API and RevenueCat API — retry with exponential backoff (1s, 2s, 4s), max 3 retries
 - Escalation triggers:
   - Views drop >60% for 2 consecutive posts → suspect shadow ban → pause posting → alert human with evidence
   - 4 consecutive weeks zero subscriber growth → stall rule → pause → surface full diagnosis
@@ -361,11 +473,11 @@ All paths are relative to the skill's own directory (wherever this SKILL.md live
 
 ## Closed Loop Test
 
-- [x] Observe: Postiz analytics (views, saves, profile visits) + RevenueCat (new subscribers, MRR)
-- [x] Act: generate carousel content (primary) using tools in `references/`; draft to Postiz. Reels available as secondary tool after 10+ scored carousel entries.
+- [x] Observe: Instagram Graph API insights (reach, saves, views, profile visits) + RevenueCat (new subscribers, MRR)
+- [x] Act: generate reel (primary) or carousel (secondary) using tools in `references/`; send draft via Telegram.
 - [x] Verify: analytics vs baseline every cycle via diagnostic matrix
 - [x] Record: `references/results.jsonl` — append-only JSONL, read in full at every cycle start, stale entries cleaned automatically
-- [x] Continue: diagnostic matrix drives next action autonomously; human only publishes
+- [x] Continue: diagnostic matrix drives next action autonomously; human publishes from Instagram app
 
 ## Proof of Loop
 
@@ -374,17 +486,17 @@ Every cycle runs the same steps in the same order. The loop is closed by the hum
 ```
 CYCLE START (agent)
   1. Read memory: results.jsonl → playbook → competitor-research → virality-model
-  2. Pull analytics for the post published at the end of the PREVIOUS cycle
+  2. Discover published media ID via Instagram Graph API → pull insights for previous cycle's post
   3. Score it → update that results.jsonl entry → identify quadrant → output morning report
-  4. Research niche → generate content → virality gate → draft to Postiz → append pending entry
+  4. Research niche → generate content → virality gate → send draft via Telegram → append pending entry
   5. Reflect + Update: recompute baseline, update playbook + virality model, output cycle summary
 
 CYCLE END (human)
-  6. Human publishes from Postiz inbox  ← loop closes here
+  6. Human publishes from Instagram app  ← loop closes here
 
 The pending entry appended in step 4 becomes the target of step 2 in the next cycle.
 ```
 
-**Baseline recording (runs once on Cycle 1):** If `playbook.json → cycleCount == 0`, the agent records baseline MRR and follower count in the cycle entry and confirms API connections. Content generation proceeds normally. Once `cycleCount` is incremented to 1, this baseline isalready recorded in the first cycle's entry.
+**Baseline recording (runs once on Cycle 1):\*** If `playbook.json → cycleCount == 0`, the agent records the baseline state (MRR, follower count), confirms connections, Content generation proceeds normally. Once `cycleCount` is incremented to 1, this path never runs again.
 
-**Proof by Cycle 10:** results.jsonl has 10 scored entries, playbook reflects real hook and format data, virality model evidence log has entries — every decision is driven by evidence.
+**Proof by Cycle 10:** results.jsonl has 10 scored entries, playbook reflects real hook and format data, virality model evidence log has entries — every decision is driven by evidence, not bootstrap assumptions.

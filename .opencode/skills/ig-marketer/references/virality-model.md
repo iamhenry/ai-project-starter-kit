@@ -10,9 +10,38 @@ The agent reads this file at every cycle start. After each cycle (analytics pull
 
 A simple, opinionated filter the agent applies before creating any piece of content.
 
-The model answers one question: **"Is this content likely to spread on its own, or will it just sit there?"**
+The model answers one question: **"Can this content hit 100k+ views?"**
 
-Content that spreads earns reach without relying on followers. Content that sits requires an existing audience. Since we are starting from near-zero followers, reach is everything. High virality potential is non-negotiable.
+We're building a viral content engine, not a slow-growth brand account. Content that spreads earns reach without relying on followers. Content that sits requires an existing audience. Since we are starting from near-zero followers, viral reach is everything. If a content idea can't plausibly hit 100k views, it doesn't get made.
+
+---
+
+## Platform Mechanics (refreshed monthly — last update: 2026-03-17)
+
+How Instagram distributes content — the foundation for format and creative decisions.
+
+**Reels vs Carousels:**
+- Reels are **discovery-first**: Instagram's Reels algorithm is specifically designed to surface content to non-followers. ~55% of Reel views come from non-followers. For accounts with few followers, reels are the primary path to reach.
+- Carousels are **engagement-first**: highest engagement rate (~0.55% vs ~0.52% for reels), but they mostly reach existing followers. Best for educational, save-worthy content once an audience exists.
+- Static images: declining in both engagement and posting volume. Deprioritize.
+
+**Reels ranking signals (in order of weight):**
+1. **Watch time / completion rate** — the single most important signal. 70%+ completion = significantly wider distribution. Instagram tracks: did viewers watch past 3 seconds? Watch to the end? Replay?
+2. **DM sends per reach** — the strongest signal for non-follower reach. Adam Mosseri confirmed DM shares carry the most weight for unconnected reach. Make content people want to send to someone.
+3. **Likes per reach** — most relevant for connected reach (existing followers). The ratio matters more than raw count.
+
+**Reels eligibility rules (must pass ALL to be recommended):**
+- No watermarks from other platforms (TikTok, CapCut logos)
+- Original or properly licensed audio
+- Meets community guidelines
+- No recycled/reposted content — Instagram uses an "Originality Score" via visual fingerprinting. Original content gets 40-60% reach boost; recycled content gets tanked.
+- Under 3 minutes (longer = ineligible for recommendations)
+
+**"Your Algorithm" feature (Dec 2025):** Users can now explicitly choose which topics they see. Niche clarity matters more than ever — the hook, on-screen text, and audio all need to clearly signal the topic so Instagram categorizes it correctly.
+
+**Small account advantage:** Accounts under 5K followers get ~3.79% avg engagement on reels vs ~0.55% on carousels. Reels are the format to bet on during the growth phase.
+
+**What this means for us:** Default to reels. Optimize for watch time (hook + pacing) and shareability (make it worth sending to a friend). Use carousels for deep educational content that earns saves.
 
 ---
 
@@ -20,13 +49,14 @@ Content that spreads earns reach without relying on followers. Content that sits
 
 These are the signals the agent uses to score content retroactively and calibrate the model forward.
 
-| Signal             | What it means                                                     | How to read it                                   |
-| ------------------ | ----------------------------------------------------------------- | ------------------------------------------------ |
-| Views              | Algorithmic reach — how many people Instagram showed it to        | High = algorithm pushed it beyond followers      |
-| Saves              | Perceived future value — "I want this again"                      | High save rate (>3%) = strong utility or emotion |
-| Profile visits     | Curiosity triggered — viewer wanted to know more about the source | High = content created identity pull             |
-| Share rate         | Social currency — viewer wanted to pass this on                   | Any sharing = strong virality signal             |
-| Watch-through rate | For reels (secondary format) — did people stay to the end?        | >50% completion = hook + content both working    |
+| Signal         | What it means                                                     | How to read it                                                                                     |
+| -------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Views          | Algorithmic reach — how many people Instagram showed it to        | High = algorithm pushed it beyond followers                                                        |
+| Watch time     | How long people watched — the #1 Reels ranking signal             | 70%+ completion = wide distribution. Track 3s retention (hook test) and full completion separately |
+| DM sends       | Viewers sharing via DM — strongest signal for non-follower reach  | Any DM sends = strong discovery signal. Optimize for "would someone send this to a friend?"        |
+| Saves          | Perceived future value — "I want this again"                      | High save rate (>3%) = strong utility or emotion                                                   |
+| Profile visits | Curiosity triggered — viewer wanted to know more about the source | High = content created identity pull                                                               |
+| Share rate     | Social currency — viewer wanted to pass this on                   | Any sharing = strong virality signal                                                               |
 
 ---
 
@@ -55,11 +85,11 @@ Content that looks like it belongs in this niche (uses the right tone, vocabular
 
 Before creating any post, score the planned content against these 5 questions. Each yes = 1 point.
 
-1. **Hook tension:** Does the first line create tension, surprise, or ask a question the viewer is already wondering?
+1. **Hook tension:** Does the first 3 seconds create tension, surprise, or ask a question the viewer is already wondering? (This determines whether anyone watches past the opening.)
 2. **Specificity:** Is the topic specific enough that someone in this niche would think "this is exactly about me"?
 3. **Emotional resonance:** Does the content make someone feel understood, validated, or motivated — not just informed?
-4. **Shareable premise:** Would someone send this to a friend or save it to come back to later?
-5. **Niche-native:** Does the format, tone, and visual style match what's already resonating in this niche right now?
+4. **Sendable:** Would someone DM this to a friend? (DM sends are the #1 driver of non-follower reach. Think: "you need to see this" moments.)
+5. **Watchable:** Will someone watch to the end? Is the pacing tight enough that nothing drags? (Watch time is the #1 ranking signal — every second of dead time costs distribution.)
 
 **Score threshold:**
 - 4–5: Green — proceed with this content
@@ -78,12 +108,12 @@ After that, the agent computes a running baseline from the full history in `resu
 
 **These are generic platform averages used only until the first scored entry exists.** They are not niche-specific predictions. After the first scored cycle, the agent overwrites this entire section with computed baselines from `results.jsonl`. Do not treat these as targets — they are placeholder thresholds to avoid having no reference point on day 1.
 
-| Signal          | Bootstrap threshold | What it means            |
-| --------------- | ------------------- | ------------------------ |
-| Views           | > 300               | Algorithm pushed it out  |
-| Save rate       | > 3% of views       | Strong utility signal    |
-| Profile visits  | > 1.5% of views     | Curiosity / intent       |
-| Watch-through   | > 50% (reels only — secondary format)  | Hook + content both held |
+| Signal         | Bootstrap threshold                   | What it means                              |
+| -------------- | ------------------------------------- | ------------------------------------------ |
+| Views          | > 100,000                             | Target: viral reach (100k+ views per post) |
+| Save rate      | > 3% of views                         | Strong utility signal                      |
+| Profile visits | > 1.5% of views                       | Curiosity / intent                         |
+| Watch-through  | > 50% (reels only — secondary format) | Hook + content both held                   |
 
 ### After first scored entry: agent computes and writes its own baseline here
 
@@ -130,17 +160,19 @@ These replace the bootstrap thresholds. The agent rewrites the table below after
 
 _Agent appends findings here after each cycle's analytics pull. Newest entries at the top._
 
-| Date | Batch | Finding                                        | Model change |
-| ---- | ----- | ---------------------------------------------- | ------------ |
-| —    | —     | No data yet — populate after first scored cycle | —            |
+| Date       | Batch     | Finding                                                                                                                                                                                                                                                                                                                                                                                                                   | Model change                                                                                                                                                                                                                                                                            |
+| ---------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-03-18 | cycle-004 | Formal experiment batch started (exp-001: shock_stat hooks). Using Surgeon General 2025 alcohol-cancer advisory as topic source — TIME, Reuters, ScienceDaily all covered it in Jan-Mar 2026. Hypothesis: concrete shocking numbers (100,000 cancers/year) create stronger knowledge-gap reactions than percentages or abstract claims. Text-on-gradient imagery as control. Cannot score yet — cycle-003 not published.  | No model change yet — awaiting first reel metrics.                                                                                                                                                                                                                                      |
+| 2026-03-18 | cycle-002 | 0 reach on second consecutive carousel (myth-busting listicle). Two carousels, both 0 reach. Carousels are engagement-first — they mostly reach existing followers. With 2 followers, carousels get zero algorithmic distribution. Research confirms: small accounts under 5K get ~3.79% engagement on reels vs ~0.55% on carousels. DM shares weighted 3-5x higher than likes in 2026 algorithm (CreatorFlow, Feb 2026). | **Format switch: default to reels.** Carousels are wrong format for cold-start account. Reels get pushed to non-followers. Also: news-peg content (timely real-world events) maximizes DM-sendability — the #1 reach signal. Cycle-003 tests this with US dietary guidelines news hook. |
+| 2026-03-17 | cycle-001 | 0 reach on first carousel (timeline/body-change topic). Account has 2 followers — this is a cold start distribution problem, not a content quality signal. Cannot draw conclusions about hook or topic effectiveness from zero-reach data.                                                                                                                                                                                | No model change — insufficient data. Key insight: content experiments are meaningless until the account has minimum distribution. Manual engagement (commenting in niche, following relevant accounts) may be needed to seed the algorithm.                                             |
 
 ---
 
 ## Research Sources
 
 When updating this model, the agent may consult:
-- Instagram niche hashtags (see `references/browsing-guide.md`)
-- Web search: "what makes content go viral on Instagram [year]", "Instagram algorithm [niche] reach", "highest save rate Instagram content types"
+- Web search for niche trends (see `references/browsing-guide.md`) — NO Instagram browsing
+- Web search: "what makes content go viral on Instagram [year]", "Instagram algorithm [niche] reach", "highest save rate Instagram content types" — **3-month recency rule: only use sources from the last 90 days**
 - `references/results.jsonl` — internal experiment data (primary source after 10+ posts)
 - `references/competitor-research.json` — niche patterns observed via browsing
 

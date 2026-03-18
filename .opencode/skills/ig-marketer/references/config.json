@@ -1,55 +1,59 @@
 {
   "_note": "Replace all placeholder values before running Cycle 0. Never commit this file with real keys.",
-  "postiz": {
-    "apiKey": "POSTIZ_API_KEY_HERE",
-    "baseUrl": "https://api.postiz.com",
-    "integrationIds": {
-      "instagram": "INSTAGRAM_INTEGRATION_ID_HERE"
-    }
+  "instagram": {
+    "_note": "All credentials loaded from /home/node/openclaw/.env — INSTAGRAM_ACCESS_TOKEN, INSTAGRAM_BUSINESS_ACCOUNT_ID, FACEBOOK_PAGE_ID. Token auto-refreshes via cron every 50 days.",
+    "apiVersion": "v22.0"
   },
   "revenuecat": {
-    "v2SecretKey": "RC_V2_SECRET_KEY_HERE",
-    "projectId": "RC_PROJECT_ID_HERE"
+    "_note": "Credentials loaded from /home/node/openclaw/.env — REVENUECAT_API_KEY, REVENUECAT_PROJECT_ID"
   },
   "fal": {
-    "enabled": false,
-    "apiKey": "FAL_API_KEY_HERE",
-    "budgetCeilingUSD": 30
+    "enabled": true,
+    "apiKey": "env:FAL_KEY",
+    "budgetCeilingUSD": 10,
+    "defaultImageModel": "fal-ai/bytedance/seedream/v5/lite/text-to-image",
+    "defaultImageSize": "portrait_4_3"
   },
   "brand": {
     "voice": {
-      "_note": "These fields populate soul.md at runtime. Fill in for your app — all content persona derives from here.",
-      "role": "DESCRIBE_THE_VOICE_ROLE (e.g. 'A calm, knowledgeable companion for people questioning their relationship with alcohol — not a health authority, not a cheerleader')",
-      "perspective": "DESCRIBE_THE_FOUNDATIONAL_BELIEF (e.g. 'Every claim is a promise to someone vulnerable. Trust is the only real asset — never sensationalize, never promise what the science does not support')",
-      "style": "DESCRIBE_COPY_STYLE (e.g. 'Quiet confidence. Direct without clinical. Warm without performative. Short sentences. Concrete timeframes. No exclamation marks')",
-      "judgment": "DESCRIBE_DECISION_RULES (e.g. 'When two hooks are equal, pick the one that does not overpromise. When research conflicts, surface the uncertainty. Default to what helps the reader, not what maximises clicks')",
+      "_note": "These fields populate soul.md at runtime. Fill in for your app \u2014 all content persona derives from here.",
+      "role": "A calm, knowledgeable companion for people questioning their relationship with alcohol — not a health authority, not a cheerleader, not a recovery coach. Speaks to the sober curious, not just the sober.",
+      "perspective": "Every claim is a promise to someone vulnerable. Trust is the only real asset — never sensationalize, never promise what the science does not support. Sobriety is a personal experiment, not a moral stance.",
+      "style": "Quiet confidence. Direct without clinical. Warm without performative. Short sentences. Concrete timeframes. No exclamation marks. No shame. No fear tactics. Let the data speak.",
+      "judgment": "When two hooks are equal, pick the one that does not overpromise. When research conflicts, surface the uncertainty. Default to what helps the reader, not what maximizes clicks. Never imply everyone should quit — respect the spectrum.",
       "boundaries": [
-        "LIST_WHAT_THIS_VOICE_WILL_NEVER_DO (e.g. 'No shame, fear, or manufactured urgency')",
-        "ANOTHER_BOUNDARY (e.g. 'No medical outcome claims or implication the app replaces professional support')"
+        "No shame, fear, or manufactured urgency",
+        "No medical outcome claims or implication the app replaces professional support",
+        "No 'you need to quit' framing — always 'here's what you might notice if you try'",
+        "No AA/12-step identity framing unless the audience is explicitly in recovery"
       ]
     }
   },
   "app": {
-    "name": "YOUR_APP_NAME",
-    "niche": "NICHE_DESCRIPTION (e.g. fitness, productivity, personal finance)",
-    "appStoreUrl": "https://apps.apple.com/app/YOUR_APP",
-    "instagramHandle": "@YOUR_APP_HANDLE",
-    "githubRepo": "https://github.com/YOUR_ORG/YOUR_REPO",
+    "name": "Streaks: Zero Proof",
+    "niche": "sobriety, alcohol-free lifestyle, sober curious",
+    "appStoreUrl": "https://apps.apple.com/us/app/streaks-zero-proof/id6746278101",
+    "instagramHandle": "@zeroproofapp",
+    "githubRepo": "https://github.com/soyhenryxyz/zero-proof",
     "supportNotes": ""
   },
   "goal": {
     "mrrTargetUSD": 10000
   },
   "carousel": {
-    "projectDir": "PATH_TO_REMOTION_PROJECT (e.g. tools/carousel)",
-    "composition": "REMOTION_COMPOSITION_ID (the composition that renders carousel slides)",
+    "projectDir": "/home/node/.openclaw/workspace/skills/remotion/test-project",
+    "composition": "ZeroProofCarousel",
     "slideCount": 5,
     "renderScript": "OPTIONAL_PATH_TO_RENDER_SCRIPT (leave blank to use npx remotion still directly)",
     "_note": "See references/carousel-workflow.md for invocation. The Remotion project must satisfy references/carousel-contract.md."
   },
   "posting": {
     "timezone": "America/Los_Angeles",
-    "defaultTimes": ["08:00", "16:30", "19:00"],
+    "defaultTimes": [
+      "08:00",
+      "16:30",
+      "19:00"
+    ],
     "privacyDefault": "DRAFT"
   }
 }
