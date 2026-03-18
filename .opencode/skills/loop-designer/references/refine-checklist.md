@@ -6,6 +6,7 @@ Use this when improving an existing worker.
 
 - Did any action depend on a human?
 - Did any required tool prove missing or unreliable?
+- Did the worker handle tool failures gracefully, or did it crash?
 - Did the worker fail to verify its own actions?
 
 If yes, the loop is open again. Fix closure first.
