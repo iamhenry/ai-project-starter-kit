@@ -45,7 +45,7 @@ The input is intelligence. The output is content.
 Read `references/production-config.json` before every production session. It defines the
 niche, brand voice, visual system, and tool configuration.
 
-Read `references/soul.md` before writing any text content (hooks, captions, CTAs). All copy
+Read `../ig-marketer/references/soul.md` before writing any text content (hooks, captions, CTAs). All copy
 must align with the brand voice defined there.
 
 ## Production Workflow
@@ -72,32 +72,7 @@ must align with the brand voice defined there.
 
 **Output:** A production queue of 1-3 content pieces with format, topic, and hook defined.
 
-### Phase 2: Virality Gate
-
-**Goal:** Score each content concept before investing production time.
-
-Before producing any Reel, score the concept against these 5 questions. Each yes = 1 point.
-
-1. **Hook tension:** Does the opening create tension, surprise, or ask a question the viewer
-   is already wondering about?
-2. **Specificity:** Is the topic specific enough that someone in this niche would think
-   "this is exactly about me"?
-3. **Emotional resonance:** Does the content make someone feel understood, validated, or
-   motivated — not just informed?
-4. **Shareable premise:** Would someone send this to a friend or save it to revisit?
-5. **Niche-native:** Does the format, tone, and visual style match what's already resonating
-   in this niche right now?
-
-**Scoring:**
-
-- 4-5: Proceed to production
-- 3: Revise the hook or specificity, then re-score
-- 0-2: Discard — research a better angle
-
-Do not produce content that scores below 3. Low-virality content wastes the posting slot
-and sends negative signals to the algorithm.
-
-### Phase 3: Asset Preparation
+### Phase 2: Asset Preparation
 
 **Goal:** Generate or source all visual and text assets needed for the Reel.
 
@@ -112,7 +87,7 @@ Read `references/format-templates.md` for the exact asset requirements per forma
 **For T2 (Quote Card):**
 
 - Generate background image via fal.ai or source stock photo
-- Write the quote text (read `references/soul.md` for voice)
+- Write the quote text (read `../ig-marketer/references/soul.md` for voice)
 - Style: bold, stacked, center-aligned
 
 **For T3 (Text Card):**
@@ -166,7 +141,7 @@ Fall back to stock footage or solid/gradient backgrounds if the budget is hit.
 
 **Output:** All assets saved to `output/assets/<slug>/` — images, footage clips, SVGs, text files.
 
-### Phase 4: Remotion Rendering
+### Phase 3: Remotion Rendering
 
 **Goal:** Render the final .mp4 using Remotion.
 
@@ -222,12 +197,12 @@ Expected: 720x1280, h264 video + aac audio, duration matches target ±0.5s.
 
 **Output:** Rendered .mp4 in `output/reels/<slug>.mp4`
 
-### Phase 5: Caption & CTA
+### Phase 4: Caption & CTA
 
 **Goal:** Write the Instagram caption, hashtags, and call-to-action.
 
 Read `references/caption-guide.md` for the full caption framework.
-Read `references/soul.md` for brand voice constraints.
+Read `../ig-marketer/references/soul.md` for brand voice constraints.
 
 **Caption structure:**
 
@@ -245,7 +220,7 @@ Read `references/soul.md` for brand voice constraints.
 
 **Output:** Caption text saved to `output/reels/<slug>-caption.txt`
 
-### Phase 6: Output Package
+### Phase 5: Output Package
 
 **Goal:** Deliver a complete, ready-to-post package.
 
@@ -301,8 +276,8 @@ publish decision — this skill never posts directly.
 - **One variable per experiment.** When producing multiple Reels, vary only one element at a
   time (hook style OR topic OR format OR CTA). You can't attribute results if multiple
   variables change simultaneously.
-- **Virality gate is mandatory.** Every concept must score 4+ on the 5-question gate before
-  production begins. This prevents wasting production time on low-potential content.
+- **Virality gate is upstream.** The orchestrator (ig-marketer) runs the virality gate before
+  delegating to this skill. Viral-producer produces what it's told — it does not re-score.
 - **Faceless only.** All content must be producible without a human appearing on camera.
   If a content angle requires face-on-camera, adapt the narrative structure to a faceless
   format (text overlay, animation, stock footage) or discard it.
@@ -324,7 +299,7 @@ publish decision — this skill never posts directly.
 All paths relative to this skill's directory:
 
 - **Production config:** `references/production-config.json`
-- **Brand voice:** `references/soul.md`
+- **Brand voice:** `../ig-marketer/references/soul.md` (single source of truth — no local copy)
 - **Format templates:** `references/format-templates.md`
 - **Remotion guide:** `references/remotion-guide.md`
 - **Caption guide:** `references/caption-guide.md`

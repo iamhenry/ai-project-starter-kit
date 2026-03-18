@@ -40,12 +40,12 @@
   "goal": {
     "mrrTargetUSD": 10000
   },
-  "carousel": {
-    "projectDir": "/home/node/.openclaw/workspace/skills/remotion/test-project",
-    "composition": "ZeroProofCarousel",
-    "slideCount": 5,
-    "renderScript": "OPTIONAL_PATH_TO_RENDER_SCRIPT (leave blank to use npx remotion still directly)",
-    "_note": "See references/carousel-workflow.md for invocation. The Remotion project must satisfy references/carousel-contract.md."
+  "production": {
+    "_note": "Rendering delegated to viral-producer skill. See ../viral-producer/SKILL.md.",
+    "remotionProjectDir": "/home/node/.openclaw/workspace/skills/remotion/test-project",
+    "defaultTier": "P3",
+    "accountPhase": "phase-1",
+    "_phaseNote": "phase-1 (0-1K): T1+T2+P3. phase-2 (1K-10K): T3+T4+P3. phase-3 (10K+): all tiers."
   },
   "posting": {
     "timezone": "America/Los_Angeles",

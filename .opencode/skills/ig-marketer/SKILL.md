@@ -1,7 +1,14 @@
 ---
 name: ig-marketer
-description: Instagram content worker for any iOS app. Researches the target niche via web search (marketing blogs, Reddit, creator newsletters — NO Instagram browsing), generates reels and carousels, sends drafts to human via Telegram for publishing, pulls analytics via Instagram Graph API + RevenueCat conversions every cycle, and iterates hook/visual/CTA experiments until MRR reaches the target. Use when running the marketing loop, generating content, checking analytics, or updating the content strategy. Requires references/config.json to be filled before Cycle 0. All tools and workflows are self-contained in references/.
-version: 2.1
+description: >-
+  Instagram growth orchestrator for any iOS app. Delegates research to viral-research
+  and production to viral-producer. Owns the growth loop: pull analytics, select content
+  direction from existing research briefs, run the virality gate, delegate rendering,
+  send drafts to human via Telegram, reflect and update strategy. Pulls analytics via
+  Instagram Graph API + RevenueCat every cycle and iterates experiments until MRR reaches
+  the target. Use when running the marketing loop, checking analytics, or updating content
+  strategy. Requires references/config.json to be filled before Cycle 0.
+version: "3.0"
 ---
 
 # Instagram Marketing Worker
@@ -31,7 +38,7 @@ version: 2.1
 | Profile visits         | Instagram Graph API: `GET /{ig-user-id}/insights`  | See bootstrap priors in `references/virality-model.md` | Every cycle (previous cycle's post)                      |
 | New paying subscribers | RevenueCat GET /projects/{id}/metrics              | Trending up week-over-week                             | Every cycle (since previous cycle's post)                |
 | MRR                    | RevenueCat GET /projects/{id}/metrics              | Tracking toward $10k/month                             | Monthly                                                  |
-| Format comparison      | `references/results.jsonl` (relative to skill dir) | Reel vs carousel performance comparison                | Every cycle — inferred from results.jsonl running totals |
+| Format comparison      | `references/results.jsonl` (relative to skill dir) | Tier performance comparison (T1/T2/P3 etc.)            | Every cycle — inferred from results.jsonl running totals |
 
 ## Environment
 
@@ -84,16 +91,15 @@ curl -s "https://graph.facebook.com/v22.0/${INSTAGRAM_BUSINESS_ACCOUNT_ID}/insig
 
 | Action                              | Tool / API                                                                                                                | Access | Checkpoint                    | Verification source               |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------ | ----------------------------- | --------------------------------- |
-| Research niche trends               | Web search + UGC blogs + Reddit — see `references/browsing-guide.md`. ⛔ NO instagram.com                                 | ready  | autonomous                    | competitor-research.json updated  |
-| Generate reel (primary)             | fal.ai images → Remotion render → .mp4 — see `references/reel-workflow.md`                                                | ready  | autonomous                    | .mp4 exists in `output/reels/`    |
-| Generate carousel (secondary)       | Carousel command configured for this app (must satisfy `references/carousel-contract.md`)                                 | ready  | autonomous                    | PNG slides in `output/carousels/` |
+| Research content angles             | Read existing brief from `../viral-research/references/example-brief.md` + `../viral-research/references/swipe-file.jsonl` + `../viral-research/references/format-taxonomy.md`. ⛔ NO instagram.com | ready  | autonomous                    | Content direction selected        |
+| Produce rendered Reel               | Delegate to **viral-producer** skill (pass format tier, topic, hook, assets). See `../viral-producer/SKILL.md`            | ready  | autonomous                    | .mp4 in viral-producer `output/reels/` |
 | Generate images via fal.ai          | fal.ai API — model + size from `config.json` → `fal.defaultImageModel` / `fal.defaultImageSize`, key in env var `FAL_KEY` | ready  | autonomous                    | image file in `output/assets/`    |
-| Remix a reel                        | Follow `references/reel-workflow.md` remix path end-to-end                                                                | ready  | autonomous                    | .mp4 in `output/reels/`           |
-| Send draft to human via Telegram    | Send carousel images + caption in Telegram chat                                                                           | ready  | human-relay (human publishes) | images + caption received in chat |
+| Send draft to human via Telegram    | Send reel .mp4 + caption in Telegram chat                                                                                 | ready  | human-relay (human publishes) | .mp4 + caption received in chat   |
 | Pull post analytics                 | Instagram Graph API: `GET /{media-id}/insights`                                                                           | ready  | autonomous                    | insights JSON returned            |
 | Discover published media ID         | Instagram Graph API: `GET /{ig-user-id}/media` — match by timestamp/caption                                               | ready  | autonomous                    | media ID stored in results.jsonl  |
 | Pull conversion data                | RevenueCat GET /projects/{id}/metrics/overview                                                                            | ready  | autonomous                    | subscriber count + MRR            |
 | Score experiments + update playbook | AI analysis of results.jsonl                                                                                              | ready  | autonomous                    | playbook.json updated             |
+| Flag fresh research needed          | Non-blocking flag when all tier×angle combos exhausted AND 10-15+ cycles passed. Suggest what to research next.           | ready  | human-relay                   | Flag in morning report            |
 
 ### Permissions
 
@@ -111,7 +117,7 @@ curl -s "https://graph.facebook.com/v22.0/${INSTAGRAM_BUSINESS_ACCOUNT_ID}/insig
 - Never post more than 1x per cycle
 - Never log individual subscriber PII from RevenueCat — aggregate metrics only
 - Never make specific medical, legal, or clinical outcome claims in content
-- Never modify `SKILL.md` or `soul.md` — these are read-only. Flag the human if an urgent change is needed.
+- Never modify `SKILL.md`, `soul.md`, or sibling skill SKILL.md files — these are read-only. Flag the human if an urgent change is needed.
 
 ### Inputs
 
@@ -130,19 +136,24 @@ curl -s "https://graph.facebook.com/v22.0/${INSTAGRAM_BUSINESS_ACCOUNT_ID}/insig
 
 Every cycle, in this order:
 
-0. **Bootstrap directories** (first-run or new environment): ensure `references/` and `output/carousels/`, `output/reels/`, `output/assets/` exist. Create if missing. Do not fail if they already exist.
+0. **Bootstrap directories** (first-run or new environment): ensure `references/` and `output/reels/`, `output/assets/` exist. Create if missing. Do not fail if they already exist.
 1. Read `references/results.jsonl` — full history of every cycle: what was tested, what scored, what failed, what's pending
 2. Check for stale entries: any entry with `"status": "pending"` older than 5 days → update to `"status": "stale"` with note
 3. Read `references/playbook.json` — current best-known hooks, topics, CTAs, hashtag clusters, format mix, posting times
 4. Read `references/experiment-framework.md` — find the next queued experiment; this drives content decisions for the cycle
-5. Read `references/competitor-research.json` — niche patterns and content gaps observed so far
-6. Read `references/virality-model.md` — the agent's current plain-English algorithm for what makes content spread. This informs every content decision this cycle.
-7. **Baseline record:** if `playbook.json → cycleCount == 0` → this is the first cycle. Fill `cycle-000` in results.jsonl with today's date + actual RevenueCat MRR + Instagram follower count. Confirm Postiz and RevenueCat connections return data. Set `playbook.json → cycleCount = 1`. Output baseline metrics (see format below). Continue to content generation normally — first cycle produces content like all others. This path never runs again once cycleCount > 0.
-8. Pull Instagram Graph API analytics for the post from the **previous cycle** (look up the most recent `"status": "pending"` entry in results.jsonl by media ID)
-9. Pull RevenueCat new subscriber delta for the window since the previous cycle's `posting_time` (read from results.jsonl)
-10. Identify the current diagnostic quadrant (see Work Loop)
-11. Check experiment framework: what experiment is next in the queue? Output experiment context with the morning report.
-12. Generate and output the morning report
+5. Read `references/virality-model.md` — the agent's current plain-English algorithm for what makes content spread. This informs every content decision this cycle.
+6. **Cycle 0 config sync** (first run only, when `playbook.json → cycleCount == 0`):
+   - Read `references/config.json` (master config)
+   - Write derived values to `../viral-producer/references/production-config.json` (niche, brand colors, fal.ai settings, account phase)
+   - Fill `cycle-000` in results.jsonl with today's date + actual RevenueCat MRR + Instagram follower count
+   - Confirm RevenueCat connection returns data
+   - Set `playbook.json → cycleCount = 1`. Output baseline metrics (see format below).
+   - This path never runs again once cycleCount > 0.
+7. Pull Instagram Graph API analytics for the post from the **previous cycle** (look up the most recent `"status": "pending"` entry in results.jsonl by media ID)
+8. Pull RevenueCat new subscriber delta for the window since the previous cycle's `posting_time` (read from results.jsonl)
+9. Identify the current diagnostic quadrant (see Work Loop)
+10. Check experiment framework: what experiment is next in the queue? Output experiment context with the morning report.
+11. Generate and output the morning report
 
 **Morning report format (output every cycle start):**
 
@@ -163,11 +174,15 @@ Every cycle, in this order:
 ## Operating Principles
 
 - **One variable per experiment.** Test hook OR imagery OR CTA — never two at once. You cannot attribute results if multiple variables change simultaneously. See `references/experiment-framework.md` for the current experiment queue.
-- **Generate 3-5, post 1.** Every cycle, generate 3-5 variations of the current test variable (e.g., 5 different hooks). Score each against the virality model's 5-question gate. Render and send ONLY the highest-scoring variation. Log all variations in results.jsonl (`reasoning.discarded_variations`) — the losers are still data.
+- **Generate 3-5, post 1.** Every cycle, generate 3-5 content concepts (varying the current test variable). Score each against the virality model's 5-question gate. Delegate ONLY the highest-scoring concept to viral-producer. Log all variations in results.jsonl (`reasoning.discarded_variations`) — the losers are still data.
 - **Use trends, not single posts.** Log every post. React to direction after 2 consecutive posts point the same way. One post is a data point — two is a signal — three is a trend.
 - **Reach before conversion.** Test hooks first, then imagery, then CTA — this order is prescribed. If nobody sees the post, CTA quality is irrelevant.
-- **Locked format: 6-slide reel.** Every post uses the same structure: slide 1 (hook image + hook text), slides 2-5 (content images + text overlays), slide 6 (CTA card). This is NOT a variable — it's the proven format. Rendered via Remotion with `hookText`, `sceneTexts[]`, and `ctaText` props. Specs: 1080×1920, 15-20s total, 3s per scene + 3s CTA, h264+aac, 30fps.
-- **Three experiment variables only.** The agent tests exactly three things: (1) hook text on slide 1, (2) imagery style across slides 1-5, (3) CTA text on slide 6. Format, structure, duration, and specs are locked. See `references/experiment-framework.md` for the active experiment queue and controls.
+- **Production ladder (replaces locked format).** Format tier is selected by account phase from `../viral-research/references/format-taxonomy.md`:
+  - Phase 1 (0-1K followers): T1 + T2 + P3
+  - Phase 2 (1K-10K): T3 + T4 + P3
+  - Phase 3 (10K+): all tiers
+  P3 Cultural Edutainment (frosted glass + dictionary-style text on cinematic footage) is the recommended starting format — proven viral in niche (Calm: 9.7M views), low production cost, gap in sobriety space.
+- **Three experiment variables within the chosen tier.** The agent tests exactly three things: (1) hook text/framing, (2) imagery style/footage, (3) CTA text/type. Format tier is NOT a variable during a phase — it's selected by the production ladder. See `references/experiment-framework.md` for the active experiment queue and controls.
 - **Platform-native first.** Content that looks like genuine value gets algorithmic reach. Content that looks like an ad gets buried. Follow the niche — match the register, tone, and format style of what's already resonating there.
 - **Simplicity criterion.** If a simpler approach performs equally, prefer it. A great hook with simple visuals outperforms polished production with a weak hook. Less production effort = more cycles = faster learning.
 - **Trust is the only real asset here.** Claims made in content are a promise to the audience. Accuracy matters. When uncertain, qualify ("for most people", "research suggests"). Never sensationalize or overstate.
@@ -215,49 +230,61 @@ curl -s -H "Authorization: Bearer $REVENUECAT_API_KEY" \
 
 ---
 
-**Step 2: Content generation**
+**Step 2: Content direction + generation + production**
 
-**The diagnostic quadrant from Step 1 directs this step.** Do not start from scratch — the quadrant prescribes a specific action (see Diagnostic Matrix). Follow that action as the constraint for research and content creation this cycle.
+**The diagnostic quadrant from Step 1 directs this step.** Do not start from scratch — the quadrant prescribes a specific action (see Diagnostic Matrix). Follow that action as the constraint for content creation this cycle.
 
-**Format is locked:** 6-slide reel. Do not change the format. See `references/experiment-framework.md` for what variables to test.
+---
 
-**Virality gate (required before creating any post):**
-Score the planned content idea against the 5-question virality check in `references/virality-model.md`.
+**Step 2a: Content direction (from existing research)**
 
-- Score 4–5: proceed
-- Score 3: revise the hook or specificity, then re-score
-- Score 0–2: discard — research a new angle before proceeding
+Select a content angle using existing research output — do NOT run interactive research.
 
-Do not create content that fails the virality gate. Low-virality content wastes the cycle's posting slot and sends negative signals to the algorithm.
+1. Read `../viral-research/references/example-brief.md` — the current research brief with recommended angles per tier
+2. Read `../viral-research/references/format-taxonomy.md` — tier definitions and production ladder
+3. Cross-reference with `references/results.jsonl` — which angles and tiers have already been used?
+4. Select a format tier appropriate to the current account phase (see Operating Principles → Production ladder)
+5. Select a content angle from the brief that hasn't been exhausted yet
 
-**Content creation process (6-slide reel — batch generation):**
+**Fresh research flag (HIGH bar):** Only flag when ALL of these are true:
+- Every tier×angle combination from the current brief has been used at least once
+- 10-15+ cycles have passed since the brief was produced
+- Flag is NON-BLOCKING — include it in the morning report with specific suggestions for what to research next. Do not stop the loop.
+
+---
+
+**Step 2b: Virality gate + batch concept generation (stays in ig-marketer)**
 
 1. **Read experiment framework** — check `references/experiment-framework.md` for the current experiment. This tells you which variable to test and what to hold constant.
-2. **Research topic** — check `references/recommended-sources.md` first, then `references/browsing-guide.md` for workflow. Pick an angle the audience is actively asking about or engaging with.
-3. **Generate 3-5 variations of the test variable:**
-   - If testing **hooks**: write 3-5 different hook texts (slide 1), keeping imagery style + CTA constant
-   - If testing **imagery**: write 3-5 different image prompts / visual styles, keeping hook + CTA constant
-   - If testing **CTA**: write 3-5 different CTA texts (slide 6), keeping hook + imagery constant
-4. **Score each variation** against the virality model's 5-question gate (hook tension, specificity, emotional resonance, sendability, watchability). Each question = 1 point, max 5.
-5. **Pick the winner** — highest score. Break ties with what's most unexpected or specific to the audience.
-6. **Log the discards** — store all variations in results.jsonl under `reasoning.discarded_variations` as `[{text, score, reason_not_picked}]`. These are data for future cycles.
-7. **Write the 6 slides** (using the winning variation):
-   - **Slide 1 (Hook):** Write hook text based on the experiment's hook type. This is the scroll-stopper.
-   - **Slides 2-5 (Content):** Write 4 content text overlays that deliver on the hook's promise. Each slide = one point, one sentence, specific and concrete.
-   - **Slide 6 (CTA):** Write CTA text based on the experiment's CTA type.
-8. **Generate imagery** — based on the experiment's imagery type:
-   - Generate AI images via fal.ai for each slide, then overlay text. Budget: `references/config.json` → `fal.budgetCeilingUSD`. **⚠️ Images must be photorealistic — no uncanny faces, plastic skin, weird hands, or over-saturated lighting.** If a generation looks obviously AI, re-generate with a different prompt. The sobriety niche is about authenticity — fake visuals kill credibility.
-9. **Write caption:** Hook → Insight → Payoff → CTA (max 5 hashtags from discovered clusters in `references/playbook.json` — or from current research if playbook clusters are empty)
+2. **Generate 3-5 content concepts** (varying the current test variable within the chosen tier):
+   - If testing **hooks**: write 3-5 different hook texts/framings, keeping imagery style + CTA constant
+   - If testing **imagery**: describe 3-5 different visual approaches/footage styles, keeping hook + CTA constant
+   - If testing **CTA**: write 3-5 different CTA texts/types, keeping hook + imagery constant
+3. **Score each concept** against the virality model's 5-question gate in `references/virality-model.md` (hook tension, specificity, emotional resonance, sendability, niche-native). Each yes = 1 point, max 5.
+   - Score 4–5: proceed
+   - Score 3: revise the hook or specificity, then re-score
+   - Score 0–2: discard — pick a different angle from the brief
+4. **Pick the winner** — highest score. Break ties with what's most unexpected or specific to the audience.
+5. **Log the discards** — store all variations in results.jsonl under `reasoning.discarded_variations` as `[{text, score, reason_not_picked}]`.
 
-**Rendering the 6-slide reel:**
+---
 
-10. Follow `references/reel-workflow.md` — copy 5 images (hook + 4 content) + audio to `/home/node/remotion-runtime/public/`, render with Remotion using props: `hookText`, `sceneTexts` (4 entries for slides 2-5), `ctaText`, `images` (5 entries), `audioFile`, `secondsPerScene: 3`
-11. Pick an audio track from `output/assets/audio/` that matches the reel's emotional register (see reel-workflow.md for mood guide)
-12. Send draft to human via Telegram:
+**Step 2c: Production delegation (to viral-producer)**
+
+Delegate the winning concept to the **viral-producer** skill with these inputs:
+- Format tier (e.g., P3, T1, T2)
+- Topic and content angle
+- Hook text/framing (the winning variation)
+- CTA text/type
+- Brand voice reference: `references/soul.md` (viral-producer reads from `../ig-marketer/references/soul.md`)
+
+Viral-producer handles: asset generation, Remotion rendering, caption writing, output packaging. It returns a complete package: `.mp4` + `caption.txt` + `metadata.json`.
+
+After receiving the rendered output, send draft to human via Telegram:
 
 ```bash
 openclaw message send --channel telegram --target $TELEGRAM_CHAT_ID \
-  --media output/reels/<file>.mp4 --message "🎬 Reel draft — <topic>"
+  --media <path-to-reel>.mp4 --message "🎬 Reel draft — <topic> [<tier>]"
 ```
 
 Follow with caption:
@@ -280,18 +307,14 @@ Immediately after drafting content, append a new entry:
   "id": "cycle-NNN",
   "date": "YYYY-MM-DD",
   "type": "post",
-  "format": "6-slide-reel",
+  "format": "T1|T2|T3|T4|P1|P2|P3",
+  "format_tier_label": "e.g. P3 Cultural Edutainment",
   "topic": "...",
   "hook_style": "shock_stat|question|curiosity_gap|contrarian|personal_story",
-  "hook_text": "exact hook text used on slide 1",
-  "scene_texts": [
-    "slide 2 text",
-    "slide 3 text",
-    "slide 4 text",
-    "slide 5 text"
-  ],
-  "imagery_style": "text-on-gradient|ai-generated|app-screenshots|stock|mixed",
-  "cta": "exact CTA text used on slide 6",
+  "hook_text": "exact hook text or framing used",
+  "content_summary": "brief description of the reel's content structure",
+  "imagery_style": "cinematic-footage|ai-generated|stock|timelapse|gradient|mixed",
+  "cta": "exact CTA text used",
   "posting_time": "HH:MM",
   "hashtag_set": "cluster-a|cluster-b|broad",
   "views": null,
@@ -348,6 +371,7 @@ Runs every cycle after Step 3. Uses whatever newly scored entries exist — no m
    - If evidence contradicts any current hypothesis in the model, update the hypothesis.
    - Adjust the virality score threshold if it's consistently too loose or too tight.
    - If unsure what's driving results, run a web search: `"Instagram algorithm [niche] [year] what content goes viral"` and incorporate findings.
+   - **Swipe-file feedback:** If a scored post reveals a new pattern (hook type, visual style, or format variation that over/under-performed), append a finding to `../viral-research/references/swipe-file.jsonl` so future research briefs reflect real performance data.
 5. **Conversion correlation check** (every cycle):
    - Cross-reference topics and hooks from scored entries with `new_subscribers_since_post` values in results.jsonl
    - Identify which content variables (topic, hook style, format, CTA) correlate with actual subscriber conversions — not just views
@@ -368,11 +392,9 @@ Runs every cycle after Step 3. Uses whatever newly scored entries exist — no m
 
 Human receives carousel images + caption via Telegram → publishes from Instagram app. This closes the loop — the post published here becomes the input to Step 1 of the next cycle. The agent discovers the published post's media ID automatically via `GET /{ig-user-id}/media` at the start of the next cycle.
 
-**Research (every cycle + deeper dive any time score drops 2 consecutive cycles):**
+**Research direction (every cycle):**
 
-Start with `references/recommended-sources.md` for high-signal sources, then expand via general web search. Follow `references/browsing-guide.md` for research workflow. ⛔ Do NOT browse instagram.com — use web search only. Adjacent niche research is for hook/angle inspiration only — all content targets the niche defined in `config.json → app.niche`.
-
-Update `references/competitor-research.json` with new patterns.
+Use existing research output from `../viral-research/references/example-brief.md` and `../viral-research/references/swipe-file.jsonl`. ⛔ Do NOT browse instagram.com. Adjacent niche web searches are for hook/angle inspiration only — all content targets the niche defined in `config.json → app.niche`.
 
 ---
 
@@ -387,7 +409,7 @@ Use this AFTER scoring each cycle. The quadrant tells you what's broken and exac
 | **Q1: High views + High subs**            | 🟢 Working                   | Nothing — scale it                                   | Generate 3-5 variations of the SAME hook type. Keep imagery + CTA constant. Post the best one. You found signal — exploit it before moving on.                                                                                                                                                   |
 | **Q2: High views + Low subs**             | 🟡 Hook works, funnel broken | CTA or app landing                                   | 1. Skip ahead to CTA testing — generate 3-5 CTA variations with the current hook. 2. Check App Store listing (does it match what the reel promises?). 3. If CTA rotation doesn't fix it after 3 posts, escalate to Henry — problem is likely in-app (onboarding, paywall, pricing).              |
 | **Q3: Low views + High subs**             | 🟡 Converts but invisible    | Hook isn't stopping the scroll                       | Stay on hook testing. The content converts — the hook just isn't reaching people. Try a radically different hook type (if testing "question" hooks, try "shock stat" or "contrarian"). Don't touch imagery or CTA — they're working.                                                             |
-| **Q4: Low views + Low subs**              | 🔴 Nothing working           | Topic or angle is off                                | 1. Run a fresh research cycle — check competitor-research.json for what's getting engagement NOW. 2. Pull 3 new topic angles from the research. 3. Generate 3-5 hooks for each angle, score against virality model, pick the best. 4. If 3 consecutive Q4 results → pause and escalate to Henry. |
+| **Q4: Low views + Low subs**              | 🔴 Nothing working           | Topic or angle is off                                | 1. Re-read `../viral-research/references/example-brief.md` for unused angles. 2. Pull 3 new topic angles from the brief. 3. Generate 3-5 hooks for each angle, score against virality model, pick the best. 4. If 3 consecutive Q4 results → pause and escalate to Henry. |
 | **High views + High installs + flat MRR** | 🔴 App problem               | Content is fine, app isn't converting trials to paid | STOP posting. Escalate to Henry immediately. The problem is onboarding, paywall, trial length, or pricing — not content. Posting more just burns audience goodwill.                                                                                                                              |
 
 **Key rule:** The diagnostic matrix overrides the experiment queue. If you're in Q1, don't move to the next experiment — double down on what's working. If you're in Q2, jump to CTA testing regardless of where the queue says you should be. The queue is the default path; the matrix is the override.
@@ -415,18 +437,24 @@ All paths are relative to the skill's own directory (wherever this SKILL.md live
 
 - Results log (append-only): `references/results.jsonl`
 - Best-known playbook: `references/playbook.json`
-- Competitor research: `references/competitor-research.json`
 - Config + API keys: `references/config.json`
 - Virality algorithm (agent-owned, living doc): `references/virality-model.md`
-- Browsing instructions: `references/browsing-guide.md`
-- Recommended research sources: `references/recommended-sources.md`
-- Reel pipeline (original + remix): `references/reel-workflow.md`
+- Brand voice (read-only): `references/soul.md`
 - App codebase brief (cached, agent-refreshed): `references/app-brief.md`
 - App intelligence feedback (append-only): `references/app-feedback.md`
 - Session improvement notes (append-only): `references/improvement-notes.md`
 - Experiment framework (queue + controls): `references/experiment-framework.md`
+- Baseline study: `references/baseline-study.md`
 
-**Every cycle reads in this order:** results.jsonl (full) → playbook.json → experiment-framework.md → competitor-research.json → virality-model.md → then pull live analytics.
+**Sibling skill references (read from, write feedback to):**
+
+- Research brief: `../viral-research/references/example-brief.md`
+- Swipe file (read + append feedback): `../viral-research/references/swipe-file.jsonl`
+- Format taxonomy: `../viral-research/references/format-taxonomy.md`
+- Production config (written on Cycle 0): `../viral-producer/references/production-config.json`
+- Production skill: `../viral-producer/SKILL.md`
+
+**Every cycle reads in this order:** results.jsonl (full) → playbook.json → experiment-framework.md → virality-model.md → then pull live analytics.
 
 **JSONL schema:**
 
@@ -435,7 +463,7 @@ All paths are relative to the skill's own directory (wherever this SKILL.md live
   "id": "cycle-001",
   "date": "YYYY-MM-DD",
   "type": "post",
-  "format": "reel",
+  "format": "T1|T2|T3|T4|P1|P2|P3",
   "topic": "[topic researched by agent]",
   "hook_style": "question|statement|pov|listicle",
   "cta": "[app CTA from config]",
@@ -485,16 +513,19 @@ Every cycle runs the same steps in the same order. The loop is closed by the hum
 
 ```
 CYCLE START (agent)
-  1. Read memory: results.jsonl → playbook → competitor-research → virality-model
+  1. Read memory: results.jsonl → playbook → experiment-framework → virality-model
   2. Discover published media ID via Instagram Graph API → pull insights for previous cycle's post
   3. Score it → update that results.jsonl entry → identify quadrant → output morning report
-  4. Research niche → generate content → virality gate → send draft via Telegram → append pending entry
-  5. Reflect + Update: recompute baseline, update playbook + virality model, output cycle summary
+  4a. Select content direction from existing research brief (../viral-research/)
+  4b. Virality gate + batch concept generation (3-5 concepts, pick winner)
+  4c. Delegate winning concept to viral-producer → receive .mp4 → send draft via Telegram
+  5. Append pending entry to results.jsonl
+  6. Reflect + Update: recompute baseline, update playbook + virality model, feedback to swipe-file.jsonl
 
 CYCLE END (human)
-  6. Human publishes from Instagram app  ← loop closes here
+  7. Human publishes from Instagram app  ← loop closes here
 
-The pending entry appended in step 4 becomes the target of step 2 in the next cycle.
+The pending entry appended in step 5 becomes the target of step 2 in the next cycle.
 ```
 
 **Baseline recording (runs once on Cycle 1):\*** If `playbook.json → cycleCount == 0`, the agent records the baseline state (MRR, follower count), confirms connections, Content generation proceeds normally. Once `cycleCount` is incremented to 1, this path never runs again.
