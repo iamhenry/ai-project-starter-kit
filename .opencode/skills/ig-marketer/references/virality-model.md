@@ -171,9 +171,9 @@ _Agent appends findings here after each cycle's analytics pull. Newest entries a
 ## Research Sources
 
 When updating this model, the agent may consult:
-- Web search for niche trends (see `references/browsing-guide.md`) — NO Instagram browsing
+- Web search for niche trends — NO Instagram browsing
 - Web search: "what makes content go viral on Instagram [year]", "Instagram algorithm [niche] reach", "highest save rate Instagram content types" — **3-month recency rule: only use sources from the last 90 days**
 - `references/results.jsonl` — internal experiment data (primary source after 10+ posts)
-- `references/competitor-research.json` — niche patterns observed via browsing
+- `../viral-research/references/swipe-file.jsonl` — niche patterns from research cycles
 
 Internal data (results.jsonl) always overrides external research when they conflict.

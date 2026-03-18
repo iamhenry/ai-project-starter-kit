@@ -104,7 +104,7 @@ curl -s "https://graph.facebook.com/v22.0/${INSTAGRAM_BUSINESS_ACCOUNT_ID}/insig
 ### Permissions
 
 - Read/write: `references/` (all memory files — relative to skill dir)
-- Read/write: `output/` (created on first run if missing — carousels, reels, assets)
+- Read/write: `output/` (created on first run if missing — reels, assets)
 - agent-browser: App Store only. **Instagram is banned** — see Off-limits. No logins, no engagement actions, no form submissions on any site.
 - All secrets loaded from `/home/node/openclaw/.env` — never hardcode IDs or tokens in skill files
 
@@ -127,7 +127,7 @@ curl -s "https://graph.facebook.com/v22.0/${INSTAGRAM_BUSINESS_ACCOUNT_ID}/insig
 | Source reels for remix  | Web search for viral reel URLs → yt-dlp download                                                                                                            | No hard limit          | Transformative use — new message, new CTA | Alternative format — use when research reveals a high-performing reel worth remixing                                                                                  |
 | Niche trend data        | Web search, UGC blogs (Later, Hootsuite, Buffer, Sprout Social), creator newsletters, Reddit                                                                | No hard limit          | n/a                                       | Broaden search terms, try adjacent niches for angle inspiration                                                                                                       |
 | RevenueCat metrics      | V2 API                                                                                                                                                      | Rate limited           | Aggregate only — no individual PII        | Retry with exponential backoff                                                                                                                                        |
-| fal.ai image generation | fal.ai API (env var `FAL_KEY`)                                                                                                                              | $10/month hard ceiling | Respect content policy                    | Fall back to gradient/solid backgrounds from carousel command                                                                                                         |
+| fal.ai image generation | fal.ai API (env var `FAL_KEY`)                                                              | $10/month hard ceiling | Respect content policy                    | Fall back to gradient/solid backgrounds                                                                                                                               |
 | App codebase            | GitHub repo (`app.githubRepo` in config.json) read via gitingest CLI → cached in `references/app-brief.md`                                                  | Unlimited (read-only)  | Read-only, no forks or PRs                | Use cached app-brief.md if repo unavailable                                                                                                                           |
 | App Store listing       | agent-browser → `app.appStoreUrl` in config.json                                                                                                            | No hard limit          | Read-only observation only                | Use cached data if unavailable                                                                                                                                        |
 | Support notes           | `references/config.json` → `app.supportNotes` (optional, filled by human)                                                                                   | n/a                    | n/a                                       | Skip if empty                                                                                                                                                         |
@@ -167,7 +167,7 @@ Every cycle, in this order:
 **Baseline metrics (first cycle only):**
 
 ```
-🚀 [YYYY-MM-DD] Baseline recorded | MRR: $X | Followers: N | Postiz: ✓ | RevenueCat: ✓
+🚀 [YYYY-MM-DD] Baseline recorded | MRR: $X | Followers: N | IG Graph API: ✓ | RevenueCat: ✓
 ⚠️  [flag or "No flags"]
 ```
 
@@ -260,25 +260,25 @@ Select a content angle using existing research output — do NOT run interactive
    - If testing **hooks**: write 3-5 different hook texts/framings, keeping imagery style + CTA constant
    - If testing **imagery**: describe 3-5 different visual approaches/footage styles, keeping hook + CTA constant
    - If testing **CTA**: write 3-5 different CTA texts/types, keeping hook + imagery constant
-3. **Score each concept** against the virality model's 5-question gate in `references/virality-model.md` (hook tension, specificity, emotional resonance, sendability, niche-native). Each yes = 1 point, max 5.
+3. **Score each concept** against the virality model's 5-question gate in `references/virality-model.md`. Each yes = 1 point, max 5.
    - Score 4–5: proceed
    - Score 3: revise the hook or specificity, then re-score
    - Score 0–2: discard — pick a different angle from the brief
 4. **Pick the winner** — highest score. Break ties with what's most unexpected or specific to the audience.
-5. **Log the discards** — store all variations in results.jsonl under `reasoning.discarded_variations` as `[{text, score, reason_not_picked}]`.
+5. **Write the caption** for the winning concept. Follow `references/caption-guide.md` (full framework) + `references/soul.md` (brand voice).
+6. **Log the discards** — store all variations in results.jsonl under `reasoning.discarded_variations` as `[{text, score, reason_not_picked}]`.
 
 ---
 
 **Step 2c: Production delegation (to viral-producer)**
 
-Delegate the winning concept to the **viral-producer** skill with these inputs:
-- Format tier (e.g., P3, T1, T2)
-- Topic and content angle
-- Hook text/framing (the winning variation)
-- CTA text/type
-- Brand voice reference: `references/soul.md` (viral-producer reads from `../ig-marketer/references/soul.md`)
+Delegate the winning concept to the **viral-producer** skill. The production spec is the contract — viral-producer validates it and produces exactly what it describes. No creative decisions happen downstream.
 
-Viral-producer handles: asset generation, Remotion rendering, caption writing, output packaging. It returns a complete package: `.mp4` + `caption.txt` + `metadata.json`.
+**How to invoke:** Read `../viral-producer/SKILL.md` and follow its workflow, passing a production spec as input. The producer skill is an executor — spec in, content out.
+
+**Production spec:** Build the spec per `references/production-spec.md` (required + optional fields, example). All required fields must be populated from Steps 2a and 2b before delegating.
+
+Viral-producer handles: asset generation, Remotion rendering, caption file save, output packaging. It returns a complete package: `.mp4` + `caption.txt` + `metadata.json`.
 
 After receiving the rendered output, send draft to human via Telegram:
 
@@ -347,7 +347,7 @@ Immediately after drafting content, append a new entry:
 
 Status starts as `"pending"`. Updated to `"keep"`, `"discard"`, or `"fail"` when the next cycle pulls analytics.
 
-**Stale cleanup:** At every cycle start, scan results.jsonl for entries where `status === "pending"` AND `date < today - 5 days`. Update those entries to `status: "stale"` with `notes: "No analytics data after 5 days — possible Postiz connection issue"`.
+**Stale cleanup:** At every cycle start, scan results.jsonl for entries where `status === "pending"` AND `date < today - 5 days`. Update those entries to `status: "stale"` with `notes: "No analytics data after 5 days — check if post was published".`
 
 **Archive rule:** When results.jsonl exceeds 500 lines, copy to `references/results-archive-YYYY-MM-DD.jsonl` and reset results.jsonl.
 
@@ -390,7 +390,7 @@ Runs every cycle after Step 3. Uses whatever newly scored entries exist — no m
 
 **Step 5 (Human): Publish**
 
-Human receives carousel images + caption via Telegram → publishes from Instagram app. This closes the loop — the post published here becomes the input to Step 1 of the next cycle. The agent discovers the published post's media ID automatically via `GET /{ig-user-id}/media` at the start of the next cycle.
+Human receives reel .mp4 + caption via Telegram → publishes from Instagram app. This closes the loop — the post published here becomes the input to Step 1 of the next cycle. The agent discovers the published post's media ID automatically via `GET /{ig-user-id}/media` at the start of the next cycle.
 
 **Research direction (every cycle):**
 
@@ -443,7 +443,9 @@ All paths are relative to the skill's own directory (wherever this SKILL.md live
 - App codebase brief (cached, agent-refreshed): `references/app-brief.md`
 - App intelligence feedback (append-only): `references/app-feedback.md`
 - Session improvement notes (append-only): `references/improvement-notes.md`
+- Caption guide: `references/caption-guide.md`
 - Experiment framework (queue + controls): `references/experiment-framework.md`
+- Production spec contract: `references/production-spec.md`
 - Baseline study: `references/baseline-study.md`
 
 **Sibling skill references (read from, write feedback to):**
@@ -456,42 +458,12 @@ All paths are relative to the skill's own directory (wherever this SKILL.md live
 
 **Every cycle reads in this order:** results.jsonl (full) → playbook.json → experiment-framework.md → virality-model.md → then pull live analytics.
 
-**JSONL schema:**
-
-```jsonl
-{
-  "id": "cycle-001",
-  "date": "YYYY-MM-DD",
-  "type": "post",
-  "format": "T1|T2|T3|T4|P1|P2|P3",
-  "topic": "[topic researched by agent]",
-  "hook_style": "question|statement|pov|listicle",
-  "cta": "[app CTA from config]",
-  "posting_time": "HH:MM",
-  "hashtag_set": "cluster-a|cluster-b|broad",
-  "views": 0,
-  "saves": 0,
-  "profile_visits": 0,
-  "new_subscribers_since_post": 0,
-  "score_delta": 0,
-  "status": "keep",
-  "phase": "growth",
-  "reasoning": {
-    "why_topic": "browsing showed high engagement on this angle in niche hashtag feed",
-    "why_format": "70% of top posts in niche this cycle were single images — matched that signal",
-    "virality_score": 4,
-    "virality_notes": "passed hook tension, specificity, emotional resonance, niche-native — failed shareable premise",
-    "vs_baseline": "first scored entry — using bootstrap priors from virality-model.md",
-    "skipped_steps": "none",
-    "outcome_hypothesis": "expect 200–400 views; high save rate would validate topic angle"
-  }
-}
-```
+**JSONL schema:** See Step 3 for the current schema. Single source of truth — do not duplicate here.
 
 ## Safety
 
 - Hard stops: no ad purchases, no account engagement, no content claiming medical outcomes
-- Budget ceiling: fal.ai $10/month — if limit hit, fall back to solid or gradient backgrounds generated by the carousel command
+- Budget ceiling: fal.ai $10/month — if limit hit, fall back to solid or gradient backgrounds
 - Rate limits: Instagram Graph API and RevenueCat API — retry with exponential backoff (1s, 2s, 4s), max 3 retries
 - Escalation triggers:
   - Views drop >60% for 2 consecutive posts → suspect shadow ban → pause posting → alert human with evidence
@@ -502,7 +474,7 @@ All paths are relative to the skill's own directory (wherever this SKILL.md live
 ## Closed Loop Test
 
 - [x] Observe: Instagram Graph API insights (reach, saves, views, profile visits) + RevenueCat (new subscribers, MRR)
-- [x] Act: generate reel (primary) or carousel (secondary) using tools in `references/`; send draft via Telegram.
+- [x] Act: generate reel via viral-producer (format tier per production ladder); send draft via Telegram.
 - [x] Verify: analytics vs baseline every cycle via diagnostic matrix
 - [x] Record: `references/results.jsonl` — append-only JSONL, read in full at every cycle start, stale entries cleaned automatically
 - [x] Continue: diagnostic matrix drives next action autonomously; human publishes from Instagram app

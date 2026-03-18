@@ -40,7 +40,7 @@ usually under 10 seconds) can't fit.
 - If the Reel is aspirational (T3 Text Card) → the body should validate and encourage
 - If the Reel is premium/functional (P1) → the body can be minimal or instructional
 
-**Read `references/soul.md` before writing.** The body must sound like the brand voice.
+**Read `soul.md` (in this same references directory) before writing.** The body must sound like the brand voice.
 
 ### 3. Call-to-Action
 

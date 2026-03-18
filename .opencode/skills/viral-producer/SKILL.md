@@ -1,16 +1,15 @@
 ---
 name: viral-producer
 description: >
-  Faceless Instagram Reel production from research brief to rendered video. Use this skill
-  whenever the user wants to create, generate, produce, or render a faceless Instagram Reel
-  or short-form video. Trigger when the user mentions creating Reels, making content, producing
-  videos, rendering animations, building carousel slides, or adapting a research brief into
-  actual content. Also trigger when the user references Remotion, fal.ai, video rendering,
-  motion graphics, or wants to turn content ideas into publishable Reels. This skill consumes
-  a research brief (from the viral-research skill) and produces rendered video files ready
-  for posting. It handles format selection, asset generation, Remotion rendering, caption
-  writing, and output packaging. It does not research content or browse Instagram — that's
-  the viral-research skill's job.
+  Spec-in, content-out Reel renderer. Receives a complete production spec (format tier,
+  topic, hook, CTA, caption, imagery direction) from the ig-marketer orchestrator and
+  produces a rendered .mp4 + caption file + metadata. Use this skill whenever you need
+  to render a faceless Instagram Reel from a fully-defined spec. Trigger when creating
+  Reels, rendering animations, or producing video from a production spec. Also trigger
+  when referencing Remotion, fal.ai, video rendering, or motion graphics. This skill
+  does NOT make creative decisions — format selection, virality scoring, caption writing,
+  and content strategy are handled upstream by ig-marketer. It validates the incoming
+  spec, generates assets, renders via Remotion, saves the caption, and packages output.
 version: "1.0"
 ---
 
@@ -18,11 +17,12 @@ version: "1.0"
 
 ## Purpose
 
-Take a research brief (produced by the viral-research skill) and turn its recommended content
-angles into rendered, ready-to-post Instagram Reels. This skill owns the entire production
-pipeline from concept to final .mp4.
+Receive a complete production spec from the ig-marketer orchestrator and render it into a
+ready-to-post Instagram Reel. This skill owns the production pipeline from validated spec
+to final .mp4. It does not select content angles, score virality, or write captions — those
+decisions are made upstream.
 
-The input is intelligence. The output is content.
+The input is a spec. The output is content.
 
 ## Scope
 
@@ -50,27 +50,21 @@ must align with the brand voice defined there.
 
 ## Production Workflow
 
-### Phase 1: Brief Intake
+### Phase 1: Spec Validation
 
-**Goal:** Read the research brief and select what to produce this session.
+**Goal:** Validate the incoming production spec before starting work.
+
+**Spec contract:** See `../ig-marketer/references/production-spec.md` for the full contract (required fields, optional fields, example). This is the single source of truth for the spec interface.
 
 **Process:**
 
-1. Read the research brief (provided by user or located at a known path)
-2. Review the "Recommended Content Angles" section
-3. Check the account's current phase in `references/production-config.json` → `account.currentPhase`
-4. Filter content angles to format tiers appropriate for the current phase:
-   - Phase 1 (0-1K followers): T1, T2, and optionally P3
-   - Phase 2 (1K-10K): T3, T4, P3
-   - Phase 3 (10K+): P1, P2, P3, plus any lower tier
-5. Select 1-3 content angles to produce this session
-6. For each selected angle, confirm with the human:
-   - Topic
-   - Format tier
-   - Hook approach
-   - Target emotion
+1. Read the production spec (passed as input from ig-marketer)
+2. Validate all required fields are present and non-empty
+3. Verify `format_tier` is a recognized tier from `references/format-templates.md`
+4. Read `references/production-config.json` for brand colors, fal.ai settings, Remotion composition mapping
+5. If any required field is missing → error immediately with a clear message listing missing fields. Do not proceed.
 
-**Output:** A production queue of 1-3 content pieces with format, topic, and hook defined.
+**Output:** Validated spec ready for asset preparation.
 
 ### Phase 2: Asset Preparation
 
@@ -197,28 +191,17 @@ Expected: 720x1280, h264 video + aac audio, duration matches target ±0.5s.
 
 **Output:** Rendered .mp4 in `output/reels/<slug>.mp4`
 
-### Phase 4: Caption & CTA
+### Phase 4: Caption Save
 
-**Goal:** Write the Instagram caption, hashtags, and call-to-action.
+**Goal:** Save the caption provided in the production spec.
 
-Read `references/caption-guide.md` for the full caption framework.
-Read `../ig-marketer/references/soul.md` for brand voice constraints.
+The caption is written upstream by ig-marketer. This phase saves it to the output package.
 
-**Caption structure:**
+1. Extract the `caption` field from the production spec
+2. Save to `output/reels/<slug>/caption.txt`
+3. Verify the caption is non-empty
 
-1. **Hook line** — first line visible before "...more." Must compel the tap.
-   Keep under 125 characters (Instagram truncates at this point in feed).
-2. **Body** — expand on the content's message. 2-4 sentences.
-   Match the emotional register of the Reel (don't be playful if the Reel is serious).
-3. **CTA** — drive a specific action:
-   - Comment-based: "Comment [KEYWORD] for [value]" (builds engagement + lead list)
-   - Save-based: "Save this for day [X]" (drives saves, algorithm signal)
-   - Share-based: "Send this to someone who needs it" (drives DM shares, top algorithm signal)
-   - Link-based: "Link in bio" (drives app downloads — use sparingly)
-4. **Hashtags** — max 5, from discovered clusters in the research brief or niche config.
-   Place after the CTA, not inline with the body.
-
-**Output:** Caption text saved to `output/reels/<slug>-caption.txt`
+**Output:** Caption text saved to `output/reels/<slug>/caption.txt`
 
 ### Phase 5: Output Package
 
@@ -273,9 +256,9 @@ publish decision — this skill never posts directly.
 
 - **Research first, produce second.** Never produce content without a research brief or at
   minimum a validated content angle. Uninformed content is wasted effort.
-- **One variable per experiment.** When producing multiple Reels, vary only one element at a
-  time (hook style OR topic OR format OR CTA). You can't attribute results if multiple
-  variables change simultaneously.
+- **Spec is the contract.** The production spec from ig-marketer defines what to produce.
+  Do not second-guess creative decisions (topic, hook, CTA, caption) — produce exactly
+  what the spec says. If the spec is incomplete, error with missing fields.
 - **Virality gate is upstream.** The orchestrator (ig-marketer) runs the virality gate before
   delegating to this skill. Viral-producer produces what it's told — it does not re-score.
 - **Faceless only.** All content must be producible without a human appearing on camera.
@@ -284,9 +267,8 @@ publish decision — this skill never posts directly.
 - **Under 10 seconds by default.** The research data consistently shows sub-10-second Reels
   get higher completion rates and more algorithmic distribution. Only exceed 10 seconds for
   P2 (Data Viz) formats where the escalation arc requires it.
-- **Soul before content.** Always read `references/soul.md` before writing any text. The brand
-  voice is a constraint, not a suggestion. Content that doesn't sound like the brand is worse
-  than no content.
+- **Soul for visual tone.** Read `../ig-marketer/references/soul.md` for brand voice context.
+  Use it to guide visual tone and typography choices — not to rewrite copy (that's upstream).
 - **Graceful degradation.** If Remotion isn't available, output the asset package + rendering
   instructions. If fal.ai budget is hit, fall back to stock or gradient backgrounds. The
   production pipeline should never hard-stop — there's always a lower-cost path to content.
@@ -302,7 +284,7 @@ All paths relative to this skill's directory:
 - **Brand voice:** `../ig-marketer/references/soul.md` (single source of truth — no local copy)
 - **Format templates:** `references/format-templates.md`
 - **Remotion guide:** `references/remotion-guide.md`
-- **Caption guide:** `references/caption-guide.md`
+- **Caption guide:** `../ig-marketer/references/caption-guide.md` (owned by ig-marketer — creative decisions live upstream)
 - **Output directory:** `output/` (created on first run if missing)
 - **Asset directory:** `output/assets/` (generated assets per production run)
 - **Reel directory:** `output/reels/` (final rendered Reels)

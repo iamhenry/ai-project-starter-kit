@@ -137,8 +137,8 @@ example — Calm's "hurkle-durkle" achieved 222K likes (high virality) with prem
 
 For accounts starting from near-zero followers, progress through tiers in this order:
 
-**Phase 1 (0-1K followers):** T1 + T2 — maximize reach with minimum production.
-1 Reel/day. Test topics rapidly. Under 8 seconds. The goal is algorithmic distribution.
+**Phase 1 (0-1K followers):** T1 + T2 + P3 — maximize reach with minimum production, plus one premium format.
+1 Reel/day. Test topics rapidly. T1/T2 under 8 seconds. P3 Cultural Edutainment (frosted glass + cinematic footage) differentiates early. The goal is algorithmic distribution.
 
 **Phase 2 (1K-10K followers):** T3 + T4 — build identity and niche authority.
 5 Reels/week. Develop visual consistency (color palette, typography). Start mixing in
