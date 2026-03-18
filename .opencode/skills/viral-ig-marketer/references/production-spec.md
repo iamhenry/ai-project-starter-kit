@@ -1,6 +1,6 @@
 # Production Spec Contract
 
-The production spec is the interface between ig-marketer (orchestrator) and viral-producer (renderer). ig-marketer builds this spec; viral-producer validates and executes it.
+The production spec is the interface between viral-ig-marketer (orchestrator) and viral-producer (renderer). viral-ig-marketer builds this spec; viral-producer validates and executes it.
 
 ## Required Fields
 

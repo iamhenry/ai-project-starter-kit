@@ -2,13 +2,13 @@
 name: viral-producer
 description: >
   Spec-in, content-out Reel renderer. Receives a complete production spec (format tier,
-  topic, hook, CTA, caption, imagery direction) from the ig-marketer orchestrator and
+  topic, hook, CTA, caption, imagery direction) from the viral-ig-marketer orchestrator and
   produces a rendered .mp4 + caption file + metadata. Use this skill whenever you need
   to render a faceless Instagram Reel from a fully-defined spec. Trigger when creating
   Reels, rendering animations, or producing video from a production spec. Also trigger
   when referencing Remotion, fal.ai, video rendering, or motion graphics. This skill
   does NOT make creative decisions — format selection, virality scoring, caption writing,
-  and content strategy are handled upstream by ig-marketer. It validates the incoming
+  and content strategy are handled upstream by viral-ig-marketer. It validates the incoming
   spec, generates assets, renders via Remotion, saves the caption, and packages output.
 version: "1.0"
 ---
@@ -17,7 +17,7 @@ version: "1.0"
 
 ## Purpose
 
-Receive a complete production spec from the ig-marketer orchestrator and render it into a
+Receive a complete production spec from the viral-ig-marketer orchestrator and render it into a
 ready-to-post Instagram Reel. This skill owns the production pipeline from validated spec
 to final .mp4. It does not select content angles, score virality, or write captions — those
 decisions are made upstream.
@@ -45,7 +45,7 @@ The input is a spec. The output is content.
 Read `references/production-config.json` before every production session. It defines the
 niche, brand voice, visual system, and tool configuration.
 
-Read `../ig-marketer/references/soul.md` before writing any text content (hooks, captions, CTAs). All copy
+Read `../viral-ig-marketer/references/soul.md` before writing any text content (hooks, captions, CTAs). All copy
 must align with the brand voice defined there.
 
 ## Production Workflow
@@ -54,11 +54,11 @@ must align with the brand voice defined there.
 
 **Goal:** Validate the incoming production spec before starting work.
 
-**Spec contract:** See `../ig-marketer/references/production-spec.md` for the full contract (required fields, optional fields, example). This is the single source of truth for the spec interface.
+**Spec contract:** See `../viral-ig-marketer/references/production-spec.md` for the full contract (required fields, optional fields, example). This is the single source of truth for the spec interface.
 
 **Process:**
 
-1. Read the production spec (passed as input from ig-marketer)
+1. Read the production spec (passed as input from viral-ig-marketer)
 2. Validate all required fields are present and non-empty
 3. Verify `format_tier` is a recognized tier from `references/format-templates.md`
 4. Read `references/production-config.json` for brand colors, fal.ai settings, Remotion composition mapping
@@ -81,7 +81,7 @@ Read `references/format-templates.md` for the exact asset requirements per forma
 **For T2 (Quote Card):**
 
 - Generate background image via fal.ai or source stock photo
-- Write the quote text (read `../ig-marketer/references/soul.md` for voice)
+- Write the quote text (read `../viral-ig-marketer/references/soul.md` for voice)
 - Style: bold, stacked, center-aligned
 
 **For T3 (Text Card):**
@@ -195,7 +195,7 @@ Expected: 720x1280, h264 video + aac audio, duration matches target ±0.5s.
 
 **Goal:** Save the caption provided in the production spec.
 
-The caption is written upstream by ig-marketer. This phase saves it to the output package.
+The caption is written upstream by viral-ig-marketer. This phase saves it to the output package.
 
 1. Extract the `caption` field from the production spec
 2. Save to `output/reels/<slug>/caption.txt`
@@ -256,10 +256,10 @@ publish decision — this skill never posts directly.
 
 - **Research first, produce second.** Never produce content without a research brief or at
   minimum a validated content angle. Uninformed content is wasted effort.
-- **Spec is the contract.** The production spec from ig-marketer defines what to produce.
+- **Spec is the contract.** The production spec from viral-ig-marketer defines what to produce.
   Do not second-guess creative decisions (topic, hook, CTA, caption) — produce exactly
   what the spec says. If the spec is incomplete, error with missing fields.
-- **Virality gate is upstream.** The orchestrator (ig-marketer) runs the virality gate before
+- **Virality gate is upstream.** The orchestrator (viral-ig-marketer) runs the virality gate before
   delegating to this skill. Viral-producer produces what it's told — it does not re-score.
 - **Faceless only.** All content must be producible without a human appearing on camera.
   If a content angle requires face-on-camera, adapt the narrative structure to a faceless
@@ -267,7 +267,7 @@ publish decision — this skill never posts directly.
 - **Under 10 seconds by default.** The research data consistently shows sub-10-second Reels
   get higher completion rates and more algorithmic distribution. Only exceed 10 seconds for
   P2 (Data Viz) formats where the escalation arc requires it.
-- **Soul for visual tone.** Read `../ig-marketer/references/soul.md` for brand voice context.
+- **Soul for visual tone.** Read `../viral-ig-marketer/references/soul.md` for brand voice context.
   Use it to guide visual tone and typography choices — not to rewrite copy (that's upstream).
 - **Graceful degradation.** If Remotion isn't available, output the asset package + rendering
   instructions. If fal.ai budget is hit, fall back to stock or gradient backgrounds. The
@@ -281,10 +281,10 @@ publish decision — this skill never posts directly.
 All paths relative to this skill's directory:
 
 - **Production config:** `references/production-config.json`
-- **Brand voice:** `../ig-marketer/references/soul.md` (single source of truth — no local copy)
+- **Brand voice:** `../viral-ig-marketer/references/soul.md` (single source of truth — no local copy)
 - **Format templates:** `references/format-templates.md`
 - **Remotion guide:** `references/remotion-guide.md`
-- **Caption guide:** `../ig-marketer/references/caption-guide.md` (owned by ig-marketer — creative decisions live upstream)
+- **Caption guide:** `../viral-ig-marketer/references/caption-guide.md` (owned by viral-ig-marketer — creative decisions live upstream)
 - **Output directory:** `output/` (created on first run if missing)
 - **Asset directory:** `output/assets/` (generated assets per production run)
 - **Reel directory:** `output/reels/` (final rendered Reels)

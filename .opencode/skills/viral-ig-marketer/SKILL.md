@@ -1,5 +1,5 @@
 ---
-name: ig-marketer
+name: viral-ig-marketer
 description: >-
   Instagram growth orchestrator for any iOS app. Delegates research to viral-research
   and production to viral-producer. Owns the growth loop: pull analytics, select content
@@ -253,7 +253,7 @@ Select a content angle using existing research output — do NOT run interactive
 
 ---
 
-**Step 2b: Virality gate + batch concept generation (stays in ig-marketer)**
+**Step 2b: Virality gate + batch concept generation (stays in viral-ig-marketer)**
 
 1. **Read experiment framework** — check `references/experiment-framework.md` for the current experiment. This tells you which variable to test and what to hold constant.
 2. **Generate 3-5 content concepts** (varying the current test variable within the chosen tier):

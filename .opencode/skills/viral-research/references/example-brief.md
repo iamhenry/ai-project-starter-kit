@@ -555,4 +555,4 @@ This test run proved the research process works and produces actionable output. 
 
 **Proposed skill name:** `viral-research`
 **Scope:** Platform-agnostic research methodology, Instagram-first implementation
-**Output:** Structured research brief (like this document) that feeds into ig-marketer or any content production skill
+**Output:** Structured research brief (like this document) that feeds into viral-ig-marketer or any content production skill
