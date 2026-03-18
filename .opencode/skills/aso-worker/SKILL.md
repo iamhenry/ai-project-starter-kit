@@ -96,9 +96,25 @@ version: 1.0
 
 ## Config
 
-This worker is app-agnostic. Before running, create a `config.json` in the worker's data directory.
+This worker is self-contained. All files live within the skill directory:
 
-**Schema:** See `config.schema.json` for full field definitions, types, defaults, and constraints.
+```
+aso-worker/
+  SKILL.md                        # instructions (human-owned)
+  soul.md                         # judgment principles (human-owned)
+  references/                     # templates and schema (human-owned)
+    config.schema.json
+    results.jsonl                  # example entries
+    playbook.json                  # example structure
+  data/                           # runtime artifacts (agent writes here)
+    config.json                    # app config (shared)
+    results.jsonl                  # experiment log (agent-owned)
+    playbook.json                  # strategy (agent-owned)
+```
+
+Before running, create `data/config.json` in the skill directory.
+
+**Schema:** See `references/config.schema.json` for full field definitions, types, defaults, and constraints.
 
 **Example** (Streaks: Zero Proof):
 
@@ -128,7 +144,6 @@ This worker is app-agnostic. Before running, create a `config.json` in the worke
     "preferred_submit_days": ["tuesday", "wednesday"]
   },
   "autonomy": "semi-autonomous",
-  "data_dir": "./aso-worker-data"
 }
 ```
 
@@ -141,9 +156,9 @@ This worker is app-agnostic. Before running, create a `config.json` in the worke
 
 ## On Start
 
-1. Read `config.json` — load app identity, thresholds, cadence, current metadata
-2. Read recent `results.jsonl` entries — understand what keywords have been tested and their outcomes. Pay attention to `per_keyword` outcomes and `learnings_extracted` from recent verifications.
-3. Read `playbook.json` — current best-known keyword strategy. Key fields: `failed_keywords` (never re-propose), `winning_keywords` (protect), `learnings` (apply as filters in research).
+1. Read `data/config.json` — load app identity, thresholds, cadence, current metadata
+2. Read recent `data/results.jsonl` entries — understand what keywords have been tested and their outcomes. Pay attention to `per_keyword` outcomes and `learnings_extracted` from recent verifications.
+3. Read `data/playbook.json` — current best-known keyword strategy. Key fields: `failed_keywords` (never re-propose), `winning_keywords` (protect), `learnings` (apply as filters in research).
 4. Pull latest rankings from Astro for all tracked keywords
 5. Pull install/conversion analytics via `asc analytics` (if data is stale)
 6. Compute current operational score (weighted avg position)
@@ -298,17 +313,17 @@ Log cadence changes to `results.jsonl`. Update `config.json` when adjusting.
 | --- | --- | --- |
 | `SKILL.md` | Human | Read only. Never modify. |
 | `soul.md` | Human | Read only. Never modify. |
-| `config.schema.json` | Human | Read only. Never modify. |
-| `config.json` | Shared | Read always. Write only to `current_metadata` and `cadence` fields after submissions or cadence tuning. Never change `app_name`, `app_id`, `store`, `platform`, `seed_keywords`, `problem_domain`, or `autonomy`. |
-| `results.jsonl` | Agent | Append entries. Archive when large. |
-| `playbook.json` | Agent | Read and rewrite after each verification. |
+| `references/config.schema.json` | Human | Read only. Never modify. |
+| `data/config.json` | Shared | Read always. Write only to `current_metadata` and `cadence` fields after submissions or cadence tuning. Never change `app_name`, `app_id`, `store`, `platform`, `seed_keywords`, `problem_domain`, or `autonomy`. |
+| `data/results.jsonl` | Agent | Append entries. Archive when large. |
+| `data/playbook.json` | Agent | Read and rewrite after each verification. |
 
 The human programs the worker by editing `SKILL.md` and `soul.md`. The agent programs itself by evolving `playbook.json` and tuning `config.json` cadence. These boundaries are strict.
 
 - Next cycle reads first: `config.json` → `results.jsonl` (tail) → `playbook.json`
 - **Size management:** On start, read the recent tail of `results.jsonl` (enough to understand the last few cycles). For deeper analysis (stall rule), read further back. When the file gets large, archive older entries to `results-archive.jsonl` to keep the active file manageable.
 
-All files live in `config.data_dir` (default: `./aso-worker-data/`).
+All runtime files live in `data/` within the skill directory.
 
 ### results.jsonl format
 
@@ -324,7 +339,7 @@ See `references/playbook.json` for a complete example with all fields.
 
 ## Safety
 - **Hard stops:**
-  - Never modify `SKILL.md`, `soul.md`, or `config.schema.json` — these are human-owned instructions
+  - Never modify `SKILL.md`, `soul.md`, or `references/config.schema.json` — these are human-owned instructions
   - Never use trademarked terms, competitor names, or irrelevant keywords (Apple §2.3.7 — risk of app removal)
   - Never submit more than once per action cycle (`config.cadence.act_days`)
   - Never modify app description without human approval

@@ -130,10 +130,5 @@
       "default": "semi-autonomous",
       "description": "semi-autonomous: worker outputs a report, human approves before submission. fully-autonomous: worker submits directly. Start semi, move to fully after 3+ successful cycles."
     },
-    "data_dir": {
-      "type": "string",
-      "default": "./aso-worker-data",
-      "description": "Directory for worker memory files (results.jsonl, playbook.json). Relative to worker execution directory."
-    }
   }
 }
