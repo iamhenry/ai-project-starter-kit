@@ -145,7 +145,7 @@ This worker is app-agnostic. Before running, create a `config.json` in the worke
 2. Read recent `results.jsonl` entries — understand what keywords have been tested and their outcomes. Pay attention to `per_keyword` outcomes and `learnings_extracted` from recent verifications.
 3. Read `playbook.json` — current best-known keyword strategy. Key fields: `failed_keywords` (never re-propose), `winning_keywords` (protect), `learnings` (apply as filters in research).
 4. Pull latest rankings from Astro for all tracked keywords
-5. Pull install/conversion analytics via `asc analytics` (if last pull was >7 days ago)
+5. Pull install/conversion analytics via `asc analytics` (if data is stale)
 6. Compute current operational score (weighted avg position)
 7. Compare score to baseline and last cycle's score. Check install trend.
 8. Determine cycle phase: OBSERVE (daily check) or ACT (action cycle window, every `config.cadence.act_days` days since last submission)
@@ -160,7 +160,7 @@ This worker is app-agnostic. Before running, create a `config.json` in the worke
 - **Position in metadata matters.** Title > Subtitle > Keywords field for ranking weight. Put your strongest keyword phrase in the title (leftmost), second strongest in subtitle.
 - **Don't repeat yourself.** Words in the title and subtitle are already indexed. Don't waste keywords field characters on them.
 - **Maximize character budget.** Use as close to 100 characters as possible in the keywords field. Comma-separated, NO spaces after commas. Every unused character is a wasted opportunity.
-- **One variable at a time.** When updating metadata, change either the keywords field OR the title/subtitle — not both. This lets you attribute ranking changes to a specific change.
+- **Minimize variables to isolate signal.** Prefer changing either the keywords field OR the title/subtitle — not both — so you can attribute ranking changes to a specific change. Exception: early cycles with empty or obviously broken metadata can make larger moves since there's no useful signal to protect.
 
 ### Strategy
 - **Every cycle is an experiment.** Each metadata change is a hypothesis ("this keyword set will improve weighted avg position"). The cycle proves or disproves it. The result — not the hypothesis — drives the next cycle. Never repeat a failed experiment without a new variable.
@@ -170,11 +170,20 @@ This worker is app-agnostic. Before running, create a `config.json` in the worke
 - **Exploit when improving, explore when not.** If last cycle improved rankings, refine the winning strategy. If it didn't, try a different angle immediately — don't wait multiple cycles to pivot.
 - **Compound learnings.** Read `playbook.json.learnings` before every research phase. Each cycle should produce at least one new learning. Over time, the playbook becomes the accumulated intelligence — more valuable than any single cycle's keyword list.
 - **Simplicity wins.** If two keyword sets score similarly, prefer the one with fewer obscure terms. Simpler keywords = more predictable ranking behavior.
+- **Match confidence to data.** Early cycles have sparse data — cast a wide net. Track many keywords, explore multiple competitor clusters, try diverse angles. As the playbook grows, shift to focused pruning — drop what's not working, double down on what is. A cycle-1 strategy should look nothing like a cycle-10 strategy.
 
 ### Safety
 - **Dry-run everything.** Always run `asc metadata keywords diff` before `apply`. Always run `asc validate` before `submit`.
 - **Log before you act.** Record the proposed change in results.jsonl BEFORE submitting. If submission fails, update the entry with failure reason.
 - **Never submit irrelevant keywords.** Apple's §2.3.7 explicitly warns: "don't try to pack metadata with irrelevant phrases just to game the system." Violations can lead to app removal.
+
+### Resilience
+- **Degrade gracefully, never crash.** If a tool fails, complete what you can with what you have. A partial cycle is better than no cycle.
+  - Astro MCP unreachable → skip observation steps, log the gap, try again next cycle. Do NOT submit metadata without fresh ranking data.
+  - `asc` CLI error → retry once. If it fails again, defer the submission to next cycle. The research and audit work is still valid — save it.
+  - Rate limit hit → backoff and continue with data already fetched. Don't abandon the cycle.
+  - Analytics unavailable → proceed with ranking data alone. Note the gap in the results entry so verification accounts for missing data.
+- **Adapt to what the environment gives you.** If a tool returns partial data (e.g., rankings for 30 of 50 keywords), work with what you have and note the gap. Don't block on perfection.
 
 ## Work Loop
 
@@ -261,6 +270,14 @@ Creative exploration happens every cycle via B2 Research (exploit/explore mode).
 1. **Diagnose the bottleneck.** If rankings are flat but installs are growing, the keywords may be fine — the score is misleading. Check the diagnostic matrix before changing strategy.
 2. **Authority vs. keyword problem.** If the app has few ratings, difficulty thresholds may be too ambitious. A new app with minimal ratings likely can't rank on competitive keywords regardless of which ones you pick. If authority is the bottleneck, pause metadata changes and escalate to human — the fix is downloads and ratings, not keywords.
 3. **Halt threshold.** If no improvement after 3 consecutive action cycles despite exploring different angles each time, halt the loop and alert human. At this point, the problem is likely outside the worker's scope (app quality, market fit, visual assets, pricing).
+
+### Cadence Self-Tuning
+The default `act_days` is a starting point, not a permanent setting. After each verification, assess whether the cadence fits the observed reality:
+- **Shorten** if rankings consistently stabilize well before `verify_preliminary_day` — the cycle has dead time. E.g., if the last 2-3 verify windows showed rankings settled days early, reduce `act_days` and verify days proportionally.
+- **Lengthen** if rankings are still shifting at `verify_final_day` — the measurement is unreliable. E.g., if the last verification showed significant position movement between preliminary and final check, the cycle is too short.
+- **Hold** if rankings are settling right around `verify_final_day` — the cadence fits.
+
+Log cadence changes to `results.jsonl`. Update `config.json` when adjusting.
 
 ## Diagnostic Matrix
 
