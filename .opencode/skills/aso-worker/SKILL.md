@@ -142,7 +142,7 @@ This worker is app-agnostic. Before running, create a `config.json` in the worke
 ## On Start
 
 1. Read `config.json` — load app identity, thresholds, cadence, current metadata
-2. Read `results.jsonl` — understand what keywords have been tested and their outcomes. Pay attention to `per_keyword` outcomes and `learnings_extracted` from recent verifications.
+2. Read the last 100 lines of `results.jsonl` — understand what keywords have been tested and their outcomes. Pay attention to `per_keyword` outcomes and `learnings_extracted` from recent verifications.
 3. Read `playbook.json` — current best-known keyword strategy. Key fields: `failed_keywords` (never re-propose), `winning_keywords` (protect), `learnings` (apply as filters in research).
 4. Pull latest rankings from Astro for all tracked keywords
 5. Pull install/conversion analytics via `asc analytics` (if last pull was >7 days ago)
@@ -186,7 +186,7 @@ This worker is app-agnostic. Before running, create a `config.json` in the worke
 4. If anomaly detected: log it, tag the keyword as `anomaly` in Astro, add note with date
 5. **Algorithm change detection:** If ≥30% of tracked keywords shift ≥5 positions in the same direction on the same day (and no metadata was submitted recently), flag as suspected algorithm change. Log to results.jsonl with type `algorithm_alert`. Do NOT make metadata changes until rankings re-stabilize (2-3 consecutive days of <5% daily variance).
 6. Pull install/conversion data via `asc analytics` (weekly cadence is sufficient — skip if last pull was <7 days ago)
-7. Log daily score to `results.jsonl` as an observation entry
+7. **Append** an observation entry to `results.jsonl` (one JSON line with type `observation`, date, weighted_avg_position, keywords_tracked, keywords_ranked, top10_count, anomalies array)
 8. If not in ACT window: stop here
 
 ### Phase B: Action Cycle (every `config.cadence.act_days` days)
@@ -225,14 +225,14 @@ This worker is app-agnostic. Before running, create a `config.json` in the worke
    - Draft new subtitle (≤30 chars, second strongest keyword phrase)
    - Remember: title/subtitle changes are more disruptive than keywords field changes
 4. Run `asc metadata keywords diff` to preview the change
-5. Log the proposed change to `results.jsonl` with status `proposed`
+5. **Append** a proposal entry to `results.jsonl` (one JSON line with type `action`, status `proposed`, before/after keywords, rationale, score_before, installs_before)
 
 **B4. Submit (semi-autonomous checkpoint)**
 1. Run `asc validate --app "$APP_ID" --version "$VERSION"`
 2. If validation fails: log failure, do not submit, mark cycle as `fail`
 3. If semi-autonomous mode: output the proposed changes as a human-readable report and STOP. Wait for human approval.
 4. If fully autonomous mode: run `asc metadata keywords apply --confirm`, then `asc submit create --confirm`
-5. Log submission with status `submitted`, include timestamp
+5. **Update** the proposal entry in `results.jsonl` status from `proposed` to `submitted`, add submission timestamp
 6. Note: submit on Tuesday or Wednesday for fastest review (~10h vs ~24h)
 
 **B5. Verify (preliminary + final checkpoints after submission)**
@@ -242,18 +242,20 @@ This worker is app-agnostic. Before running, create a `config.json` in the worke
    - Record: keyword, position_before, position_after, position_delta, popularity, difficulty
    - Classify: `keep` (position improved ≥3), `neutral` (position changed <3), `fail` (position worsened ≥3 or still unranked after 2 cycles)
 4. **Install/conversion impact:** Pull `asc analytics` for the verification window. Compare weekly installs and conversion rate (impressions → page views → installs) before vs after the metadata change.
-5. Update `results.jsonl` entry with: aggregate score_delta, per-keyword outcomes, install delta, conversion delta
-6. **Extract learnings for playbook.json:**
+5. **Append** a verification entry to `results.jsonl` (one JSON line with type `verification`, score_after, score_delta, per_keyword array, installs_after, installs_delta, conversion_after, learnings_extracted)
+6. **Extract learnings and write playbook.json to disk:**
    - Move `keep` keywords to `winning_keywords`
    - Move `fail` keywords to `failed_keywords`
    - Look for patterns: do failed keywords share traits (e.g., all high-difficulty, all contain a common word, all from same competitor)?
    - Formulate a learning sentence if a pattern exists (e.g., "Keywords with difficulty >40 consistently fail for this app's authority level")
-   - Add the learning to `playbook.json.learnings`
+   - Add the learning to `learnings` array
    - Move explored angles from `keyword_angles_untried` to `keyword_angles_tried`
-7. **Threshold adjustment check:** If app's total ratings have crossed a threshold (10, 50, 100, 500), recommend loosening `golden_ratio.max_difficulty` by 10 in the next cycle. Log the recommendation — don't auto-change config.
+   - **Write the updated playbook.json file to disk**
+7. **Update config.json:** Set `current_metadata.keywords` (and title/subtitle if changed) to reflect what's now live. **Write the updated config.json file to disk.**
+8. **Threshold adjustment check:** If app's total ratings have crossed a threshold (10, 50, 100, 500), recommend loosening `golden_ratio.max_difficulty` by 10 in the next cycle. Log the recommendation — don't auto-change config.
 
 ### Stall Rule
-If weighted average position has not improved after 3 consecutive action cycles:
+If weighted average position has not improved after 2 consecutive action cycles:
 1. Review the full experiment log — are all keyword angles exhausted? Check `playbook.json.keyword_angles_untried` for remaining options.
 2. Cross-reference with install data: are installs growing despite flat rankings? If yes, the current keywords may be fine — the score is misleading. Check conversion funnel instead.
 3. Check if the problem is keyword selection (wrong keywords) or authority (app needs more ratings/downloads to rank). Use app's current rating count as the signal — if still <50 ratings, authority is likely the bottleneck.
@@ -263,7 +265,7 @@ If weighted average position has not improved after 3 consecutive action cycles:
    c. **Flip the angle.** If you've been targeting the problem ("sobriety tracker"), try the aspiration ("healthy living") or the trigger ("quit drinking"). Explore adjacent problem domains from `config.problem_domain`.
    d. **Re-read ALL learnings.** Read every entry in `playbook.json.learnings` as a batch. Look for meta-patterns: are failures clustered around a difficulty range? A keyword type? A metadata position? The pattern across failures is often more useful than any single failure.
 5. If authority: pause metadata changes. The bottleneck is downloads and ratings, not keywords. Escalate to human — recommend content marketing, review prompts, or other growth tactics.
-6. If 5 consecutive cycles with no improvement: halt the loop and alert human.
+6. If 3 consecutive cycles with no improvement: halt the loop and alert human.
 
 ## Diagnostic Matrix
 
@@ -282,6 +284,7 @@ If weighted average position has not improved after 3 consecutive action cycles:
 - Results log: `results.jsonl` — every observation, proposal, and outcome
 - Playbook: `playbook.json` — current best keyword strategy and learnings
 - Next cycle reads first: `config.json` → `results.jsonl` (tail) → `playbook.json`
+- **Size management:** On start, read the last 100 lines of `results.jsonl` (most recent history). For full experiment review (stall rule), read the entire file. If the file exceeds 500 lines, archive lines older than 90 days to `results-archive.jsonl` and keep only the last 90 days in the active file.
 
 All files live in `config.data_dir` (default: `./aso-worker-data/`).
 
@@ -309,8 +312,8 @@ See `references/playbook.json` for a complete example with all fields.
   - One metadata submission per action cycle max
 - **Escalation triggers:**
   - App review rejection → halt, log rejection reason, alert human
-  - 3 consecutive cycles with no ranking improvement → review strategy, consider authority problem
-  - 5 consecutive cycles with no improvement → halt loop, alert human
+  - 2 consecutive cycles with no ranking improvement → escalate creativity (see Stall Rule)
+  - 3 consecutive cycles with no improvement → halt loop, alert human
   - **Algorithm change detected** (≥30% of keywords shift ≥5 positions same direction, no recent submission) → freeze metadata changes, log `algorithm_alert`, wait 2-3 days for stabilization before resuming
   - Rankings drop >20 positions across multiple keywords simultaneously → suspect algorithm change or penalty, halt and alert
   - Revenue growing but rankings flat → don't touch keywords, the current state is working via other channels
