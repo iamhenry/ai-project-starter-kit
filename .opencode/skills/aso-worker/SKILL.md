@@ -17,7 +17,7 @@ version: 1.0
   - Formula: `sum(position × popularity) / sum(popularity)` for all tracked keywords where the app ranks
   - Unranked keywords count as position 250
 - Direction: lower is better (position 1 = top of search)
-- Review cadence: daily observation, 4-week action cycles
+- Review cadence: daily observation, action cycles every `config.cadence.act_days` days (default 28)
 - Leading indicators:
   - Number of keywords where app ranks in top 10
   - Number of keywords where app ranks at all (vs unranked)
@@ -80,7 +80,7 @@ version: 1.0
 - Do not include plurals of words already in app name/subtitle
 - Do not include generic terms ("app"), filler words, or special characters in keywords
 - Do not change the app description without explicit human approval (description affects user trust)
-- Do not submit metadata more than once per 4-week cycle
+- Do not submit metadata more than once per action cycle (`config.cadence.act_days`)
 - Do not exceed Astro's 60 req/min rate limit
 
 ### Inputs
@@ -148,7 +148,7 @@ This worker is app-agnostic. Before running, create a `config.json` in the worke
 5. Pull install/conversion analytics via `asc analytics` (if last pull was >7 days ago)
 6. Compute current operational score (weighted avg position)
 7. Compare score to baseline and last cycle's score. Check install trend.
-8. Determine cycle phase: OBSERVE (daily check) or ACT (28-day action window)
+8. Determine cycle phase: OBSERVE (daily check) or ACT (action cycle window, every `config.cadence.act_days` days since last submission)
 9. If ACT phase: proceed to Work Loop. If OBSERVE phase: log daily rankings and stop.
 
 ## Operating Principles
@@ -188,7 +188,7 @@ This worker is app-agnostic. Before running, create a `config.json` in the worke
 7. Log daily score to `results.jsonl` as an observation entry
 8. If not in ACT window: stop here
 
-### Phase B: Action Cycle (every 28 days)
+### Phase B: Action Cycle (every `config.cadence.act_days` days)
 
 **B1. Audit current portfolio**
 1. Pull all tracked keywords with current rankings
@@ -234,9 +234,9 @@ This worker is app-agnostic. Before running, create a `config.json` in the worke
 5. Log submission with status `submitted`, include timestamp
 6. Note: submit on Tuesday or Wednesday for fastest review (~10h vs ~24h)
 
-**B5. Verify (Day 10 + Day 21 after submission)**
-1. Day 10 (preliminary): check if new keywords are appearing in rankings at all. If completely absent, suspect metadata issue.
-2. Day 21 (final): compute weighted avg position delta vs pre-submission baseline
+**B5. Verify (preliminary + final checkpoints after submission)**
+1. Preliminary (day `config.cadence.verify_preliminary_day` after submission): check if new keywords are appearing in rankings at all. If completely absent, suspect metadata issue.
+2. Final (day `config.cadence.verify_final_day` after submission): compute weighted avg position delta vs pre-submission baseline
 3. **Per-keyword outcome tracking:** For EACH keyword that was added, removed, or changed:
    - Record: keyword, position_before, position_after, position_delta, popularity, difficulty
    - Classify: `keep` (position improved ≥3), `neutral` (position changed <3), `fail` (position worsened ≥3 or still unranked after 2 cycles)
@@ -252,7 +252,7 @@ This worker is app-agnostic. Before running, create a `config.json` in the worke
 7. **Threshold adjustment check:** If app's total ratings have crossed a threshold (10, 50, 100, 500), recommend loosening `golden_ratio.max_difficulty` by 10 in the next cycle. Log the recommendation — don't auto-change config.
 
 ### Stall Rule
-If weighted average position has not improved after 3 consecutive action cycles (84 days):
+If weighted average position has not improved after 3 consecutive action cycles:
 1. Review the full experiment log — are all keyword angles exhausted? Check `playbook.json.keyword_angles_untried` for remaining options.
 2. Cross-reference with install data: are installs growing despite flat rankings? If yes, the current keywords may be fine — the score is misleading. Check conversion funnel instead.
 3. Check if the problem is keyword selection (wrong keywords) or authority (app needs more ratings/downloads to rank). Use app's current rating count as the signal — if still <50 ratings, authority is likely the bottleneck.
@@ -282,49 +282,26 @@ All files live in `config.data_dir` (default: `./aso-worker-data/`).
 
 ### results.jsonl format
 
-Each line is one JSON object:
+Each line is one JSON object. Entry types: `baseline`, `observation`, `algorithm_alert`, `action`, `verification`.
 
-```jsonl
-{"id": "cycle-000", "type": "baseline", "date": "2026-03-17", "app_id": "6746278101", "weighted_avg_position": null, "keywords_tracked": 0, "keywords_ranked": 0, "top10_count": 0, "keywords_field": "", "keywords_field_utilization": 0, "weekly_installs": 0, "conversion_rate": null, "status": "baseline", "reasoning": "Cycle 0: no keywords tracked yet. Establishing baseline."}
-{"id": "cycle-000-obs-d1", "type": "observation", "date": "2026-03-18", "weighted_avg_position": 187.3, "keywords_tracked": 24, "keywords_ranked": 3, "top10_count": 0, "anomalies": [], "status": "logged"}
-{"id": "cycle-000-obs-d3", "type": "algorithm_alert", "date": "2026-03-20", "keywords_affected_pct": 42, "avg_shift": -8.3, "direction": "down", "status": "monitoring", "reasoning": "42% of tracked keywords dropped avg 8 positions. No metadata submitted. Suspected algorithm change. Freezing actions until stabilized."}
-{"id": "cycle-001", "type": "action", "date": "2026-04-14", "change_type": "keywords_field", "before": "old,keywords,here", "after": "new,optimized,keywords", "keywords_added": ["sober tracker", "quit alcohol"], "keywords_removed": ["generic term"], "rationale": "Swapped low-pop keywords for higher Golden Ratio candidates from competitor analysis", "score_before": 187.3, "installs_before": 12, "conversion_before": 0.023, "status": "proposed"}
-{"id": "cycle-001-verify-d10", "type": "verification", "date": "2026-04-25", "day": 10, "score_after": 142.1, "score_delta": -45.2, "per_keyword": [{"keyword": "sober tracker", "position_before": 250, "position_after": 34, "delta": -216, "pop": 28, "diff": 22, "outcome": "keep"}, {"keyword": "quit alcohol", "position_before": 250, "position_after": 67, "delta": -183, "pop": 31, "diff": 35, "outcome": "keep"}, {"keyword": "generic term", "position_before": 89, "position_after": null, "delta": null, "pop": 12, "diff": 8, "outcome": "removed"}], "installs_after": 19, "installs_delta": 7, "conversion_after": 0.031, "status": "keep", "reasoning": "Both new keywords indexing. Weighted avg dropped 45 positions (good). Installs up 58%. Keep this direction.", "learnings_extracted": ["Low-diff sobriety keywords (<30) index quickly for new apps", "Removing pop<20 keywords had no negative impact"]}
-```
+See `references/results-example.jsonl` for annotated examples of each entry type.
 
 ### playbook.json format
 
-```json
-{
-  "version": "1.0",
-  "last_updated": "2026-04-25",
-  "current_strategy": "Target low-difficulty sobriety/alcohol keywords. App has 0 ratings so staying under Diff 30.",
-  "winning_keywords": ["sober tracker", "alcohol free"],
-  "failed_keywords": ["sobriety app"],
-  "keyword_angles_tried": ["sobriety tracking", "quit drinking", "alcohol free lifestyle"],
-  "keyword_angles_untried": ["dry january", "mocktails", "health tracker"],
-  "metadata_template": {
-    "title": "Streaks: Zero Proof",
-    "subtitle": "Alcohol-free sobriety tracker",
-    "keywords": "sober,tracker,quit,drinking,dry,streak,counter"
-  },
-  "learnings": [
-    "Keywords with 'free' in them tend to attract wrong audience (looking for free apps, not alcohol-free)",
-    "Competitor 'Zero Proof: Sobriety Tracker' targets similar keywords — differentiate on 'streaks' and 'counter'"
-  ]
-}
-```
+Accumulated keyword intelligence. Updated after each verification.
+
+See `references/playbook-example.json` for a complete example with all fields.
 
 ## Safety
 - **Hard stops:**
   - Never use trademarked terms, competitor names, or irrelevant keywords (Apple §2.3.7 — risk of app removal)
-  - Never submit more than once per 28-day cycle
+  - Never submit more than once per action cycle (`config.cadence.act_days`)
   - Never modify app description without human approval
   - Never purchase ads or paid placements
 - **Rate limits:**
   - Astro MCP: 60 requests/minute max
   - App Store Connect API: respect Apple's rate limits (handled by `asc` CLI)
-  - One metadata submission per 28-day cycle max
+  - One metadata submission per action cycle max
 - **Escalation triggers:**
   - App review rejection → halt, log rejection reason, alert human
   - 3 consecutive cycles with no ranking improvement → review strategy, consider authority problem
@@ -354,8 +331,8 @@ Each line is one JSON object:
 8. Save baseline to `results.jsonl`. Change nothing.
 9. **Expected output:** baseline entry in results.jsonl, 20-50 keywords tracked in Astro, current metadata snapshot saved
 
-### Cycle 1 — First Bounded Change (Day 28)
-1. Pull rankings for all tracked keywords (now have 28 days of data)
+### Cycle 1 — First Bounded Change
+1. Pull rankings for all tracked keywords (now have `config.cadence.act_days` days of data)
 2. Compute weighted average position
 3. Run keyword audit: filter tracked keywords through Golden Ratio
 4. Rank candidates by `popularity / (difficulty + 1)`
