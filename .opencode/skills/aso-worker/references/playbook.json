@@ -1,0 +1,18 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-04-25",
+  "current_strategy": "Target low-difficulty sobriety/alcohol keywords. App has 0 ratings so staying under Diff 30.",
+  "winning_keywords": ["sober tracker", "alcohol free"],
+  "failed_keywords": ["sobriety app"],
+  "keyword_angles_tried": ["sobriety tracking", "quit drinking", "alcohol free lifestyle"],
+  "keyword_angles_untried": ["dry january", "mocktails", "health tracker"],
+  "metadata_template": {
+    "title": "Streaks: Zero Proof",
+    "subtitle": "Alcohol-free sobriety tracker",
+    "keywords": "sober,tracker,quit,drinking,dry,streak,counter"
+  },
+  "learnings": [
+    "Keywords with 'free' in them tend to attract wrong audience (looking for free apps, not alcohol-free)",
+    "Competitor 'Zero Proof: Sobriety Tracker' targets similar keywords — differentiate on 'streaks' and 'counter'"
+  ]
+}

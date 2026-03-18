@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ASO Worker Config",
+  "description": "Configuration for the ASO Worker skill. One config per app product.",
+  "type": "object",
+  "required": ["app_name", "app_id", "store", "platform", "seed_keywords", "problem_domain", "current_metadata"],
+  "properties": {
+    "app_name": {
+      "type": "string",
+      "description": "Human-readable app name as it appears in the App Store."
+    },
+    "app_id": {
+      "type": "string",
+      "description": "Apple App Store numeric ID (from the app's App Store URL)."
+    },
+    "store": {
+      "type": "string",
+      "default": "us",
+      "description": "Apple App Store country code (e.g. 'us', 'gb', 'de'). Determines which store's keyword data to use."
+    },
+    "platform": {
+      "type": "string",
+      "enum": ["ios", "mac"],
+      "default": "ios",
+      "description": "Target platform. Affects keyword search behavior and competitor landscape."
+    },
+    "seed_keywords": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "description": "Starting keywords for discovery. The worker expands from these using competitor analysis and suggestions. Use phrases a real user would type to find your app."
+    },
+    "problem_domain": {
+      "type": "string",
+      "description": "Plain English description of what problem the app solves. Used to judge keyword semantic relevance. Example: 'alcohol-free living, sobriety tracking, habit tracking for quitting drinking'."
+    },
+    "current_metadata": {
+      "type": "object",
+      "required": ["title", "subtitle", "keywords"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "maxLength": 30,
+          "description": "Current app title as live in the App Store (max 30 chars)."
+        },
+        "subtitle": {
+          "type": "string",
+          "maxLength": 30,
+          "description": "Current app subtitle as live in the App Store (max 30 chars)."
+        },
+        "keywords": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Current keywords field content. Comma-separated, NO spaces after commas. Max 100 chars total. Empty string if not yet set."
+        }
+      },
+      "description": "Snapshot of currently live metadata. The worker updates this after each successful submission."
+    },
+    "golden_ratio": {
+      "type": "object",
+      "properties": {
+        "min_popularity": {
+          "type": "integer",
+          "default": 20,
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Minimum keyword popularity score. Below this = ghost town (not enough searchers). Default 20."
+        },
+        "max_difficulty": {
+          "type": "integer",
+          "default": 50,
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Maximum keyword difficulty score. Above this = too competitive for your app's authority. Start at 50 for new apps (0 ratings), loosen to 70 as app gains ratings. Default 50."
+        },
+        "target_difficulty": {
+          "type": "integer",
+          "default": 30,
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Ideal difficulty to aim for. Keywords at or below this are 'green zone' easy wins. Default 30."
+        }
+      },
+      "default": { "min_popularity": 20, "max_difficulty": 50, "target_difficulty": 30 },
+      "description": "Golden Ratio thresholds for keyword filtering. Tighten for new apps, loosen as authority grows."
+    },
+    "cadence": {
+      "type": "object",
+      "properties": {
+        "observe_hours": {
+          "type": "integer",
+          "default": 24,
+          "description": "How often to pull ranking data (hours). Matches Astro's 24h update cycle."
+        },
+        "act_days": {
+          "type": "integer",
+          "default": 14,
+          "minimum": 7,
+          "description": "Days between metadata submissions. Default 14 = review (~1d) + indexing (~3d) + settlement (~7d) + observation (~3d). The agent may self-adjust this based on observed signal quality in results.jsonl — lengthen if signal is noisy, shorten if rankings settle faster than expected."
+        },
+        "verify_preliminary_day": {
+          "type": "integer",
+          "default": 5,
+          "description": "Day after submission for preliminary ranking check (are new keywords indexing?). Default 5 = ~1d review + ~3d indexing + 1d buffer."
+        },
+        "verify_final_day": {
+          "type": "integer",
+          "default": 10,
+          "description": "Day after submission for final measurement (did position improve?). Default 10 = rankings should be settled. Agent may increase if deltas are still volatile at measurement time."
+        },
+        "preferred_submit_days": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] },
+          "default": ["tuesday", "wednesday"],
+          "description": "Best days to submit for fastest App Review (~10h vs ~24h on Fri/Sat)."
+        }
+      },
+      "default": {
+        "observe_hours": 24,
+        "act_days": 14,
+        "verify_preliminary_day": 5,
+        "verify_final_day": 10,
+        "preferred_submit_days": ["tuesday", "wednesday"]
+      },
+      "description": "Cycle timing. Defaults are the fastest viable cadence (review ~1d + indexing ~3d + settlement ~7d + buffer ~3d = 14d). The agent self-adjusts based on observed signal quality — if rankings are still volatile at verify_final_day, the agent should increase it; if they stabilize sooner, the agent can tighten."
+    },
+    "autonomy": {
+      "type": "string",
+      "enum": ["semi-autonomous", "fully-autonomous"],
+      "default": "semi-autonomous",
+      "description": "semi-autonomous: worker outputs a report, human approves before submission. fully-autonomous: worker submits directly. Start semi, move to fully after 3+ successful cycles."
+    },
+  }
+}

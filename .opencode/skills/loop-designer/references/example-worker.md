@@ -1,6 +1,6 @@
 # Example Worker Skill — UGC Marketing for iOS Revenue
 
-This is a reference example showing what a finished worker skill looks like. It follows the `loop-template.md` structure exactly. Use it to calibrate the shape, specificity, and decision-rule density of the workers you design.
+This is the ideal shape of an autonomous worker skill. It follows the `loop-template.md` structure exactly. Use it to calibrate structure, specificity, self-healing patterns, and learning mechanics. Every worker you design should match this level of completeness.
 
 ```md
 ---
@@ -82,6 +82,9 @@ version: 1.0
 - Score at the batch level. Individual posts are noisy. After 3-5 posts with the same strategy, score the batch — don't overreact to a single post's performance.
 - Study what wins. When a post overperforms, understand WHY before making variations. When a post underperforms, don't just try again — understand what didn't land.
 - Platform-native first. Content that looks like an ad gets suppressed. Content that looks like a real person sharing something gets reach.
+- Resilience: if an analytics API is unavailable, skip the pull, log the gap, and don't make decisions on stale data. If content generation fails, retry once — if it fails again, move to the next cycle. A partial cycle is better than no cycle.
+- Cold start: match confidence to data. With no history, explore broadly (e.g., test diverse hook styles, content angles, CTAs). As patterns emerge, shift to exploiting what works and pruning what doesn't.
+- Learn forward: never revert to a previous strategy just because the current one failed. Understand WHY it failed, record the learning, and try something genuinely new.
 
 ## Work Loop
 
@@ -116,10 +119,36 @@ New accounts need 7-14 days of organic activity before posting marketing content
 | High views + High installs + Low revenue | —        | App issue, not content issue      | Pause posting. Escalate to human. Problem is onboarding, paywall, or retention.       |
 
 ## Memory
-- Results log: `results.jsonl`
-- Best-known playbook: `playbook.json`
-- Competitor research: `competitor-research.json`
-- Next cycle reads first: `results.jsonl`, then `playbook.json`
+- Results log: `data/results.jsonl`
+- Best-known playbook: `data/playbook.json` — captures compound learnings: winning hooks, failed angles, untried ideas, extracted patterns. Read at cycle start, rewrite after each scored batch.
+- Competitor research: `data/competitor-research.json`
+- Next cycle reads first: results log, then playbook
+
+### File Ownership
+| File | Owner | Agent may |
+| --- | --- | --- |
+| This SKILL.md, soul.md | Human | Read only. Never modify. |
+| references/* | Human | Read only. Use as format reference. |
+| data/config.json | Shared | Read always. Write only tunable parameters. |
+| data/results.jsonl | Agent | Append entries. Archive when large. |
+| data/playbook.json | Agent | Read and rewrite after each verification. |
+| data/competitor-research.json | Agent | Read and rewrite during research phase. |
+
+### Directory Layout
+```
+ugc-content-marketer/
+  SKILL.md              # instructions (human-owned)
+  soul.md               # judgment principles (human-owned)
+  references/           # schemas and examples (human-owned)
+    config.schema.json
+    results.jsonl       # example entries
+    playbook.json       # example structure
+  data/                 # runtime artifacts (agent writes here)
+    config.json
+    results.jsonl
+    playbook.json
+    competitor-research.json
+```
 
 Each log entry is one JSON object per line (JSONL):
 ~~~jsonl

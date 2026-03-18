@@ -60,6 +60,8 @@ version: [current version numnber]
 - Change one variable at a time so you can attribute results
 - Study what's already working before inventing from scratch
 - Explore broadly when score is flat; exploit when score is improving
+- Resilience: define what happens when tools fail, data is partial, or APIs rate-limit. A partial cycle is better than no cycle.
+- Cold start vs steady state: early cycles explore widely; later cycles prune and exploit. The worker should behave differently with no history vs 50 cycles of data.
 - [Add domain-specific judgment the worker needs to make good decisions]
 - [What this worker should NEVER do — anti-patterns learned from failure]
 
@@ -83,11 +85,12 @@ version: [current version numnber]
 - Revisit assumptions about what the score is actually measuring
 - Try a fundamentally different approach rather than incremental tweaks
 - Review the experiment log for patterns in what failed
+- For slow-cadence loops, never revert to a previous state — it wastes the entire cycle. Learn from the failure and move forward.
 
 ## Memory
-- Results log: [file/path/system]
-- Best-known playbook: [file/path/system]
-- Next cycle reads first: [file/path/system]
+- Results log: `data/results.jsonl`
+- Best-known playbook: `data/playbook.json` — captures compound learnings: what works, what doesn't, what hasn't been tried. The worker reads it at cycle start and rewrites it after each verification.
+- Next cycle reads first: results log, then playbook
 
 Each log entry is one JSON object per line (JSONL). At minimum:
 
@@ -96,6 +99,30 @@ Each log entry is one JSON object per line (JSONL). At minimum:
 ```
 
 Extend with domain-specific fields as needed (e.g., `module`, `test_time_ms`, `views`, `conversions`).
+
+### Directory Layout
+```
+<skillname>/
+  SKILL.md              # instructions (human-owned)
+  SOUL.md               # judgment principles (human-owned, if needed)
+  references/           # schemas and examples (human-owned)
+    config.schema.json
+    results.jsonl       # experiment log (agent-owned)
+    playbook.json       # evolving strategy (agent-owned)
+  data/                 # runtime artifacts (agent writes here)
+    config.json         # app config (shared)
+```
+
+### File Ownership
+| File | Owner | Agent may |
+| --- | --- | --- |
+| SKILL.md, soul.md | Human | Read only. Never modify. |
+| references/* | Human | Read only. Use as format reference. |
+| data/config.json | Shared | Read always. Write only designated tunable fields. |
+| data/results.jsonl | Agent | Append entries. Archive when large. |
+| data/playbook.json | Agent | Read and rewrite after each verification. |
+
+The human programs the worker by editing SKILL.md and soul.md. The agent programs itself by evolving playbook.json and tuning config.json.
 
 ## Safety
 - Hard stops: [unsafe actions]

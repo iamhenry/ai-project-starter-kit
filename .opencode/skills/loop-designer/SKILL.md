@@ -1,7 +1,7 @@
 ---
 name: loop-designer
 description: Design a closed autonomous loop for a measurable goal. Use when the user wants to create an agentic loop, digital worker, autonomous operator, long-running agent, or SKILL.md that can observe act verify record and continue with minimal human intervention.
-version: 1.4
+version: 1.5
 ---
 
 # Loop Designer
@@ -86,6 +86,7 @@ Regardless of input quality:
 1. Search for 4-5 real job descriptions that match the user's description
 2. Synthesize the common responsibilities across them
 3. Surface responsibilities the user may not have considered
+4. Research the domain's baseline strategy and common heuristics — the worker needs informed starting assumptions, not blank-slate guessing
 
 **Extract**
 
@@ -157,7 +158,7 @@ Check these five gates:
 1. **Score** - Is there a measurable, verifiable score?
 2. **Speed** - Is there a bounded review cadence for learning?
 3. **Environment** - Is the action space clear and toolable?
-4. **Failure cost** - Can bad iterations be contained or reverted?
+4. **Failure cost** - Can bad iterations be contained? For slow-cadence loops (days/weeks per cycle), reverting wastes the entire cycle — prefer learning from failure and moving forward. For fast loops (minutes/hours), reverting is cheap.
 5. **Traces** - Can the worker leave a structured experiment log and durable learnings? The log must use a structured, machine-readable format (JSONL recommended). Each entry must include at minimum: identifier, date, action, result, score delta, status (keep/discard/fail), and reasoning. The worker must read this log at cycle start.
 
 Example — Failure cost gate:
@@ -183,6 +184,8 @@ For each required action, discover the tool path using:
 - project skills and local integrations
 - web research for suitable APIs, products, CLIs, MCPs, or services
 - optional marketplaces or registries as examples, never as hard dependencies
+
+Document tools and their capabilities — do not install, configure, or verify access in this step. The user sets up the environment separately before running the worker.
 
 Build an action-to-tool map. Every action must have:
 
@@ -231,21 +234,27 @@ Write the worker around these sections:
 - Verification Surface
 - Environment
 - Work Loop
-- Memory
+- Memory (with directory layout and file ownership)
 - Safety
 - Closed Loop Test
 
-**Contracts vs tactics:** Be explicit about contracts — what tools to use, what formats to produce, how to score, when to stop, what's off-limits. Be open about tactics — what to try, what order to explore, what creative choices to make. Litmus test: if a step specifies *which tool to call* or *what format to produce*, it's a contract — keep it. If it specifies *what the agent should decide*, it's over-specified — remove it and let the agent discover it through iteration.
+The worker must be self-contained. All files live within the skill directory: `SKILL.md` and `soul.md` (human-owned instructions), `references/` (schemas, format examples — human-owned), and `data/` (runtime artifacts — agent writes here). Define file ownership in the Memory section: which files the human owns (never modified by the agent), which the agent owns (results, playbook), and which are shared (config). Format examples and data schemas belong in `references/` as separate files — the SKILL.md should point to them (e.g., "See `references/results.jsonl`"), never inline JSON/JSONL blocks.
+
+**Contracts vs tactics:** Be explicit about contracts — what tools to use, what formats to produce, how to score, when to stop, what's off-limits. Be open about tactics — what to try, what order to explore, what creative choices to make. Litmus test: if a step specifies *which tool to call* or *what format to produce*, it's a contract — keep it. If it specifies *what the agent should decide*, it's over-specified — remove it and let the agent discover it through iteration. Express thresholds as heuristics with examples, not hard-coded numbers — if a threshold might change with context, write it as a guideline (e.g., "high difficulty, such as >50") rather than a fixed rule.
 
 When the score has components, define diagnostic combinations that tell the worker WHERE things are going wrong, not just that they're going wrong.
 
-See `references/example-worker.md` for a complete example of a finished worker skill.
+See `references/example-worker.md` for the ideal shape of a finished worker skill — use it to calibrate structure, specificity, self-healing patterns, and learning mechanics.
 
 Include a **stall rule** in the Work Loop: define what "stuck" looks like (score flat or degrading for N consecutive cycles) and what the worker does about it (pause, widen search, escalate to human). N should be proportional to the feedback cadence. For fully-autonomous workers, this is mandatory. For human-reviewed workers, the review cadence serves as implicit escalation.
 
 Include a **simplicity criterion** in the Operating Principles: when improvement is marginal, prefer the simpler approach. Removing something and maintaining score is a win. This prevents complexity accumulation over long-running loops.
 
+Include a **resilience principle** in the Operating Principles: define what happens when tools fail, data is partial, or APIs are unavailable. A partial cycle is better than no cycle.
+
 If the worker produces content, communicates with humans, or makes judgment calls that reflect a brand or perspective, also generate a `soul.md` using `references/soul-template.md`. If the worker is purely mechanical (data pipelines, code optimization, monitoring), skip the soul.
+
+After drafting, compare the worker's capabilities against the job descriptions from Step 0. Surface any gaps to the user before finalizing.
 
 ### 6) Proof of loop
 
@@ -309,6 +318,8 @@ Fastest path to ready:
 - If a platform can silently penalize the worker (shadow ban, suppressed reach, rate throttle), define a detection signal — e.g. if score drops >X% for Y consecutive cycles, suspect platform penalty, pause, and escalate
 - When the worker produces outputs in batches, score at the batch level after sufficient time for signal to stabilize — not per individual output
 - The more autonomous the worker, the stricter the safety requirements. A human-reviewed worker can rely on regular reports for course correction. A fully-autonomous worker needs explicit stall thresholds, stopping conditions, and escalation rules baked into the skill.
+- Treat cadence as a learnable parameter. The worker should shorten cycles when signal arrives early and lengthen them when signal is noisy or still settling.
+- Early cycles need wide exploration; later cycles need focused pruning. Cycle 1 should look nothing like cycle 10. Design the work loop to behave differently when it has no history vs 50 cycles of data.
 
 Example — diagnostic combinations for a content-to-installs loop:
 
