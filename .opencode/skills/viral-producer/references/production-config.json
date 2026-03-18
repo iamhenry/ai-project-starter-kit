@@ -36,6 +36,10 @@
     "_note": "Monthly budget for fal.ai image/video generation. Fall back to stock/gradients if hit."
   },
 
+  "audio": {
+    "directory": "../viral-ig-marketer/audio/"
+  },
+
   "remotion": {
     "projectDir": "PATH_TO_REMOTION_PROJECT",
     "compositions": {

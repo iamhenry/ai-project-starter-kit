@@ -13,6 +13,7 @@ The production spec is the interface between viral-ig-marketer (orchestrator) an
 | `cta_text` | string | The call-to-action text |
 | `caption` | string | Full caption: hook line + body + CTA + hashtags |
 | `imagery_direction` | string | Visual approach — footage style, color palette, mood |
+| `audio_track` | string | Filename from the `audio/` directory |
 
 ## Optional Fields
 
@@ -31,6 +32,7 @@ The production spec is the interface between viral-ig-marketer (orchestrator) an
   "cta_text": "Comment ZEROPROOF for the app that tracks your streak",
   "caption": "There's a word for why you feel dread the morning after drinking.\n\nIt's called hangxiety — and it's not just in your head. Alcohol disrupts GABA and glutamate, leaving your nervous system in overdrive.\n\nThe good news? Every alcohol-free day lets your brain recalibrate.\n\nComment ZEROPROOF for the app that tracks your streak.\n\n#soberlife #hangxiety #alcoholfree #sobercurious #zeroproof",
   "imagery_direction": "Cinematic drone footage of misty coastal cliffs at golden hour. Frosted glass card centered, dictionary-style typography.",
+  "audio_track": "calm-reflective.mp3",
   "specific_assets": null
 }
 ```

@@ -276,7 +276,7 @@ Delegate the winning concept to the **viral-producer** skill. The production spe
 
 **How to invoke:** Read `../viral-producer/SKILL.md` and follow its workflow, passing a production spec as input. The producer skill is an executor — spec in, content out.
 
-**Production spec:** Build the spec per `references/production-spec.md` (required + optional fields, example). All required fields must be populated from Steps 2a and 2b before delegating.
+**Production spec:** Build the spec per `references/production-spec.md` (required + optional fields, example). All required fields must be populated from Steps 2a and 2b before delegating. Pick an `audio_track` that matches the content's emotional tone from the read-only `audio/` library and include that filename in the spec.
 
 Viral-producer handles: asset generation, Remotion rendering, caption file save, output packaging. It returns a complete package: `.mp4` + `caption.txt` + `metadata.json`.
 
@@ -447,6 +447,12 @@ All paths are relative to the skill's own directory (wherever this SKILL.md live
 - Experiment framework (queue + controls): `references/experiment-framework.md`
 - Production spec contract: `references/production-spec.md`
 - Baseline study: `references/baseline-study.md`
+- Audio library (read-only; files may exist only on VPS, still valid spec values): `audio/`
+  - `calm-reflective.mp3` — calm, reflective, grounding
+  - `contemplative-deep.mp3` — deep, serious, introspective
+  - `determined-empowered.mp3` — confident, driven, resilient
+  - `gentle-morning.mp3` — soft, warm, hopeful reset
+  - `uplifting-hopeful.mp3` — optimistic, encouraging, forward-looking
 
 **Sibling skill references (read from, write feedback to):**
 

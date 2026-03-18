@@ -72,6 +72,8 @@ must align with the brand voice defined there.
 
 Read `references/format-templates.md` for the exact asset requirements per format tier.
 
+Audio is sourced from `../viral-ig-marketer/audio/` using the production spec's `audio_track` field. Treat `audio_track` as the selected filename to resolve from that directory.
+
 **For T1 (Meme Reel):**
 
 - Source stock footage that visually contradicts the text message
@@ -214,7 +216,7 @@ output/reels/<slug>/
 ├── <slug>.mp4          — rendered Reel (720x1280, h264+aac)
 ├── caption.txt         — full caption with CTA and hashtags
 ├── metadata.json       — production metadata (format tier, topic, hook type,
-│                         virality score, assets used, render settings)
+│                         virality score, assets used, render settings, audio)
 └── thumbnail.png       — first frame extracted for preview
 ```
 
@@ -241,7 +243,7 @@ Write `metadata.json`:
   "assetsUsed": {
     "background": "fal.ai generated / stock / custom",
     "typography": "font name, weight, color",
-    "audio": "none / track name"
+    "audio": "track filename from production spec"
   },
   "caption": "first line of caption...",
   "hashtags": ["#tag1", "#tag2"],
