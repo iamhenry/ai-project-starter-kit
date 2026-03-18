@@ -30,8 +30,8 @@ version: 1.0
 | What to check | How to check | Good looks like | Cadence |
 | --- | --- | --- | --- |
 | Keyword rankings | Astro: `search_rankings`, `app_keywords` | weighted avg position trending down | daily |
-| Ranking anomalies | Astro: `ranking_anomalies` | no unexplained drops >10 positions | daily |
-| Keyword portfolio health | Astro: `analyze_aso_health` | no keywords with Diff >70 or Pop <20 | per cycle |
+| Ranking anomalies | Astro: `ranking_anomalies` | no unexplained significant drops | daily |
+| Keyword portfolio health | Astro: `analyze_aso_health` | no keywords far outside Golden Ratio thresholds | per cycle |
 | Install volume | `asc analytics` | weekly installs trending up | weekly |
 | Conversion funnel | `asc analytics` | impressions → page views → installs improving | per cycle |
 | Keywords field utilization | `asc metadata keywords diff` | >90% of 100 chars used | per cycle |
@@ -142,7 +142,7 @@ This worker is app-agnostic. Before running, create a `config.json` in the worke
 ## On Start
 
 1. Read `config.json` — load app identity, thresholds, cadence, current metadata
-2. Read the last 100 lines of `results.jsonl` — understand what keywords have been tested and their outcomes. Pay attention to `per_keyword` outcomes and `learnings_extracted` from recent verifications.
+2. Read recent `results.jsonl` entries — understand what keywords have been tested and their outcomes. Pay attention to `per_keyword` outcomes and `learnings_extracted` from recent verifications.
 3. Read `playbook.json` — current best-known keyword strategy. Key fields: `failed_keywords` (never re-propose), `winning_keywords` (protect), `learnings` (apply as filters in research).
 4. Pull latest rankings from Astro for all tracked keywords
 5. Pull install/conversion analytics via `asc analytics` (if last pull was >7 days ago)
@@ -166,8 +166,8 @@ This worker is app-agnostic. Before running, create a `config.json` in the worke
 - **Every cycle is an experiment.** Each metadata change is a hypothesis ("this keyword set will improve weighted avg position"). The cycle proves or disproves it. The result — not the hypothesis — drives the next cycle. Never repeat a failed experiment without a new variable.
 - **Always move forward, never revert.** A cycle that worsens rankings is not a failure — it's data. The keywords that hurt tell you something about what Apple's algorithm values for this app. Extract the learning, add to `playbook.json.learnings`, and design the next cycle to avoid the same pattern. Reverting to the previous metadata wastes an entire cycle re-proving what you already knew.
 - **Start with competitors, not imagination.** Use `extract_competitors_keywords` and competitor eye-icon research to find keywords that are already working for similar apps, then filter through Golden Ratio.
-- **Low authority = low difficulty.** A new app with 0 ratings cannot compete on Diff >50 keywords. Target Diff <30 until the app has 50+ ratings. Re-evaluate thresholds when app crosses rating milestones (10, 50, 100, 500).
-- **Explore broadly when stuck, exploit when improving.** If rankings are flat after 2 cycles, try a completely different keyword angle. If rankings are improving, make incremental refinements to the winning strategy.
+- **Low authority = low difficulty.** A new app with few ratings can't compete on high-difficulty keywords. Start with the lower end of your `golden_ratio` range and only loosen `max_difficulty` as the app gains authority (ratings, downloads). Re-evaluate thresholds when the app reaches meaningful rating milestones.
+- **Exploit when improving, explore when not.** If last cycle improved rankings, refine the winning strategy. If it didn't, try a different angle immediately — don't wait multiple cycles to pivot.
 - **Compound learnings.** Read `playbook.json.learnings` before every research phase. Each cycle should produce at least one new learning. Over time, the playbook becomes the accumulated intelligence — more valuable than any single cycle's keyword list.
 - **Simplicity wins.** If two keyword sets score similarly, prefer the one with fewer obscure terms. Simpler keywords = more predictable ranking behavior.
 
@@ -182,10 +182,10 @@ This worker is app-agnostic. Before running, create a `config.json` in the worke
 
 1. Pull latest rankings from Astro for all tracked keywords
 2. Compute current weighted average position
-3. Check for ranking anomalies (drops >10 positions)
+3. Check for ranking anomalies — any keyword that dropped significantly (e.g., 10+ positions) without a recent metadata change
 4. If anomaly detected: log it, tag the keyword as `anomaly` in Astro, add note with date
-5. **Algorithm change detection:** If ≥30% of tracked keywords shift ≥5 positions in the same direction on the same day (and no metadata was submitted recently), flag as suspected algorithm change. Log to results.jsonl with type `algorithm_alert`. Do NOT make metadata changes until rankings re-stabilize (2-3 consecutive days of <5% daily variance).
-6. Pull install/conversion data via `asc analytics` (weekly cadence is sufficient — skip if last pull was <7 days ago)
+5. **Algorithm change detection:** If a large share of tracked keywords shift meaningfully in the same direction on the same day (e.g., 30%+ shifting 5+ positions) and no metadata was submitted recently, suspect an algorithm change. Log to results.jsonl with type `algorithm_alert`. Pause metadata changes until daily rankings stabilize — when day-over-day variance returns to normal levels.
+6. Pull install/conversion data via `asc analytics` periodically (weekly is sufficient — skip if data is recent)
 7. **Append** an observation entry to `results.jsonl` (one JSON line with type `observation`, date, weighted_avg_position, keywords_tracked, keywords_ranked, top10_count, anomalies array)
 8. If not in ACT window: stop here
 
@@ -194,24 +194,25 @@ This worker is app-agnostic. Before running, create a `config.json` in the worke
 **B1. Audit current portfolio**
 1. Pull all tracked keywords with current rankings
 2. Flag keywords failing Golden Ratio: Diff > config.max_difficulty OR Pop < config.min_popularity
-3. Flag keywords where app is unranked after 2+ cycles of tracking
+3. Flag keywords where app remains unranked despite being tracked for multiple cycles
 4. Flag wasted keywords: tokens duplicated between title/subtitle and keywords field
 5. Compute keywords field utilization (chars used / 100)
 
 **B2. Research new keywords**
-1. **Read playbook.json first.** Load `failed_keywords` (never re-propose these), `winning_keywords` (protect these), `learnings` (apply these as filters), and `keyword_angles_untried` (explore these).
-2. Get keyword suggestions from Astro for current seed keywords AND any `keyword_angles_untried` from the playbook
-3. Search App Store for competitors ranking on seed keywords
-4. Extract competitor keywords via `extract_competitors_keywords`
-5. For each candidate keyword:
-   - **Reject if in `playbook.json.failed_keywords`** — don't re-test what already failed
-   - Filter through Golden Ratio (Pop ≥ min, Diff ≤ max)
-   - Check semantic relevance to `problem_domain`
-   - Check it's not a brand name (search App Store — if top result is an exact-match brand app, skip)
-   - Check if competitors have this exact phrase in their title (if not = opportunity)
-   - Apply any pattern-based filters from `playbook.json.learnings` (e.g., if a learning says "keywords containing 'free' attract wrong audience", filter those out)
-6. Add promising candidates to Astro tracking via `add_keywords`
-7. Tag new candidates as `candidate` in Astro
+1. **Read playbook.json first.** Load `failed_keywords` (never re-propose these), `winning_keywords` (protect these), `learnings` (apply as filters), and `keyword_angles_untried` (explore these).
+2. **Choose mode based on last cycle's outcome:**
+   - **Exploit** (last cycle improved): refine what's working. Get suggestions for variations of winning keywords. Look for slightly harder keywords in the same cluster.
+   - **Explore** (last cycle flat or worse): try something different. Combine near-misses (keywords classified `neutral` — they almost worked, try them in stronger positions). Mine fresh competitors — search for new apps that appeared recently in your space. Flip the angle entirely (e.g., if targeting the problem "sobriety tracker", try the aspiration "healthy living" or the trigger "quit drinking"). Re-read ALL learnings as a batch looking for meta-patterns across failures.
+3. Search App Store for competitors and extract their keywords via `extract_competitors_keywords`
+4. For each candidate keyword, filter through:
+   - Not in `failed_keywords`
+   - Golden Ratio (Pop ≥ min, Diff ≤ max)
+   - Semantic relevance to `problem_domain`
+   - Not a brand name (if top App Store result is an exact-match brand app, skip)
+   - Competitors don't have this exact phrase in their title (= opportunity)
+   - Consistent with `playbook.json.learnings` (e.g., if "keywords containing 'free' attract wrong audience" is a learning, filter those out)
+5. Add promising candidates to Astro tracking via `add_keywords`
+6. Tag new candidates as `candidate` in Astro
 
 **B3. Optimize metadata**
 1. Rank all candidate keywords by the Golden Ratio score: `popularity / (difficulty + 1)`
@@ -240,7 +241,7 @@ This worker is app-agnostic. Before running, create a `config.json` in the worke
 2. Final (day `config.cadence.verify_final_day` after submission): compute weighted avg position delta vs pre-submission baseline
 3. **Per-keyword outcome tracking:** For EACH keyword that was added, removed, or changed:
    - Record: keyword, position_before, position_after, position_delta, popularity, difficulty
-   - Classify: `keep` (position improved ≥3), `neutral` (position changed <3), `fail` (position worsened ≥3 or still unranked after 2 cycles)
+   - Classify based on whether the position change is meaningful: `keep` (clearly improved), `neutral` (negligible change), `fail` (clearly worsened or still unranked after multiple cycles). Use judgment — a 1-position change is noise, a 10-position change is signal.
 4. **Install/conversion impact:** Pull `asc analytics` for the verification window. Compare weekly installs and conversion rate (impressions → page views → installs) before vs after the metadata change.
 5. **Append** a verification entry to `results.jsonl` (one JSON line with type `verification`, score_after, score_delta, per_keyword array, installs_after, installs_delta, conversion_after, learnings_extracted)
 6. **Extract learnings and write playbook.json to disk:**
@@ -252,20 +253,14 @@ This worker is app-agnostic. Before running, create a `config.json` in the worke
    - Move explored angles from `keyword_angles_untried` to `keyword_angles_tried`
    - **Write the updated playbook.json file to disk**
 7. **Update config.json:** Set `current_metadata.keywords` (and title/subtitle if changed) to reflect what's now live. **Write the updated config.json file to disk.**
-8. **Threshold adjustment check:** If app's total ratings have crossed a threshold (10, 50, 100, 500), recommend loosening `golden_ratio.max_difficulty` by 10 in the next cycle. Log the recommendation — don't auto-change config.
+8. **Threshold adjustment check:** As the app gains ratings and authority, it can compete on harder keywords. When ratings reach a meaningful new milestone, recommend loosening `golden_ratio.max_difficulty`. Log the recommendation — don't auto-change config.
 
 ### Stall Rule
-If weighted average position has not improved after 2 consecutive action cycles:
-1. Review the full experiment log — are all keyword angles exhausted? Check `playbook.json.keyword_angles_untried` for remaining options.
-2. Cross-reference with install data: are installs growing despite flat rankings? If yes, the current keywords may be fine — the score is misleading. Check conversion funnel instead.
-3. Check if the problem is keyword selection (wrong keywords) or authority (app needs more ratings/downloads to rank). Use app's current rating count as the signal — if still <50 ratings, authority is likely the bottleneck.
-4. If keyword selection: escalate creativity:
-   a. **Combine near-misses.** Look at keywords classified `neutral` (moved <3 positions). These almost worked. Try combining them with winning keywords or placing them in stronger metadata positions (subtitle instead of keywords field).
-   b. **Mine fresh competitors.** Use `search_app_store` with problem-domain queries to find new apps that launched recently. New apps in top 10 = they found an angle you haven't tried. Extract their keywords.
-   c. **Flip the angle.** If you've been targeting the problem ("sobriety tracker"), try the aspiration ("healthy living") or the trigger ("quit drinking"). Explore adjacent problem domains from `config.problem_domain`.
-   d. **Re-read ALL learnings.** Read every entry in `playbook.json.learnings` as a batch. Look for meta-patterns: are failures clustered around a difficulty range? A keyword type? A metadata position? The pattern across failures is often more useful than any single failure.
-5. If authority: pause metadata changes. The bottleneck is downloads and ratings, not keywords. Escalate to human — recommend content marketing, review prompts, or other growth tactics.
-6. If 3 consecutive cycles with no improvement: halt the loop and alert human.
+Creative exploration happens every cycle via B2 Research (exploit/explore mode). The stall rule handles deeper problems:
+
+1. **Diagnose the bottleneck.** If rankings are flat but installs are growing, the keywords may be fine — the score is misleading. Check the diagnostic matrix before changing strategy.
+2. **Authority vs. keyword problem.** If the app has few ratings, difficulty thresholds may be too ambitious. A new app with minimal ratings likely can't rank on competitive keywords regardless of which ones you pick. If authority is the bottleneck, pause metadata changes and escalate to human — the fix is downloads and ratings, not keywords.
+3. **Halt threshold.** If no improvement after 3 consecutive action cycles despite exploring different angles each time, halt the loop and alert human. At this point, the problem is likely outside the worker's scope (app quality, market fit, visual assets, pricing).
 
 ## Diagnostic Matrix
 
@@ -275,8 +270,8 @@ If weighted average position has not improved after 2 consecutive action cycles:
 | Improving | Improving | Flat | Rankings drive traffic but monetization is weak | Escalate: problem is paywall, pricing, or onboarding |
 | Improving | Flat | Flat | Rankings help but impressions aren't converting to page views | Escalate: problem is app icon, screenshots, or title/subtitle appeal |
 | Flat | Flat | Flat | Keywords aren't moving the needle | Explore: try different keyword angles, different competitor clusters |
-| Worsening (broad, ≥30% of keywords) | Dropping | Any | Suspected algorithm change | Freeze metadata changes. Wait 2-3 days for stabilization. Log `algorithm_alert`. Compare against ASO community reports. |
-| Worsening (narrow, 1-3 keywords) | Stable | Any | Competitor surge on specific keywords | Research who's now outranking you. Consider pivoting those keywords to lower-diff alternatives. |
+| Worsening (broad, many keywords) | Dropping | Any | Suspected algorithm change | Freeze metadata changes. Wait for stabilization. Log `algorithm_alert`. Compare against ASO community reports. |
+| Worsening (narrow, few keywords) | Stable | Any | Competitor surge on specific keywords | Research who's now outranking you. Consider pivoting those keywords to lower-diff alternatives. |
 | Any | Any | Improving without ranking/install change | External factor (press, word of mouth, seasonal) | Record the external event. Don't attribute to keyword changes. |
 
 ## Memory
@@ -284,7 +279,7 @@ If weighted average position has not improved after 2 consecutive action cycles:
 - Results log: `results.jsonl` — every observation, proposal, and outcome
 - Playbook: `playbook.json` — current best keyword strategy and learnings
 - Next cycle reads first: `config.json` → `results.jsonl` (tail) → `playbook.json`
-- **Size management:** On start, read the last 100 lines of `results.jsonl` (most recent history). For full experiment review (stall rule), read the entire file. If the file exceeds 500 lines, archive lines older than 90 days to `results-archive.jsonl` and keep only the last 90 days in the active file.
+- **Size management:** On start, read the recent tail of `results.jsonl` (enough to understand the last few cycles). For deeper analysis (stall rule), read further back. When the file gets large, archive older entries to `results-archive.jsonl` to keep the active file manageable.
 
 All files live in `config.data_dir` (default: `./aso-worker-data/`).
 
@@ -312,10 +307,10 @@ See `references/playbook.json` for a complete example with all fields.
   - One metadata submission per action cycle max
 - **Escalation triggers:**
   - App review rejection → halt, log rejection reason, alert human
-  - 2 consecutive cycles with no ranking improvement → escalate creativity (see Stall Rule)
-  - 3 consecutive cycles with no improvement → halt loop, alert human
-  - **Algorithm change detected** (≥30% of keywords shift ≥5 positions same direction, no recent submission) → freeze metadata changes, log `algorithm_alert`, wait 2-3 days for stabilization before resuming
-  - Rankings drop >20 positions across multiple keywords simultaneously → suspect algorithm change or penalty, halt and alert
+  - Each cycle with no improvement → explore different angles (B2 Research handles this automatically)
+  - 3 consecutive cycles with no improvement despite exploring → halt loop, alert human
+  - **Algorithm change detected** (large share of keywords shift significantly in same direction, no recent submission) → freeze metadata changes, log `algorithm_alert`, wait for stabilization before resuming
+  - Broad simultaneous ranking drops across many keywords → suspect algorithm change or penalty, halt and alert
   - Revenue growing but rankings flat → don't touch keywords, the current state is working via other channels
   - Installs dropping despite stable/improving rankings → escalate: problem is external (seasonality, market shift, competitor launch)
 
