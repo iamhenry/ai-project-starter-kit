@@ -58,32 +58,26 @@ and output. Do not skip phases — the quality of later phases depends on earlie
 **Process:**
 
 1. Read `references/research-config.json` to load niche keywords, hashtags, and target accounts
-2. Open Instagram in the browser. Search using 3-5 keyword variations derived from the niche:
-   - Direct niche terms (e.g., "sobriety myths," "quit drinking truth")
-   - Emotional angles (e.g., "sober benefits nobody tells you")
-   - Contrarian angles (e.g., "alcohol is a scam")
-   - Adjacent premium brands (e.g., wellness apps like Calm, Headspace, WHOOP, Oura)
-3. For each search, scan the results grid for **faceless Reels** — identified by:
-   - Play button icon (▶) on thumbnail (= video, not carousel)
+2. ⛔ NEVER open instagram.com in a browser — automated or manual. Use web search only.
+3. Use Brave or Google to run 3-5 search variations derived from the niche:
+   - Direct niche terms (e.g., `site:reddit.com sobriety reels`, `"sobriety myths" reel`)
+   - Emotional angles (e.g., `"sober benefits nobody tells you" reel`, `"viral" "sober" tiktok compilation`)
+   - Contrarian angles (e.g., `"alcohol is a scam" reel`, `"quit drinking truth" short video`)
+   - Adjacent premium brands (e.g., `Calm reel`, `Headspace tiktok compilation`, `WHOOP sobriety video`)
+4. From search results, open only result pages surfaced by search and look for **faceless short-form videos** — identified by:
+   - Reel/short video URLs surfaced in search results
    - No human face visible in thumbnail
    - Text overlay, illustration, animation, or stock/nature footage as the visual
-4. Click into each candidate. Record:
-   - URL (instagram.com/p/XXXXX or instagram.com/reel/XXXXX)
+5. For each candidate surfaced by search, record:
+   - URL
    - Account handle
    - Like count
    - View count (if visible)
-   - Follower count of the account (check profile)
-   - Post date
+   - Follower count of the account (if visible)
+   - Post date (if visible)
    - Visual format (static text card, text on footage, animation, data viz, etc.)
-5. Prioritize candidates by engagement-to-follower ratio, not raw likes. A post with 5K likes
+6. Prioritize candidates by engagement-to-follower ratio, not raw likes. A post with 5K likes
    from a 10K-follower account is more interesting than 50K likes from a 5M-follower account.
-
-**Anti-detection notes:**
-
-- Navigate naturally — use the search bar, scroll through results, click posts one at a time
-- Wait 2-3 seconds between actions
-- Do not like, comment, follow, or DM any account
-- If Instagram shows a login wall or captcha, stop and flag to the human
 
 **Output:** A list of 8-12 candidate URLs with metadata, saved to `references/swipe-file.jsonl`.
 
