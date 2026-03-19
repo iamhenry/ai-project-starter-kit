@@ -110,6 +110,7 @@ aso-worker/
     config.json                    # app config (shared)
     results.jsonl                  # experiment log (agent-owned)
     playbook.json                  # strategy (agent-owned)
+    proposals/                     # cycle proposals for human review (agent-owned)
 ```
 
 Before running, create `data/config.json` in the skill directory.
@@ -239,26 +240,28 @@ Before running, create `data/config.json` in the skill directory.
 6. Tag new candidates as `candidate` in Astro
 
 **B3. Optimize metadata**
-1. Rank all candidate keywords by the Golden Ratio score: `popularity / (difficulty + 1)`
-2. Draft new keywords field:
+1. **Formulate hypothesis.** Write a one-sentence hypothesis for this cycle: what you're changing, why, and what improvement you expect. Example: *"Replacing 3 low-pop generic keywords with sobriety-specific alternatives (pop 25-35, diff <30) will improve weighted avg position by 15+ because competitor analysis shows these terms have low title-match competition."* This hypothesis is recorded in the `action` entry.
+2. Rank all candidate keywords by the Golden Ratio score: `popularity / (difficulty + 1)`
+3. Draft new keywords field:
    - Start with highest-scoring candidates
    - Exclude words already in title/subtitle
    - Comma-separated, no spaces, stay within 100 chars
    - Prefer complete meaningful phrases over isolated words when they fit
-3. If title/subtitle change is warranted (rare — only if a significantly better keyword phrase is found):
+4. If title/subtitle change is warranted (rare — only if a significantly better keyword phrase is found):
    - Draft new title (≤30 chars, strongest keyword phrase leftmost)
    - Draft new subtitle (≤30 chars, second strongest keyword phrase)
    - Remember: title/subtitle changes are more disruptive than keywords field changes
-4. Run `asc metadata keywords diff` to preview the change
-5. **Append** a proposal entry to `results.jsonl` (one JSON line with type `action`, status `proposed`, before/after keywords, rationale, score_before, installs_before)
+5. Run `asc metadata keywords diff` to preview the change
+6. **Append** a proposal entry to `results.jsonl` (one JSON line with type `action`, status `proposed`, before/after keywords, hypothesis, variable_changed, measurement_plan, rationale, score_before, installs_before)
 
 **B4. Submit (semi-autonomous checkpoint)**
 1. Run `asc validate --app "$APP_ID" --version "$VERSION"`
 2. If validation fails: log failure, do not submit, mark cycle as `fail`
-3. If semi-autonomous mode: output the proposed changes as a human-readable report and STOP. Wait for human approval.
-4. If fully autonomous mode: run `asc metadata keywords apply --confirm`, then `asc submit create --confirm`
-5. **Update** the proposal entry in `results.jsonl` status from `proposed` to `submitted`, add submission timestamp
-6. Note: submit on Tuesday or Wednesday for fastest review (~10h vs ~24h)
+3. **Present proposal:** Write a human-readable proposal to `data/proposals/cycle-NNN-proposal.md` containing: hypothesis, before/after keywords diff, rationale, current score, expected outcome. Also output the same report in chat.
+4. If semi-autonomous mode: **STOP here.** Do not run `asc metadata keywords apply`. Wait for human approval before proceeding.
+5. If fully autonomous mode: run `asc metadata keywords apply --confirm`, then `asc submit create --confirm`
+6. **Update** the proposal entry in `results.jsonl` status from `proposed` to `submitted`, add submission timestamp
+7. Note: submit on Tuesday or Wednesday for fastest review (~10h vs ~24h)
 
 **B5. Verify (preliminary + final checkpoints after submission)**
 1. Preliminary (day `config.cadence.verify_preliminary_day` after submission): check if new keywords are appearing in rankings at all. If completely absent, suspect metadata issue.
@@ -366,7 +369,10 @@ See `references/playbook.json` for a complete example with all fields.
 
 ## Proof of Loop
 
-### Cycle 0 — Baseline (Day 1)
+### Cycle 1 — First Cycle (Day 1)
+The first cycle folds baseline gathering into its research phase, then immediately proposes a metadata change.
+
+**Research phase (baseline):**
 1. Read `config.json` to load app identity and seed keywords
 2. Add app to Astro tracking via `add_app` (if not already tracked)
 3. Add seed keywords to Astro via `add_keywords` (store: "us")
@@ -374,17 +380,16 @@ See `references/playbook.json` for a complete example with all fields.
 5. Extract competitor keywords, add promising ones to tracking
 6. Pull current metadata via `asc metadata pull`
 7. Record current state: keywords tracked, current rankings (likely none yet), keywords field content, utilization %
-8. Save baseline to `results.jsonl`. Change nothing.
-9. **Expected output:** baseline entry in results.jsonl, 20-50 keywords tracked in Astro, current metadata snapshot saved
+8. Log a `baseline` entry to `results.jsonl` (snapshot of initial state)
 
-### Cycle 1 — First Bounded Change
-1. Pull rankings for all tracked keywords (now have `config.cadence.act_days` days of data)
-2. Compute weighted average position
-3. Run keyword audit: filter tracked keywords through Golden Ratio
-4. Rank candidates by `popularity / (difficulty + 1)`
-5. Draft optimized keywords field (100 chars, no waste, no duplication with title/subtitle)
-6. Run `asc metadata keywords diff` to preview
-7. If semi-autonomous: output report for human approval
-8. If approved: apply keywords, validate, submit
-9. Log the change to results.jsonl
-10. **Expected proof:** one metadata submission with clear rationale, diff showing before/after keywords
+**Action phase (proposal):**
+9. Run keyword audit: filter tracked keywords through Golden Ratio
+10. Formulate hypothesis for first metadata change
+11. Rank candidates by `popularity / (difficulty + 1)`
+12. Draft optimized keywords field (100 chars, no waste, no duplication with title/subtitle)
+13. Run `asc metadata keywords diff` to preview
+14. Write proposal to `data/proposals/cycle-001-proposal.md` and output in chat
+15. Log `action` entry to `results.jsonl` with status `proposed`
+16. If semi-autonomous: STOP. Wait for human approval before applying.
+
+**Expected output:** baseline entry + action entry in results.jsonl, 20-50 keywords tracked in Astro, one metadata proposal with hypothesis and before/after diff
