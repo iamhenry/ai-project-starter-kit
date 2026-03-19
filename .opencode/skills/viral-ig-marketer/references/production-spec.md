@@ -2,6 +2,12 @@
 
 The production spec is the interface between viral-ig-marketer (orchestrator) and viral-producer (renderer). viral-ig-marketer builds this spec; viral-producer validates and executes it.
 
+## Output Requirements
+
+- Final output must be Instagram Reel format: `9:16` vertical at `1080x1920` in `.mp4`.
+- Canonical render package path: `../viral-producer/output/reels/<slug>/`.
+- Generated images for this flow must use `portrait_9_16` sizing.
+
 ## Required Fields
 
 | Field | Type | Description |

@@ -12,7 +12,7 @@
     "apiKey": "env:FAL_KEY",
     "budgetCeilingUSD": 10,
     "defaultImageModel": "fal-ai/bytedance/seedream/v5/lite/text-to-image",
-    "defaultImageSize": "portrait_4_3"
+    "defaultImageSize": "portrait_9_16"
   },
   "brand": {
     "voice": {

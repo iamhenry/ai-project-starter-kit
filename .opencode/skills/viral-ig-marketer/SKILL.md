@@ -53,6 +53,8 @@ export $(grep -v '^#' /home/node/openclaw/.env | xargs)
 
 Key environment variables (all loaded from `/home/node/openclaw/.env`):
 
+- Keep each variable on its own line in `.env`. `FAL_KEY` and `REVENUECAT_PROJECT_ID` must never be concatenated.
+
 - `INSTAGRAM_ACCESS_TOKEN` — long-lived token (60 days, auto-refreshed via cron)
 - `INSTAGRAM_BUSINESS_ACCOUNT_ID` — Instagram Business Account ID
 - `FACEBOOK_PAGE_ID` — Facebook Page ID
@@ -92,8 +94,8 @@ curl -s "https://graph.facebook.com/v22.0/${INSTAGRAM_BUSINESS_ACCOUNT_ID}/insig
 | Action                              | Tool / API                                                                                                                | Access | Checkpoint                    | Verification source               |
 | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------ | ----------------------------- | --------------------------------- |
 | Research content angles             | Read existing brief from `../viral-research/references/example-brief.md` + `../viral-research/references/swipe-file.jsonl` + `../viral-research/references/format-taxonomy.md`. ⛔ NO instagram.com | ready  | autonomous                    | Content direction selected        |
-| Produce rendered Reel               | Delegate to **viral-producer** skill (pass format tier, topic, hook, assets). See `../viral-producer/SKILL.md`            | ready  | autonomous                    | .mp4 in viral-producer `output/reels/` |
-| Generate images via fal.ai          | fal.ai API — model + size from `config.json` → `fal.defaultImageModel` / `fal.defaultImageSize`, key in env var `FAL_KEY` | ready  | autonomous                    | image file in `output/assets/`    |
+| Produce rendered Reel               | Delegate to **viral-producer** skill (pass format tier, topic, hook, assets). See `../viral-producer/SKILL.md`            | ready  | autonomous                    | package in `../viral-producer/output/reels/<slug>/` |
+| Generate images via fal.ai          | fal.ai API — model + size from `config.json` → `fal.defaultImageModel` / `fal.defaultImageSize`, key in env var `FAL_KEY` | ready  | autonomous                    | producer-owned asset in `../viral-producer/output/assets/<slug>/` |
 | Send draft to human via Telegram    | Send reel .mp4 + caption in Telegram chat                                                                                 | ready  | human-relay (human publishes) | .mp4 + caption received in chat   |
 | Pull post analytics                 | Instagram Graph API: `GET /{media-id}/insights`                                                                           | ready  | autonomous                    | insights JSON returned            |
 | Discover published media ID         | Instagram Graph API: `GET /{ig-user-id}/media` — match by timestamp/caption                                               | ready  | autonomous                    | media ID stored in results.jsonl  |
@@ -104,7 +106,7 @@ curl -s "https://graph.facebook.com/v22.0/${INSTAGRAM_BUSINESS_ACCOUNT_ID}/insig
 ### Permissions
 
 - Read/write: `references/` (all memory files — relative to skill dir)
-- Read/write: `output/` (created on first run if missing — reels, assets)
+- Read/write: `output/` (created on first run if missing — marketer memory only; rendered reels/assets live under `../viral-producer/output/`)
 - agent-browser: App Store only. **Instagram is banned** — see Off-limits. No logins, no engagement actions, no form submissions on any site.
 - All secrets loaded from `/home/node/openclaw/.env` — never hardcode IDs or tokens in skill files
 
@@ -136,7 +138,7 @@ curl -s "https://graph.facebook.com/v22.0/${INSTAGRAM_BUSINESS_ACCOUNT_ID}/insig
 
 Every cycle, in this order:
 
-0. **Bootstrap directories** (first-run or new environment): ensure `references/` and `output/reels/`, `output/assets/` exist. Create if missing. Do not fail if they already exist.
+0. **Bootstrap directories** (first-run or new environment): ensure `references/` exists. Viral assets and reel packages are owned by `../viral-producer/output/assets/` and `../viral-producer/output/reels/`. Do not create duplicate local reel/assets dirs.
 1. Read `references/results.jsonl` — full history of every cycle: what was tested, what scored, what failed, what's pending
 2. Check for stale entries: any entry with `"status": "pending"` older than 5 days → update to `"status": "stale"` with note
 3. Read `references/playbook.json` — current best-known hooks, topics, CTAs, hashtag clusters, format mix, posting times

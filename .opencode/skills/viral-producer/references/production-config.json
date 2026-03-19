@@ -63,7 +63,7 @@
 
   "constraints": {
     "maxDurationSeconds": 10,
-    "resolution": "720x1280",
+    "resolution": "1080x1920",
     "format": "mp4",
     "codec": "h264",
     "facelessOnly": true

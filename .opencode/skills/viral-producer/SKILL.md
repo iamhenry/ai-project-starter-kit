@@ -26,12 +26,12 @@ The input is a spec. The output is content.
 
 ## Scope
 
-- **Platform:** Instagram Reels (9:16 vertical, 720x1280, h264+aac, .mp4)
+- **Platform:** Instagram Reels (`9:16` vertical, `1080x1920`, h264+aac, `.mp4`)
 - **Content type:** Faceless only — no face-on-camera content
 - **Format tiers:** T1-T4 (niche formats) and P1-P3 (premium formats)
 - **Rendering engine:** Remotion (programmatic React-based video)
 - **Asset generation:** fal.ai (AI imagery), stock footage, Figma/SVG design assets
-- **Output:** Rendered .mp4 files + caption drafts, ready for posting via Postiz or manually
+- **Output:** Rendered `.mp4` package at `output/reels/<slug>/`, ready for posting via Postiz or manually
 
 ## Prerequisites
 
@@ -182,7 +182,7 @@ ffprobe -v quiet \
   output/reels/<slug>.mp4
 ```
 
-Expected: 720x1280, h264 video + aac audio, duration matches target ±0.5s.
+Expected: 1080x1920, h264 video + aac audio, duration matches target ±0.5s.
 
 **If Remotion is not set up**, the skill can still produce content by outputting:
 
@@ -213,7 +213,7 @@ For each produced Reel, the final output includes:
 
 ```
 output/reels/<slug>/
-├── <slug>.mp4          — rendered Reel (720x1280, h264+aac)
+├── <slug>.mp4          — rendered Reel (1080x1920, h264+aac)
 ├── caption.txt         — full caption with CTA and hashtags
 ├── metadata.json       — production metadata (format tier, topic, hook type,
 │                         virality score, assets used, render settings, audio)
@@ -238,7 +238,7 @@ Write `metadata.json`:
   "emotionalTrigger": "regret",
   "viralityScore": 4,
   "duration": 6.0,
-  "resolution": "720x1280",
+  "resolution": "1080x1920",
   "productionDate": "YYYY-MM-DD",
   "assetsUsed": {
     "background": "fal.ai generated / stock / custom",

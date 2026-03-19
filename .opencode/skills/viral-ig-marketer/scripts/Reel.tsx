@@ -30,8 +30,8 @@ const Scene: React.FC<{
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
 
-  // Ken Burns: subtle zoom 100% → 106% over the scene
-  const scale = interpolate(frame, [0, 3 * fps], [1, 1.06], {
+  // Ken Burns: subtle zoom 100% -> 112% over the scene
+  const scale = interpolate(frame, [0, 3 * fps], [1, 1.12], {
     extrapolateRight: 'clamp',
   });
 

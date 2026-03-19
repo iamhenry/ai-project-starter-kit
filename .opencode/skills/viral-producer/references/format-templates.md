@@ -8,7 +8,7 @@ tier here and follow its spec.
 
 All Reels share these base parameters:
 
-- **Resolution:** 720x1280 (9:16 vertical)
+- **Resolution:** 1080x1920 (9:16 vertical)
 - **Codec:** h264 video + aac audio
 - **Format:** .mp4
 - **Safe zones:** Keep text within 80% of frame width (72px padding each side) and between
@@ -64,7 +64,7 @@ npx remotion render MemeReel --props=props.json --output=output.mp4
 **Audio:** Calm/ambient music or trending audio (soft, not distracting)
 
 **Assets needed:**
-- 1 background image (AI-generated via fal.ai or stock photo, 720x1280)
+- 1 background image (AI-generated via fal.ai or stock photo, 1080x1920)
 - 1 quote text block (the viral quote)
 
 **Layout:**
