@@ -275,8 +275,9 @@ Before running, create `data/config.json` in the skill directory.
    - Record: keyword, position_before, position_after, position_delta, popularity, difficulty
    - Classify based on whether the position change is meaningful: `keep` (clearly improved), `neutral` (negligible change), `fail` (clearly worsened or still unranked after multiple cycles). Use judgment — a 1-position change is noise, a 10-position change is signal.
 4. **Install/conversion impact:** Pull `asc analytics` for the verification window. Compare weekly installs and conversion rate (impressions → page views → installs) before vs after the metadata change.
-5. **Append** a verification entry to `results.jsonl` (one JSON line with type `verification`, score_after, score_delta, per_keyword array, installs_after, installs_delta, conversion_after, learnings_extracted)
-6. **Extract learnings and write playbook.json to disk:**
+5. **Hypothesis validation:** Retrieve the `hypothesis` and `measurement_plan` from this cycle's action entry. Compare actual outcomes against predicted outcomes. Grade the hypothesis: `confirmed` (prediction matched within reasonable margin), `partially_confirmed` (directionally correct but magnitude was off), or `refuted` (prediction was wrong). Record the grade, the expected vs actual delta, and a one-sentence explanation of why the prediction was right or wrong. Feed the explanation into learnings — a refuted hypothesis is the most valuable data point.
+6. **Append** a verification entry to `results.jsonl` (one JSON line with type `verification`, score_after, score_delta, per_keyword array, installs_after, installs_delta, conversion_after, hypothesis_grade, hypothesis_expected, hypothesis_actual, hypothesis_explanation, learnings_extracted)
+7. **Extract learnings and write playbook.json to disk:**
    - Move `keep` keywords to `winning_keywords`
    - Move `fail` keywords to `failed_keywords`
    - Look for patterns: do failed keywords share traits (e.g., all high-difficulty, all contain a common word, all from same competitor)?
@@ -284,8 +285,8 @@ Before running, create `data/config.json` in the skill directory.
    - Add the learning to `learnings` array
    - Move explored angles from `keyword_angles_untried` to `keyword_angles_tried`
    - **Write the updated playbook.json file to disk**
-7. **Update config.json:** Set `current_metadata.keywords` (and title/subtitle if changed) to reflect what's now live. **Write the updated config.json file to disk.**
-8. **Threshold adjustment check:** As the app gains ratings and authority, it can compete on harder keywords. When ratings reach a meaningful new milestone, recommend loosening `golden_ratio.max_difficulty`. Log the recommendation — don't auto-change config.
+8. **Update config.json:** Set `current_metadata.keywords` (and title/subtitle if changed) to reflect what's now live. **Write the updated config.json file to disk.**
+9. **Threshold adjustment check:** As the app gains ratings and authority, it can compete on harder keywords. When ratings reach a meaningful new milestone, recommend loosening `golden_ratio.max_difficulty`. Log the recommendation — don't auto-change config.
 
 ### Stall Rule
 Creative exploration happens every cycle via B2 Research (exploit/explore mode). The stall rule handles deeper problems:
