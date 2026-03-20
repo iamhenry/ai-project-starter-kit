@@ -164,7 +164,17 @@ Read `references/remotion-guide.md` for detailed rendering instructions per form
 }
 ```
 
-2. Invoke the Remotion render:
+2. **Pre-render validation (T2 motion check):**
+
+   Before invoking the render, verify the composition contains actual motion — not a single static frame:
+
+   - If `format` is `T2`: inspect the Remotion input props and composition code. The composition **must** include at least one animation sequence:
+     - **Text animation:** fade-in, typewriter, staggered reveal, or equivalent text motion
+     - **Background motion:** Ken Burns zoom/pan, parallax shift, subtle particle effect, or slow camera drift
+   - If both are missing (i.e., the composition would render a single static image for the entire duration), **fail the render** with error: `"T2 motion check failed: composition contains no animation sequences. T2 Quote Card requires text animation + background motion. Add at least one text reveal and one camera/background movement before rendering."`
+   - For all other format tiers (T1/T3/T4/P1-P3): motion is inherent to their composition templates — no additional check needed.
+
+3. Invoke the Remotion render:
 
 ```bash
 npx remotion render <composition-id> \
@@ -173,7 +183,7 @@ npx remotion render <composition-id> \
   --codec=h264
 ```
 
-3. Verify the output:
+4. Verify the output:
 
 ```bash
 ffprobe -v quiet \
@@ -277,6 +287,7 @@ publish decision — this skill never posts directly.
 - **Loop everything possible.** Seamless loops (last frame = first frame) maximize watch time,
   which is the algorithm's #1 ranking signal. For static formats (T1, T2), the loop is inherent.
   For animated formats (P1, P2), engineer the loop point intentionally.
+- **All Reels MUST contain motion — no static frames.** Every rendered Reel must include at least one animation sequence. For T2 Quote Card specifically: require text animation (fade-in, typewriter, or staggered reveal) + slow background motion (Ken Burns zoom/pan, parallax, or subtle particle effect). Duration 5-7s. T1/T3/T4/P1-P3 inherently contain motion. Never render a single static frame as a Reel — Instagram's algorithm deprioritizes static images published as Reels vs actual video content.
 
 ## Memory
 

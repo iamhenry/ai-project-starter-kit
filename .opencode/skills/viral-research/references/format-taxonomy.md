@@ -30,6 +30,7 @@ investment and are optimized for raw reach and engagement.
 - **Best for:** Raw reach, saves, shares. Highest engagement ceiling in our dataset (47.6K likes)
 - **Engagement profile:** Highest likes-per-second of any format. Very high save rate.
 - **Identifying signals:** Static image (often AI-generated), bold stacked text, no animation
+- **⚠️ Motion requirement:** Never publish as a static image. Always render with text animation (fade-in, typewriter, or staggered reveal) + slow background motion (Ken Burns zoom/pan, parallax, or subtle particle effect). Duration 5-7s. Instagram's algorithm weights watch time and completion rate — static images as Reels get deprioritized vs actual video content.
 
 ### T3: Text Card Reel
 
