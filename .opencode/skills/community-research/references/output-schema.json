@@ -1,0 +1,8 @@
+{
+  "text": "string",
+  "author": "string",
+  "timestamp": "ISO-8601 string or null",
+  "engagementScore": 0,
+  "directUrl": "https://...",
+  "source": "reddit|twitter"
+}

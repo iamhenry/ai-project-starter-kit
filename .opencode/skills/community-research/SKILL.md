@@ -1,99 +1,29 @@
 ---
 name: community-research
-description: Research communities across Reddit and Twitter/X through a single adapter-based pipeline. Use when you need repeatable community mining, cross-platform quote collection, audience pain-point research, trend gathering, or competitor/community signal gathering with source URLs attached to every finding.
+description: Orchestrate community research across x-reader and reddit-reader, normalize findings, dedupe repeated text, and return citation-safe JSON with direct URLs.
 ---
 
 # Community Research
 
-Use this skill to gather structured community evidence from multiple platforms without changing the core workflow.
+Use this skill as the thin orchestrator.
 
-## Architecture
+## Source skills
+- `x-reader` for structured X/Twitter search
+- `reddit-reader` for structured Reddit search via PullPush
 
-```text
-community-research/
-  SKILL.md
-  README.md
-  adapters/
-    base.py
-    reddit.py
-    twitter_x.py
-  scripts/
-    research.py
-  examples/
-    sources.example.json
-  tests/
-    test_engine.py
-```
+## Output shape
+Read `references/output-schema.json` and return an array of objects in exactly that shape.
 
-The core principle is simple:
-- keep one engine
-- keep one normalized output shape
-- isolate platform-specific behavior inside adapters
+## Workflow
+1. Run each source skill with the same query, time range, and limit.
+2. Keep only items with non-empty `directUrl`.
+3. Normalize fields to the shared schema.
+4. Dedupe on normalized `text`; keep the higher `engagementScore` if duplicates collide.
+5. Sort by `engagementScore` desc unless the user asks otherwise.
+6. Return JSON only unless the user asks for synthesis.
 
-## Output contract
-
-Every adapter returns items in this shape:
-
-```json
-{
-  "text": "post or message text",
-  "author": "username or display name",
-  "timestamp": "ISO-8601 timestamp or null",
-  "engagementScore": 123,
-  "directUrl": "https://...",
-  "source": "reddit|twitter_x",
-  "replies": []
-}
-```
-
-If an adapter cannot produce a direct URL for an item, drop that item instead of returning an uncitable quote.
-
-## Standard run
-
-From the skill directory:
-
-```bash
-python3 scripts/research.py \
-  --query "why do people relapse after a good streak" \
-  --sources-file examples/sources.example.json \
-  --pretty
-```
-
-Useful options:
-
-```bash
-python3 scripts/research.py --query "zero proof drinks" --sources-file examples/sources.example.json
-python3 scripts/research.py --query "habit tracker churn" --sources-file examples/sources.example.json --limit 25
-python3 scripts/research.py --query "zero proof drink pricing" --sources-file examples/sources.example.json --time-range 30d --pretty
-```
-
-## Source config
-
-Pass a JSON file containing a list of source objects. Example:
-
-```json
-[
-  {"type": "reddit", "subreddit": "stopdrinking", "limit": 10},
-  {"type": "twitter_x", "search_term": "zero proof drinks", "limit": 10}
-]
-```
-
-## Adapter notes
-
-Read only the adapter file you need to change:
-- `adapters/reddit.py` for ScrapiReddit-based collection
-- `adapters/twitter_x.py` for X bearer-token search and x-reader-compatible shaping
-
-## Citation rule
-
-Treat this as non-negotiable: every quoted datapoint must keep its clickable source URL. The engine filters out items missing `directUrl` so downstream summaries stay citable.
-
-## Deduplication
-
-The engine deduplicates across adapters using normalized text fingerprints. This catches the common case where the same quote is reposted or mirrored across platforms.
-
-## Failure handling
-
-- Keep partial results if one adapter fails.
-- Surface adapter errors in the final JSON.
-- Never fabricate missing author, URL, or timestamp data.
+## Rules
+- Do not rebuild adapters here.
+- Keep source-specific logic inside the source skills.
+- Never cite a quote without a clickable URL.
+- If one source fails, return partial results plus an `errors` array.
