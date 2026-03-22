@@ -1,30 +1,35 @@
 ---
 name: reddit-reader
-description: Fetch Reddit posts or comments through PullPush, then return normalized citation-safe JSON items for community research.
+description: Search Reddit posts and comments with PullPush, then return citation-safe findings with direct Reddit URLs.
 ---
 
 # Reddit Reader
 
-Use PullPush only: `https://api.pullpush.io/reddit/search/{submission|comment}/`.
+Use PullPush, not `scrapi_reddit` or the official Reddit API.
 
-## Inputs
-- `query`
-- `subreddit` optional
-- `limit` optional, default 10
-- `after` / `before` optional unix timestamps
-- `mode`: `posts`, `comments`, or `both`
+## Working endpoints
+- Posts: `GET https://api.pullpush.io/reddit/search/submission/?q=<query>&subreddit=<sub>&size=<n>`
+- Comments: `GET https://api.pullpush.io/reddit/search/comment/?q=<query>&subreddit=<sub>&size=<n>`
 
-## Run
-Use `references/pullpush.sh` to fetch JSON. Prefer `comments` for pain points, `posts` for broader demand, `both` when unspecified.
+## Workflow
+1. Search posts when you want themes, titles, and demand signals.
+2. Search comments when you want pain points and exact language.
+3. Prefer a subreddit filter when the niche is known.
+4. Sort or filter results by `score`, `created_utc`, and relevance to the query.
+5. Build the direct URL as `https://reddit.com` + `permalink`.
 
-## Normalize each hit
+## Return shape
 ```json
 {"text":"...","author":"...","timestamp":"...","engagementScore":0,"directUrl":"https://reddit.com/...","source":"reddit"}
 ```
 
-## Rules
-- Build `directUrl` from `permalink`.
-- `engagementScore` = `score`.
-- `timestamp` = UTC ISO-8601 from `created_utc`.
-- Drop removed/deleted text and empty URLs.
-- Return JSON only unless asked for synthesis.
+## Mapping
+- `text` = `title + selftext` for posts, or `body` for comments
+- `author` = `author`
+- `timestamp` = ISO-8601 from `created_utc`
+- `engagementScore` = `score`
+- `directUrl` = `https://reddit.com` + `permalink`
+
+## What does not work
+- `scrapi_reddit` is blocked from our VPS with 403s
+- Official Reddit API requires OAuth and is unnecessary here
