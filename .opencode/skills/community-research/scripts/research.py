@@ -14,13 +14,11 @@ SKILL_DIR = Path(__file__).resolve().parent.parent
 if str(SKILL_DIR) not in sys.path:
     sys.path.insert(0, str(SKILL_DIR))
 
-from adapters.discord import DiscordAdapter
 from adapters.reddit import RedditAdapter
 from adapters.twitter_x import TwitterXAdapter
 
 ADAPTERS = {
     "reddit": RedditAdapter,
-    "discord": DiscordAdapter,
     "twitter_x": TwitterXAdapter,
 }
 

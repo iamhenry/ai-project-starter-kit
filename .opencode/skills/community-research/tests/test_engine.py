@@ -1,12 +1,8 @@
 from __future__ import annotations
 
-import json
-import tempfile
 import unittest
-from pathlib import Path
 
 from adapters.base import BaseAdapter
-from adapters.discord import DiscordAdapter
 from scripts.research import build_output, dedupe_items
 
 
@@ -38,39 +34,11 @@ class EngineTests(unittest.TestCase):
         items = [
             {"text": "Same idea", "engagementScore": 1, "directUrl": "https://a", "source": "reddit"},
             {"text": "same   idea", "engagementScore": 9, "directUrl": "https://b", "source": "twitter_x"},
-            {"text": "missing url", "engagementScore": 99, "directUrl": "", "source": "discord"},
+            {"text": "missing url", "engagementScore": 99, "directUrl": "", "source": "reddit"},
         ]
         deduped = dedupe_items(items)
         self.assertEqual(len(deduped), 1)
         self.assertEqual(deduped[0]["directUrl"], "https://b")
-
-    def test_discord_adapter_can_build_fallback_message_link(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            path = Path(tmpdir) / "export.json"
-            path.write_text(json.dumps({
-                "messages": [
-                    {
-                        "id": "999",
-                        "channel_id": "222",
-                        "timestamp": "2026-03-22T10:00:00Z",
-                        "content": "People keep relapsing on weekends",
-                        "author": {"name": "alex"},
-                        "reactions": [{"emoji": ":("}]
-                    }
-                ]
-            }))
-            adapter = DiscordAdapter()
-            result = adapter.fetch(
-                query="relapsing weekends",
-                source_config={
-                    "channel_export_path": str(path),
-                    "server_id": "111",
-                    "channel_id": "222",
-                    "limit": 5,
-                },
-            )
-            self.assertEqual(result.errors, [])
-            self.assertEqual(result.items[0].directUrl, "https://discord.com/channels/111/222/999")
 
     def test_build_output_aggregates_parallel_sources(self):
         from scripts import research

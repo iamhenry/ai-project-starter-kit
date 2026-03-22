@@ -1,6 +1,6 @@
 ---
 name: community-research
-description: Research communities across Reddit, Discord, and Twitter/X through a single adapter-based pipeline. Use when you need repeatable community mining, cross-platform quote collection, audience pain-point research, trend gathering, or competitor/community signal gathering with source URLs attached to every finding.
+description: Research communities across Reddit and Twitter/X through a single adapter-based pipeline. Use when you need repeatable community mining, cross-platform quote collection, audience pain-point research, trend gathering, or competitor/community signal gathering with source URLs attached to every finding.
 ---
 
 # Community Research
@@ -16,7 +16,6 @@ community-research/
   adapters/
     base.py
     reddit.py
-    discord.py
     twitter_x.py
   scripts/
     research.py
@@ -42,7 +41,7 @@ Every adapter returns items in this shape:
   "timestamp": "ISO-8601 timestamp or null",
   "engagementScore": 123,
   "directUrl": "https://...",
-  "source": "reddit|discord|twitter_x",
+  "source": "reddit|twitter_x",
   "replies": []
 }
 ```
@@ -65,7 +64,7 @@ Useful options:
 ```bash
 python3 scripts/research.py --query "zero proof drinks" --sources-file examples/sources.example.json
 python3 scripts/research.py --query "habit tracker churn" --sources-file examples/sources.example.json --limit 25
-python3 scripts/research.py --query "discord onboarding pain points" --sources-file examples/sources.example.json --time-range 30d --pretty
+python3 scripts/research.py --query "zero proof drink pricing" --sources-file examples/sources.example.json --time-range 30d --pretty
 ```
 
 ## Source config
@@ -75,7 +74,6 @@ Pass a JSON file containing a list of source objects. Example:
 ```json
 [
   {"type": "reddit", "subreddit": "stopdrinking", "limit": 10},
-  {"type": "discord", "channel_export_path": "/tmp/community.json", "limit": 10},
   {"type": "twitter_x", "search_term": "zero proof drinks", "limit": 10}
 ]
 ```
@@ -84,7 +82,6 @@ Pass a JSON file containing a list of source objects. Example:
 
 Read only the adapter file you need to change:
 - `adapters/reddit.py` for ScrapiReddit-based collection
-- `adapters/discord.py` for DiscordChatExporter JSON ingestion
 - `adapters/twitter_x.py` for X bearer-token search and x-reader-compatible shaping
 
 ## Citation rule

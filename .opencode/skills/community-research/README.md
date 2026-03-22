@@ -1,6 +1,6 @@
 # Community Research Skill
 
-A reusable adapter-driven community research pipeline for Reddit, Discord, and Twitter/X.
+A reusable adapter-driven community research pipeline for Reddit and Twitter/X.
 
 ## What it does
 
@@ -46,31 +46,6 @@ Source config keys:
 Notes:
 - No auth required for the default workflow.
 - The adapter expects the `scrapi_reddit` package to be importable.
-
-### Discord adapter
-
-This adapter consumes a DiscordChatExporter JSON export.
-
-Export example:
-
-```bash
-DiscordChatExporter.Cli export \
-  --token "$DISCORD_BOT_TOKEN" \
-  --channel <CHANNEL_ID> \
-  --format Json \
-  --output /tmp/discord-export.json
-```
-
-Source config keys:
-- `type`: `discord`
-- `channel_export_path`: path to exported JSON file
-- `limit`: optional integer
-- `server_id`: optional metadata
-- `channel_id`: optional metadata
-
-Notes:
-- Use a bot token, not a personal token.
-- The skill reads the export file locally so collection and parsing stay decoupled.
 
 ### Twitter/X adapter
 
