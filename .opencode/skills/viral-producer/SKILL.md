@@ -194,14 +194,17 @@ ffprobe -v quiet \
 
 Expected: 1080x1920, h264 video + aac audio, duration matches target ±0.5s.
 
-**If Remotion is not set up**, the skill can still produce content by outputting:
+**If Remotion is not set up or render prerequisites are missing, fail the cycle loudly. Do not silently degrade to a static/manual package.**
 
-- A complete asset package (background + text content + layout specs)
-- A rendering instruction file that any video tool (CapCut, Canva, After Effects) can follow
-- This is the graceful degradation path — the content strategy is still valuable even without
-  automated rendering
+Required behavior:
 
-**Output:** Rendered .mp4 in `output/reels/<slug>.mp4`
+- Stop before claiming the reel is ready.
+- Emit a clear error explaining why automated render could not run.
+- Mark the cycle/output as `render_failed`, not `ready-for-review` and not `ready-for-manual-render`.
+- If you generated useful inputs (backgrounds, props, caption drafts), keep them as debugging artifacts only — not as the primary deliverable.
+- Never treat `render-instructions.md` as a successful reel output.
+
+**Output:** Rendered `.mp4` in `output/reels/<slug>.mp4` or an explicit render failure.
 
 ### Phase 4: Caption Save
 
@@ -281,9 +284,7 @@ publish decision — this skill never posts directly.
   P2 (Data Viz) formats where the escalation arc requires it.
 - **Soul for visual tone.** Read `../viral-ig-marketer/references/soul.md` for brand voice context.
   Use it to guide visual tone and typography choices — not to rewrite copy (that's upstream).
-- **Graceful degradation.** If Remotion isn't available, output the asset package + rendering
-  instructions. If fal.ai budget is hit, fall back to stock or gradient backgrounds. The
-  production pipeline should never hard-stop — there's always a lower-cost path to content.
+- **Fail loudly on Remotion unavailability.** If Remotion isn't available, record an explicit render failure instead of shipping an instructions-only package as the deliverable. If fal.ai budget is hit, fall back to stock or gradient backgrounds, but the pipeline must still produce a real `.mp4` to count as complete.
 - **Loop everything possible.** Seamless loops (last frame = first frame) maximize watch time,
   which is the algorithm's #1 ranking signal. For static formats (T1, T2), the loop is inherent.
   For animated formats (P1, P2), engineer the loop point intentionally.
