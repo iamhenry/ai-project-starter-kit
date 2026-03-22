@@ -176,7 +176,7 @@ Every cycle, in this order:
 ## Operating Principles
 
 - **One variable per experiment.** Test hook OR imagery OR CTA — never two at once. You cannot attribute results if multiple variables change simultaneously. See `references/experiment-framework.md` for the current experiment queue.
-- **Generate 3-5, post 1.** Every cycle, generate 3-5 content concepts (varying the current test variable). Score each against the virality model's 5-question gate. Delegate ONLY the highest-scoring concept to viral-producer. Log all variations in results.jsonl (`reasoning.discarded_variations`) — the losers are still data.
+- **Generate 3-5, post 1.** Every cycle, generate 3-5 content concepts (varying the current test variable). Score each against the virality model's 5-question gate. Delegate ONLY the highest-scoring concept to viral-producer. Persist ONLY that single winning concept to `references/results.jsonl` as the cycle's main entry. Log all non-winning variations under `reasoning.discarded_variations` inside the winner's entry — the losers are still data, but they must never become separate cycle entries.
 - **Use trends, not single posts.** Log every post. React to direction after 2 consecutive posts point the same way. One post is a data point — two is a signal — three is a trend.
 - **Reach before conversion.** Test hooks first, then imagery, then CTA — this order is prescribed. If nobody sees the post, CTA quality is irrelevant.
 - **Production ladder (replaces locked format).** Format tier is selected by account phase from `../viral-research/references/format-taxonomy.md`:
@@ -268,8 +268,9 @@ Select a content angle using existing research output — do NOT run interactive
    - Score 3: revise the hook or specificity, then re-score
    - Score 0–2: discard — pick a different angle from the brief
 4. **Pick the winner** — highest score. Break ties with what's most unexpected or specific to the audience.
-5. **Write the caption** for the winning concept. Follow `references/caption-guide.md` (full framework) + `references/soul.md` (brand voice).
-6. **Log the discards** — store all variations in results.jsonl under `reasoning.discarded_variations` as `[{text, score, reason_not_picked}]`.
+5. **Enforce the single-output rule** — once a winner is selected, that winner is the ONLY concept allowed to move forward in this cycle. Do not render runners-up. Do not append runners-up as separate rows in `references/results.jsonl`. If multiple rows share the same `id` / cycle ID, treat that as a bug and stop to correct it before continuing.
+6. **Write the caption** for the winning concept. Follow `references/caption-guide.md` (full framework) + `references/soul.md` (brand voice).
+7. **Log the discards** — store all variations in results.jsonl under `reasoning.discarded_variations` as `[{text, score, reason_not_picked}]`.
 
 ---
 
@@ -282,6 +283,8 @@ Delegate the winning concept to the **viral-producer** skill. The production spe
 **Production spec:** Build the spec per `references/production-spec.md` (required + optional fields, example). All required fields must be populated from Steps 2a and 2b before delegating. Pick an `audio_track` that matches the content's emotional tone from the read-only `audio/` library and include that filename in the spec.
 
 Viral-producer handles: asset generation, Remotion rendering, caption file save, output packaging. It returns a complete package: `.mp4` + `caption.txt` + `metadata.json`.
+
+**Render constraint:** render exactly 1 video per cycle — the winning concept only. Internal concept generation can produce multiple candidates, but production output must be a single `.mp4` package for the selected winner.
 
 After receiving the rendered output, send draft to human via Telegram:
 
@@ -303,7 +306,9 @@ openclaw message send --channel telegram --target $TELEGRAM_CHAT_ID \
 
 **Step 3: Append cycle to results.jsonl**
 
-Immediately after drafting content, append a new entry:
+Immediately after drafting content, append a new entry.
+
+**Persistence constraint:** append exactly 1 new row to `references/results.jsonl` for the cycle winner. Never append one row per variation. Multiple entries with the same cycle ID mean the cycle is corrupted and must be treated as a bug.
 
 ```jsonl
 {
