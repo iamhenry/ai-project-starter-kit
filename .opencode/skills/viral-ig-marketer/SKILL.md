@@ -193,6 +193,7 @@ Every cycle, in this order:
 - **Niche lock.** All content targets the niche defined in `config.json → app.niche`. Adjacent niche research is for discovering hooks, angles, and formats that might resonate — but the audience is always the niche audience. If the agent finds itself creating content that a different niche's audience would engage with but the target niche wouldn't, discard it.
 - **All Reels MUST contain motion.** No pure static images published as Reels. Minimum motion by tier: T2 Quote Card requires text animation (fade-in, typewriter, or staggered reveal) + slow background motion (Ken Burns, parallax, or particle effect), duration 5-7s. T1/T3/T4/P1-P3 already meet motion requirements by design. Enforce this in the production spec — if delegating a T2 to viral-producer, the spec must describe the animation sequence.
 - **Self-heal before escalating.** When something breaks, try to recover once before involving the human. Match the recovery to the failure type: transient errors (timeouts, rate limits) warrant a retry; blocked resources (auth walls, missing files) warrant a fallback or graceful skip; ambiguous failures warrant stopping and surfacing. Always record what failed and what was attempted in `reasoning.skipped_steps`. Never silently skip a step — an unrecorded skip is worse than a flagged failure.
+- **Stale data recovery before new content production.** Before producing any new content, clear stale analytics debt from prior cycles. If `references/results.jsonl` contains `pending` entries older than 48 hours, Step 1 must try to recover them first by matching each stale entry to a published Instagram post via caption/timestamp, pulling Instagram Graph API insights, and updating the entry before the agent creates anything new. If no matching published post can be found after 48 hours, set that entry's status to `stale`, record the attempted matching logic in `reasoning.skipped_steps`, and continue only after all >48h pending entries have been resolved to metrics or `stale`.
 - **Recovery rule (deterministic).** On any failed step, follow this sequence exactly: (1) classify the failure as transient, blocked, or ambiguous; (2) attempt one self-healing action only — retry once for transient failures, use the documented fallback for blocked failures, or stop for ambiguous failures; (3) if the retry/fallback succeeds, continue the cycle and log the recovery in `reasoning.skipped_steps`; (4) if it fails again or no valid fallback exists, stop the cycle, preserve the current state, and surface the blocker to the human with the failed step, attempted recovery, and what must change to resume. Do not loop indefinitely, invent new recovery paths, or continue after an unresolved failed dependency.
 
 ## Work Loop
@@ -226,8 +227,11 @@ curl -s -H "Authorization: Bearer $REVENUECAT_API_KEY" \
   "https://api.revenuecat.com/v2/projects/${REVENUECAT_PROJECT_ID}/metrics/overview"
 ```
 
-- Match the pending entry in results.jsonl to the published post by caption/timestamp, store the Instagram media ID
-- Record insights by updating the matching `pending` entry in `references/results.jsonl` → set status to `keep`, `discard`, or `fail`
+- First, scan `references/results.jsonl` for any `pending` entries older than 48 hours. Treat these as stale-recovery candidates and process them before the normal previous-cycle analytics pull.
+- For each stale-recovery candidate, match it to a published Instagram post by caption/timestamp, store the Instagram media ID, pull insights via the Instagram Graph API, and update the entry with recovered metrics.
+- If a stale-recovery candidate has no matching published post after 48 hours, set its status to `stale` and record the failed matching attempt in `reasoning.skipped_steps`.
+- After stale recovery is complete, match the most recent unresolved `pending` entry in results.jsonl to the published post by caption/timestamp and store the Instagram media ID.
+- Record insights by updating the matching `pending` entry in `references/results.jsonl` → set status to `keep`, `discard`, or `fail` (or `stale` when no match exists after 48 hours)
 - Compare to baseline and previous batch
 - Apply diagnostic matrix (below) → identify current quadrant
 - Output morning report
