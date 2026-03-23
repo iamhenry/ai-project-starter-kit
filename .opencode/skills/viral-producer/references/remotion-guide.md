@@ -203,3 +203,110 @@ ffmpeg -i output.mp4 -i audio.mp3 \
   -c:v copy -c:a aac -shortest \
   output-with-audio.mp4 -y
 ```
+
+## Ken Burns Effect (Default Motion)
+
+All compositions with a background image or video should apply the Ken Burns effect by default.
+This adds subtle camera-like motion that prevents the "slideshow" feel.
+
+### Default parameters
+
+| Property | Start | End | Notes |
+|---|---|---|---|
+| scale | 1.0 | 1.18 | ~25% more motion than the original 1.08; applied over the full composition duration |
+| translateX | 2% | -2% | Gentle horizontal drift |
+| translateY | -1% | 1% | Gentle vertical drift |
+
+### Implementation
+
+```tsx
+import { useCurrentFrame, useVideoConfig, interpolate } from "remotion";
+
+const KenBurnsWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const frame = useCurrentFrame();
+  const { durationInFrames } = useVideoConfig();
+
+  const scale = interpolate(frame, [0, durationInFrames], [1.0, 1.18], {
+    extrapolateRight: "clamp",
+  });
+
+  const translateX = interpolate(frame, [0, durationInFrames], [2, -2], {
+    extrapolateRight: "clamp",
+  });
+
+  const translateY = interpolate(frame, [0, durationInFrames], [-1, 1], {
+    extrapolateRight: "clamp",
+  });
+
+  return (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        transform: `scale(${scale}) translate(${translateX}%, ${translateY}%)`,
+        transformOrigin: "center center",
+      }}
+    >
+      {children}
+    </div>
+  );
+};
+```
+
+Wrap any background layer with `<KenBurnsWrapper>` to apply the effect. The scale
+overshoots slightly (1.18 vs 1.08) to ensure the motion is perceptible on small
+phone screens — the original 1.08 was too subtle for Instagram viewing.
+
+## Ambient Audio Layer
+
+Add a low-volume ambient audio track to every composition. This dramatically improves
+watch time — silent reels or reels with only music feel "hollow."
+
+### Usage
+
+```tsx
+import { Audio, staticFile, useCurrentFrame, useVideoConfig, interpolate } from "remotion";
+
+const AmbientAudio: React.FC<{ track?: string }> = ({
+  track = "audio/ambient-drone.wav",
+}) => {
+  const frame = useCurrentFrame();
+  const { durationInFrames } = useVideoConfig();
+
+  const volume = interpolate(
+    frame,
+    [0, 15, durationInFrames - 30, durationInFrames],
+    [0, 0.6, 0.6, 0],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
+  );
+
+  return <Audio src={staticFile(track)} volume={volume} />;
+};
+```
+
+### Volume curve
+
+- **Fade in:** 0 → 0.6 over the first 15 frames (0.5s at 30fps)
+- **Sustain:** 0.6 for the body of the composition
+- **Fade out:** 0.6 → 0 over the last 30 frames (1s at 30fps)
+
+The fade-out is longer than the fade-in to avoid an abrupt cut at the end.
+
+### Available ambient tracks
+
+Place these in `public/audio/`:
+
+| File | Description | Best for |
+|---|---|---|
+| `ambient-drone.wav` | Low atmospheric hum (default) | Most formats — neutral, non-distracting |
+| `ambient-ocean.wav` | Soft ocean waves | Wellness, mindfulness, calm content |
+| `ambient-rain.wav` | Gentle rain | Cozy, reflective, storytelling content |
+| `ambient-guitar.wav` | Soft acoustic loop | Warm, human, personal content |
+
+Pass the track name as a prop:
+
+```tsx
+<AmbientAudio track="audio/ambient-ocean.wav" />
+```
+
+If no track is specified, `ambient-drone.wav` is used as the default.
