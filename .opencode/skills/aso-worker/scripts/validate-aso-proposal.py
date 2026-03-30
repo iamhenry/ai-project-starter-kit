@@ -214,6 +214,13 @@ def query_astro(astro_url, keyword, app_id):
 
     pop = diff = None
 
+    # Fallback for simpler Astro-compatible responders that return metrics directly
+    if isinstance(result, dict):
+        direct_pop = result.get('popularity') or result.get('pop') or result.get('Popularity')
+        direct_diff = result.get('difficulty') or result.get('diff') or result.get('Difficulty')
+        if direct_pop is not None and direct_diff is not None:
+            return int(direct_pop), int(direct_diff)
+
     for item in content:
         text = item.get('text', '') if isinstance(item, dict) else str(item)
 
