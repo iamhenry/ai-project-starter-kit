@@ -10,7 +10,7 @@
   ],
   "plugin": [
     "@tarquinen/opencode-dcp@latest", // (https://github.com/Tarquinen/opencode-dynamic-context-pruning)
-    "opencode-claude-bridge",
+    "opencode-claude-bridge@latest",
   ],
   "experimental": {
     "batch_tool": true, // Enables batch tool for parallel operations
