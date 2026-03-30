@@ -62,6 +62,9 @@ version: 1.0
 | Update title/subtitle | `asc localizations upload --type app-info` | ready | semi-auto | metadata updated |
 | Validate before submission | `asc validate --app "$APP_ID" --version "$VERSION"` | ready | autonomous | validation passes |
 | Submit for review | `asc submit create --confirm` | ready | semi-auto | submission created |
+| Create new App Store version | `asc versions create --app "$APP_ID" --platform $PLATFORM_FLAG --version "$NEXT_VERSION" --copy-metadata-from "$CURRENT_VERSION"` | ready | semi-auto | version in PREPARE_FOR_SUBMISSION |
+| Get latest build | `asc builds latest --app "$APP_ID"` | ready | autonomous | build number returned |
+| Attach build to version | `asc versions attach-build --app "$APP_ID" --version "$NEXT_VERSION" --build "$BUILD_NUMBER"` | ready | semi-auto | build attached to version |
 | Check submission status | `asc status --app "$APP_ID"` | ready | autonomous | status returned |
 | Get app ratings | Astro MCP: `get_app_ratings` | ready | autonomous | ratings data |
 | Pull install/conversion analytics | `asc analytics --app "$APP_ID"` | ready | autonomous | analytics report (installs, impressions, page views) |
@@ -153,7 +156,7 @@ Before running, create `data/config.json` in the skill directory.
 - `problem_domain`: plain English description of what the app solves. Used to judge keyword relevance.
 - `golden_ratio`: thresholds for keyword filtering. Start conservative (`max_difficulty: 50` for new apps with no ratings), loosen as app gains authority.
 - `current_metadata`: snapshot of what's live. The worker updates this after each successful submission.
-- `platform`: `"ios"` or `"mac"` — works for both iPhone and Mac apps.
+- `platform`: `"ios"` or `"mac"` — works for both iPhone and Mac apps. **CLI platform flag mapping:** When `config.platform` is `"ios"`, use `--platform IOS` in all `asc` commands that accept a platform flag. When `config.platform` is `"mac"`, use `--platform MAC_OS`. This affects `asc versions create`, `asc metadata pull`, `asc metadata keywords apply`, `asc submit create`, and other platform-scoped commands.
 
 ## On Start
 
@@ -260,13 +263,24 @@ Before running, create `data/config.json` in the skill directory.
 7. **Append** a proposal entry to `results.jsonl` (one JSON line with type `action`, status `proposed`, before/after keywords, hypothesis, variable_changed, measurement_plan, rationale, score_before, installs_before)
 
 **B4. Submit (semi-autonomous checkpoint)**
-1. Run `asc validate --app "$APP_ID" --version "$VERSION"`
-2. If validation fails: log failure, do not submit, mark cycle as `fail`
-3. **Present proposal:** Write a human-readable proposal to `data/proposals/cycle-NNN-proposal.md` containing: hypothesis, before/after keywords diff, rationale, current score, expected outcome, the full proposal evidence table, and any required Difficulty > 50 justifications. Also output the same report in chat.
-4. If semi-autonomous mode: **STOP here.** Do not run `asc metadata keywords apply`. Wait for human approval before proceeding.
-5. If fully autonomous mode: run `asc metadata keywords apply --confirm`, then `asc submit create --confirm`
-6. **Update** the proposal entry in `results.jsonl` status from `proposed` to `submitted`, add submission timestamp
-7. Note: submit on Tuesday or Wednesday for fastest review (~10h vs ~24h)
+
+**Prerequisites — Version creation (required before keywords can be applied):**
+Keywords in the App Store are locked to a specific version. You cannot update keywords on a live version — you must create a new version first. This applies to BOTH iOS and Mac apps.
+
+1. **Determine the platform flag:** If `config.platform` is `"mac"`, set `$PLATFORM_FLAG` to `MAC_OS`. If `"ios"`, set it to `IOS`. Use this flag in all `asc` commands below.
+2. **Check for an existing editable version:** Run `asc status --app "$APP_ID"` to see if there's already a version in `PREPARE_FOR_SUBMISSION` state. If yes, skip to step 5.
+3. **Create a new version:** Run `asc versions create --app "$APP_ID" --platform $PLATFORM_FLAG --version "$NEXT_VERSION" --copy-metadata-from "$CURRENT_VERSION"`. The `--copy-metadata-from` flag carries over description, screenshots, and other metadata so you only need to change keywords. Use a minor version bump (e.g., 1.1 → 1.2) for metadata-only updates.
+4. **Attach the latest existing build:** For metadata-only updates (no new binary), reuse the existing build:
+   - Fetch the latest build: `asc builds latest --app "$APP_ID"`
+   - Attach it to the new version: `asc versions attach-build --app "$APP_ID" --version "$NEXT_VERSION" --build "$BUILD_NUMBER"`
+   - This lets you submit a new version with updated keywords without requiring Henry to upload a new binary from Xcode.
+5. **Run validation:** `asc validate --app "$APP_ID" --version "$NEXT_VERSION"`
+6. If validation fails: log failure, do not submit, mark cycle as `fail`
+7. **Present proposal:** Write a human-readable proposal to `data/proposals/cycle-NNN-proposal.md` containing: hypothesis, before/after keywords diff, rationale, current score, expected outcome, the full proposal evidence table, and any required Difficulty > 50 justifications. Also output the same report in chat.
+8. If semi-autonomous mode: **STOP here.** Do not run `asc metadata keywords apply`. Wait for human approval before proceeding.
+9. If fully autonomous mode: run `asc metadata keywords apply --confirm --platform $PLATFORM_FLAG`, then `asc submit create --confirm --platform $PLATFORM_FLAG`
+10. **Update** the proposal entry in `results.jsonl` status from `proposed` to `submitted`, add submission timestamp
+11. Note: submit on Tuesday or Wednesday for fastest review (~10h vs ~24h)
 
 **B5. Verify (preliminary + final checkpoints after submission)**
 1. Preliminary (day `config.cadence.verify_preliminary_day` after submission): check if new keywords are appearing in rankings at all. If completely absent, suspect metadata issue.
