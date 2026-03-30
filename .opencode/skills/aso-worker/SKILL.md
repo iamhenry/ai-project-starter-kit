@@ -282,6 +282,16 @@ Keywords in the App Store are locked to a specific version. You cannot update ke
 10. **Update** the proposal entry in `results.jsonl` status from `proposed` to `submitted`, add submission timestamp
 11. Note: submit on Tuesday or Wednesday for fastest review (~10h vs ~24h)
 
+## Proposal Output Specification
+
+Every proposal markdown file (`data/proposals/<app>-cycle-NNN-proposal.md`) is a validation target. A valid proposal MUST contain all of the following:
+
+1. **Proposed keyword string with char count** — a fenced code block showing the final comma-separated keywords field. The char count (e.g. `100/100 chars`) MUST be stated inline. Total length MUST be ≤ 100 characters.
+2. **Evidence table with Pop/Diff for every proposed keyword** — a markdown table covering every keyword in the proposed set, with numeric Astro Popularity (`Pop`) and Difficulty (`Diff`) values sourced from Astro MCP. No blanks, no dashes. If Astro is unavailable, write `data unavailable` and explain why.
+3. **Keywords above max_difficulty explicitly justified** — any keyword whose Diff exceeds `config.golden_ratio.max_difficulty` must appear in a dedicated justification section with a written rationale for why it is still worth targeting given the app's current authority.
+4. **No keywords that duplicate subtitle words** — words already indexed for free via the title or subtitle must not appear in the keyword field.
+5. **Cycle numbering matches actual cycle count** — the filename and document header must use the correct sequential cycle number (e.g. cycle-003 for the third cycle, not an arbitrary label).
+
 **B5. Verify (preliminary + final checkpoints after submission)**
 1. Preliminary (day `config.cadence.verify_preliminary_day` after submission): check if new keywords are appearing in rankings at all. If completely absent, suspect metadata issue.
 2. Final (day `config.cadence.verify_final_day` after submission): compute weighted avg position delta vs pre-submission baseline
