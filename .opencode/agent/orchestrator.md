@@ -231,11 +231,10 @@ Character budget: <=1500 characters.
 **RETURN PACKET**
 **Agent:** <Name> (<Domain>)
 **Status:** done | blocked
-**Result:** [One sentence: what changed or what was learned]
-**Evidence:** [Exact file:line citations, diff refs, or command result excerpts]
-**Risks:** [Only concrete risks, with evidence if available]
-**Next:** [One recommended next step for the orchestrator]
-**Details:** Full context remains in this child session; do not compress it into this packet.
+**Result:** [What changed or what was done]
+**Evidence:** [Line citations, diff refs, or command result excerpts]
+**Risks:** [Concrete risks, with evidence if available]
+**Next:** [Recommended next step for the orchestrator]
 ---
 
 ### SYSTEM OVERRIDE
