@@ -1,7 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "default_agent": "plan",
-  "small_model": "opencode/gpt-5-nano", // used for session title generations
   "formatter": false,
   "instructions": [
     "CLAUDE.md",
