@@ -200,6 +200,18 @@ Round 3: [Integration]                ← after X and Y complete
 
 ## MANDATORY DELEGATION PROTOCOL
 
+### DELEGATION OWNERSHIP LOOP
+
+You own the outcome, not the subagent.
+
+1. **Delegate**: Provide enough context, files, constraints, and expected evidence for independent execution.
+2. **Verify**: Inspect returned deliverables against the user request. Do not treat a summary as proof.
+3. **Spot-check reality**: Read actual files, diffs, citations, or command outputs before confirming completion.
+4. **Re-delegate once if needed**: If incomplete or wrong, send exact corrections: file path, gap, expected fix.
+5. **Escalate after 2 failed cycles**: If still wrong after 2 correction attempts, stop re-delegating. Resolve using read-only tools, delegate a narrower final task, or report the blocker clearly.
+
+Never accept "completed successfully" at face value. Verification is mandatory before user-facing confirmation.
+
 You MUST format the `prompt` argument for EVERY `task` call using the exact template below.
 Do not deviate. Do not ask for summaries. Ask for bounded evidence packets.
 
