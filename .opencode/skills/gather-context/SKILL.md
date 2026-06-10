@@ -1,6 +1,6 @@
 ---
 name: gather-context
-description: Research first SOP before implementing any code change. Use when starting any task that involves modifying an existing codebase features bugs refactors open source contributions. Triggers when I want to work on X help me implement or fix or refactor X gather relevant context for X lets work on this. Launches 4 parallel voyager subagents to map current behavior dependencies blast radius and codebase style then presents 3 ranked approaches minimal diff first for user approval before any code is written.
+description: Research first SOP before implementing any code change. Use when starting any task that involves modifying an existing codebase features bugs refactors open source contributions. Triggers when I want to work on X help me implement or fix or refactor X gather relevant context for X lets work on this. Launches parallel atlas subagents for local codebase evidence plus voyager external signal research, then presents 3 ranked approaches minimal diff first for user approval before any code is written.
 ---
 
 # Gather Context
@@ -22,7 +22,7 @@ Before research, frame the task from the issue/request itself.
 
 If the issue is underspecified in a way that would materially change the implementation, stop here and ask 1-3 targeted questions instead of forcing options.
 
-## Phase 1 — Define Target Scenario, Then Launch 4 Voyager Agents in Parallel
+## Phase 1 — Define Target Scenario, Then Launch Research Agents in Parallel
 
 Before launching subagents, generate exactly 1 Gherkin scenario from the original user query. Keep it minimal and targeted. We are defining the smallest user-visible contract for a simple enhancement, not a full spec.
 
@@ -45,11 +45,13 @@ Rules:
 - Keep it minimal and targeted to the enhancement being requested
 - This scenario is the target goal for all subagents
 
-Spawn all four simultaneously using the Task tool with `subagent_type: voyager`.
+Spawn all five agents simultaneously using the Task tool:
+- Agents 1-4 use `subagent_type: atlas`
+- Agent 5 uses `subagent_type: voyager`
 
 Pass the scenario to every subagent as part of its task context so research stays anchored to the same target behavior.
 
-**Evidence requirement:** All agents must cite findings with code snippets, file paths, and line numbers. No assertions without evidence. If results are thin or inconclusive, note gaps explicitly in Phase 2 — do not proceed with assumptions.
+**Evidence requirement:** Agents 1-4 must cite findings with code snippets, file paths, and line numbers. Agent 5 must cite URLs and quote/snippet the relevant source. No assertions without evidence. If results are thin or inconclusive, note gaps explicitly in Phase 2 — do not proceed with assumptions.
 
 ### Agent 1: Code Archaeology
 > What does this code do today, and how?
@@ -95,11 +97,34 @@ Look for:
 
 Output: A concise **style cheatsheet** — bullet points only, no prose.
 
+### Agent 5: External Signal
+> What does the outside world say that should shape this implementation?
+
+Research platform conventions, framework behavior, API contracts, ecosystem norms, security/privacy guidance, accessibility rules, and unfamiliar implementation patterns relevant to the target scenario.
+
+Research priority:
+- Official docs, specs, and platform guides
+- Upstream repos, changelogs, maintainer issues, and discussions
+- Reputable ecosystem examples from known teams or mature libraries
+- High-signal articles only when they add concrete implementation guidance
+
+Reject:
+- SEO blogs
+- Generic tutorials
+- Uncited claims
+- Stale guidance unless clearly labelled
+
+Output:
+- 3-7 bullets max
+- URL citation per claim
+- Version/date/platform notes where relevant
+- **What this changes about our approach**
+
 ---
 
 ## Phase 2 — Synthesize
 
-After all 4 agents return, combine findings:
+After all 5 agents return, combine findings:
 
 1. **Original scenario** — the single target scenario from Phase 1, surfaced verbatim
 2. **Current UX** — what the user sees and can do today (from Agent 3, surfaced here verbatim)
@@ -108,6 +133,7 @@ After all 4 agents return, combine findings:
 5. **Constraints** — what must not change (public API, test contracts, style rules)
 6. **Style rules** — the extracted cheatsheet from Agent 4
 7. **Blast radius** — scope of impact from Agent 2
+8. **External signal** — cited implementation-shaping findings from Agent 5
 
 ## Decision Heuristics (Apply to every proposal)
 
@@ -118,14 +144,6 @@ Use these as hard filters before presenting options:
 3. **YAGNI:** do not add extensibility/abstractions unless current requirement needs it.
 4. **Single source of truth:** avoid duplicated state/data paths.
 5. **User trust/safety:** no risky shortcuts that could create silent bad outcomes.
-
-1. **Original scenario** — the single target scenario from Phase 1, surfaced verbatim
-2. **Current UX** — what the user sees and can do today (from Agent 3, surfaced here verbatim)
-3. **Post-change UX** — what the user will see after the change (from Agent 3, surfaced here verbatim)
-4. **Current behavior** — what the code does today
-5. **Constraints** — what must not change (public API, test contracts, style rules)
-6. **Style rules** — the extracted cheatsheet from Agent 4
-7. **Blast radius** — scope of impact from Agent 2
 
 ---
 
