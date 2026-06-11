@@ -9,6 +9,9 @@
   "plugin": [
     "@tarquinen/opencode-dcp@latest" // (https://github.com/Tarquinen/opencode-dynamic-context-pruning)
   ],
+  "compaction": {
+    "auto": false
+  },
   "experimental": {
     "batch_tool": true, // Enables batch tool for parallel operations
     "disable_paste_summary": true // Disables automatic paste summary feature
