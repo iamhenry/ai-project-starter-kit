@@ -5,7 +5,7 @@ description: Reusable verification gate for completed work before commit or merg
 
 # Verification Gate
 
-Use this skill after implementation and before commit or merge.
+Use this skill after implementation and after `code-quality-gate` returns `APPROVE_CODE`, before commit or merge.
 
 Keep the scope narrow:
 
@@ -30,8 +30,11 @@ Collect the minimum context needed to verify the work:
 - changed behavior or files
 - target URL, command, or environment
 - auth, seed data, or other prerequisites
+- code-quality-gate result: `APPROVE_CODE`
 
 If key prerequisites are missing and you cannot verify safely, return `BLOCKED`.
+
+If the code-quality-gate result is missing, `REVISE_CODE`, or `ASK_USER`, return `BLOCKED` and do not run platform QA.
 
 `plan.md` owns what to prove. This skill owns how to prove it by choosing the platform route and smallest proof path.
 
