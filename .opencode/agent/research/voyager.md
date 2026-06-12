@@ -5,8 +5,8 @@ mode: subagent
 model: ollama-cloud/glm-5.1
 temperature: 0
 tools:
-  write: false
-  edit: false
+  write: true
+  edit: true
   read: true
   grep: true
   glob: true
@@ -17,7 +17,7 @@ tools:
   todowrite: true
   todoread: true
 permission:
-  edit: deny
+  edit: allow
   bash:
     "rmdir *": deny
     "mv *": deny

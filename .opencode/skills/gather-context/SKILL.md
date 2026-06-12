@@ -19,42 +19,60 @@ Before research, frame the task from the issue/request itself.
 - Extract explicit acceptance criteria
 - Mark assumptions and missing product decisions
 - Classify the task: `bug` | `feature` | `refactor` | `claim-check`
+- Create or update `_ai/task/{YYYY-MM-DD-slug}/issue.md` as the proposal source of truth
+
+`issue.md` must contain these sections:
+- Original GitHub Issue
+- Acceptance Criteria
+- Gherkin Happy Path
+- Gherkin Edge Path
+- Research Index
+- Approaches
+- Judge Decision placeholder
 
 If the issue is underspecified in a way that would materially change the implementation, stop here and ask 1-3 targeted questions instead of forcing options.
 
-## Phase 1 — Define Target Scenario, Then Launch Research Agents in Parallel
+## Phase 1 — Define Target Scenarios, Then Launch Research Agents in Parallel
 
-Before launching subagents, generate exactly 1 Gherkin scenario from the original user query. Keep it minimal and targeted. We are defining the smallest user-visible contract for a simple enhancement, not a full spec.
+Before launching subagents, generate two Gherkin scenarios from the original user query: one happy path and one edge path. Keep them minimal and targeted. We are defining the smallest user-visible contract for a simple enhancement, not a full spec.
 
 Use this format:
 
-### Scenario: [User action and outcome]
+### Happy Path: [User action and outcome]
 
 Given [user state/precondition]
 When [user action]
 Then [user-visible outcome with verifiable condition]
+
+### Edge Path: [Boundary/failure case and outcome]
+
+Given [edge precondition]
+When [user action]
+Then [safe user-visible outcome with verifiable condition]
 
 Acceptance Criteria:
 
 - [Measurable outcome: specific value/threshold/state]
 
 Rules:
-- Generate exactly 1 scenario
+- Generate exactly 2 scenarios: happy path + edge path
 - Base it on the original user query, not on implementation guesses
 - Keep it user-visible, testable, falsifiable, and implementation-agnostic
 - Keep it minimal and targeted to the enhancement being requested
-- This scenario is the target goal for all subagents
+- These scenarios are the target goal for all subagents
 
 Spawn all five agents simultaneously using the Task tool:
 - Agents 1-4 use `subagent_type: atlas`
 - Agent 5 uses `subagent_type: voyager`
 
-Pass the scenario to every subagent as part of its task context so research stays anchored to the same target behavior.
+Pass both scenarios to every subagent as part of its task context so research stays anchored to the same target behavior.
 
-**Evidence requirement:** Agents 1-4 must cite findings with code snippets, file paths, and line numbers. Agent 5 must cite URLs and quote/snippet the relevant source. No assertions without evidence. If results are thin or inconclusive, note gaps explicitly in Phase 2 — do not proceed with assumptions.
+**Evidence requirement:** Agents 1-4 must cite findings with code snippets, file paths, and line numbers. Agent 5 must cite URLs and quote/snippet the relevant source. No assertions without evidence. Each agent must save its full evidence report under `_ai/task/{YYYY-MM-DD-slug}/research/`. If results are thin or inconclusive, note gaps explicitly in Phase 2 — do not proceed with assumptions.
 
 ### Agent 1: Code Archaeology
 > What does this code do today, and how?
+
+Save full report to `_ai/task/{YYYY-MM-DD-slug}/research/code-archaeology.md`.
 
 - Locate entry points, relevant files, core logic
 - Trace the current implementation end-to-end
@@ -63,6 +81,8 @@ Pass the scenario to every subagent as part of its task context so research stay
 
 ### Agent 2: Dependency Map
 > What breaks if we touch this?
+
+Save full report to `_ai/task/{YYYY-MM-DD-slug}/research/dependency-map.md`.
 
 - Map callers and callback/event consumers (what depends on this code, including who reacts to emitted/invoked behavior)
 - Map callees and callback/event producers (what this code depends on, including what it emits/invokes)
@@ -74,6 +94,8 @@ Pass the scenario to every subagent as part of its task context so research stay
 ### Agent 3: UX Behavior
 > What does the user see today, and what will they see after?
 
+Save full report to `_ai/task/{YYYY-MM-DD-slug}/research/ux-behavior.md`.
+
 Given the feature/change being investigated, trace the user-facing path — not the code path.
 
 - **Current UX** — step by step what the user sees and can do today (screens, states, limits, caps, hidden elements)
@@ -83,6 +105,8 @@ The main agent must tell this agent what feature is being added/changed so it ca
 
 ### Agent 4: Style Fingerprint
 > How does this codebase write code?
+
+Save full report to `_ai/task/{YYYY-MM-DD-slug}/research/style-fingerprint.md`.
 
 Start with files adjacent to the task. Expand repo-wide when touching shared infrastructure.
 
@@ -100,7 +124,9 @@ Output: A concise **style cheatsheet** — bullet points only, no prose.
 ### Agent 5: External Signal
 > What does the outside world say that should shape this implementation?
 
-Research platform conventions, framework behavior, API contracts, ecosystem norms, security/privacy guidance, accessibility rules, and unfamiliar implementation patterns relevant to the target scenario.
+Save full report to `_ai/task/{YYYY-MM-DD-slug}/research/external-signal.md`.
+
+Research platform conventions, framework behavior, API contracts, ecosystem norms, security/privacy guidance, accessibility rules, and unfamiliar implementation patterns relevant to the target scenarios.
 
 Research priority:
 - Official docs, specs, and platform guides
@@ -126,14 +152,18 @@ Output:
 
 After all 5 agents return, combine findings:
 
-1. **Original scenario** — the single target scenario from Phase 1, surfaced verbatim
-2. **Current UX** — what the user sees and can do today (from Agent 3, surfaced here verbatim)
-3. **Post-change UX** — what the user will see after the change (from Agent 3, surfaced here verbatim)
-4. **Current behavior** — what the code does today
-5. **Constraints** — what must not change (public API, test contracts, style rules)
-6. **Style rules** — the extracted cheatsheet from Agent 4
-7. **Blast radius** — scope of impact from Agent 2
-8. **External signal** — cited implementation-shaping findings from Agent 5
+1. **Gherkin Happy Path** — the happy path scenario from Phase 1, surfaced verbatim
+2. **Gherkin Edge Path** — the edge path scenario from Phase 1, surfaced verbatim
+3. **Current UX** — what the user sees and can do today (from Agent 3, surfaced here verbatim)
+4. **Post-change UX** — what the user will see after the change (from Agent 3, surfaced here verbatim)
+5. **Current behavior** — what the code does today
+6. **Constraints** — what must not change (public API, test contracts, style rules)
+7. **Style rules** — the extracted cheatsheet from Agent 4
+8. **Blast radius** — scope of impact from Agent 2
+9. **External signal** — cited implementation-shaping findings from Agent 5
+10. **Research Index** — links to all five files in `_ai/task/{YYYY-MM-DD-slug}/research/`
+
+Update `issue.md` with the synthesized scenario sections and Research Index. Keep full evidence in the research files, not in `issue.md`.
 
 ## Decision Heuristics (Apply to every proposal)
 
@@ -149,8 +179,6 @@ Use these as hard filters before presenting options:
 
 ## Phase 3 — Present 3 Approaches
 
-Use `references/approach-template.md` for consistent output format.
-
 Rank by: **minimal diff + style alignment first** -> more involved last.
 
 Each option must include one regression probe describing how to verify no duplicate trigger/clobber regressions were introduced.
@@ -159,16 +187,7 @@ For each option ask: *"Would a maintainer approve this PR without asking for cha
 
 Reason from first principles: work backwards from the goal — what is the simplest change that satisfies the requirement without introducing concepts the codebase doesn't already use?
 
-After the user selects an option, emit a workflow handoff packet with:
-
-- Chosen approach
-- Implementation steps
-- Verification steps
-- PR summary bullets
-- Files likely to change
-- Tests to add/update
-- Risks / rollback notes
-- Commit/PR summary draft
+Write the 3 synthesized approaches into the `Approaches` section of `_ai/task/{YYYY-MM-DD-slug}/issue.md`. Do not create `approaches.md`, `decision.md`, `handoff.md`, `plans/`, or `suggestions.md` for this pipeline.
 
 ---
 

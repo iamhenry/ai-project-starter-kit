@@ -284,46 +284,47 @@ Start every checklist item with an **ALL CAPS** Action Verb followed by a colon.
 
 #### Phase 2: Verification Gate
 
-Once implementation is complete, verify the task outcome before attempting a commit. Choose the lightest verification mode that can prove the core user flow works:
+Once implementation is complete, verify the task outcome before attempting a commit. Choose the lightest verification target that can prove the core user flow works:
 
-- [ ] **Browser Flow**: Use when the task depends on multi-step UI behavior, async transitions, or end-to-end interaction in the browser
-- [ ] **Browser Static**: Use when screenshots are enough to prove visible UI changes
-- [ ] **Non-Browser**: Use when backend, CLI, API, or data checks provide a stronger proof than browser automation
+- [ ] **web / mobile-web**: Browser verification targets for desktop or responsive/mobile browser UI
+- [ ] **ios / macos**: Apple app verification targets
+- [ ] **non-ui**: Direct command, API, log, or test proof when UI automation is not the strongest signal
 
 **NOTE**: This phase is SEPARATE from implementation and from commit. The goal is to prove the intended task behavior works end to end, not just to run code quality commands.
 
 ---
 
-### Verification Gate Plan
+### Verification Target
 
-<!-- Include when the task needs explicit post-implementation validation. Pick the smallest mode that can prove the task works. -->
+<!-- Include when the task needs explicit post-implementation validation. State what to prove; verification-gate owns how to prove it. Pick the smallest target and evidence that can prove the task works. -->
 
-Use the `verification-gate` skill to prove the task works before commit. When browser evidence is needed, the verification-gate skill should rely on the `agent-browser` skill for browser actions, screenshots, and recordings.
+Use the `verification-gate` skill to prove the task works before commit. `web` and `mobile-web` route to browser verification; `ios` and `macos` route to Apple app verification; `non-ui` routes to direct command, API, log, or test proof.
 
 **Required fields:**
-- **Verification Mode**: `browser-flow`, `browser-static`, or `non-browser`
+- **Platform**: `web | mobile-web | ios | macos | non-ui`
 - **Objective**: The single main outcome that must be proven
 - **Primary Flow**: 3-5 checkpoints covering the core happy-path flow
 - **Regression Check**: 1 lightweight adjacent behavior check when relevant
-- **Evidence Plan**: Mark proof points with `🎥` and/or `📸` only when needed
+- **Evidence Required**: `screenshot | recording | test output | logs`
 - **Pass Criteria**: Exact condition that counts as success
 - **Blocked Conditions**: Missing auth, data, environment, or tooling that would prevent reliable verification
 
 **Evidence rules:**
-- Use `📸` when a static screenshot is enough to prove the outcome
-- Use `🎥` when the user journey requires interaction or async state changes; prefer one recording for the full sequence instead of multiple short clips
+- Use `screenshot` when a static state is enough to prove the outcome
+- Use `recording` when the user journey requires interaction or async state changes; prefer one recording for the full sequence instead of multiple short clips
+- Use `test output` or `logs` when direct command, API, or automated test proof is clearer than UI evidence
 - Save browser artifacts to `_ai/task/{SLUG}/verification/videos/{step}.webm`
 - Save browser artifacts to `_ai/task/{SLUG}/verification/screenshots/{step}.png`
 
-**Example (`browser-flow`):**
+**Example (`web`):**
 1. Open `http://localhost:3000/create`
-2. Decide the lightest proof: use `📸` if a static state is enough, or `🎥` if the flow needs interaction proof
-3. If using `🎥`, record one full sequence: select model -> enter prompt -> submit -> wait for completion -> verify generated images render
-4. If using `📸`, capture the one or two proof states that clearly show success
+2. Decide the lightest proof: use `screenshot` if a static state is enough, or `recording` if the flow needs interaction proof
+3. If using `recording`, record one full sequence: select model -> enter prompt -> submit -> wait for completion -> verify generated images render
+4. If using `screenshot`, capture the one or two proof states that clearly show success
 
 ---
 
-[Generate a verification gate plan with 3-5 checkpoints for the primary flow and 0-1 regression checks. Use the lightest evidence plan that proves success or failure. Prefer a single full-flow video for interactive journeys and screenshots only for static proof states.]
+[Generate a verification target with 3-5 checkpoints for the primary flow and 0-1 regression checks. Use the lightest evidence required that proves success or failure. Prefer a single full-flow recording for interactive journeys and screenshots only for static proof states.]
 
 #### Phase 3: Commit Changes
 
