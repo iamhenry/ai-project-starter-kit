@@ -42,8 +42,8 @@ Note: although `atlas` and `voyager` have write permissions for research artifac
 
 | Name | Use for | Delegate when | Avoid when |
 | --- | --- | --- | --- |
-| `judge-proposal` | Proposal selection gate. | `issue.md` has approaches and research. | Implementation, plan creation, code review. |
-| `judge-plan` | Plan readiness gate. | `plan.md` exists. | Architecture redesign or implementation. |
+| `judge-proposal` | Proposal selection gate. | `{ISSUE_DIR}/issue.md` has approaches and research. | Implementation, plan creation, code review. |
+| `judge-plan` | Plan readiness gate. | `{ISSUE_DIR}/plan.md` exists. | Architecture redesign or implementation. |
 | `code-quality-gate` | Post-implementation code review. | Implementation is done, before verification. | Fixing code or QA. |
 | `verification-gate` | Behavior proof. | `APPROVE_CODE` is returned. | Exploratory QA or missing prerequisites. |
 | `agent-browser` | Web and mobile-web proof path. | `verification-gate` needs browser proof. | Direct orchestrator QA or non-browser proof. |
@@ -57,13 +57,15 @@ This skill connects modular skills, checks whether each stage produced the expec
 
 ## Pipeline
 
+`ISSUE_DIR` is created by `gather-context` using `_ai/task/{YYYY-MM-DD}/{slug}`. All pipeline artifacts are relative to `ISSUE_DIR`.
+
 ### 1. Gather Context And Intake
 
 - Run `gather-context` with the raw user issue/request.
-- `gather-context` owns issue intake, task folder creation, and `issue.md` creation/update.
-- Write supporting research under `_ai/task/{YYYY-MM-DD-slug}/research/*.md`.
-- Append or update the approach options in `issue.md`.
-- Gate: `issue.md`, all required `research/*.md`, and `Approaches` in `issue.md` exist.
+- `gather-context` owns issue intake, task folder creation, and `{ISSUE_DIR}/issue.md` creation/update.
+- Write supporting research under `{ISSUE_DIR}/research/*.md`.
+- Append or update the approach options in `{ISSUE_DIR}/issue.md`.
+- Gate: `{ISSUE_DIR}/issue.md`, all required `{ISSUE_DIR}/research/*.md`, and `Approaches` in `{ISSUE_DIR}/issue.md` exist.
 - If the gate fails, route revision back to `gather-context`; do not patch artifacts here.
 
 ### 2. Proposal Judge Checkpoint
@@ -71,23 +73,24 @@ This skill connects modular skills, checks whether each stage produced the expec
 - Delegate review to a fresh subagent using `judge-proposal`.
 - The subagent must receive only the task artifacts it needs, not accumulated conversation context.
 - The review must be clean, independent, and adversarial enough to catch weak assumptions before planning.
-- Gate: `issue.md` contains `Judge Decision` with `Status: SELECTED` or `Status: ASK_USER`.
+- Gate: `{ISSUE_DIR}/issue.md` contains `Judge Decision` with `Status: SELECTED` or `Status: ASK_USER`.
 - If `ASK_USER`, stop and ask the one focused question from `judge-proposal`.
 
 ### 3. Create Issue Plan
 
+- Before running `create-issue`, verify `{ISSUE_DIR}` exists.
 - Run the `create-issue` workflow after the proposal is selected.
-- Write `_ai/task/{YYYY-MM-DD-slug}/plan.md` in the same task directory.
-- The plan should be based on `issue.md`, accepted approach details, and `research/*.md`.
-- Gate: `plan.md` exists in the same task directory.
-- If missing, route revision back to `create-issue`; do not create `plan.md` here.
+- Instruct `create-issue` or the executing agent to write `{ISSUE_DIR}/plan.md`.
+- The plan should be based on `{ISSUE_DIR}/issue.md`, accepted approach details, and `{ISSUE_DIR}/research/*.md`.
+- After `create-issue`, verify `{ISSUE_DIR}/plan.md` exists.
+- If the plan artifact appears elsewhere or `{ISSUE_DIR}/plan.md` is missing, stop and route as a `create-issue` output mismatch; do not create `{ISSUE_DIR}/plan.md` here.
 
 ### 4. Plan Judge Checkpoint
 
 - Delegate review to a fresh subagent using `judge-plan`.
-- The subagent must receive only `issue.md`, `plan.md`, and relevant `research/*.md` artifacts.
+- The subagent must receive only `{ISSUE_DIR}/issue.md`, `{ISSUE_DIR}/plan.md`, and relevant `{ISSUE_DIR}/research/*.md` artifacts.
 - The review must be independent from the proposal judge and main-agent working context.
-- Gate: `plan.md` contains `Plan Judge` with `APPROVE_PLAN`, `REVISE_PLAN`, or `ASK_USER`.
+- Gate: `{ISSUE_DIR}/plan.md` contains `Plan Judge` with `APPROVE_PLAN`, `REVISE_PLAN`, or `ASK_USER`.
 - Continue only on `APPROVE_PLAN`; route `REVISE_PLAN` to `create-issue` and stop on `ASK_USER`.
 
 ### 5. Implementation Orchestration
@@ -95,16 +98,16 @@ This skill connects modular skills, checks whether each stage produced the expec
 - Do not implement directly from this wrapper.
 - Always delegate write operations to implementation subagents.
 - Delegate relevant read or research operations when needed.
-- If `plan.md` has a clear, safe delegation structure, follow it.
-- If `plan.md` lacks safe delegation structure, create an ad hoc delegation todo list in memory/context only and delegate safely.
-- Do not save a new plan to disk or revise `plan.md` just to add delegation structure.
+- If `{ISSUE_DIR}/plan.md` has a clear, safe delegation structure, follow it.
+- If `{ISSUE_DIR}/plan.md` lacks safe delegation structure, create an ad hoc delegation todo list in memory/context only and delegate safely.
+- Do not save a new plan to disk or revise `{ISSUE_DIR}/plan.md` just to add delegation structure.
 - Avoid overlapping file edits; when overlap exists, sequence agents instead of parallelizing them.
 - Collect the implementation summary, changed files, commands run, and known risks from implementation subagents.
 
 ### 6. Code Quality Gate
 
 - After implementation is complete, delegate review to a fresh subagent using `code-quality-gate`.
-- The subagent must receive `plan.md`, implementation summary, changed files, commands run, and known risks.
+- The subagent must receive `{ISSUE_DIR}/plan.md`, implementation summary, changed files, commands run, and known risks.
 - Gate: `code-quality-gate` returns `APPROVE_CODE`, `REVISE_CODE`, or `ASK_USER` with concise evidence.
 - Continue to verification only on `APPROVE_CODE`.
 - If `REVISE_CODE`, route notes back to implementation subagent(s), revise implementation, then rerun `code-quality-gate`.
@@ -114,8 +117,8 @@ This skill connects modular skills, checks whether each stage produced the expec
 ### 7. Verification Gate
 
 - After `code-quality-gate` returns `APPROVE_CODE`, delegate verification to a fresh subagent using `verification-gate`.
-- The subagent must receive `plan.md`, the implementation summary, changed files, and any relevant test/build output.
-- `verification-gate` reads `plan.md` and routes proof by platform: `web`/`mobile-web` through `agent-browser`, `ios`/`macos` through `xcodebuildmcp-cli`, and `non-ui` through a direct proof path.
+- The subagent must receive `{ISSUE_DIR}/plan.md`, the implementation summary, changed files, and any relevant test/build output.
+- `verification-gate` reads `{ISSUE_DIR}/plan.md` and routes proof by platform: `web`/`mobile-web` through `agent-browser`, `ios`/`macos` through `xcodebuildmcp-cli`, and `non-ui` through a direct proof path.
 - Gate: `verification-gate` returns `PASS`, `FAIL`, or `BLOCKED` with evidence.
 - Continue only on `PASS`; route `FAIL` or `BLOCKED` to the implementation owner or user as appropriate.
 - Do not run QA directly or define browser, iOS, macOS, or non-UI verification steps in this wrapper.
@@ -132,9 +135,9 @@ This skill connects modular skills, checks whether each stage produced the expec
 
 Allowed task artifacts:
 
-- `_ai/task/{YYYY-MM-DD-slug}/issue.md`
-- `_ai/task/{YYYY-MM-DD-slug}/plan.md`
-- `_ai/task/{YYYY-MM-DD-slug}/research/*.md`
+- `{ISSUE_DIR}/issue.md`
+- `{ISSUE_DIR}/plan.md`
+- `{ISSUE_DIR}/research/*.md`
 
 Do not create helper docs, reference files, sidecar state, ADR files, or wrapper-specific metadata unless this contract is intentionally revised later.
 
@@ -144,11 +147,11 @@ Do not create helper docs, reference files, sidecar state, ADR files, or wrapper
 
 | Artifact or decision | Owner |
 | --- | --- |
-| `issue.md` intake, scenarios, approaches | `gather-context` |
-| `research/*.md` evidence reports | `gather-context` research agents |
-| `Judge Decision` in `issue.md` | `judge-proposal` fresh subagent |
-| `plan.md` | `create-issue` workflow |
-| `Plan Judge` in `plan.md` | `judge-plan` fresh subagent |
+| `{ISSUE_DIR}/issue.md` intake, scenarios, approaches | `gather-context` |
+| `{ISSUE_DIR}/research/*.md` evidence reports | `gather-context` research agents |
+| `Judge Decision` in `{ISSUE_DIR}/issue.md` | `judge-proposal` fresh subagent |
+| `{ISSUE_DIR}/plan.md` | `create-issue` workflow |
+| `Plan Judge` in `{ISSUE_DIR}/plan.md` | `judge-plan` fresh subagent |
 | Implementation code changes | Implementation subagents |
 | Code quality decision | `code-quality-gate` fresh subagent |
 | Verification proof | `verification-gate` fresh subagent |
@@ -175,10 +178,10 @@ Judge, implementation, code quality, and verification work is delegated:
 
 ## Revision Routing
 
-- Missing `issue.md`, missing research files, or missing approaches: rerun or revise `gather-context`.
+- Missing `{ISSUE_DIR}/issue.md`, missing `{ISSUE_DIR}/research/*.md` files, or missing approaches: rerun or revise `gather-context`.
 - `judge-proposal` returns `ASK_USER`: stop and ask its one focused question.
-- Missing `plan.md`: rerun or revise `create-issue`.
-- `judge-plan` returns `REVISE_PLAN`: route notes back to `create-issue` and request a revised `plan.md`.
+- Missing `{ISSUE_DIR}/plan.md`: rerun or revise `create-issue`.
+- `judge-plan` returns `REVISE_PLAN`: route notes back to `create-issue` and request a revised `{ISSUE_DIR}/plan.md`.
 - `judge-plan` returns `ASK_USER`: stop and ask its one focused question.
 - `code-quality-gate` returns `REVISE_CODE`: route notes back to implementation subagent(s), revise implementation, and rerun `code-quality-gate`.
 - `code-quality-gate` returns `ASK_USER`: stop and ask its focused question.
@@ -190,7 +193,7 @@ Judge, implementation, code quality, and verification work is delegated:
 ## Constraints
 
 - Keep this skill lean: orchestration only.
-- Do not create, edit, append, or repair `issue.md`, `plan.md`, or `research/*.md` directly.
+- Do not create, edit, append, or repair `{ISSUE_DIR}/issue.md`, `{ISSUE_DIR}/plan.md`, or `{ISSUE_DIR}/research/*.md` directly.
 - Do not write implementation code directly; delegate write operations to implementation subagents.
 - Do not create files or saved plans for ad hoc delegation; keep ad hoc delegation in memory/context only.
 - Do not duplicate decision logic from `gather-context`, `create-issue`, judge skills, implementation skills, verification skills, or PR workflows.
@@ -201,6 +204,6 @@ Judge, implementation, code quality, and verification work is delegated:
 - Prefer artifact handoff over hidden state.
 - Prefer modular delegation over bloating this wrapper.
 
-## Known Gap
+## Output Check
 
-`create-issue` must write `plan.md` into the same `_ai/task/{YYYY-MM-DD-slug}/` directory as `issue.md`. If it creates a new task directory, stop and route that as a `create-issue` workflow revision.
+The wrapper checks `create-issue` output against `{ISSUE_DIR}`. If `create-issue` writes the plan artifact anywhere other than `{ISSUE_DIR}/plan.md`, stop and route that as a `create-issue` output mismatch.

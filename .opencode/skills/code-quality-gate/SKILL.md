@@ -13,9 +13,9 @@ Run it as a fresh subagent review gate. It reviews the implemented code, returns
 
 Read the minimum available context:
 
-- Required: `_ai/task/{YYYY-MM-DD-slug}/plan.md`
+- Required: `{ISSUE_DIR}/plan.md`
 - Required: changed files and/or git diff
-- Optional but useful: `_ai/task/{YYYY-MM-DD-slug}/issue.md`
+- Optional but useful: `{ISSUE_DIR}/issue.md`
 - Optional but useful: implementation summary from the implementation agent
 - Optional but useful: test, build, lint, and typecheck output
 - Optional but useful: `_ai/prompts/quality/code-review.md` as the review standard
@@ -25,6 +25,7 @@ If `plan.md` or the changed code/diff is missing, return `ASK_USER` with the mis
 
 ## Artifact Contract
 
+- `ISSUE_DIR` is the artifact directory created by `gather-context` for the current pipeline run.
 - Required: `plan.md`, plus changed files and/or git diff.
 - Optional but useful: `issue.md`, implementation summary, test/build/lint/typecheck output, and quality docs.
 - If expected command output is missing and needed to judge safely, return `ASK_USER` with the missing command output.

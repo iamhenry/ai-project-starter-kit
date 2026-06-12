@@ -1,6 +1,6 @@
 ---
 name: judge-plan
-description: Lean standalone gate for reviewing create-issue plan artifacts before implementation. Use after `_ai/task/{YYYY-MM-DD-slug}/plan.md` exists to check format, proposal fidelity, actionability, and ETHOS alignment without doing architecture review or implementation.
+description: Lean standalone gate for reviewing create-issue plan artifacts before implementation. Use after `{ISSUE_DIR}/plan.md` exists to check format, proposal fidelity, actionability, and ETHOS alignment without doing architecture review or implementation.
 ---
 
 # Judge Plan
@@ -20,9 +20,9 @@ Do not use this skill for broad architecture review, redesign, implementation, c
 
 Read only these artifacts when available:
 
-- `_ai/task/{YYYY-MM-DD-slug}/issue.md`
-- `_ai/task/{YYYY-MM-DD-slug}/plan.md`
-- `_ai/task/{YYYY-MM-DD-slug}/research/*.md`
+- `{ISSUE_DIR}/issue.md`
+- `{ISSUE_DIR}/plan.md`
+- `{ISSUE_DIR}/research/*.md`
 - `_ai/docs/ETHOS.md`
 - `.opencode/command/workflow/01-plan/02-create-issue.md` as the structural reference
 
@@ -30,7 +30,9 @@ If the task directory or `plan.md` is missing, return `ASK_USER` with the missin
 
 ## Artifact Contract
 
-The plan must be a create-issue style artifact for `_ai/task/{YYYY-MM-DD-slug}/plan.md` and include enough structure for a follow-on implementation agent to execute without guessing.
+The plan must be a create-issue style artifact for `{ISSUE_DIR}/plan.md` and include enough structure for a follow-on implementation agent to execute without guessing.
+
+`ISSUE_DIR` is the artifact directory created by `gather-context` for the current pipeline run.
 
 Required major sections:
 
@@ -124,7 +126,7 @@ After writing `plan.md`, return this exact structure in chat:
 
 - Decision: `APPROVE_PLAN|REVISE_PLAN|ASK_USER`
 - Score: [0-100]
-- Plan: `_ai/task/{YYYY-MM-DD-slug}/plan.md`
+- Plan: `{ISSUE_DIR}/plan.md`
 - Writeback: `## Plan Judge` appended or updated
 
 ### Key Findings

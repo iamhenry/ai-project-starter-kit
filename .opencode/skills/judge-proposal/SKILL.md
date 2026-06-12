@@ -1,6 +1,6 @@
 ---
 name: judge-proposal
-description: Judge proposed approaches from a gather-context task artifact. Use after `_ai/task/{YYYY-MM-DD-slug}/issue.md` contains candidate approaches and research artifacts exist. Scores options against hard gates, ETHOS, and evidence; writes the selected decision back into issue.md or returns ASK_USER with one focused question. Does not implement anything.
+description: Judge proposed approaches from a gather-context task artifact. Use after `{ISSUE_DIR}/issue.md` contains candidate approaches and research artifacts exist. Scores options against hard gates, ETHOS, and evidence; writes the selected decision back into issue.md or returns ASK_USER with one focused question. Does not implement anything.
 ---
 
 # Judge Proposal
@@ -11,13 +11,14 @@ Select the best approach from an existing task artifact. Be lean, rubric-based, 
 
 Required task folder:
 
-- `_ai/task/{YYYY-MM-DD-slug}/issue.md`
-- `_ai/task/{YYYY-MM-DD-slug}/research/*.md`
+- `{ISSUE_DIR}/issue.md`
+- `{ISSUE_DIR}/research/*.md`
 - `_ai/docs/ETHOS.md`
 
 Artifact contract:
 
 - `issue.md` contains the problem, acceptance criteria, constraints, and candidate approaches.
+- `ISSUE_DIR` is the artifact directory created by `gather-context` for the current pipeline run.
 - `research/*.md` contains cited codebase/product/external evidence.
 - `ETHOS.md` supplies decision principles: tracer bullet first, reuse existing pieces, one fact one place, user trust, fail safely, pragmatic shipping, idiomatic code, simple UX.
 

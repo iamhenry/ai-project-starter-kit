@@ -19,6 +19,8 @@ Do not use this skill for exploratory QA or bug hunting. Use `dogfood` for that.
 
 Collect the minimum context needed to verify the work:
 
+`ISSUE_DIR` is the artifact directory created by `gather-context` for the current pipeline run.
+
 - `plan.md` Verification Target:
   - Platform: `web|mobile-web|ios|macos|non-ui`
   - Objective: single outcome to prove
@@ -97,7 +99,7 @@ Prefer the smallest proof path that still demonstrates real user value.
 - Prove the whole flow, not just the final screen.
 - Capture only the evidence needed to support the verdict.
 - Never record secrets, tokens, private user data, or unnecessary personal information.
-- If a task directory exists, store artifacts under `_ai/task/{SLUG}/verification/` with `screenshots/` and `videos/` subfolders.
+- If `ISSUE_DIR` exists, store artifacts under `{ISSUE_DIR}/verification/` with `screenshots/` and `videos/` subfolders.
 - Always include artifact paths in the final report when evidence exists.
 
 ## Output

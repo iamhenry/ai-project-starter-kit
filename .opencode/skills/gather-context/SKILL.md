@@ -15,11 +15,16 @@ Research a codebase before touching it. Parallel research -> synthesis -> 3 rank
 
 Before research, frame the task from the issue/request itself.
 
+Artifact directory rule:
+- `gather-context` creates `ISSUE_DIR` before research starts.
+- `ISSUE_DIR = _ai/task/{YYYY-MM-DD}/{slug}` using the create-issue-compatible nested shape.
+- Reuse the same `ISSUE_DIR` for every artifact in this run.
+
 - Restate the issue in plain language
 - Extract explicit acceptance criteria
 - Mark assumptions and missing product decisions
 - Classify the task: `bug` | `feature` | `refactor` | `claim-check`
-- Create or update `_ai/task/{YYYY-MM-DD-slug}/issue.md` as the proposal source of truth
+- Create or update `{ISSUE_DIR}/issue.md` as the proposal source of truth
 
 `issue.md` must contain these sections:
 - Original GitHub Issue
@@ -67,12 +72,12 @@ Spawn all five agents simultaneously using the Task tool:
 
 Pass both scenarios to every subagent as part of its task context so research stays anchored to the same target behavior.
 
-**Evidence requirement:** Agents 1-4 must cite findings with code snippets, file paths, and line numbers. Agent 5 must cite URLs and quote/snippet the relevant source. No assertions without evidence. Each agent must save its full evidence report under `_ai/task/{YYYY-MM-DD-slug}/research/`. If results are thin or inconclusive, note gaps explicitly in Phase 2 — do not proceed with assumptions.
+**Evidence requirement:** Agents 1-4 must cite findings with code snippets, file paths, and line numbers. Agent 5 must cite URLs and quote/snippet the relevant source. No assertions without evidence. Each agent must save its full evidence report under `{ISSUE_DIR}/research/`. If results are thin or inconclusive, note gaps explicitly in Phase 2 — do not proceed with assumptions.
 
 ### Agent 1: Code Archaeology
 > What does this code do today, and how?
 
-Save full report to `_ai/task/{YYYY-MM-DD-slug}/research/code-archaeology.md`.
+Save full report to `{ISSUE_DIR}/research/code-archaeology.md`.
 
 - Locate entry points, relevant files, core logic
 - Trace the current implementation end-to-end
@@ -82,7 +87,7 @@ Save full report to `_ai/task/{YYYY-MM-DD-slug}/research/code-archaeology.md`.
 ### Agent 2: Dependency Map
 > What breaks if we touch this?
 
-Save full report to `_ai/task/{YYYY-MM-DD-slug}/research/dependency-map.md`.
+Save full report to `{ISSUE_DIR}/research/dependency-map.md`.
 
 - Map callers and callback/event consumers (what depends on this code, including who reacts to emitted/invoked behavior)
 - Map callees and callback/event producers (what this code depends on, including what it emits/invokes)
@@ -94,7 +99,7 @@ Save full report to `_ai/task/{YYYY-MM-DD-slug}/research/dependency-map.md`.
 ### Agent 3: UX Behavior
 > What does the user see today, and what will they see after?
 
-Save full report to `_ai/task/{YYYY-MM-DD-slug}/research/ux-behavior.md`.
+Save full report to `{ISSUE_DIR}/research/ux-behavior.md`.
 
 Given the feature/change being investigated, trace the user-facing path — not the code path.
 
@@ -106,7 +111,7 @@ The main agent must tell this agent what feature is being added/changed so it ca
 ### Agent 4: Style Fingerprint
 > How does this codebase write code?
 
-Save full report to `_ai/task/{YYYY-MM-DD-slug}/research/style-fingerprint.md`.
+Save full report to `{ISSUE_DIR}/research/style-fingerprint.md`.
 
 Start with files adjacent to the task. Expand repo-wide when touching shared infrastructure.
 
@@ -124,7 +129,7 @@ Output: A concise **style cheatsheet** — bullet points only, no prose.
 ### Agent 5: External Signal
 > What does the outside world say that should shape this implementation?
 
-Save full report to `_ai/task/{YYYY-MM-DD-slug}/research/external-signal.md`.
+Save full report to `{ISSUE_DIR}/research/external-signal.md`.
 
 Research platform conventions, framework behavior, API contracts, ecosystem norms, security/privacy guidance, accessibility rules, and unfamiliar implementation patterns relevant to the target scenarios.
 
@@ -161,7 +166,7 @@ After all 5 agents return, combine findings:
 7. **Style rules** — the extracted cheatsheet from Agent 4
 8. **Blast radius** — scope of impact from Agent 2
 9. **External signal** — cited implementation-shaping findings from Agent 5
-10. **Research Index** — links to all five files in `_ai/task/{YYYY-MM-DD-slug}/research/`
+10. **Research Index** — links to all five files in `{ISSUE_DIR}/research/`
 
 Update `issue.md` with the synthesized scenario sections and Research Index. Keep full evidence in the research files, not in `issue.md`.
 
@@ -187,7 +192,7 @@ For each option ask: *"Would a maintainer approve this PR without asking for cha
 
 Reason from first principles: work backwards from the goal — what is the simplest change that satisfies the requirement without introducing concepts the codebase doesn't already use?
 
-Write the 3 synthesized approaches into the `Approaches` section of `_ai/task/{YYYY-MM-DD-slug}/issue.md`. Do not create `approaches.md`, `decision.md`, `handoff.md`, `plans/`, or `suggestions.md` for this pipeline.
+Write the 3 synthesized approaches into the `Approaches` section of `{ISSUE_DIR}/issue.md`. Do not create `approaches.md`, `decision.md`, `handoff.md`, `plans/`, or `suggestions.md` for this pipeline.
 
 ---
 
