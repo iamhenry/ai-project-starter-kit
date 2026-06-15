@@ -62,6 +62,8 @@ This skill connects modular skills, checks whether each stage produced the expec
 ### 1. Gather Context And Intake
 
 - Run `gather-context` with the raw user issue/request.
+- If manually orchestrating `gather-context`, preserve its exact research topology: 4 `atlas` agents plus 1 `voyager` agent.
+- `general` may scaffold or synthesize artifacts only; it must not replace the specialized `gather-context` research agents.
 - `gather-context` owns issue intake, task folder creation, and `{ISSUE_DIR}/issue.md` creation/update.
 - Write supporting research under `{ISSUE_DIR}/research/*.md`.
 - Append or update the approach options in `{ISSUE_DIR}/issue.md`.

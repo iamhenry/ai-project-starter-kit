@@ -102,6 +102,15 @@ Prefer the smallest proof path that still demonstrates real user value.
 - If `ISSUE_DIR` exists, store artifacts under `{ISSUE_DIR}/verification/` with `screenshots/` and `videos/` subfolders.
 - Always include artifact paths in the final report when evidence exists.
 
+### Screenshot Hygiene
+
+- Capture the smallest app-owned proof area that supports the verdict, not the full desktop.
+- For `web` and `mobile-web`, prefer the browser viewport.
+- For traditional `macos` apps, prefer the app window or the active sheet/modal bounds.
+- For menu bar apps, prefer the opened popover, panel, or menu bounds, and prefer deterministic QA hooks or launch flags over raw status-item clicks when available.
+- If bounded capture is unavailable, crop tightly, close unrelated windows first, and retake or delete artifacts that include private desktop content.
+- If only full-desktop capture is possible and it would expose private content, return `BLOCKED` instead of saving the artifact.
+
 ## Output
 
 Use this exact structure:
