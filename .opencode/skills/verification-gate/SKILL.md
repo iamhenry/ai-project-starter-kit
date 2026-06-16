@@ -111,6 +111,13 @@ Prefer the smallest proof path that still demonstrates real user value.
 - If bounded capture is unavailable, crop tightly, close unrelated windows first, and retake or delete artifacts that include private desktop content.
 - If only full-desktop capture is possible and it would expose private content, return `BLOCKED` instead of saving the artifact.
 
+### Artifact Cleanup
+
+- Treat runtime logs as temporary evidence unless the plan explicitly requires them.
+- Before returning `PASS`, remove or leave untracked noisy logs that may include local paths, hostnames, process IDs, or user/system details.
+- Preserve durable proof artifacts only: cropped screenshots, sanitized summaries, command pass/fail excerpts, or explicitly required files.
+- If logs must be kept, sanitize them first and mention why they are required.
+
 ## Output
 
 Use this exact structure:
