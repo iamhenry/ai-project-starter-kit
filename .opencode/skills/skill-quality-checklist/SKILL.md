@@ -29,14 +29,17 @@ Answer only the questions that matter for the reviewed artifact. Do not force ev
 ### 2. Decomposition And Separation Of Concerns
 
 - Is it avoiding the giant-prompt smell: too many distinct jobs in one instruction file?
+- Is the primary execution path easy to see without reading every detail?
 - Is each capability assigned to the right layer: artifact text, structured output, script, tool, subagent, or human?
-- Is reference material separated from the main path when it would otherwise hide the workflow?
+- Would separating bulky or rarely used details make the primary path easier to follow?
 
 ### 3. Modularity
 
 - Is this capability reusable enough to be shared, or should it stay local to one workflow?
 - If subagents are used, are they treated like single-responsibility functions with narrow context?
 - Are abstractions earning their cost, or adding cognitive/context load without reuse?
+- Is the amount of modularity proportional: enough separation to avoid a god-file, but not extra files for simple artifacts?
+- Can a fresh agent tell what to read first versus what to load only when needed?
 
 ### 4. Algorithmic Thinking
 
@@ -62,7 +65,7 @@ Answer only the questions that matter for the reviewed artifact. Do not force ev
 - Is each rule in one place, without duplication or stale sediment?
 - Does each strong instruction change behavior, or is it a no-op?
 
-Simple artifacts should not need schemas, scripts, subagents, memory, or evals unless the job actually requires them.
+Simple artifacts should stay simple. Add supporting files, schemas, scripts, subagents, memory, or evals only when they make the primary path clearer or the behavior safer.
 
 ## Hard Fails
 
@@ -74,6 +77,7 @@ Return `REVISE_ARTIFACT` if any are true:
 - Risky side effects lack human approval boundaries.
 - Downstream automation depends on prose instead of a clear contract.
 - Main workflow is buried under bloat.
+- Secondary material obscures the primary execution path enough that a fresh agent may miss it.
 - Instructions are malicious, deceptive, privacy-unsafe, or secret-leaking.
 
 Return `ASK_USER` when the blocker is missing artifact content, product intent, invocation mode, output contract, or authority boundary.
