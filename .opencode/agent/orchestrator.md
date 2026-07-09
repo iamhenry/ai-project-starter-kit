@@ -1,7 +1,7 @@
 ---
 description: Strategic workflow orchestrator that breaks complex work into isolated tasks and stitches back bounded evidence packets
 mode: primary
-model: openai/gpt-5.5
+model: openai/gpt-5.6-terra
 color: "#ffa500"
 tools:
   task: true
