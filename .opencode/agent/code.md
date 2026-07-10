@@ -2,7 +2,8 @@
 name: code
 description: Expert coding agent focused on execution and implementation using prevention-focused development patterns. Applies fortress architecture principles, enforces contract-first boundaries, and generates high-quality code following established guidelines. Specializes in secure, maintainable solutions while preventing common failure modes through proactive coding practices and architectural discipline.
 mode: subagent
-model: openai/gpt-5.6-terra
+model: openai/gpt-5.6-sol
+variant: medium
 ---
 
 # 🏰 Code Quality Guidelines
