@@ -1,6 +1,6 @@
 # App Tiny Bets Report Template
 
-Return this structure and save the same content as a markdown artifact.
+Save this complete structure as the markdown artifact. In chat, return only `Short Verdict` and the artifact path.
 
 Artifact path:
 
@@ -17,38 +17,39 @@ Create `app-tiny-bets-reports/` at the workspace root if it does not exist. Use 
 - Platform: iOS US
 - Starting mode: [app link / keyword / category / discovery]
 - Seed: [seed]
+- Evidence captured: [YYYY-MM-DD]
 
 ## Short Verdict
 [One sentence: best app to build first and why.]
 
 ## Top Opportunities
 
+[Repeat this opportunity block up to 3 times.]
+
 ### 1. [App idea]
-- Primary keyword: [keyword]
-- Adjacent keywords: [3-6 keywords]
-- Demand: [High/Medium/Low + evidence]
-- Competition: [Easy/Medium/Hard + evidence]
-- Estimated monthly revenue: [$ amount/range or Unknown + source/confidence]
-- Payment evidence: [Strong/Medium/Weak + citations or source notes]
-- Monetization model: [subscription / lifetime / one-time / unclear + why]
-- One core feature: [feature]
-- Competitor positioning notes: [1 short sentence on screenshot/value promises]
-- MVP scope: [1-3 bullets]
-- Build complexity: [Easy/Medium/Hard]
-- Risk: [main risk]
+- Keyword case: [primary keyword; popularity; difficulty; intent; competitor source or independent; store/date]
+- Adjacent keywords: [2-6 keywords, or None]
+- Market case: [Demand High/Medium/Low; Competition Easy/Medium/Hard; relevant top-10 results; apps with 100+ ratings; newer entrant signal; name collision]
+- Commercial case: [Payment Strong/Medium/Weak; revenue estimate; source/date/confidence; monetization model]
+- Product: [one core feature; 1-3 MVP items; positioning or quality gap]
+- Feasibility: [Execution fit Strong/Medium/Weak; dependency fit; reuse or main unknown; cost cap; trust assumption]
+- Main risk: [risk]
+- Confidence: [High/Medium/Low + missing evidence]
 - Verdict: [Build / Watch / Skip]
 
 Competitors:
-| Competitor | Weight | Est. monthly revenue | Why it matters | Monetization signal |
+| Competitor | Weight | Ratings | Freshness or quality gap | Revenue/payment evidence |
 | --- | --- | --- | --- | --- |
-| [app] | Strong/Medium/Weak | [$ amount/range or Unknown] | [brief rationale] | [IAP/revenue/reviews/unknown] |
+| [app] | Strong/Medium/Weak | [count] | [brief signal] | [$ amount/range or Unknown + source] |
 
 ## Rejected Ideas
-| Idea | Reason rejected |
-| --- | --- |
+| Idea | Failed bar | Reason rejected |
+| --- | --- | --- |
 
 ## Next Step
 [The single next research or build step.]
 ```
 
 Keep the report short. Prefer evidence and decisions over explanation. Do not include raw Astro/web dumps or personal/private data.
+
+If no candidate passes, omit `Top Opportunities`, say that no validated opportunity was found, list the strongest rejected ideas, and give one next seed or category to test.

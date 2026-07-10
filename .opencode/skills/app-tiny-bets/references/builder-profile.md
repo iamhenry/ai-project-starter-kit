@@ -6,7 +6,7 @@ Use this profile as a soft prior for opportunity discovery. It describes the bui
 
 - Independent developer building a portfolio of small, profitable apps rather than one venture-scale company.
 - Prefers tracer bullets: prove one complete user outcome quickly, then expand only when usage supports it.
-- Defaults to iOS for App Store distribution. Mac, browser extensions, plugins, and lightweight web companions are credible when they are the natural surface for the job.
+- Defaults to iOS for this skill. Treat Mac, browser extensions, plugins, and lightweight web companions as later surfaces unless the user explicitly requests them.
 - Values products that can become durable, low-overhead income without a large team, sales operation, or content organization.
 - Often starts from repeated firsthand friction or a problem observed in a specific person's real workflow, then looks for broader market proof.
 
@@ -38,6 +38,12 @@ Strong opportunities often use one of these compact loops:
 
 AI fits when it removes a real transformation step. Narrow agents, bots, and automations also fit when they complete one bounded job with a clear result and recovery path. Avoid generic chat as the product; the user should understand the outcome before invoking AI.
 
+## Offline-First Preference
+
+Prefer opportunities whose core user outcome works offline without a custom backend, remote database, or third-party API. Optional iCloud sync, StoreKit, analytics, backup, and online enhancements are acceptable.
+
+This is a builder-fit advantage, not a hard requirement or market proof. Apps that require online services remain eligible when evidence is stronger and the dependency is reliable, replaceable, and economically bounded.
+
 ## Product And UX Taste
 
 - One obvious primary action and a short path to first value.
@@ -64,10 +70,11 @@ Do not force subscription pricing onto a low-frequency job merely because compet
 
 ## Practical Build Filter
 
-A strong fit should be plausible for one developer to validate in weeks, with:
+A strong fit should be small enough for one developer to validate as a bounded build, with:
 
 - One core feature that delivers the searched outcome end to end.
 - Mature APIs or libraries for difficult inference, media, search, or platform integration.
+- An offline-capable core when the user outcome permits it.
 - Little or no custom backend before the first user receives value.
 - A bounded data model and few states to explain or maintain.
 - Costs that scale with paid usage or can be capped conservatively.
@@ -92,7 +99,8 @@ Prefer a narrow wedge into an existing behavior over asking users to adopt an en
 - With a broad category seed, explore distinct user jobs and product families from the category first. Then use the profile to add angles, not eliminate options.
 - With an explicit app or keyword seed, follow the user's direction. Use the profile only to simplify the MVP, choose monetization, or break close ties.
 - Rank profile alignment after demand, competitor proof, payment evidence, and tiny-bet fit.
+- When evidence is comparable, prefer `Offline core`, then `Optional online services`, then `Online required`.
 - Narrow candidates with Astro evidence and the rubric, not with profile fit.
 - Do not mention private project history or imply that this profile proves demand.
 
-When evidence is comparable, favor the opportunity with the smaller complete flow, clearer keyword, lower operational burden, stronger trust characteristics, and closer profile fit, in that order.
+When evidence is comparable, favor the opportunity with the smaller complete flow, clearer keyword, offline-capable core, lower operational burden, stronger trust characteristics, and closer profile fit, in that order.
