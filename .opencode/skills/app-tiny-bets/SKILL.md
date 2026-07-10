@@ -1,12 +1,6 @@
 ---
 name: app-tiny-bets
 description: Use when finding validated tiny iOS app ideas to build. Applies keyword-first research with Astro MCP, competitor weighting, and web revenue/payment evidence. Trigger for app ideas, App Store inspiration links, category choice, ASO demand checks, or tiny-bet app portfolios.
-tags:
-  - aso
-  - app-research
-  - ios
-  - astro
-  - tiny-bets
 ---
 
 # App Tiny Bets
@@ -15,7 +9,7 @@ Find small iOS app opportunities using a keyword-first tiny-bet workflow: keywor
 
 ## Job
 
-Turn a seed into up to 3 validated iOS app opportunities using Astro MCP and payment evidence. Save the final lean report as a markdown artifact so the user can read it later. Treat App Store search terms as user problems.
+Turn a seed into up to 3 validated iOS app opportunities using Astro MCP and payment evidence. Use the builder profile as a soft discovery and tie-breaking signal, never as market proof. Save the final lean report as a markdown artifact so the user can read it later. Treat App Store search terms as user problems.
 
 A good tiny bet has:
 
@@ -35,8 +29,8 @@ Accept any one starting mode:
 | --- | --- | --- |
 | App inspiration | App Store URL or app name | Extract category, keywords, competitor cluster |
 | Keyword seed | `stamp identifier`, `math AI`, `pdf scanner` | Validate search demand and related keywords |
-| Category seed | `student tools`, `collector apps`, `AI identifiers` | Generate keyword candidates, then validate |
-| Discover for me | No seed | Test simple app families before recommending |
+| Category seed | `student tools`, `collector apps`, `AI identifiers` | Expand the category into varied user jobs and keywords, then use evidence to narrow |
+| Discover for me | No seed | Generate a broad candidate mix; use the builder profile as one source, not the boundary |
 
 If the input is vague, ask one short question only when necessary: `Do you want iOS only, or iOS plus Mac later?` Default to iOS US.
 
@@ -44,6 +38,7 @@ If the input is vague, ask one short question only when necessary: `Do you want 
 
 Load only what the task needs:
 
+- `references/builder-profile.md` — product taste, preferred mechanics, constraints, and discovery boundaries
 - `references/tools.md` — Astro MCP and web revenue research tool map
 - `references/rubric.md` — pass bars, kill criteria, and decision rules
 - `references/subagents.md` — evidence-only subagent packet protocol
@@ -57,7 +52,13 @@ Use subagents only for read-only evidence gathering when it saves time. Keep all
 
 ### 1. Normalize The Starting Point
 
-Turn the user input into 3-10 candidate keywords.
+Turn the user input into 3-10 candidate keywords. Diverge before converging: preserve meaningful variety until Astro provides evidence for narrowing.
+
+For a broad category seed, first map the category to distinct user jobs and product families without filtering by the builder profile. Then read `references/builder-profile.md` and add useful profile-aligned angles without removing the independent candidates.
+
+With no seed, use the profile as one candidate source alongside simple App Store app families and credible outside-profile directions. Do not require every candidate to match the profile.
+
+For an explicit app or keyword seed, keep the user's direction primary. Use the profile only to simplify the product shape or resolve close choices.
 
 Examples:
 
@@ -66,6 +67,8 @@ Examples:
 - Category `hobby collector` -> `coin identifier`, `stamp identifier`, `rock identifier`, `antique appraisal`
 
 Keep candidates close to real App Store search phrases. Do not invent broad startup ideas.
+Profile alignment does not count as keyword demand and must not raise an evidence score.
+Do not discard a plausible candidate merely because it falls outside the profile; narrow the set using Astro and the rubric.
 
 ### 2. Validate Keywords In Astro
 
@@ -95,7 +98,7 @@ Do not add community, marketplace, complex accounts, or heavy backend unless the
 
 ### 6. Rank Opportunities
 
-Rank no more than 3 final ideas. Prefer the best mix of demand, payment evidence, and build simplicity. A smaller keyword with obvious paid intent can beat a bigger crowded keyword.
+Rank no more than 3 final ideas. Prefer the best mix of demand, payment evidence, and build simplicity. A smaller keyword with obvious paid intent can beat a bigger crowded keyword. Use builder-profile fit only after the evidence bars pass or to break otherwise close calls.
 
 ### 7. Stop Or Escalate
 
@@ -129,6 +132,9 @@ Use `references/report-template.md`. In the chat response, include the saved art
 - Do not claim exact revenue unless the source explicitly provides it.
 - Cite uncertainty. Say `payment evidence is weak` rather than stretching weak data.
 - Keep Mac as a later expansion unless the user explicitly asks for Mac.
+- Do not treat builder-profile alignment as demand, competitor, or payment evidence.
+- Do not constrain discovery to profile themes when stronger validated opportunities exist elsewhere.
+- Do not expose or infer private project history in reports; describe only the research seed and public evidence.
 
 ## Tiny-Bet Playbook
 
