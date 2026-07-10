@@ -7,47 +7,47 @@ description: Orchestrate and judge an issue-to-PR pipeline without editing artif
 
 ## Pipeline Components
 
-| Component | Role | Why |
-| --- | --- | --- |
-| `gather-context` | Owns intake, research, and proposal options. | Grounds the pipeline before judging or planning. |
-| `judge-proposal` | Independently reviews proposal quality. | Catches weak assumptions before plan creation. |
-| `create-issue` | Owns the selected implementation plan. | Keeps planning artifacts with the planning workflow. |
-| `judge-plan` | Independently reviews plan readiness. | Prevents implementation from starting on a weak plan. |
+| Component                    | Role                                                      | Why                                                                              |
+| ---------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `gather-context`             | Owns intake, research, and proposal options.              | Grounds the pipeline before judging or planning.                                 |
+| `judge-proposal`             | Independently reviews proposal quality.                   | Catches weak assumptions before plan creation.                                   |
+| `create-issue`               | Owns the selected implementation plan.                    | Keeps planning artifacts with the planning workflow.                             |
+| `judge-plan`                 | Independently reviews plan readiness.                     | Prevents implementation from starting on a weak plan.                            |
 | Implementation orchestration | Delegates implementation work to write-capable subagents. | Keeps this wrapper orchestration-only while moving the plan toward working code. |
-| `code-quality-gate` | Fresh subagent reviews code quality after implementation. | Catches implementation issues before QA proof begins. |
-| `verification-gate` | Fresh subagent proves completed work. | Keeps QA execution outside this wrapper. |
-| `agent-browser` | Browser proof path used by `verification-gate`. | Supports web and mobile-web validation without defining it here. |
-| `xcodebuildmcp-cli` | Apple-platform proof path used by `verification-gate`. | Supports iOS and macOS validation without defining it here. |
-| PR placeholder | Future owner handles PR handoff. | Keeps review and merge policy outside this wrapper. |
+| `code-quality-gate`          | Fresh subagent reviews code quality after implementation. | Catches implementation issues before QA proof begins.                            |
+| `verification-gate`          | Fresh subagent proves completed work.                     | Keeps QA execution outside this wrapper.                                         |
+| `agent-browser`              | Browser proof path used by `verification-gate`.           | Supports web and mobile-web validation without defining it here.                 |
+| `xcodebuildmcp-cli`          | Apple-platform proof path used by `verification-gate`.    | Supports iOS and macOS validation without defining it here.                      |
+| PR placeholder               | Future owner handles PR handoff.                          | Keeps review and merge policy outside this wrapper.                              |
 
 ## Available Capabilities
 
 ### Agents
 
-| Name | Use for | Delegate when | Avoid when |
-| --- | --- | --- | --- |
-| `code` | Implementation, bug fixes, refactors, tests. | Approved write or code changes are ready. | Research, docs-only edits, judging, QA. |
+| Name      | Use for                                          | Delegate when                                 | Avoid when                                  |
+| --------- | ------------------------------------------------ | --------------------------------------------- | ------------------------------------------- |
+| `code`    | Implementation, bug fixes, refactors, tests.     | Approved write or code changes are ready.     | Research, docs-only edits, judging, QA.     |
 | `general` | Docs, config, task artifacts, utility workflows. | Non-code edits or orchestration utility work. | App code implementation and gate decisions. |
 
 ### Subagents
 
-| Name | Use for | Delegate when | Avoid when |
-| --- | --- | --- | --- |
-| `atlas` | Local codebase research. | Architecture, data flow, dependencies, blast radius. | Pure external docs, judging, implementation. |
-| `voyager` | External docs, API, and framework research. | Version-specific docs or best practices are needed. | Repo-local evidence is enough. |
+| Name      | Use for                                     | Delegate when                                        | Avoid when                                   |
+| --------- | ------------------------------------------- | ---------------------------------------------------- | -------------------------------------------- |
+| `atlas`   | Local codebase research.                    | Architecture, data flow, dependencies, blast radius. | Pure external docs, judging, implementation. |
+| `voyager` | External docs, API, and framework research. | Version-specific docs or best practices are needed.  | Repo-local evidence is enough.               |
 
 Note: although `atlas` and `voyager` have write permissions for research artifacts, this pipeline uses them only for research/reporting unless a stage explicitly assigns an artifact write.
 
 ### Skills
 
-| Name | Use for | Delegate when | Avoid when |
-| --- | --- | --- | --- |
-| `judge-proposal` | Proposal selection gate. | `{ISSUE_DIR}/issue.md` has approaches and research. | Implementation, plan creation, code review. |
-| `judge-plan` | Plan readiness gate. | `{ISSUE_DIR}/plan.md` exists. | Architecture redesign or implementation. |
-| `code-quality-gate` | Post-implementation code review. | Implementation is done, before verification. | Fixing code or QA. |
-| `verification-gate` | Behavior proof. | `APPROVE_CODE` is returned. | Exploratory QA or missing prerequisites. |
-| `agent-browser` | Web and mobile-web proof path. | `verification-gate` needs browser proof. | Direct orchestrator QA or non-browser proof. |
-| `xcodebuildmcp-cli` | iOS and macOS proof path. | `verification-gate` needs Apple-platform proof. | Web or non-UI proof. |
+| Name                | Use for                          | Delegate when                                       | Avoid when                                   |
+| ------------------- | -------------------------------- | --------------------------------------------------- | -------------------------------------------- |
+| `judge-proposal`    | Proposal selection gate.         | `{ISSUE_DIR}/issue.md` has approaches and research. | Implementation, plan creation, code review.  |
+| `judge-plan`        | Plan readiness gate.             | `{ISSUE_DIR}/plan.md` exists.                       | Architecture redesign or implementation.     |
+| `code-quality-gate` | Post-implementation code review. | Implementation is done, before verification.        | Fixing code or QA.                           |
+| `verification-gate` | Behavior proof.                  | `APPROVE_CODE` is returned.                         | Exploratory QA or missing prerequisites.     |
+| `agent-browser`     | Web and mobile-web proof path.   | `verification-gate` needs browser proof.            | Direct orchestrator QA or non-browser proof. |
+| `xcodebuildmcp-cli` | iOS and macOS proof path.        | `verification-gate` needs Apple-platform proof.     | Web or non-UI proof.                         |
 
 Orchestrate and judge the pipeline. Do not create, edit, append, or repair task artifacts directly.
 
@@ -147,17 +147,17 @@ Do not create helper docs, reference files, sidecar state, ADR files, or wrapper
 
 ## Ownership Boundaries
 
-| Artifact or decision | Owner |
-| --- | --- |
-| `{ISSUE_DIR}/issue.md` intake, scenarios, approaches | `gather-context` |
-| `{ISSUE_DIR}/research/*.md` evidence reports | `gather-context` research agents |
-| `Judge Decision` in `{ISSUE_DIR}/issue.md` | `judge-proposal` fresh subagent |
-| `{ISSUE_DIR}/plan.md` | `create-issue` workflow |
-| `Plan Judge` in `{ISSUE_DIR}/plan.md` | `judge-plan` fresh subagent |
-| Implementation code changes | Implementation subagents |
-| Code quality decision | `code-quality-gate` fresh subagent |
-| Verification proof | `verification-gate` fresh subagent |
-| Pipeline order, gates, revision routing | `issue-to-pr` |
+| Artifact or decision                                 | Owner                              |
+| ---------------------------------------------------- | ---------------------------------- |
+| `{ISSUE_DIR}/issue.md` intake, scenarios, approaches | `gather-context`                   |
+| `{ISSUE_DIR}/research/*.md` evidence reports         | `gather-context` research agents   |
+| `Judge Decision` in `{ISSUE_DIR}/issue.md`           | `judge-proposal` fresh subagent    |
+| `{ISSUE_DIR}/plan.md`                                | `create-issue` workflow            |
+| `Plan Judge` in `{ISSUE_DIR}/plan.md`                | `judge-plan` fresh subagent        |
+| Implementation code changes                          | Implementation subagents           |
+| Code quality decision                                | `code-quality-gate` fresh subagent |
+| Verification proof                                   | `verification-gate` fresh subagent |
+| Pipeline order, gates, revision routing              | `issue-to-pr`                      |
 
 When an artifact is missing or malformed, ask the owner to revise it. Do not fix it inside this wrapper.
 
