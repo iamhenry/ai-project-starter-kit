@@ -10,14 +10,29 @@ Local server: `http://127.0.0.1:8089/mcp`
 
 If unavailable, ask the user to enable Astro Settings > MCP Server.
 
-Use:
+Primary tools:
 
 - `search_app_store` — live App Store results for a keyword, app name, or category-style query
-- `get_keyword_suggestions` — related keyword ideas for tracked or untracked apps
-- `search_rankings` with `includeHistory: true` when available — current and historical ranking signal
-- `get_app_ratings` with `includeHistory: true` when useful — ratings/review growth and freshness
 - `extract_competitors_keywords` — competitor keyword ideas after the keyword is tracked in Astro
-- `add_app` / `add_keywords` — only if needed to unlock tracking or competitor keyword extraction
+- `add_app` / `add_keywords` — create an isolated temporary research app and fetch keyword metrics
+
+Primary path:
+
+1. Start every research run with `add_app(temporary: true)`. Give it a readable topic and timestamp name, capture the returned `appId` or exact app name, and do not reuse any existing app.
+2. Run `search_app_store` for each seed to verify live intent and competitors.
+3. Add all seed keywords with `add_keywords`, passing the captured temporary `appId` or exact `appName` and the target `store`.
+4. Run `extract_competitors_keywords` only after each seed is tracked.
+5. Keep relevant phrases and batch them through `add_keywords` with the same captured app identity and store to fetch popularity and difficulty.
+6. Sort qualifying phrases by popularity descending, then live-search survivors before deeper research.
+7. Work in batches of up to 10. Continue with a distinct category or competitor-derived cluster when fewer than 3 opportunities qualify; ask before exceeding 30 total candidates.
+
+Create one temporary app per report, not per keyword. If temporary-app creation or tracking fails, do not fall back to another tracked app. Mark the research incomplete and do not include an opportunity.
+
+Conditional tools:
+
+- `get_keyword_suggestions` — use only when competitor extraction yields too few relevant candidates; call it with a relevant App Store competitor's `appId` or `appName` and `store`, then treat suggestions as hypotheses until tracked and live-searched.
+- `search_rankings(includeHistory: true)` — use only for a follow-up on a previously tracked keyword; a new temporary app has no meaningful history.
+- `get_app_ratings(includeHistory: true)` — use only when current ratings and release data do not make competitor traction clear.
 
 Astro checks should answer:
 
@@ -27,6 +42,8 @@ Astro checks should answer:
 - Do competitors have ratings/reviews?
 - Does the exact keyword appear to be taken as an app name?
 - Are there adjacent keywords for follow-up tiny bets?
+
+For each surviving keyword, preserve the store, capture date, raw popularity and difficulty, relevant results in the top 10, competitors with `100+` ratings, competitor release dates, evidence of newer entrants with traction, and exact-title collision. Freshness is an enterability heuristic, not a documented App Store ranking factor.
 
 ## Web Revenue Research
 
@@ -45,9 +62,15 @@ Search patterns:
 - `"[category keyword]" app revenue`
 - Maker posts on X, Indie Hackers, Reddit, Starter Story, blogs, or public launch posts
 
-Revenue estimates are noisy. Use them as directional evidence only. If no revenue estimate exists, look for paid signals: visible IAPs, subscription complaints in reviews, paid tiers, many ratings in a narrow niche, or multiple monetized competitors.
+Use this source hierarchy:
 
-When a source gives a hard monthly number, preserve it in the report as `estimated monthly revenue` with the source and confidence label: `Exact`, `Range`, or `Unknown`. Do not average guesses from multiple weak sources.
+1. Maker disclosure tied to the named app and a clear period/scope.
+2. App-level estimates from named commercial intelligence providers such as Sensor Tower, Appfigures, AppMagic, or data.ai, with period and storefront/scope visible.
+3. Public modeled estimates only when the methodology is published and the number is corroborated by a second independent numeric source or a commercial estimate.
+
+For every numeric claim, capture the app, amount or range, source URL, estimate period, storefront/scope, evidence type (`Maker disclosure`, `Commercial estimate`, or `Corroborated public model`), capture date, and confidence (`High`, `Medium`, or `Low`). Treat third-party figures as estimates, not actual revenue.
+
+Never derive, synthesize, extrapolate, or calculate revenue from downloads, ratings, rank, pricing, reviews, or other proxies. Do not average weak estimates. Apply the precise-anchor gate in `rubric.md`; one directly relevant top competitor with a credible precise estimate clearly above the floor is sufficient. Upper bounds and visible IAPs or subscriptions never establish a minimum or qualify on their own. Ratings may affect traction confidence or competitor weight only, never revenue.
 
 ## Supporting Evidence
 
