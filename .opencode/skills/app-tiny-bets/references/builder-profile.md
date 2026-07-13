@@ -19,13 +19,14 @@ Look first for narrow problems experienced by:
 - Individuals and families preserving personal memories or reducing friction in everyday shared life.
 - Creators who repeatedly turn rough material into useful or publishable content.
 - Independent builders, designers, and developers removing friction from a repeated workflow.
+- Solo operators and small businesses simplifying one repeated customer, marketing, or administrative workflow.
 - Knowledge workers overwhelmed by inputs, updates, feedback, or fragmented tools.
 
-These are affinity signals, not fixed market boundaries. A better-supported audience should win.
+Treat these as non-exhaustive category lenses, not fixed market boundaries. For open discovery, vary the starting set across several lenses and combine or add an iOS-relevant lens when useful. A better-supported audience should win, and no lens receives a result quota.
 
 ## Product Mechanics That Fit
 
-Strong opportunities often use one of these compact loops:
+Strong opportunities often use or combine these non-exhaustive compact loops, and may extend them for a credible iOS job:
 
 - Capture -> transform -> useful result: accept a photo, voice note, text, URL, or file and produce one clear output.
 - Detect -> explain -> act: identify something important, explain it simply, and offer a safe next step.
@@ -34,7 +35,7 @@ Strong opportunities often use one of these compact loops:
 - Select -> personalize -> generate: use a few deliberate choices to create an output suited to the user's context.
 - Observe -> personalize -> recommend: use the user's own history, preferences, or activity to surface a timely next step.
 - Monitor -> notify -> resolve: watch a narrow condition and alert the user when action is worthwhile.
-- Convert between formats: make existing information easier to consume, retain, share, or reuse.
+- Compose or convert -> preview -> share: turn existing material into a finished output the user can review, consume, publish, or reuse.
 
 AI fits when it removes a real transformation step. Narrow agents, bots, and automations also fit when they complete one bounded job with a clear result and recovery path. Avoid generic chat as the product; the user should understand the outcome before invoking AI.
 

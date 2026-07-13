@@ -1,6 +1,6 @@
 # App Tiny Bets Rubric
 
-Use this rubric before recommending any idea. Defaults are conservative for a new app with no authority.
+Use this rubric before admitting and ranking any opportunity. Defaults are conservative for a new app with no authority.
 
 ## Keyword Pass Bar
 
@@ -17,7 +17,7 @@ Discard keywords when demand is weak, results are irrelevant, the query is brand
 
 ## Entry Assessment
 
-Inspect the top 10 results, then choose 3-5 relevant competitors. Judge ratings and release dates together: four apps with `100+` ratings can still be attractive when the category and ranking entrants are recent.
+Inspect the top 10 results, then research 3-5 relevant competitors internally. The final table may contain fewer competitors under the numeric revenue-row contract. Judge ratings and release dates together: four apps with `100+` ratings can still be attractive when the category and ranking entrants are recent.
 
 | Class | Evidence | Eligibility |
 | --- | --- | --- |
@@ -27,7 +27,27 @@ Inspect the top 10 results, then choose 3-5 relevant competitors. Judge ratings 
 
 Record relevant top-10 density, apps with `100+` ratings, release dates, review/feature gaps, repeated screenshot promises, and related keywords. Do not count visual polish or lower price alone as a wedge.
 
+## Native Apple Substitute Gate
+
+Reject an opportunity when a first-party Apple app or built-in iOS feature already performs the primary searched job competently for ordinary users. This is a portfolio preference, not a claim that third-party apps cannot succeed.
+
+Check both App Store results and built-in system capabilities. Examples include Voice Memos for basic voice recording, Notes for basic document scanning, Photos for duplicate-photo cleanup, Measure for basic measuring or leveling, Passwords for password management, and Calculator for basic calculation or conversion.
+
+Apply the gate to the core job, not incidental overlap:
+
+- Reject when the proposed app's primary promise is substantially the same job with polish, privacy, reliability, AI, or extra features.
+- Keep when Apple provides only a component and the searched outcome is a materially different specialized job.
+- When uncertain, record the Apple substitute and exclude until the distinction is proven.
+
 If the exact keyword is already a competitor's app name, do not assume you can use that phrase as the product name. Keep it as a keyword target or find an adjacent phrase.
+
+## Problem Evidence
+
+State the user's job and concrete friction or consequence in one concise line, supported by cited complaint or competitor evidence. This gate comes before Ideal Customer. Do not use reviews as demand proof.
+
+## Ideal Customer Evidence
+
+Define a narrow ideal customer from public app listings, reviews, or other public evidence. Describe behavior and problem, the desired outcome, and the current workaround or incumbent; cite the source. Do not invent age, gender, income, or other demographics. Positioning inferences are allowed when clearly presented as synthesis rather than direct quotes.
 
 ## Competitor Weighting
 
@@ -40,9 +60,11 @@ Use this order instead of fake numeric precision:
 
 Label a competitor `Strong` when it is directly relevant with meaningful traction or payment proof, `Medium` when evidence is partial, and `Weak` when relevance or traction is low. Freshness supports enterability; it is not a documented App Store ranking factor.
 
+Weighting is an internal research method. The Evidence Appendix contains one validated-competitor table per opportunity. Use exactly four columns: `Competitor`, `Market traction`, `Revenue evidence`, and `Evidence implication`. `Market traction` contains current keyword rank, exact US rating count, average rating, and relevant freshness evidence. `Evidence implication` contains only scope, freshness, entry evidence, weakness, or counter-evidence affecting relative evidence strength.
+
 ## Revenue And Payment Bar
 
-The revenue-proof set contains only directly relevant competitors with qualifying app-level commercial evidence. Each claim must include the exact source value, source URL, estimate period, storefront/scope, evidence type, capture date, and confidence.
+Display only competitors with evidenced positive app-level revenue estimates or positive numeric maker disclosures. Every displayed range must have a lower bound greater than zero. Every `Revenue evidence` cell must include the numeric amount or range, period, platform/storefront or stated scope, source URL/provider, evidence type, capture date, and confidence. If a researched competitor has nonpositive, unknown, or upper-bound-only evidence, search relevant competitors for a profitable replacement; otherwise omit the row. The final report table may contain fewer rows when evidence is scarce.
 
 Qualifying evidence, strongest first:
 
@@ -50,7 +72,11 @@ Qualifying evidence, strongest first:
 2. App-level estimate from Sensor Tower, Appfigures, AppMagic, data.ai, or another named commercial intelligence provider, with period and storefront/scope clear.
 3. Public modeled estimate with published methodology, corroborated by a second independent numeric source or a commercial estimate.
 
-Never derive or calculate revenue from downloads, ratings, rank, pricing, reviews, or other proxies. Never average weak guesses into a synthetic estimate. Ratings count may strengthen or weaken traction confidence and competitor weight, but must never change revenue evidence, amounts, or thresholds.
+Never derive or calculate revenue from downloads, ratings, rank, pricing, reviews, or other proxies. Never average weak guesses into a synthetic estimate. Ratings, rank, IAPs, subscriptions, and prices are traction or monetization context only and never prove revenue. Ratings count may strengthen or weaken traction confidence and competitor weight, but must never change revenue evidence, amounts, or thresholds.
+
+The comparison `Revenue proof` cell and profile `Payment receipt` must state the descriptive monthly range across displayed competitors. Use the lowest displayed lower bound as the range floor and the highest displayed upper bound as the ceiling; a precise value supplies both bounds. Do not average estimates. Preserve every source value and scope in the Evidence Appendix, and identify qualifying anchors separately from weaker modeled context. This range describes displayed evidence; it is not a synthesized estimate for the market or proposed app.
+
+Never display `$0`, nonpositive, unknown, upper-bound-only, or missing-value revenue rows, and never present an upper bound as a numeric estimate. Preserve them only in internal research context. Public modeled positive ranges may appear with confidence, but do not satisfy the payment bar unless corroborated under the source hierarchy above.
 
 Use roughly `$100-200/month equivalent` as the minimum useful estimate for the required anchor, not as a forecast for the proposed app. Normalize a disclosed period only with direct arithmetic from the source's revenue figure, preserve the original period/value, and label the normalized amount as an estimate.
 
@@ -69,11 +95,11 @@ Only `Medium` or `Strong` passes this bar. No credible precise above-floor ancho
 
 The idea must map to one bounded core flow that relies mostly on an existing app foundation, platform capabilities, or mature libraries. Judge implementation shape and uncertainty, not elapsed time; human and AI-assisted execution speeds vary too much for calendar estimates to be reliable.
 
-Pass examples:
+Illustrative pass shapes, not an exhaustive list:
 
 - Camera/photo -> AI identification -> result -> history
-- Text/photo input -> answer/explanation -> save/share
-- Scan/import -> convert/extract/analyze -> export
+- Draft/import -> preview or present -> save/share
+- Select a few inputs -> create a bounded plan or layout -> save/export
 
 Reject or downgrade when the app needs:
 
@@ -89,7 +115,7 @@ Before including an opportunity, answer three questions:
 2. Can API, infrastructure, and support costs be capped conservatively?
 3. Can the result be reliable enough to preserve user trust?
 
-Also require a concrete wedge: one product, workflow, trust, or audience advantage that makes the core job better or more efficient than inspected competitors. Reject generic clones whose only claim is polish, AI, or lower price.
+Also require a bounded concrete wedge: one product, workflow, trust, or audience advantage that makes the core job better or more efficient than inspected competitors. Keep it to 1-2 sentences and use one representative review excerpt per primary complaint theme, including reviewer, app, date, source URL, and recurrence strength. Support it with recurring complaints across independent reviews or apps when available; otherwise label a single complaint as high-signal rather than recurring. Keep Wedge separate from Product, and reject generic clones whose only claim is pricing, polish, or AI.
 
 Rate execution fit:
 
@@ -123,13 +149,13 @@ Use this monetization heuristic:
 | Payment evidence | Strong / Medium / Weak |
 | Execution fit | Strong / Medium / Weak |
 | External dependency fit | Offline core / Optional online services / Online required |
-| Portfolio leverage | Strong / Medium / Weak |
-| Distribution fit | Strong / Medium / Weak |
 | Confidence | High / Medium / Low |
 
 ## Final Inclusion Rule
 
-Include an opportunity only when it passes the Keyword, Entry Assessment, Revenue And Payment, and Tiny-Bet Fit bars above, including a concrete wedge and all feasibility questions. Exclude `Closed` candidates and every other failed candidate from the final artifact.
+Include an opportunity only when it passes the Keyword, Entry Assessment, Native Apple Substitute, Revenue And Payment, and Tiny-Bet Fit bars above, includes an evidence-backed Problem and ideal customer, and includes a complaint-backed Wedge plus the feasibility answers. The Native Apple Substitute gate is an internal qualification check, not a standalone report field. Exclude `Closed` candidates and every other failed candidate from the final artifact.
+
+Compare and rank only opportunities that pass every gate. Rank expresses relative evidence strength across the qualified set; it must not make the user's build decision, assign a product status, or imply that rank 1 is a recommendation.
 
 Post-launch signal: after release, winners are apps whose organic rankings or downloads stabilize or grow after the initial launch period. Any new-app boost is a practitioner heuristic, not a guaranteed ranking behavior. This skill does not run post-launch analysis.
 
