@@ -1,11 +1,18 @@
 ---
 name: app-tiny-bets
-description: Use when finding validated tiny iOS app ideas to build. Applies keyword-first research with Astro MCP, competitor weighting, and web revenue/payment evidence. Trigger for app ideas, App Store inspiration links, category choice, ASO demand checks, or tiny-bet app portfolios.
+description: Use when finding validated tiny iOS app ideas or explicitly validating a wedge for one opportunity from an existing App Tiny Bets report. Phase 1 performs keyword-first discovery with Astro and competitor evidence. Phase 2 runs only when explicitly requested with a report and one selected opportunity, then mines competitor reviews and creates a wedge brief.
 ---
 
 # App Tiny Bets
 
-Find qualified iOS app opportunities using a keyword-first tiny-bet workflow: keyword demand, competitor proof, one core feature, ship lean. This skill is research-only. Stop after comparing the evidence.
+Find qualified iOS app opportunities using a keyword-first tiny-bet workflow: keyword demand, competitor proof, one core feature, ship lean. This skill is research-only and has two separate, explicit phases.
+
+## Phase Boundary
+
+- **Phase 1: Discovery** turns a seed into ranked opportunities and a research artifact. Stop after comparing the evidence.
+- **Phase 2: Wedge Validation** starts from a completed Phase 1 artifact and one user-selected opportunity. It deepens review research, tests candidate wedges against evidence, and saves a separate brief artifact.
+- Never run Phase 2 automatically after Phase 1. Expect it to run in a fresh session.
+- Never infer the selected opportunity from rank, prior conversation, or the artifact. The user must select exactly one.
 
 ## Job
 
@@ -47,12 +54,13 @@ Load only what the task needs:
 - `references/rubric.md` — pass bars, kill criteria, and decision rules
 - `references/subagents.md` — evidence-only subagent packet protocol
 - `references/report-template.md` — final report contract
+- `references/wedge-validation.md` — explicit Phase 2 entry gate, review-mining workflow, and wedge brief contract
 
 ## Parallel Evidence Gathering
 
 Use subagents only for read-only evidence gathering when it saves time. Keep all decisions and report writing centralized in the main agent. Use `references/subagents.md` for packet format and tool instructions.
 
-## Workflow
+## Phase 1 Workflow
 
 ### 1. Normalize The Starting Point
 
@@ -146,6 +154,17 @@ Save the complete report using the path and naming contract in `references/repor
 
 Use `references/report-template.md`. In chat, return only the saved artifact path, or a neutral completion line followed by the path.
 
+## Phase 2 Workflow
+
+Run Phase 2 only when the user explicitly asks for wedge validation and supplies:
+
+1. A completed App Tiny Bets research artifact.
+2. Exactly one selected opportunity from that artifact.
+
+If either input is missing, ask one short question and stop. Do not choose an opportunity for the user.
+
+When both inputs are present, read `references/wedge-validation.md` and follow it. Save a separate wedge brief; do not append to or overwrite the Phase 1 artifact.
+
 ## Guardrails
 
 - Keep the report high-signal; do not produce a long brainstorm dump.
@@ -164,6 +183,8 @@ Use `references/report-template.md`. In chat, return only the saved artifact pat
 - Do not expose or infer private project history in reports; describe only the research seed and public evidence.
 - Do not make a build recommendation or assign product statuses in the artifact. Evidence ranking is allowed because it compares only qualified opportunities by relative evidence strength.
 - Use `N/A` for unavailable keyword metrics; never invent missing evidence.
+- Do not continue from Phase 1 into Phase 2 without an explicit request and selected opportunity.
+- In Phase 2, treat the Phase 1 wedge as a hypothesis to revalidate, not a product decision.
 
 ## Tiny-Bet Playbook
 
@@ -178,4 +199,4 @@ Use this sequence:
 7. Ship a lean MVP, then move on unless organic data floats.
 8. Return only to winners that show traction.
 
-For this skill, stop at step 6. Do not recommend what to build next.
+For Phase 1, stop at step 6. Phase 2 is a separate invocation and stops after saving the wedge brief.
