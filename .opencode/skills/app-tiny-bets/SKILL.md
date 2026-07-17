@@ -50,6 +50,7 @@ If the input is vague, ask one short question only when necessary: `Do you want 
 Load only what the task needs:
 
 - `references/builder-profile.md` — product taste, preferred mechanics, constraints, and discovery boundaries
+- `references/keyword-directions.md` — optional category and subcategory directions for focused Phase 1 seed generation
 - `references/tools.md` — Astro MCP and web revenue research tool map
 - `references/rubric.md` — pass bars, kill criteria, and decision rules
 - `references/subagents.md` — evidence-only subagent packet protocol
@@ -71,6 +72,8 @@ Turn the user input into 1-5 seed keywords. These are search hypotheses, not the
 For a broad category seed, first map the category to distinct user jobs and product families without filtering by the builder profile. Then read `references/builder-profile.md` and add useful profile-aligned angles without removing the independent candidates.
 
 With no seed, use the profile as one candidate source alongside simple App Store app families and credible outside-profile directions. Do not require every candidate to match the profile.
+
+For no-seed or broad-category discovery, also consult `references/keyword-directions.md` as an optional starting guide. Treat its categories, subcategories, and examples as themes to expand into multiple user jobs and concrete App Store search hypotheses, not as literal or exhaustive search terms; keep the existing discovery pools active and broaden beyond the guide when the initial evidence is weak.
 
 For discovery runs, rotate 10-keyword batches across three pools instead of repeatedly mining one theme: profile-aligned jobs, adjacent reusable app families, and independent wildcard categories. Rotate the research inputs, not the final results; evidence still determines ranking and no pool receives a quota.
 
@@ -178,6 +181,7 @@ When both inputs are present, read `references/wedge-validation.md` and follow i
 - Preserve raw Astro scores and evidence dates; thresholds are practitioner heuristics, not universal market facts.
 - Keep Mac as a later expansion unless the user explicitly asks for Mac.
 - Do not treat builder-profile alignment as demand, competitor, or payment evidence.
+- Do not treat keyword-direction membership as demand, competitor, payment, ranking, admission, or exclusion evidence; it is optional seed vocabulary only.
 - Do not constrain discovery to profile themes when stronger validated opportunities exist elsewhere.
 - Do not split profile-aligned and independent candidates into separate artifacts.
 - Do not expose or infer private project history in reports; describe only the research seed and public evidence.
