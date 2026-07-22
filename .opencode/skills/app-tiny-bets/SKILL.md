@@ -75,6 +75,8 @@ With no seed, use the profile as one candidate source alongside simple App Store
 
 For no-seed or broad-category discovery, also consult `references/keyword-directions.md` as an optional starting guide. Treat its categories, subcategories, and examples as themes to expand into multiple user jobs and concrete App Store search hypotheses, not as literal or exhaustive search terms; keep the existing discovery pools active and broaden beyond the guide when the initial evidence is weak.
 
+On those runs, optionally enrich seeds with the guide's need lens (Maslow one level above categories): pick one need lane (add a second only if the batch is weak or clustered), expand need → felt problem → app job → concrete App Store phrases, and merge into the three pools below. Never search abstract need labels. Mental model: need lens = where to look; Astro = is anyone looking; rubric = can we build and get paid. Explicit app or keyword seeds skip the need lens; the user's direction stays primary.
+
 For discovery runs, rotate 10-keyword batches across three pools instead of repeatedly mining one theme: profile-aligned jobs, adjacent reusable app families, and independent wildcard categories. Rotate the research inputs, not the final results; evidence still determines ranking and no pool receives a quota.
 
 Within each discovery batch, compare both user jobs and product mechanics when checking for premature clustering around one audience, category lens, or mechanic. Different topics that use the same mechanic still count as clustered. If candidates have clustered, replace redundant seeds with credible iOS jobs that vary the clustered dimension before Astro validation. Lenses and mechanics may be combined or extended; they are not an allowlist or result quota.
@@ -181,7 +183,7 @@ When both inputs are present, read `references/wedge-validation.md` and follow i
 - Preserve raw Astro scores and evidence dates; thresholds are practitioner heuristics, not universal market facts.
 - Keep Mac as a later expansion unless the user explicitly asks for Mac.
 - Do not treat builder-profile alignment as demand, competitor, or payment evidence.
-- Do not treat keyword-direction membership as demand, competitor, payment, ranking, admission, or exclusion evidence; it is optional seed vocabulary only.
+- Do not treat keyword-direction membership, need-lane tags, or multi-need annotations as demand, competitor, payment, ranking, admission, or exclusion evidence; they are optional seed vocabulary only. A need lens never raises an evidence score. After every gate passes, multi-need may break an otherwise equal tie the same way builder-profile fit does — annotation only, no points.
 - Do not constrain discovery to profile themes when stronger validated opportunities exist elsewhere.
 - Do not split profile-aligned and independent candidates into separate artifacts.
 - Do not expose or infer private project history in reports; describe only the research seed and public evidence.

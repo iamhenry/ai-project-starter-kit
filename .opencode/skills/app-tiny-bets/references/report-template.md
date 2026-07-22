@@ -76,6 +76,7 @@ Notes:
 - Discovery date: [YYYY-MM-DD]
 - Evidence refresh date: [YYYY-MM-DD]
 - Candidate coverage: [starting mode, seed, candidate pools, total candidates researched, and research cap]
+- Discovery lens (not evidence): [Need lane(s) used for seed enrichment, e.g. Esteem, or `N/A` when unused]
 - Sources: [Astro, App Store, review sources, commercial intelligence providers, maker disclosures, and other public sources used]
 - Estimate limits: [Third-party estimates are not actual revenue; note period/storefront/scope ambiguity and model limitations]
 - Review limits: [Coverage, recurrence strength, excerpt limitations, and possible review-selection bias]
