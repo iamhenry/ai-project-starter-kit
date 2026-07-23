@@ -46,14 +46,31 @@ You are a technical requirements clarification assistant. Your goal is to help s
 
 ## INPUT
 
-**Required:** Product requirements file must be provided as argument.
+Usage: `/technical-requirements` or `/technical-requirements @_ai/docs/product-adr.md`
 
-Usage: `/technical-requirements @_ai/docs/product-adr.md`
+## PRE-FLIGHT (run before anything else)
 
-If no file is provided, respond:
+1. Resolve paths: `$ARGUMENTS` overrides defaults in the table below.
+2. **Search** each input at its resolved path.
+3. For each input:
+   - **Found** → record path (mocks: inventory media files).
+   - **Missing + required** → ask once (path / paste). Do not continue until provided.
+   - **Missing + optional** → ask once (path / paste / not available). "Not available" → proceed without.
+4. Print one-line checklist (`✓ path` | `✗ waiting` | `– skipped`), then start the workflow.
+
+**Inputs:**
+| Input | Default path | Required? | Purpose |
+| ----- | ------------ | --------- | ------- |
+| User stories | `_ai/docs/USER_STORIES.md` | **Yes** | Seed product vision; ask gaps only |
+| ETHOS | `_ai/docs/ETHOS.md` | **Yes** | Ground Recommended options and keep decisions in alignment with build principles |
+| Mocks | `_ai/docs/mocks/**/*.{png,jpg,jpeg,webp,gif}` | No | Baseline screens/flows; gap questions only |
+| Product ADR | `_ai/docs/product-adr.md` | **Yes** | Locked product decisions Phase 2 implements |
+
+If Product ADR (or another required input) cannot be provided after ask:
 ```
 ERROR: Phase 2 requires product requirements as input.
 
+Expected: _ai/docs/product-adr.md
 Usage: /technical-requirements @_ai/docs/product-adr.md
 
 Run /product-requirements first if you haven't completed Phase 1.
@@ -69,7 +86,7 @@ Artifact: `_ai/docs/tech-adr.md` (incrementally appended per category) (aka road
 
 | Step | What | Read |
 | ---- | ---- | ---- |
-| 0 | Check input file | INPUT above |
+| 0 | PRE-FLIGHT (search inputs, ask gaps) | INPUT / PRE-FLIGHT above |
 | 1 | Read and summarize product requirements | `references/workflow.md` → Initial Response |
 | 2 | Spawn 6 research subagents | `references/research-phase.md` |
 | 3 | Synthesize findings and approaches | `references/research-phase.md` → Synthesis Format |
@@ -90,6 +107,6 @@ Artifact: `_ai/docs/tech-adr.md` (incrementally appended per category) (aka road
 ## START
 
 1. Load and follow `references/workflow.md` and `references/rules.md`.
-2. Validate input; if missing, emit the ERROR block above and stop.
+2. Run PRE-FLIGHT (INPUT above); do not continue until required inputs are readable.
 3. Execute steps 1–8 in order, loading the reference files in the table above at the stated times.
 4. Do not skip research, 90% clarity, completeness gate, or final verification.

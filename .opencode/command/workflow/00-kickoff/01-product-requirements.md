@@ -42,12 +42,22 @@ The user has a vision of what they want to build. Your job is to work BACKWARDS 
 
 Product Idea: `$ARGUMENTS`
 
+## PRE-FLIGHT (run before anything else)
+
+1. Resolve paths: `$ARGUMENTS` overrides defaults in the table below.
+2. **Search** each input at its resolved path.
+3. For each input:
+   - **Found** → record path (mocks: inventory media files).
+   - **Missing + required** → ask once (path / paste). Do not continue until provided.
+   - **Missing + optional** → ask once (path / paste / not available). "Not available" → proceed without.
+4. Print one-line checklist (`✓ path` | `✗ waiting` | `– skipped`), then start the workflow.
+
 **Inputs:**
-| Input | Path (typical) | Required? | Role |
-| ----- | -------------- | --------- | ---- |
-| User stories / scenarios | `_ai/docs/USER_STORIES.md` or path in args | **Yes** (default) | Seed Known; ask gaps only — do not re-derive from zero |
-| ETHOS / build principles | `_ai/docs/ETHOS.md` | Strongly preferred | Ground every `Recommended` option |
-| Mocks | `_ai/docs/mocks/**` | Preferred for Screens/Flows | Default surfaces; gap questions only |
+| Input | Default path | Required? | Purpose |
+| ----- | ------------ | --------- | ------- |
+| User stories | `_ai/docs/USER_STORIES.md` | **Yes** | Seed product vision; ask gaps only |
+| ETHOS | `_ai/docs/ETHOS.md` | **Yes** | Ground Recommended options and keep decisions in alignment with build principles |
+| Mocks | `_ai/docs/mocks/**/*.{png,jpg,jpeg,webp,gif}` | No | Baseline screens/flows; gap questions only |
 | Existing ADR | `_ai/docs/product-adr.md` | If resuming | Append only; never wipe |
 
 **Seed when present:** inventory → Known items → only ask what is still unclear.
@@ -364,12 +374,8 @@ Use template structure from `https://gist.githubusercontent.com/iamhenry/0d8f849
 ### Initial Response
 1. Acknowledge the product idea / attached inputs
 2. Create `_ai/docs/` directory if it doesn't exist
-3. **Input check (before Category 1):**
-   - **User stories:** required by default. If missing from args and `_ai/docs/USER_STORIES.md` (or equivalent) is not found, stop and ask for stories/scenarios (or freeform that you will structure) before continuing.
-   - **ETHOS:** if `_ai/docs/ETHOS.md` (or attached principles) is missing, ask once whether to attach/path it or proceed without (note: Recommendations will be weaker without it). Prefer waiting if user can provide it quickly.
-   - **Mocks:** if `_ai/docs/mocks/**` (or attached mocks) is missing, ask once whether mocks exist elsewhere or to proceed mock-free (Screens/Flows will be question-heavier).
-   - Use `Question` tool for this intake when useful (provide / path later / proceed without).
-4. Inventory whatever is present → seed Known; do not restart from a blank vision when stories/mocks/ADR exist
+3. **PRE-FLIGHT** (see INPUT above) — search defaults, ask on gaps, checklist, then continue
+4. Inventory whatever is present → seed Known; do not restart from a blank vision when stories/mocks exist
 5. Explain working-backwards briefly
 6. Start Category 1 (Core Job) with status block + Ask tool (batch OK)
 

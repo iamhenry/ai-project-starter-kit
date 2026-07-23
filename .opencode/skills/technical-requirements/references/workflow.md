@@ -8,7 +8,7 @@ Verbatim workflow sections from technical-requirements Phase 2.
 
 | Step | What                                           | Section                                       | When                              |
 | ---- | ---------------------------------------------- | --------------------------------------------- | --------------------------------- |
-| 0    | Check input file                               | INPUT                                         | First                             |
+| 0    | PRE-FLIGHT (search inputs, ask gaps)           | INPUT / PRE-FLIGHT                            | First                             |
 | 1    | Read and summarize product requirements        | WORKFLOW -> Initial Response                  | After input check                 |
 | 2    | Spawn 6 research subagents                     | RESEARCH PHASE                                | Before categories                 |
 | 3    | Synthesize findings and approaches             | RESEARCH PHASE -> Synthesis Format            | After all agents return           |
@@ -35,7 +35,7 @@ Verbatim workflow sections from technical-requirements Phase 2.
 - Use `todoread` or `todowrite` or similar tools in your built-in tools to actively track progress
 
 ### Initial Response
-1. Verify product requirements file was provided
+1. PRE-FLIGHT: resolve/search inputs (see skill INPUT); ask if missing; stop only if required cannot be provided
 2. Read and summarize the product requirements
 3. Create `_ai/docs/` directory if it doesn't exist
 4. Create/update `technical-requirements-workflow-feedback.md` (append friction live if user corrects workflow)

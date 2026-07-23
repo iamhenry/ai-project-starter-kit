@@ -16,16 +16,33 @@ PHASE 2: HOW THE PRODUCT WORKS (THIS WORKFLOW)
 
 Thin entrypoint. Full flow lives in the `technical-requirements` skill.
 
+## PRE-FLIGHT (run before anything else)
+
+1. Resolve paths: `$ARGUMENTS` overrides defaults in the table below.
+2. **Search** each input at its resolved path.
+3. For each input:
+   - **Found** → record path (mocks: inventory media files).
+   - **Missing + required** → ask once (path / paste). Do not continue until provided.
+   - **Missing + optional** → ask once (path / paste / not available). "Not available" → proceed without.
+4. Print one-line checklist (`✓ path` | `✗ waiting` | `– skipped`), then start the workflow.
+
+**Inputs:**
+| Input | Default path | Required? | Purpose |
+| ----- | ------------ | --------- | ------- |
+| User stories | `_ai/docs/USER_STORIES.md` | **Yes** | Seed product vision; ask gaps only |
+| ETHOS | `_ai/docs/ETHOS.md` | **Yes** | Ground Recommended options and keep decisions in alignment with build principles |
+| Mocks | `_ai/docs/mocks/**/*.{png,jpg,jpeg,webp,gif}` | No | Baseline screens/flows; gap questions only |
+| Product ADR | `_ai/docs/product-adr.md` | **Yes** | Locked product decisions Phase 2 implements |
+
+If a required input cannot be provided after ask, stop (Product ADR miss: suggest `/product-requirements` first). Same copy as skill INPUT.
+
 ## Invoke
 
-1. Load skill `technical-requirements` (`.opencode/skills/technical-requirements/SKILL.md`).
-2. Pass the product requirements file from the command arguments (e.g. `@_ai/docs/product-adr.md`).
-3. Execute the skill end-to-end. Do not reimplement the flow in this command.
+1. Run **PRE-FLIGHT** above.
+2. Load skill `technical-requirements` (`.opencode/skills/technical-requirements/SKILL.md`).
+3. Pass resolved paths (especially product ADR). Execute the skill end-to-end. Do not reimplement the flow in this command.
 
-**Input:** Product requirements path (required).  
 **Output:** `_ai/docs/tech-adr.md`
-
-If no file is provided, respond with the skill's INPUT error block (same copy as skill).
 
 ## Skill layout (do not inline)
 
