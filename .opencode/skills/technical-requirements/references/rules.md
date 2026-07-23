@@ -7,14 +7,17 @@ Verbatim critical rules, principles, and frameworks from technical-requirements 
 ## CRITICAL RULES
 
 ### Questioning Rules
-1. **One question at a time** - Ask exactly ONE question per response
-2. **Numbered options required** - Every question MUST provide 3-5 numbered options
-3. **Plain-language scenario framing** - Frame each question as a concrete scenario in everyday words a non-developer could understand. Avoid technical jargon in the question itself (e.g. "type contracts", "schema migration", "reactive subscriptions"). Describe the *decision being made* in terms of what happens, not how it's implemented.
+1. **Batch gaps per category (default)** - Ask all residual gap questions for the current category in one turn (one-at-a-time only if user asks or one decision must block the rest)
+2. **Hybrid Ask (mandatory)** - Same turn, in order: (a) TRACKING status block (b) full QUESTION FORMAT markdown in chat (c) Question tool. Never call Question tool without (a)+(b). Tool labels: short plain text; `description` one line with `|` separators.
+3. **Numbered options required** - Every question MUST provide 3-5 numbered options
+4. **Gaps-only** - Do not re-ask items already locked in product-adr, ADR-000, or prior tech-adr categories; auto-include those in the section write-up; Ask only residual gaps
+5. **Plain-language scenario framing** - Frame each question as a concrete scenario in everyday words a non-developer could understand. Avoid technical jargon in the question itself (e.g. "type contracts", "schema migration", "folder split", "registry"). Describe the *decision being made* in terms of what happens, not how it's implemented.
    - Plain language test: "Could someone who doesn't code understand what's being decided from the question alone?"
    - Before/after example — BAD: "How should types flow between the Convex schema and the React client?" | GOOD: "When the database defines what a result looks like, does your UI code use that definition directly — or define its own copy?"
-4. **Complete option format** - Each option MUST include: Why pick this, User impact, Tradeoff, Complexity with time estimate, Technical details
+6. **Complete option format** - Each option MUST include: Why pick this, User impact, Tradeoff, Complexity with time estimate, Technical details (How)
    - Option titles must be acceptance-criteria-style statements in simple natural language that are scannable at a glance.
-5. **Grounded suggestions only (adaptive)** - Memory is a starting point, not final evidence.
+   - Mark one **Recommended** when ETHOS/product/repo evidence supports it
+7. **Grounded suggestions only (adaptive)** - Memory is a starting point, not final evidence.
    - Use retrieval when claims are factual and impactful (pricing, API behavior, security, limits, version-specific behavior)
    - Skip retrieval when the decision is preference-only and does not depend on external facts
    - Be liberal with focused verification subagents when factual uncertainty exists; prefer quick verification over unverified memory
@@ -22,9 +25,9 @@ Verbatim critical rules, principles, and frameworks from technical-requirements 
    - If uncertain, state explicitly: "I need to research this"
    - Source priority: Official docs > Maintainer docs/repo > Recent issues/changelog > Third-party blogs
    - Then present grounded options with citations (URL + accessed date + version/date context)
-6. **Reference product requirements** - Tie technical decisions back to product needs
-7. **Favor idiomatic & pragmatic** - Weight recommendations toward options that are idiomatic to the stack and pragmatic for solo dev context
-8. **Avoid layered solutions by default** - In solo dev validation phase, do not propose multi-layered solutions when one simple approach meets the need (see Progression Rule 3).
+8. **Reference product requirements** - Tie technical decisions back to product needs
+9. **Favor idiomatic & pragmatic** - Weight recommendations toward options that are idiomatic to the stack and pragmatic for solo dev context
+10. **Avoid layered solutions by default** - In solo dev validation phase, do not propose multi-layered solutions when one simple approach meets the need (see Progression Rule 3).
 
 ### Progression Rules
 1. **90% clarity threshold** - Cannot move to next category until current is at 90%+
@@ -34,16 +37,19 @@ Verbatim critical rules, principles, and frameworks from technical-requirements 
    - State reasoning briefly to the user (do NOT ask the user)
    - Proceed with applicable portions, skip what doesn't apply
    - User can override if AI's assessment is wrong
+   - NOT APPLICABLE: still append a short N/A section (why) — do not omit the chapter
 3. **No over-engineering** - Recommend simplest solution that meets requirements
 4. **Thin end-to-end first** - Prioritize decisions for the tracer bullet implementation
+5. **Auto-append** - At 90%+ clarity, append immediately; do not wait for "does this preview look correct?"
 
 ### Artifact Rules
-1. **Preview before writing** - Before appending to `tech-adr.md`, show a preview and ask: "Does this look correct before I append?"
+1. **Full detail on write** - Append meets artifact-structure depth (types/contracts/flows as relevant), not summary-only bullets. Junior heuristic: implementable from tech-adr + product-adr alone.
 2. **Create directory if needed** - If `_ai/docs/` doesn't exist, create it
 3. **Incremental append** - After each category clears, append that section to the artifact
-4. **Never overwrite** - Always append, never replace existing content
+4. **Never overwrite** - Always append, never replace existing content (except explicit expand-pass fixes)
 5. **Capture decision rationale** - For each significant decision in a category, record the options considered and why the choice was made
-6. **Full detail** - Include schemas, contracts, versions - detailed enough for a jr dev to start building
+6. **Completeness gate** - Before PHASE 2 COMPLETE: every applicable section meets Minimum bar in artifact-structure.md; expand thin sections first; then final verification
+7. **Feedback file** - At session start, create/update `technical-requirements-workflow-feedback.md`; append friction when user corrects the workflow
 
 ---
 
@@ -82,21 +88,9 @@ Display this status block in EVERY response:
    - Complexity: [Low/Medium/High] | [Time estimate]
    - Over-engineered? [No / Yes: explanation/suggestion]
 
-2. **[UX TITLE: What users experience if this is chosen]** 
-   - Why: [1 sentence explaining why this is better for current constraints]
-   - How: [1 sentence detail implementation approach/mechanism (for engineering record)]
-   - Tradeoff: [Primary downside or risk]
-   - Complexity: [Low/Medium/High] | [Time estimate]
-   - Over-engineered? [No / Yes: explanation/suggestion]
+2–N. **[Same structure as option 1]** — repeat for each remaining choice (typically 3–5 total options)
 
-3. **[UX TITLE: What users experience if this is chosen]** 
-   - Why: [1 sentence explaining why this is better for current constraints]
-   - How: [1 sentence detail implementation approach/mechanism (for engineering record)]
-   - Tradeoff: [Primary downside or risk]
-   - Complexity: [Low/Medium/High] | [Time estimate]
-   - Over-engineered? [No / Yes: explanation/suggestion]
-
-4. **[Search for best practices]**
+N. **[Search for best practices]** (optional last option)
    - I'll research current best practices and library options for this
 
 RECOMMENDATION: [1-2 sentences - favor idiomatic/pragmatic options; tie to solo dev, validation phase constraints]
@@ -104,6 +98,7 @@ RECOMMENDATION: [1-2 sentences - favor idiomatic/pragmatic options; tie to solo 
 SOURCES (only when factual verification is used):
 - [Source URL, accessed YYYY-MM-DD, version/date]
 ```
+(Canonical copy: `references/formats.md`.)
 
 ### Question Format Field Reference
 
@@ -151,53 +146,7 @@ ASSESSMENT: [APPLICABLE | PARTIALLY APPLICABLE | NOT APPLICABLE]
 
 ## CATEGORY APPEND FORMAT
 
-When a category reaches 90% clarity, present this preview.
-For this category-finalization preview only, include `Simple Decision` and `How It Works (Plain)` sections.
-
-**CRITICAL:** Preview is for session display. When writing to `tech-adr.md`, use the format defined for that category in `ARTIFACT STRUCTURE`.
-
-```
-═══════════════════════════════════════════════════════════════════════
-CATEGORY COMPLETE: [Category Name]
-CLARITY: [X]%
-═══════════════════════════════════════════════════════════════════════
-
-PREVIEW - I will append the following to `_ai/docs/tech-adr.md`:
-
----
-
-## [Category Name]
-
-[Formatted content based on clarified items]
-
-### Simple Decision
-
-[4-6 plain-language bullets explaining decision summary]
-
-### How It Works (Plain)
-
-[2-4 plain-language bullets explaining how the decision works]
-
-### Category Decisions
-
-#### [Topic]: [Choice Made]
-- **Why:** [1-2 sentence rationale tying back to constraints]
-
-#### [Topic]: [Choice Made]
-- **Why:** [1-2 sentence rationale]
-
-### Code Evidence
-[Optional - include if subagent was spawned]
-
-```typescript
-// Source: [Framework] v[X.Y]
-// URL: [docs URL]
-[code snippet]
-
----
-
-Does this look correct? Reply "yes" to append, or provide corrections.
-```
+Canonical append UX lives in `references/formats.md` (auto-append at 90%+; full section per `artifact-structure.md`). Do not use a blocking “reply yes to append” preview.
 
 ---
 
