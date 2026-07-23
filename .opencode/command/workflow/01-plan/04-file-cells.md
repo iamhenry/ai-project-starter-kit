@@ -65,7 +65,7 @@ Analyze task relationships to determine execution waves and explicit DAG edges:
 - Implementation (components, functions, adapters) → Wave 2 (Priority 2)
 - Integration (routes, wiring, orchestration) → Wave 3 (Priority 1)
 
-**Use `hive_cells` to check existing cells and avoid duplicates.**
+**Use `swarm tool hive_cells` to check existing cells and avoid duplicates.**
 
 ---
 
@@ -135,12 +135,12 @@ DAG_DEPENDS_ON_IDS: {comma-separated cell IDs or PENDING_RESOLUTION}
 
 ### PHASE 4: Create Cells
 
-1. `hive_create_epic(epic_title, epic_description, subtasks)` - Create structure
+1. `swarm tool hive_create_epic` - Create structure
 2. Resolve predecessor task keys to created cell IDs
 3. Persist structured dependency edges on each task (`dependencies` array) using available hive/swarm tooling
-4. Read back updated cells and verify `dependencies` match planned predecessors
-5. `hive_update(id, description)` - Add detailed descriptions with line refs + DAG lines
-6. `hive_sync()` - Sync to git
+4. Read back cells with `swarm tool hive_cells` and verify `dependencies` match planned predecessors
+5. `swarm tool hive_update` - Add detailed descriptions with line refs + DAG lines
+6. `swarm tool hive_sync` - Sync to git
 
 ---
 
@@ -159,7 +159,7 @@ Re-read document and verify:
 - [ ] Every milestone has exactly one terminal `Verify + Commit milestone work` cell
 - [ ] Terminal gate cell depends on all other cells in its milestone
 
-Update cells with corrections via `hive_update` if needed.
+Update cells with corrections via `swarm tool hive_update` if needed.
 
 If structured `dependencies` cannot be persisted/read back, mark result as BLOCKED and report tooling gap (do not claim DAG-complete).
 

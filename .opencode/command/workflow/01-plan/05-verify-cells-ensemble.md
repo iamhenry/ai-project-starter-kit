@@ -13,6 +13,8 @@ Spawns parallel verification tasks across multiple AI models using tmux, then sy
 
 - Roadmap.md
 
+Use the public Swarm CLI for Hive access: `swarm tool hive_cells`.
+
 ## Interactive Flow
 
 Present all questions with defaults. User presses Enter to accept defaults.
@@ -30,7 +32,7 @@ Present all questions with defaults. User presses Enter to accept defaults.
 ---
 Summary:
 - Roadmap: _ai/docs/ROADMAP.md
-- Cells: hive_cells()
+- Cells: `swarm tool hive_cells`
 - Models: opus, gemini, gpt (3 verifications)
 - Focus: none
 
@@ -88,7 +90,7 @@ Verify that the cells created from the ROADMAP.md plan are:
 ## Instructions
 
 1. First, read the roadmap: `cat _ai/docs/ROADMAP.md`
-2. Get the cells list using the `hive_cells()` MCP tool
+2. Get the cells list using `swarm tool hive_cells --json '{"limit":200}'`
 3. Compare each milestone/phase against created cells
 
 ## Verification Checklist
@@ -204,7 +206,7 @@ Present results from all models with consensus analysis.
 ## Scope
 
 **Roadmap:** _ai/docs/ROADMAP.md
-**Cells:** hive_cells() (45 cells)
+**Cells:** `swarm tool hive_cells` (45 cells)
 **Focus:** {additional_context or "General verification"}
 **Models:** {count} ({model_list})
 
@@ -263,4 +265,4 @@ _Where models disagreed:_
 
 - `tmux` - for parallel session management
 - `opencode run` - for running models with `--model` and `--format json` flags
-- `hive_cells()` - MCP tool for listing cells (available to spawned models)
+- `swarm` CLI - public Hive cell listing
