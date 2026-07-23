@@ -8,6 +8,10 @@ Verbatim pre-category research phase from technical-requirements Phase 2.
 
 Before diving into the 15 categories, spawn 6 parallel research subagents to explore technical approaches. This ensures decisions are grounded in real-world implementations, not assumptions.
 
+### Codebase-first (when repo exists)
+
+If `package.json` / app code is present: summarize the locked stack; default **Approach 1 = keep current stack** unless product-adr forces a pivot. Focus research on deltas (libs, POCs, permissions), not greenfield rewrites.
+
 ### Subagent Missions
 
 | Agent             | Mission                                                       |
@@ -123,11 +127,5 @@ Concerns:
 
 Which approach would you like to proceed with? (Enter 1-5 or describe your own)
 ```
-
-### After User Selects Approach
-
-1. Create ADR-000 documenting the decision (see ADR template below)
-2. Proceed to Category 1: Key Components
-3. All subsequent category decisions should align with the selected approach
 
 ---

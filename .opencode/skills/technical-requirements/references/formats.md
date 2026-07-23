@@ -25,6 +25,15 @@ Display this status block in EVERY response:
 
 **Calculation:** `[X]% remaining = 100 - ((completed categories / 15) × 100)` — represents how much of the entire 15-category workflow remains to be done.
 
+## HYBRID ASK (MANDATORY)
+
+Before every Question tool call, in the same response:
+1. TRACKING FORMAT status block
+2. Full QUESTION FORMAT markdown for all residual gaps this turn (batch per category by default)
+3. Then Question tool (`question` = one short sentence; `label` = 1–5 words + optional `(Recommended)`; `description` = one line `MUST: … | PRO: … | CON: …`)
+
+Never Question-tool-only.
+
 ## QUESTION FORMAT (MANDATORY)
 
 ```
@@ -39,21 +48,9 @@ Display this status block in EVERY response:
    - Complexity: [Low/Medium/High] | [Time estimate]
    - Over-engineered? [No / Yes: explanation/suggestion]
 
-2. **[UX TITLE: What users experience if this is chosen]** 
-   - Why: [1 sentence explaining why this is better for current constraints]
-   - How: [1 sentence detail implementation approach/mechanism (for engineering record)]
-   - Tradeoff: [Primary downside or risk]
-   - Complexity: [Low/Medium/High] | [Time estimate]
-   - Over-engineered? [No / Yes: explanation/suggestion]
+2–N. **[Same structure as option 1]** — repeat for each remaining choice (typically 3–5 total options)
 
-3. **[UX TITLE: What users experience if this is chosen]** 
-   - Why: [1 sentence explaining why this is better for current constraints]
-   - How: [1 sentence detail implementation approach/mechanism (for engineering record)]
-   - Tradeoff: [Primary downside or risk]
-   - Complexity: [Low/Medium/High] | [Time estimate]
-   - Over-engineered? [No / Yes: explanation/suggestion]
-
-4. **[Search for best practices]**
+N. **[Search for best practices]** (optional last option)
    - I'll research current best practices and library options for this
 
 RECOMMENDATION: [1-2 sentences - favor idiomatic/pragmatic options; tie to solo dev, validation phase constraints]
@@ -108,52 +105,20 @@ ASSESSMENT: [APPLICABLE | PARTIALLY APPLICABLE | NOT APPLICABLE]
 
 ## CATEGORY APPEND FORMAT
 
-When a category reaches 90% clarity, present this preview.
-For this category-finalization preview only, include `Simple Decision` and `How It Works (Plain)` sections.
-
-**CRITICAL:** Preview is for session display. When writing to `tech-adr.md`, use the format defined for that category in `ARTIFACT STRUCTURE`.
+When a category reaches 90%+ clarity:
+1. Write the **full** section per `ARTIFACT STRUCTURE` (Minimum bar — not summary-only)
+2. **Auto-append** to `_ai/docs/tech-adr.md` (do not wait for yes/no)
+3. Optionally show a short notice (non-blocking):
 
 ```
 ═══════════════════════════════════════════════════════════════════════
-CATEGORY COMPLETE: [Category Name]
+CATEGORY COMPLETE: [Category Name] — APPENDED
 CLARITY: [X]%
 ═══════════════════════════════════════════════════════════════════════
 
-PREVIEW - I will append the following to `_ai/docs/tech-adr.md`:
-
----
-
-## [Category Name]
-
-[Formatted content based on clarified items]
-
-### Simple Decision
-
-[4-6 plain-language bullets explaining decision summary]
-
-### How It Works (Plain)
-
-[2-4 plain-language bullets explaining how the decision works]
-
-### Category Decisions
-
-#### [Topic]: [Choice Made]
-- **Why:** [1-2 sentence rationale tying back to constraints]
-
-#### [Topic]: [Choice Made]
-- **Why:** [1-2 sentence rationale]
-
-### Code Evidence
-[Optional - include if subagent was spawned]
-
-```typescript
-// Source: [Framework] v[X.Y]
-// URL: [docs URL]
-[code snippet]
-
----
-
-Does this look correct? Reply "yes" to append, or provide corrections.
+Appended §[N] to `_ai/docs/tech-adr.md`. Next: Category [N+1]
 ```
+
+Session may still include Simple Decision / How It Works / Category Decisions / Code Evidence in chat for transparency; **file write must be full artifact-structure depth.**
 
 ---

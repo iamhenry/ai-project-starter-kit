@@ -14,14 +14,15 @@ Verbatim workflow sections from technical-requirements Phase 2.
 | 3    | Synthesize findings and approaches             | RESEARCH PHASE -> Synthesis Format            | After all agents return           |
 | 4    | User selects approach and create ADR-000       | RESEARCH PHASE -> After User Selects Approach | Before Category 1                 |
 | 5    | Work through categories 1-15 in order          | CATEGORIES + WORKFLOW -> Category Loop        | Sequentially                      |
-| 6    | Append approved category decisions to artifact | CATEGORY APPEND FORMAT                        | After 90% clarity + user approval |
-| 7    | Run final verification (3 parallel agents)     | WORKFLOW -> Final Verification                | After all categories complete     |
+| 6    | Auto-append full category sections to artifact | CATEGORY APPEND FORMAT                        | After 90% clarity (no yes/no wait)|
+| 7    | Completeness gate, then final verification     | WORKFLOW -> Completeness Gate + Final Verification | After all categories        |
 | 8    | Display completion message                     | WORKFLOW -> Completion                        | After verification passes         |
 
 **Key rules throughout:**
-- Ask one question per response with 3-5 numbered options (CRITICAL RULES).
+- Status block every response; hybrid Ask (QUESTION FORMAT markdown then Question tool); batch gaps per category (CRITICAL RULES).
+- Gaps-only: skip product-adr / already-locked items.
 - Run verification triage for factual decisions (WORKFLOW -> Category Loop).
-- Display status block in every response (TRACKING FORMAT).
+- Completeness gate before PHASE 2 COMPLETE.
 
 ---
 
@@ -37,16 +38,20 @@ Verbatim workflow sections from technical-requirements Phase 2.
 1. Verify product requirements file was provided
 2. Read and summarize the product requirements
 3. Create `_ai/docs/` directory if it doesn't exist
-4. **RESEARCH PHASE:** Spawn 6 parallel subagents (Product Teardown, Open Source Scan, Framework Compare, Cost Projection, Architecture Patterns, SaaS Boilerplate)
-5. **SYNTHESIS:** Present raw findings summary + 5 distinct approaches + recommendation
-6. **APPROACH SELECTION:** User selects approach → Create ADR-000 (with selected + rejected approaches)
-7. Start with Category 1 (Boundaries)
-8. Ask applicability check: "Let's start with Boundaries. Based on the product requirements, let me identify what's technically out of scope."
+4. Create/update `technical-requirements-workflow-feedback.md` (append friction live if user corrects workflow)
+5. If repo stack exists (`package.json` / app): note it for codebase-first research (see research-phase)
+6. **RESEARCH PHASE:** Spawn 6 parallel subagents (Product Teardown, Open Source Scan, Framework Compare, Cost Projection, Architecture Patterns, SaaS Boilerplate) — codebase-first when stack locked
+7. **SYNTHESIS:** Present raw findings summary + 5 distinct approaches + recommendation
+8. **APPROACH SELECTION:** User selects approach → Create ADR-000 (with selected + rejected approaches)
+9. Start with Category 1 (Boundaries)
+10. Ask applicability check: "Let's start with Boundaries. Based on the product requirements, let me identify what's technically out of scope."
 
 ### Category Loop
 1. Display applicability check (self-assessed) for the category
-2. If applicable: ask one question at a time with numbered options
-3. After each user answer, run Verification Triage:
+2. Gaps-only: list already-locked items (product-adr / prior tech-adr); do not re-ask them
+3. If NOT APPLICABLE: append short N/A section (why); continue
+4. If applicable with residual gaps: **batch** all gap questions — status block + full QUESTION FORMAT markdown + Question tool (hybrid). If no gaps: append full section from locks/defaults
+5. After user answers, run Verification Triage:
    - Decision type: Preference | Factual | High-risk factual
    - Confidence: High (>=85%) | Medium (50-84%) | Low (<50%)
    - Action:
@@ -54,13 +59,11 @@ Verbatim workflow sections from technical-requirements Phase 2.
      - Factual + Medium confidence -> quick check (1 official source)
      - High-risk factual or Low confidence -> deep check (2+ sources, spawn 1-3 focused subagents when useful)
      - Default for factual/high-risk factual decisions: favor focused subagent verification unless recent, high-confidence evidence is already available
-4. Track clarity after each answer (use verified facts when retrieval is triggered)
-5. When category reaches 90%:
+6. Track clarity after answers (use verified facts when retrieval is triggered)
+7. When category reaches 90%:
    - Spawn subagent for current docs research when code examples would help
-   - Show preview (include code evidence if subagent was spawned)
-   - Wait for user approval
-   - Append to `tech-adr.md`
-   - Move to next category
+   - Auto-append **full** section to `tech-adr.md` (artifact-structure depth; no yes/no wait)
+   - Brief "Appended §N" notice; move to next category
 
 ### Retroactive Updates
 
@@ -83,9 +86,17 @@ Which approach?
 ───────────────────────────────────────────────────────────────────────
 ```
 
+### Completeness Gate (before Final Verification)
+
+Before PHASE 2 COMPLETE / final verification:
+1. Each applicable category section meets Minimum bar in `artifact-structure.md` (types/contracts/flows as relevant — not summary-only)
+2. Each NOT APPLICABLE category has an explicit N/A section
+3. Junior heuristic: implementable from `tech-adr.md` + `product-adr.md` alone
+4. If thin: **expand pass** on weak sections, then continue
+
 ### Final Verification
 
-Before completion, spawn 3 parallel verification subagents to validate `tech-adr.md`.
+Before completion, spawn 3 parallel verification subagents to validate the **full** `tech-adr.md` (post–completeness gate).
 
 | Agent           | Mission                                             | Pass Criteria                           |
 | --------------- | --------------------------------------------------- | --------------------------------------- |

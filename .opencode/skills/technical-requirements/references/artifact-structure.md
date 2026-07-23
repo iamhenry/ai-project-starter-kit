@@ -4,6 +4,21 @@ Verbatim tech-adr.md artifact skeleton from technical-requirements Phase 2.
 
 ---
 
+## Minimum bar (before PHASE 2 COMPLETE)
+
+Applicable sections must be implementable (not summary-only):
+- Types/tables/contracts where the category needs them
+- ≥1 lifecycle or how-it-works flow when behavior is non-trivial
+- Decisions with Why; package/versions when deps are chosen
+- NOT APPLICABLE categories: short explicit N/A + why (do not omit chapter)
+- Unknowns that need a device/lib POC: mark as POC gates, not facts
+
+**Junior heuristic:** implementable from `tech-adr.md` + `product-adr.md` alone.  
+**Offline/no-backend:** §5 APIs may be internal module contracts (not empty).  
+If thin → expand pass, then final verification.
+
+---
+
 ## ARTIFACT STRUCTURE: tech-adr.md
 
 ```markdown
@@ -11,7 +26,7 @@ Verbatim tech-adr.md artifact skeleton from technical-requirements Phase 2.
 
 Generated: [YYYY-MM-DD]
 Status: [In Progress | Complete]
-Source: product-adr.md.md
+Source: product-adr.md
 
 ---
 
