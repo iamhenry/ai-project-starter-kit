@@ -4,6 +4,7 @@ description: Generate a brand new Roadmap from technical requirements
 subtask: false
 ---
 // My Notes
+- Prefer tech-adr test policy over assuming TDD; if no automated tests, require manual dogfood gates on the critical path.
 - think about how the roadmap steps will be affected by TDD (writing tests first) and if it makes sense to me
 - if it doesnt, restructure the milestone slices to focus on logic first → implementation (follow unit → integration tdd flow)
 - this new  Tracer Bullet Vertical Slice Method focuses on one core journey or user story that's chord to the MVP
@@ -19,6 +20,12 @@ subtask: false
 2.  Define clear interfaces (contracts) to enable vertical slice development.
 3.  Facilitate parallel development of UI, API, and database logic.
 4.  Minimize integration conflicts by building and testing end-to-end from day one.
+
+## Delivery defaults (unless user overrides)
+- **Full roadmap = required work.** Phases/milestones are sequence, not optional backlog. Do not label ship work "later/deferred/optional" unless the user or product source explicitly does.
+- **End state:** a working product the human can dogfood on the target platform(s) named in the product/tech sources (do not invent platforms).
+- **No invented scope.** Do not expand features, business rules (pricing, trials, entitlements), or platforms. If ambiguous → stop and ask one focused question.
+- **Authority:** product behavior sources win over older stories/mocks; tech sources win on stack/structure; **repo tree wins on paths that exist today.** Record material conflicts in one short ledger line each.
 
 ## When to Use
 *   Starting a new software project and needing a comprehensive development plan.
@@ -66,6 +73,12 @@ subtask: false
 *   **Prioritize breaking down tasks into the smallest, most independent units possible to enable parallel execution by AI agents and support frequent, small integrations/merges.**
 *   Break down complex tasks into subtasks with a complexity scale (1-5, where 5 is very complex).
 *   **Emphasize 'Interface-First' or 'Contract-First' development.** Define data structures (e.g., TypeScript types), API signatures (e.g., OpenAPI specs for backend), and component prop types *before* dependent tasks are assigned. These contracts are crucial for minimizing merge conflicts when multiple agents work concurrently.
+*   **Repo baseline first:** From the actual tree + package scripts, note existing vs create vs generated paths. Prefer existing layout idioms; justify any new top-level module root in one line.
+*   **Quality baseline:** Before claiming the roadmap is ready to execute, note whether typecheck/lint (or project equivalents) are green. If red, roadmap or a prep milestone must make a clean slate explicit—do not normalize a broken baseline.
+*   **Hooks:** If the repo has no pre-commit (or equivalent) quality hook, add a small Phase-0 / prep task to suggest adding one (deterministic checks only: typecheck + lint/format-check as the repo already defines). Do not require LLM commit gates or full native/production builds in hooks unless the repo already does.
+*   **Ignore zones:** Do not instruct hand-edits to generated artifacts (e.g. migration SQL dumps, lockfile-only churn) or personal/agent tooling dirs (e.g. `.opencode/`) unless the user asks. Prefer project ignore config over one-off hacks.
+*   **Unknown policy:** Entitlements, pricing, trials, free tiers → one swappable gate + external/config policy, or ask—never hardcode a business model in task prose.
+*   **Verify before Done:** Re-check vertical Phase 1, required full-roadmap completion language, path validity, platform lock from sources, task footers (below). Fix gaps before finishing.
 *   Generate a new file in `_ai/docs/ROADMAP.md`.
 
 ## Parallel Execution Documentation
@@ -73,8 +86,26 @@ subtask: false
 ### REQUIRED SECTIONS FOR ROADMAP:
 Include these sections in every generated roadmap to enable clear parallel task execution:
 
+#### 0. Delivery contract + repo baseline (immediately after Overview)
+```markdown
+## Delivery contract
+- Audience: agents execute; human does final dogfood on named platform(s) only
+- Full roadmap is required work (sequence ≠ skip)
+- Platform(s): <from product/tech sources only>
+- Out of scope: <short list>
+- Stop and ask if scope or policy is ambiguous
+
+## Current repo baseline
+- Existing paths: …
+- To create: …
+- Generated (do not hand-edit): …
+- Quality scripts: … (typecheck/lint or equivalents)
+- Pre-commit hook present: Y/N
+- Layout idiom note: …
+```
+
 #### 1. Parallel Execution Guide Section
-Add immediately after the Overview section:
+Add after the Delivery contract / baseline:
 ```markdown
 ## Parallel Execution Guide
 
@@ -150,12 +181,13 @@ The roadmap must be structured around delivering thin, end-to-end user functiona
     3.  **Expand with Secondary Features:** Once all core journeys are functional, build out supporting features (e.g., settings screens, ancillary content feeds, user profiles).
 
 ### Phase 3: Production Hardening & Polish
+*   **Default:** Phase 3 is **required** after the tracer proves the core journey. It finishes launch-ready work named in product/tech sources (monetization, hardening, release prep as applicable). Sequence ≠ skip.
 *   **Objective:** Focus on non-functional requirements, user experience enhancements, and business-logic integrations now that the core features are validated.
 *   **Tasks Include (Examples):**
     *   **UI/UX Polish:** Animations, advanced styling, accessibility improvements.
     *   **Performance & Security:** Optimization, error monitoring, rate limiting, security audits.
     *   **Business Logic:** Subscription/monetization integration, analytics, user onboarding tours.
-*   **Outcome:** A feature-complete, robust, and delightful application ready for launch.
+*   **Outcome:** A feature-complete, robust application ready for human final dogfood / launch on the named platform(s).
 
 ---
 
@@ -180,6 +212,14 @@ The roadmap must be structured around delivering thin, end-to-end user functiona
 *   4-5: High-complexity tasks like complex state management, defining new core data structures/API contracts, performance optimization.
 *   Ensure tasks are broken down at least 3 levels deep. **Even tasks with higher overall complexity (4-5) should be decomposed into smaller, independent sub-tasks (ideally 1-2 complexity each) suitable for individual assignment by an agent and frequent integration.**
 
+### Task footer (every top-level numbered task)
+*   Every **top-level** task ends with:
+    - Files / Branch Name (as applicable)
+    - Acceptance Criteria
+    - Complexity: 1–5
+    - **Commit:** After AC met and project checks green → commit this task only; do not start the next numbered task uncommitted.
+*   Name check commands from the repo (`package.json` / Makefile / etc.), e.g. typecheck + lint—do not assume a specific hook tool is installed.
+
 ### Code Snippets
 *   Include **exact code** inline with tasks when relevant—not all tasks require snippets.
 *   Use snippets for: schema definitions, type definitions, function signatures, API contracts, component implementations.
@@ -199,6 +239,9 @@ The roadmap must be structured around delivering thin, end-to-end user functiona
   ```
   - [ ] 1.1. Run migration to create table
   - Files: `db/schema.ts`
+  - Acceptance Criteria: Schema defined; project typecheck/lint (or equivalents) green.
+  - Complexity: 2
+  - **Commit:** After AC met and project checks green → commit this task only; do not start the next numbered task uncommitted.
 
 ---
 
@@ -209,6 +252,21 @@ The roadmap must be structured around delivering thin, end-to-end user functiona
 
 ## Overview
 This roadmap outlines the development plan for [Project Name], broken down into clear milestones and phases following a vertical slice methodology. Each task includes a complexity rating (1-5, where 5 is most complex) and is designed to support parallel work where possible by defining clear interfaces.
+
+## Delivery contract
+- Audience: agents execute; human does final dogfood on named platform(s) only
+- Full roadmap is required work (sequence ≠ skip)
+- Platform(s): <from product/tech sources only>
+- Out of scope: <short list>
+- Stop and ask if scope or policy is ambiguous
+
+## Current repo baseline
+- Existing paths: …
+- To create: …
+- Generated (do not hand-edit): …
+- Quality scripts: … (typecheck/lint or equivalents)
+- Pre-commit hook present: Y/N
+- Layout idiom note: …
 
 ## Parallel Execution Guide
 ### Phase Dependencies
@@ -235,7 +293,7 @@ Integrate a real AI service to generate recipes from ingredients and build out t
 - M3: Implement Core Flow: Recipe History - Users can view a list of their previously generated and saved recipes.
 
 **Phase 3 - Production Hardening & Polish**:
-Enhance user experience with smooth animations, clear loading states, immediate feedback, and a consistent design system across all screens.
+Required after tracer. Finish launch-ready work from product/tech sources; human final dogfood.
 
 - M4: UI Polish and Interaction Feedback - Enhanced UX with loading skeletons, toast notifications, animations, and a refined design system.
 
@@ -280,6 +338,8 @@ Data Flow:
   - Branch Name: `feature/db-recipe-schema`
   - Acceptance Criteria: A `recipes` table schema is defined, and a service function can write a new record to it.
   - Complexity: 2
+  - **Commit:** After AC met and project checks green → commit this task only; do not start the next numbered task uncommitted.
+  - **Commit:** After AC met and project checks green → commit this task only; do not start the next numbered task uncommitted.
 - [ ] 2. ✅ Build the API Endpoint for Recipe Creation
   ```typescript
   // app/api/recipes/route.ts
@@ -295,6 +355,7 @@ Data Flow:
   - Branch Name: `feature/api-create-recipe`
   - Acceptance Criteria: The `POST /api/recipes` endpoint saves data and returns the created object.
   - Complexity: 2
+  - **Commit:** After AC met and project checks green → commit this task only; do not start the next numbered task uncommitted.
 - [ ] 3. ✅ Build Minimal UI to Create and Display Recipe
   ```tsx
   // app/page.tsx
@@ -325,6 +386,7 @@ Data Flow:
   - Branch Name: `feature/ui-recipe-loop`
   - Acceptance Criteria: User can input ingredients, save, and see the returned data.
   - Complexity: 2
+  - **Commit:** After AC met and project checks green → commit this task only; do not start the next numbered task uncommitted.
 
 ---
 
@@ -367,6 +429,7 @@ Data Flow:
   - Branch Name: `feature/api-real-ai`
   - Acceptance Criteria: API endpoint calls AI service and returns recipe with generated name.
   - Complexity: 3
+  - **Commit:** After AC met and project checks green → commit this task only; do not start the next numbered task uncommitted.
 - [ ] 2. ✅ Save AI-generated name to Database
   ```typescript
   // services/dbService.ts (updated)
@@ -383,6 +446,7 @@ Data Flow:
   - Branch Name: `feature/api-save-ai-recipe`
   - Acceptance Criteria: AI-generated name is persisted and returned in response.
   - Complexity: 2
+  - **Commit:** After AC met and project checks green → commit this task only; do not start the next numbered task uncommitted.
 
 ---
 
@@ -409,6 +473,7 @@ Data Flow:
   - Branch Name: `feature/api-get-recipes`
   - Acceptance Criteria: `GET /api/recipes` returns all recipe records from database.
   - Complexity: 2
+  - **Commit:** After AC met and project checks green → commit this task only; do not start the next numbered task uncommitted.
 - [ ] 2. ✅ Build the Recipe History UI
   ```tsx
   // app/history/page.tsx
@@ -439,6 +504,7 @@ Data Flow:
   - Branch Name: `feature/ui-recipe-history`
   - Acceptance Criteria: History page fetches `/api/recipes` and displays list of recipe names.
   - Complexity: 2
+  - **Commit:** After AC met and project checks green → commit this task only; do not start the next numbered task uncommitted.
 
 ---
 
@@ -477,6 +543,7 @@ Objective: Enhance the user experience with smooth animations, clear loading sta
   - Branch Name: `feature/ui-loading-skeletons`
   - Acceptance Criteria: Skeleton loaders display on history page before data renders.
   - Complexity: 2
+  - **Commit:** After AC met and project checks green → commit this task only; do not start the next numbered task uncommitted.
 - [ ] 2. 🔄 Add interaction feedback
   ```tsx
   // app/page.tsx (updated)
@@ -505,6 +572,7 @@ Objective: Enhance the user experience with smooth animations, clear loading sta
   - Branch Name: `feature/ui-interaction-feedback`
   - Acceptance Criteria: Toast shows on save; button shows loading state.
   - Complexity: 2
+  - **Commit:** After AC met and project checks green → commit this task only; do not start the next numbered task uncommitted.
 - [ ] 3. 🔄 Refine the Design System
   ```tsx
   // components/ui/Button.tsx
@@ -530,4 +598,5 @@ Objective: Enhance the user experience with smooth animations, clear loading sta
   - Branch Name: `feature/ui-design-system-refinement`
   - Acceptance Criteria: Reusable Button component created and used across app; styles consistent.
   - Complexity: 3
+  - **Commit:** After AC met and project checks green → commit this task only; do not start the next numbered task uncommitted.
 ```
