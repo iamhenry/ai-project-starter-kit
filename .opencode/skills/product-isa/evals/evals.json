@@ -1,0 +1,41 @@
+{
+  "skill_name": "product-isa",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Run /product-isa for my new iPhone pantry app. Use @_ai/docs/USER_STORIES.md and the screen mocks already in _ai/docs/mocks. Ask only what those sources do not settle.",
+      "expected_output": "Starts or resumes the eight-category whole-app interview, treats mocks as screen and flow evidence, incrementally writes _ai/docs/ISA.md, and does not create technical or roadmap artifacts.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Continue the Product ISA in @_ai/docs/ISA.md. We changed our mind: deleting a saved item now needs an Undo instead of confirmation.",
+      "expected_output": "Resumes without overwriting history, supersedes affected decisions and contracts with stable IDs, updates relationships, and preserves exact user words.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Use product-isa to define a retry button for failed uploads in my existing app.",
+      "expected_output": "Recognizes that the experiment is whole-app only and asks whether to define the containing app rather than silently producing a feature-only ISA.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Run /product-isa. The default user-stories file is missing.",
+      "expected_output": "Stops for the missing required input and asks once for a path or pasted content before creating or advancing the ISA.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Finish the Product ISA after all eight categories. Make it ready for coding and tell me what happens next.",
+      "expected_output": "Derives atomic ISCs from detailed source contracts, adds one decisive consumer-boundary probe per leaf ISC, backfills semantic traceability and decision locks, passes readiness/no-technical-leakage gates, asks once for final readiness confirmation, and only then sets ready with progress 0/N and provides the direct coding climb contract without creating a technical ADR or roadmap.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Run /product-isa. My product idea says all data stays on this device, but the attached product brief says every change syncs to an account.",
+      "expected_output": "Treats both sources as product evidence, identifies the material conflict, and asks which explicit source wins before writing the conflicting behavior or advancing the category.",
+      "files": []
+    }
+  ]
+}
