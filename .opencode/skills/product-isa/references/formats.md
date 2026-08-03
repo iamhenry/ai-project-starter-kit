@@ -175,21 +175,36 @@ Only Active decisions lock current behavior. Preserve Superseded entries. Reject
 
 A leaf ISC:
 
-- Describes state, not implementation work.
-- Contains one independently falsifiable concern.
+- Describes destination state, not implementation work or process.
+- Contains one independently falsifiable concern (Splitting Test in `workflow.md`).
 - Avoids compound `and`, `all`, `every`, or `complete` unless enumerated by child ISCs.
 - Is hard to vary because a named probe catches weakening.
 - Never closes from agent assertion or document review alone.
+
+### Claim quality (good vs bad)
+
+| Bad (reject) | Good (prefer) |
+| --- | --- |
+| Email is delivered | Primary inbox shows the message within 60s |
+| Playback works | After Pause for 3s, playhead delta is 0.00s ±0.05s |
+| Library shows cards correctly | With 3 saved items, Library shows exactly 3 cards |
+| Handles errors well | Anti: visible error text does not include the full source body |
 
 ## Test Strategy
 
 ```markdown
 | ISC | Anchors to | Source contracts | Probe type | Check | Pass threshold | Tool |
 | --- | --- | --- | --- | --- | --- | --- |
-| ISC-001 | literal | FLOW-001, SCR-002 | behavioral | Complete the flow through the user surface | End state appears and persisted result is visible | Real app UI automation |
+| ISC-001 | literal | FLOW-001, SCR-002 | behavioral | Save "Buy oats", terminate, relaunch | Home shows exactly "Buy oats" | iOS UI automation |
 ```
 
 `Anchors to` is `literal` or `derived: [named product sub-claim]`. One row closes one leaf ISC. The result must be binary even when the probe is manual or evaluation-based.
+
+Pass threshold must be an observable falsifier: count, time bound, exact label, present/absent control, or zero matching events. Reject “works”, “correct”, “valid”, “as expected”, or “audio follows”.
+
+Prefer consumer boundaries (UI, audio output, relaunch persistence, network capture, OS share/open). Source inspection or internal counters may support a safety anti-claim but must not be the only closer for a user-visible behavior claim.
+
+`Satisfies` on source contracts lists only ISCs whose decisive probe proves the mapped behavior. Topic-adjacent IDs are invalid.
 
 ## Fog, Learning, And Verification
 
