@@ -86,22 +86,45 @@ Never carry stale evidence across a changed claim, weaken a probe to preserve pr
 After all eight categories are complete:
 
 1. Insert `## Criteria` before `## Test Strategy` and `## Features` in canonical order.
-2. Derive leaf ISCs from active product contracts. Split compounds until one probe can return pass or fail.
-3. Include at least one `Anti:` ISC for a meaningful failure or prohibited outcome.
-4. Build `## Test Strategy` with source trace, probe type, check, threshold, and tool.
-5. Prefer the highest boundary that exercises what the user encounters. A file-existence check cannot close a user-behavior claim.
+2. Derive leaf ISCs from active product contracts. Apply the Splitting Test until each leaf has one fail mode.
+3. Include at least one `Anti:` ISC for a meaningful failure or prohibited outcome (prefer trust or Out of Scope boundaries).
+4. Build `## Test Strategy` with source trace, probe type, check, concrete pass threshold, and tool.
+5. Prefer the highest boundary that exercises what the user encounters. A file-existence check cannot close a user-behavior claim. Internal logs or counters may support a probe but cannot be the sole closer for a user-visible claim.
 6. Use the appropriate evidence modality: real UI for UI behavior, public interface for integrations, data inspection for persistence, deterministic tests for pure rules, or explicit principal recognition for experiential claims.
-7. Backfill each active source contract's `Satisfies` field and each active decision's ISC locks.
-8. Add `progress: 0/N` only after the final leaf count is known.
+7. Backfill each active source contract's `Satisfies` field and each active decision's ISC locks using the Proof Mapping rule below.
+8. Run the Proof Gate. Only then set `progress: 0/N` from the final leaf count.
+9. Category completion (`clarification_progress: 8/8`) never implies `status: ready`.
+
+### Splitting Test
+
+A leaf fails the splitting test when two independent failures are still possible inside one claim. Split on compound `and`, dual UI outcomes, dual thresholds, or “does X without Y” pairs that can pass half-true. Keep parent IDs on split (`ISC-012.1`, `ISC-012.2`).
+
+### Proof Mapping
+
+For every required-behavior bullet on every Active source contract:
+
+- Map it to an ISC whose decisive probe would fail if that bullet were false, or
+- Mark the bullet contextual-only / out of scope with a one-line reason.
+
+`Satisfies: ISC-00N` is invalid when the probe only shares a topic with the bullet.
 
 ## Readiness Gates
 
-All gates must pass before setting `status: ready`:
+All gates must pass before asking to mark `status: ready`:
+
+### Proof Gate (hard stop)
+
+Fail ready if any check fails:
+
+1. **Atomic leaves** — every leaf is one independently falsifiable destination state (Splitting Test).
+2. **Concrete thresholds** — every Test Strategy row names an observable pass threshold (count, time bound, exact label, present/absent control, zero requests). Reject thresholds like “works”, “correct”, “valid state”, or “audio follows”.
+3. **Proof mapping** — every Active required-behavior bullet is proved by its mapped probe or explicitly contextual/out of scope.
 
 ### Product Coverage
 
 - All eight categories are complete or explicitly not applicable.
 - Feature, screen, flow, action, data, and edge-state details remain first-class contracts.
+- Every subsystem named in Goal or Vision has at least one leaf ISC (or is explicitly out of scope / contextual).
 - Permissions, privacy, access, persistence, freshness, offline behavior, interruption, partial success, duplicates, conflicts, recovery, and external side effects were considered where relevant.
 - No material current-scope behavior remains in `## Not yet specified`.
 - Out of Scope is explicit enough to prevent silent expansion.
@@ -110,22 +133,21 @@ All gates must pass before setting `status: ready`:
 
 - Every active contract has a stable ID.
 - Every leaf ISC traces to the literal goal or named source contracts.
-- Every active source contract maps to one or more ISCs, or clearly explains why it is contextual rather than testable.
-- Each mapped ISC and its decisive probe semantically verify every behavior for which the contract relies on that mapping. A `Satisfies` label alone is not traceability; distinct unproved behavior requires another ISC or an explicit contextual-only note.
-- Every active decision locks to source IDs and, after synthesis, affected ISC IDs.
+- Proof Mapping holds for all Active contracts.
+- Every active decision locks to source IDs and, after synthesis, affected ISC IDs (or explicit contextual-only).
 - Only Active decisions and contracts create current locks.
 
 ### Verification Quality
 
 - Every leaf ISC is atomic, state-based, falsifiable, and binary at its threshold.
 - Every leaf ISC has exactly one decisive probe row.
-- Probe boundaries and modalities match the claim.
+- Probe boundaries and modalities match the claim at the consumer boundary.
 - Broad and negative claims use representative or universal checks rather than one convenient example where practical.
 - No claim is checked and `## Verification` is absent unless real evidence already exists.
 
 ### Consistency And Leakage
 
-- No active contracts contradict each other, the Goal, or active decisions.
+- No active contracts contradict each other, the Goal, Constraints, or active decisions (including scheme, platform, and identity rules).
 - Each fact has one canonical home; other sections reference IDs instead of restating competing versions.
 - No unapproved framework, library, API, database, schema, file, code, architecture, task order, or estimate appears.
 - The artifact identifies itself as `product-isa` and `lifeos-inspired`; it does not claim LifeOS compatibility.
