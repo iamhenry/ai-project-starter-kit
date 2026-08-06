@@ -11,7 +11,8 @@
 | 4 | Define Test Strategy | One binary consumer-boundary probe per leaf ISC |
 | 5 | Backfill locks and `satisfies` links | Complete bidirectional traceability |
 | 6 | Run final gates | Ready behavior contract with no technical prescription |
-| 7 | Hand off directly to coding | `status: ready`, `progress: 0/N` |
+| 7 | Run independent adversarial review | Evidence-backed review findings resolved |
+| 8 | Hand off directly to coding | `status: ready`, `progress: 0/N` |
 
 ## Preflight
 
@@ -174,9 +175,15 @@ If a gate fails, repair the artifact and rerun all affected gates. Do not mark i
 - `## Learning`: add only when an actual conjecture was refuted and understanding changed.
 - `## Verification`: add only after implementation evidence exists; one provenance line per closed ISC, never evidence dumps.
 
+## Independent Adversarial Review
+
+After all readiness gates pass and before asking to mark the ISA ready, invoke the `second-opinion` skill with Grok 4.5 (`xai/grok-4.5`) and GLM 5.2 (`ollama-cloud/glm-5.2`) in parallel. Have each independently review `_ai/docs/ISA.md` against its source inputs, this workflow, and `formats.md` for correctness, thoroughness, accuracy, intent fidelity, contradictions, missing behavior or boundaries, ISC atomicity, decisive binary consumer-boundary probes, concrete thresholds, semantic proof mapping, decision-lock accuracy, stable IDs, canonical section order, stale behavior, privacy claims, probe realism, and accidental implementation prescription. Require severity-ordered findings with exact ISA line or contract references; do not criticize implementation because implementation is out of scope.
+
+Validate findings against source evidence, apply only confirmed readiness corrections, and rerun affected gates. Let the `second-opinion` skill own command construction, quoting, independent execution, failures, and synthesis. Two distinct model reviews must succeed before handoff. If either model is unavailable or fails, flag it to the human and ask them to select an alternative; do not proceed with only one successful review.
+
 ## Completion And Handoff
 
-When all gates pass:
+When all gates pass and adversarial review is complete:
 
 1. Show the final scope, ISC count, and any explicitly N/A categories; ask once: `Mark this ISA ready for coding?`
 2. If accepted, set `status: ready`, `clarification_progress: 8/8`, `progress: 0/N`, and update `updated`. Otherwise remain `drafting` and capture the requested changes.
