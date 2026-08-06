@@ -60,10 +60,12 @@ For every core and recovery journey, clarify:
 
 - Trigger, ordered user-visible steps, and terminal state.
 - What the user can cancel, reverse, retry, or resume.
-- What happens when the app is backgrounded, interrupted, force-quit, or offline where relevant.
+- What happens when the app is backgrounded, interrupted, force-quit, or offline where relevant as product behavior.
 - Permission, authentication, payment, or external-service branches where relevant.
 - Partial-success and return-later behavior.
 - What must remain unchanged on abandon or failure.
+
+Default proof for these journeys is a realistic user path or deterministic substitute. Do not require host-network kill, real login/logout, sleep/wake, or system clock mutation as the probe unless the user explicitly demands that proof class.
 
 ## 5. Actions
 
@@ -96,13 +98,15 @@ Cover relevant failure families without inventing irrelevant states:
 - Invalid, missing, malformed, or unsupported input.
 - Empty, loading, slow, unavailable, and timed-out dependencies.
 - Permission denied, revoked, or dismissed.
-- Offline, interrupted, backgrounded, and force-quit work.
+- Offline, interrupted, backgrounded, and force-quit work as product behavior.
 - Partial success across multiple side effects.
 - Duplicate submissions, retries, stale responses, and conflicts.
 - Persistence failure, recovery, rollback, and data loss expectations.
 - Destructive actions, trust failures, privacy exposure, and misleading success.
 
 For each edge state, capture trigger, impact, required behavior, user message or signal, recovery, and facts that must remain unchanged.
+
+When later synthesizing probes, prefer local journeys and deterministic substitutes over host-hostile setup. If the product guarantees a state cannot occur in normal use, probe the guarantee rather than forcing an artificial fixture.
 
 ## 8. Boundaries
 

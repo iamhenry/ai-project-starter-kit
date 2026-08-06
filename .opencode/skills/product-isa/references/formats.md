@@ -202,7 +202,9 @@ A leaf ISC:
 
 Pass threshold must be an observable falsifier: count, time bound, exact label, present/absent control, or zero matching events. Reject “works”, “correct”, “valid”, “as expected”, or “audio follows”.
 
-Prefer consumer boundaries (UI, audio output, relaunch persistence, network capture, OS share/open). Source inspection or internal counters may support a safety anti-claim but must not be the only closer for a user-visible behavior claim.
+Prefer consumer boundaries the agent can honestly exercise now: UI journeys, relaunch persistence, public OS handoff (open destination), and deterministic rule tests. Source inspection or internal counters may support a safety anti-claim but must not be the only closer for a user-visible behavior claim.
+
+Network capture, host network kill, real login/logout, sleep/wake, and system clock/timezone mutation are not default closers. Use them only when the user explicitly requires that proof class and a safe runnable method exists; otherwise keep the product claim and use a realistic substitute or mark the bullet contextual/out of proof scope.
 
 `Satisfies` on source contracts lists only ISCs whose decisive probe proves the mapped behavior. Topic-adjacent IDs are invalid.
 
