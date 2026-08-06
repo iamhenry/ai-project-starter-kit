@@ -50,15 +50,15 @@ A person can create, read, and edit one persistent plain-text note on an iPhone 
 - [ ] ISC-011: A saved-note read failure shows "Couldn't load your note."
 - [ ] ISC-012: A saved-note read failure shows a Retry action.
 - [ ] ISC-013: Anti: A saved-note read failure shows the empty-note message.
-- [ ] ISC-014: A note created offline remains after an offline relaunch.
-- [ ] ISC-015: No offline warning appears during offline core flows.
+- [ ] ISC-014: A newly created note remains after relaunch without a connectivity-required gate.
+- [ ] ISC-015: No connectivity warning appears during core create, edit, and relaunch.
 - [ ] ISC-016: Anti: Account creation or sign-in blocks the core flow.
-- [ ] ISC-017: Anti: Creating, editing, or reopening a note initiates a network request.
+- [ ] ISC-017: Anti: Creating, editing, or reopening a note presents a connectivity-required or sync gate.
 - [ ] ISC-018: A successful Retry shows the previously saved note unchanged.
 - [ ] ISC-019: A populated Home screen shows exactly one Edit Note action.
 - [ ] ISC-020: Canceling a new note returns Home to its prior empty state.
 - [ ] ISC-021: Saving a valid edit replaces the prior visible text.
-- [ ] ISC-022: A note edited offline remains after an offline relaunch.
+- [ ] ISC-022: An edited note remains after relaunch without a connectivity-required gate.
 - [ ] ISC-023: Entering valid text after invalid input makes Save available.
 - [ ] ISC-024: A failed Save shows "Couldn't save your note."
 - [ ] ISC-025: Anti: A failed Save changes the durable note state.
@@ -82,15 +82,15 @@ A person can create, read, and edit one persistent plain-text note on an iPhone 
 | ISC-011 | derived: honest load failure | SCR-001, FLOW-003, ACT-005, EDGE-002 | recovery | Open while the saved-note read is forced to fail | "Couldn't load your note." is visible | Controlled failure UI test |
 | ISC-012 | derived: recoverable load failure | SCR-001, FLOW-003, ACT-005, EDGE-002 | recovery | Open with a forced read failure, then Retry while the read still fails | One Retry action remains visible after the repeated failure | Controlled failure UI test |
 | ISC-013 | derived: never misrepresent failure as empty | SCR-001, FLOW-003, ACT-005, DATA-001, DATA-002, EDGE-002 | safety | Open while the saved-note read is forced to fail | "No note yet" is absent | Controlled failure UI test |
-| ISC-014 | literal | FTR-001, FLOW-001, ACT-001, DATA-001, EDGE-001 | offline persistence | Disable networking, create "Buy oats", terminate, and relaunch offline | Home shows "Buy oats" | Network-disabled iOS UI automation |
-| ISC-015 | derived: offline is a normal operating state | FLOW-001, EDGE-001 | appearance | Complete create, edit, and relaunch while offline | No offline warning appears | Network-disabled UI assertion |
+| ISC-014 | literal | FTR-001, FLOW-001, ACT-001, DATA-001, EDGE-001 | persistence | Create "Buy oats", terminate, and relaunch | Home shows "Buy oats" and zero connectivity-required gates appeared on the path | iOS UI automation |
+| ISC-015 | derived: local-first is a normal operating state | FLOW-001, EDGE-001 | appearance | Complete create, edit, and relaunch | Zero connectivity or offline warnings appear | iOS UI automation |
 | ISC-016 | literal | FLOW-001, FLOW-002 | access | Launch fresh and complete create and edit | No account or sign-in gate appears | iOS UI automation |
-| ISC-017 | literal | ACT-001, ACT-002, EDGE-001 | network | Create, edit, terminate, and reopen the note | Zero outbound network requests occur | Network capture |
+| ISC-017 | literal | ACT-001, ACT-002, EDGE-001 | access anti | Create, edit, terminate, and reopen the note | Zero connectivity-required or sync gates appear | iOS UI automation |
 | ISC-018 | derived: recovery preserves saved state | FLOW-003, ACT-005, DATA-001, EDGE-002 | recovery | Save "Buy oats", force one read failure, then allow Retry to succeed | Home shows "Buy oats" unchanged | Controlled failure UI test |
 | ISC-019 | derived: populated-state action | SCR-001 | appearance | Open with "Buy oats" saved | Exactly one Edit Note action is visible | UI assertion |
 | ISC-020 | derived: create cancellation is non-mutating | FLOW-001, ACT-003, DATA-002, EDGE-003 | regression | Open Add Note, enter whitespace, and Cancel | Home shows "No note yet" | iOS UI automation |
 | ISC-021 | derived: saved edits replace prior text | FTR-001, FLOW-002, ACT-002, DATA-001 | behavioral | Change "Buy oats" to "Buy milk" and Save | Home shows "Buy milk" and not "Buy oats" | iOS UI automation |
-| ISC-022 | literal | FTR-001, FLOW-002, ACT-002, DATA-001, EDGE-001 | offline persistence | Disable networking, change "Buy oats" to "Buy milk", terminate, and relaunch offline | Home shows "Buy milk" | Network-disabled iOS UI automation |
+| ISC-022 | literal | FTR-001, FLOW-002, ACT-002, DATA-001, EDGE-001 | persistence | Change "Buy oats" to "Buy milk", terminate, and relaunch | Home shows "Buy milk" and zero connectivity-required gates appeared on the path | iOS UI automation |
 | ISC-023 | derived: invalid input is recoverable | EDGE-003 | validation | In create mode and edit mode, enter whitespace and then replace it with valid text | Save changes from unavailable to available in both modes | iOS UI automation |
 | ISC-024 | derived: honest save failure | SCR-002, FLOW-001, FLOW-002, ACT-001, ACT-002, EDGE-004 | recovery | Force a valid Save to fail | "Couldn't save your note." is visible | Controlled failure UI test |
 | ISC-025 | derived: failed saves preserve durable state | FTR-001, FLOW-001, FLOW-002, ACT-001, ACT-002, DATA-001, DATA-002, EDGE-004 | safety | Force one create Save and one edit Save to fail, then relaunch | Create leaves Home empty; edit leaves the prior saved text unchanged | Controlled failure persistence test |
@@ -241,7 +241,7 @@ Status: Active
 Surface: SCR-001
 Source and meaning: The latest explicitly saved plain text.
 Presentation: Show saved text verbatim.
-Freshness and persistence: Update after Save and survive relaunch, including offline relaunch.
+Freshness and persistence: Update after Save and survive relaunch without a connectivity-required gate.
 Privacy and unavailable states: A read failure shows EDGE-002; a Save failure preserves current text until Retry succeeds.
 Satisfies: ISC-003, ISC-004, ISC-011, ISC-012, ISC-013, ISC-014, ISC-018, ISC-021, ISC-022, ISC-025, ISC-027
 
@@ -256,12 +256,12 @@ Satisfies: ISC-001, ISC-002, ISC-013, ISC-020, ISC-025
 
 ### Edge-State Contracts
 
-#### EDGE-001: No network connection
+#### EDGE-001: Local-first core flow
 Status: Active
-Trigger: Create, edit, relaunch, or reopen while offline.
-Impact: The Core Job would fail if connectivity were required.
-Required behavior: Creating and editing remain available; saved results survive offline relaunch.
-User signal: No offline warning appears.
+Trigger: Create, edit, relaunch, or reopen the note.
+Impact: The Core Job would fail if connectivity or an account were required.
+Required behavior: Creating and editing remain available without a connectivity-required or sync gate; saved results survive relaunch.
+User signal: No connectivity or offline warning appears during core flows.
 Recovery: None required.
 Must remain unchanged: Account-free access and the latest saved note.
 Satisfies: ISC-014, ISC-015, ISC-016, ISC-017, ISC-022

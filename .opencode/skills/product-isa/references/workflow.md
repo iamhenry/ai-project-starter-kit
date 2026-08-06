@@ -92,13 +92,25 @@ After all eight categories are complete:
 4. Build `## Test Strategy` with source trace, probe type, check, concrete pass threshold, and tool.
 5. Prefer the highest boundary that exercises what the user encounters. A file-existence check cannot close a user-behavior claim. Internal logs or counters may support a probe but cannot be the sole closer for a user-visible claim.
 6. Use the appropriate evidence modality: real UI for UI behavior, public interface for integrations, data inspection for persistence, deterministic tests for pure rules, or explicit principal recognition for experiential claims.
-7. Backfill each active source contract's `Satisfies` field and each active decision's ISC locks using the Proof Mapping rule below.
-8. Run the Proof Gate. Only then set `progress: 0/N` from the final leaf count.
-9. Category completion (`clarification_progress: 8/8`) never implies `status: ready`.
+7. Apply Probe Realism before locking tools and checks.
+8. Backfill each active source contract's `Satisfies` field and each active decision's ISC locks using the Proof Mapping rule below.
+9. Run the Proof Gate. Only then set `progress: 0/N` from the final leaf count.
+10. Category completion (`clarification_progress: 8/8`) never implies `status: ready`.
 
 ### Splitting Test
 
 A leaf fails the splitting test when two independent failures are still possible inside one claim. Split on compound `and`, dual UI outcomes, dual thresholds, or “does X without Y” pairs that can pass half-true. Keep parent IDs on split (`ISC-012.1`, `ISC-012.2`).
+
+### Probe Realism
+
+Heuristics, not a forever ban list. Keep product claims; renegotiate the proof mechanism when needed.
+
+- Prefer the shortest realistic user journey the agent can run with current platform tools.
+- Prefer deterministic substitutes (injected time, fixtures, catalog or rule asserts) over host-hostile setup (network kill, sleep/wake, system clock/timezone mutation, real login/logout cycles).
+- For OS handoffs (Mail, App Store, share sheets): prove open/handoff, not user completion.
+- If a closer needs physical human action or destructive host control, mark the bullet contextual/manual/out of proof scope — do not invent a fake-automated probe.
+- Do not probe production-impossible states the product guarantees away; probe the guarantee instead.
+- Out of Scope is product anti-vision only. Current proof limits belong in contextual/out-of-proof-scope marks or Constraints notes, not as fake product non-goals.
 
 ### Proof Mapping
 
@@ -120,6 +132,7 @@ Fail ready if any check fails:
 1. **Atomic leaves** — every leaf is one independently falsifiable destination state (Splitting Test).
 2. **Concrete thresholds** — every Test Strategy row names an observable pass threshold (count, time bound, exact label, present/absent control, zero requests). Reject thresholds like “works”, “correct”, “valid state”, or “audio follows”.
 3. **Proof mapping** — every Active required-behavior bullet is proved by its mapped probe or explicitly contextual/out of scope.
+4. **Probe realism** — every Test Strategy check/tool is honestly runnable with stated tools, a deterministic substitute, or the mapped bullet is explicit contextual/manual/out of proof scope. Reject host-hostile or physically blocked closers presented as normal automated probes.
 
 ### Product Coverage
 
@@ -143,6 +156,7 @@ Fail ready if any check fails:
 - Every leaf ISC is atomic, state-based, falsifiable, and binary at its threshold.
 - Every leaf ISC has exactly one decisive probe row.
 - Probe boundaries and modalities match the claim at the consumer boundary.
+- Probe Realism holds: no fabricated automated closers for host-hostile or physically blocked checks.
 - Broad and negative claims use representative or universal checks rather than one convenient example where practical.
 - No claim is checked and `## Verification` is absent unless real evidence already exists.
 
@@ -163,13 +177,13 @@ If a gate fails, repair the artifact and rerun all affected gates. Do not mark i
 
 ## Independent Adversarial Review
 
-After all readiness gates pass and before asking to mark the ISA ready, invoke the `second-opinion` skill with Grok 4.5 (`xai/grok-4.5`) and GLM 5.2 (`ollama-cloud/glm-5.2`) in parallel. Have each independently review `_ai/docs/ISA.md` against its source inputs, this workflow, and `formats.md` for correctness, thoroughness, accuracy, intent fidelity, contradictions, missing behavior or boundaries, ISC atomicity, decisive binary consumer-boundary probes, concrete thresholds, semantic proof mapping, decision-lock accuracy, stable IDs, canonical section order, stale behavior, privacy claims, and accidental implementation prescription. Require severity-ordered findings with exact ISA line or contract references; do not criticize implementation because implementation is out of scope.
+After all readiness gates pass and before asking to mark the ISA ready, invoke the `second-opinion` skill with Grok 4.5 (`xai/grok-4.5`) and GLM 5.2 (`ollama-cloud/glm-5.2`) in parallel. Have each independently review `_ai/docs/ISA.md` against its source inputs, this workflow, and `formats.md` for correctness, thoroughness, accuracy, intent fidelity, contradictions, missing behavior or boundaries, ISC atomicity, decisive binary consumer-boundary probes, concrete thresholds, semantic proof mapping, decision-lock accuracy, stable IDs, canonical section order, stale behavior, privacy claims, probe realism, and accidental implementation prescription. Require severity-ordered findings with exact ISA line or contract references; do not criticize implementation because implementation is out of scope.
 
 Validate findings against source evidence, apply only confirmed readiness corrections, and rerun affected gates. Let the `second-opinion` skill own command construction, quoting, independent execution, failures, and synthesis. Two distinct model reviews must succeed before handoff. If either model is unavailable or fails, flag it to the human and ask them to select an alternative; do not proceed with only one successful review.
 
 ## Completion And Handoff
 
-When all gates pass:
+When all gates pass and adversarial review is complete:
 
 1. Show the final scope, ISC count, and any explicitly N/A categories; ask once: `Mark this ISA ready for coding?`
 2. If accepted, set `status: ready`, `clarification_progress: 8/8`, `progress: 0/N`, and update `updated`. Otherwise remain `drafting` and capture the requested changes.
