@@ -4,7 +4,6 @@
   "small_model": "opencode/big-pickle",
   "formatter": false,
   "instructions": [
-    "CLAUDE.md",
     "_ai/docs/ETHOS.md"
   ],
   "plugin": [
