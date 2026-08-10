@@ -24,9 +24,10 @@ Before implementation, infer the dependency graph, identify the critical path, a
 Optimize for these objectives, in priority order:
 1. Complete real end-to-end user journeys as thin vertical slices that a user can actually execute.
 2. Minimize total completion time by maximizing useful concurrency through independent, low-collision execution lanes.
-3. Minimize rework by introducing shared abstractions only when they are justified by multiple completed or imminent user journeys.
-4. Keep the application integrated, runnable, and shippable after every completed milestone.
-5. Verify outcomes through real end-to-end execution rather than implementation artifacts. Passing tests, compiled code, mock integrations, or completed components are evidence—not success. Success is a user successfully completing the intended journey.
+3. Delegate work in tight, manageable units. Each delegated task must have a bounded scope (a single verifiable user-facing slice or concrete capability) to prevent context drift and ensure high execution quality.
+4. Minimize rework by introducing shared abstractions only when they are justified by multiple completed or imminent user journeys.
+5. Keep the application integrated, runnable, and shippable after every completed milestone.
+6. Verify outcomes through real end-to-end execution rather than implementation artifacts. Passing tests, compiled code, mock integrations, or completed components are evidence—not success. Success is a user successfully completing the intended journey.
 
 Continuously re-evaluate the dependency graph, critical path, and execution lanes as new information emerges. Prefer adapting the plan over following an initially chosen architecture or implementation order.
 
