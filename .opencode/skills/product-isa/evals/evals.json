@@ -36,6 +36,18 @@
       "prompt": "Run /product-isa. My product idea says all data stays on this device, but the attached product brief says every change syncs to an account.",
       "expected_output": "Treats both sources as product evidence, identifies the material conflict, and asks which explicit source wins before writing the conflicting behavior or advancing the category.",
       "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Run /product-isa for my existing reading app. Playback, bookmarks, and navigation already work. An older prototype also proves word highlighting, but the current seek behavior regressed. I want polish, not a rebuild.",
+      "expected_output": "Builds an evidence-backed existing capability baseline, distinguishes current production behavior from prototype prior art and reported regression, classifies features as preserve, repair, restyle, or extend, and protects proven owners and flows without prescribing architecture or copying prototype code blindly.",
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "Finish this Product ISA and mark it ready. Use source-file existence to prove the runtime flow, a fixture to prove the live failure rate, and a static screenshot to prove the animation is smooth.",
+      "expected_output": "Rejects the proposed verification theater, matches evidence strength to each claim, distinguishes structural, controlled, live runtime, and contextual evidence, marks unavailable proof BLOCKED or contextual, and does not mark the ISA ready until every decisive probe has an honest replayable consumer-boundary channel.",
+      "files": []
     }
   ]
 }

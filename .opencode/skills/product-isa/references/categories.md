@@ -20,6 +20,7 @@ Work backwards from the Core Job. Ask gaps only; the lists below are coverage pr
 Clarify:
 
 - The current problem and who experiences it.
+- For an existing product, the proven capabilities that already serve the Core Job and any prior prototype behavior that should inform rather than replace the current product.
 - The observable end state that means the app did its job.
 - The smallest coherent whole-app promise.
 - How the user recognizes success and why it matters.
@@ -33,6 +34,8 @@ Do not ask for architecture, stack, database, or implementation strategy.
 For every required capability, clarify:
 
 - What it lets the user accomplish and why the Core Job requires it.
+- Whether the capability is being preserved, repaired, restyled, or extended, based on the existing capability baseline.
+- For preserve, repair, and restyle work, which observable behavior must survive the change.
 - Required inputs, outputs, rules, and relationships to other capabilities.
 - What is required now versus explicitly excluded.
 - Access or permission behavior when relevant.
@@ -40,6 +43,8 @@ For every required capability, clarify:
 - Whether actions are reversible and what persists.
 
 Avoid speculative convenience features. A feature exists only when removing it would change the selected ideal state.
+
+Use change classes as reasoning aids, not architecture mandates: `preserve` keeps proven behavior, `repair` restores intended behavior, `restyle` changes presentation without changing behavior, and `extend` adds a genuinely new capability. If one feature contains multiple classes, split it only when the behaviors can fail independently.
 
 ## 3. Screens
 
