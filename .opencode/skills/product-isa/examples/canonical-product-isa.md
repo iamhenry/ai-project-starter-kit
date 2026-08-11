@@ -65,6 +65,10 @@ A person can create, read, and edit one persistent plain-text note on an iPhone 
 - [ ] ISC-026: A failed Save shows a Retry action.
 - [ ] ISC-027: A successful Save Retry applies the pending valid text exactly once.
 
+## Evidence Standard
+
+A criterion closes only from an identified app build and subject exercising its live path, or an explicitly labeled controlled edge path, with the binary threshold observed and evidence retained for replay. Source inspection supports preservation but does not close user-visible behavior; unavailable evidence is BLOCKED rather than inferred.
+
 ## Test Strategy
 
 | ISC | Anchors to | Source contracts | Probe type | Check | Pass threshold | Tool |
@@ -105,6 +109,8 @@ This section is the detailed product contract for this Product ISA, not an imple
 
 #### FTR-001: Maintain one note
 Status: Active
+Change class: Extend
+Existing baseline: Greenfield
 Purpose: Preserve one piece of plain text with minimal friction.
 Required behavior:
 - Saving valid text creates the note or replaces its prior text.
@@ -118,6 +124,8 @@ Satisfies: ISC-003, ISC-004, ISC-006, ISC-014, ISC-021, ISC-022, ISC-025, ISC-02
 
 #### FTR-002: Cancel an edit safely
 Status: Active
+Change class: Extend
+Existing baseline: Greenfield
 Purpose: Let the user leave an edit without changing saved text.
 Required behavior:
 - Edit mode begins with the saved text preloaded.

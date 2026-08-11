@@ -39,6 +39,10 @@ updated: YYYY-MM-DD
 
 [Immovable product, trust, platform, privacy, or user-stated mandates.]
 
+## Existing Capability Baseline
+
+[Existing products only: concise observed capabilities, identified evidence, and preservation implications. Omit for greenfield products.]
+
 ## Goal
 
 [One to three hard-to-vary sentences defining observable done.]
@@ -52,11 +56,15 @@ updated: YYYY-MM-DD
 
 [Conditional drafting fog. Must contain no material current-scope behavior at ready.]
 
+## Evidence Standard
+
+[At synthesis: identify how probes establish replayable consumer-boundary ground truth, distinguish live, controlled, structural, and contextual evidence, and require `BLOCKED` when the available channel cannot prove the claim.]
+
 ## Test Strategy
 
 | ISC | Anchors to | Source contracts | Probe type | Check | Pass threshold | Tool |
 | --- | --- | --- | --- | --- | --- | --- |
-| ISC-001 | literal | FTR-001, FLOW-001 | behavioral | [Consumer-boundary probe] | [Binary threshold] | [Tool] |
+| ISC-001 | literal | FTR-001, FLOW-001 | live runtime: behavioral | [Consumer-boundary probe] | [Binary threshold] | [Observation tool and retained evidence] |
 
 ## Features
 
@@ -120,3 +128,5 @@ This section is the detailed product contract for this `product-isa` dialect. It
 | `progress` | Closed leaf ISCs over total; absent before synthesis, `0/N` at ready, `N/N` at verified |
 
 `ready` means the behavior contract can be implemented. It does not mean the app works. `verified` requires every in-scope leaf ISC to close on evidence.
+
+`Existing Capability Baseline` is conditional on an existing product. `Evidence Standard` appears once Test Strategy synthesis begins so implementation agents inherit the proof boundary without needing this skill loaded.

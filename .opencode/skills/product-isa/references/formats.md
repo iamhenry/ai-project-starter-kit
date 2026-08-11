@@ -61,11 +61,25 @@ IDs never renumber. A split keeps the parent (`ISC-008.1`, `ISC-008.2`). A remov
 
 Use prose fields rather than compressed summary tables when detail would be lost.
 
+### Existing Capability Baseline
+
+For an existing product, place a concise baseline before the Goal. Record only capabilities relevant to the requested ideal state:
+
+```markdown
+## Existing Capability Baseline
+
+- [Capability]: [Observed current behavior]. Evidence: [identified runtime, source, test, or prototype evidence]. Implication: [what should be preserved, repaired, restyled, or extended].
+```
+
+Separate current production behavior from prototype prior art and reported regressions. Source or test evidence can establish ownership and preservation context, but cannot close a user-visible ISC by itself. Omit this section for greenfield products.
+
 ### Feature
 
 ```markdown
 #### FTR-001: [Name]
 Status: Active
+Change class: Preserve | Repair | Restyle | Extend
+Existing baseline: [Relevant current capability and preservation intent, or `Greenfield`]
 Purpose: [User outcome and Core Job necessity]
 Required behavior:
 - [Observable rule]
@@ -204,6 +218,10 @@ Pass threshold must be an observable falsifier: count, time bound, exact label, 
 
 Prefer consumer boundaries the agent can honestly exercise now: UI journeys, relaunch persistence, public OS handoff (open destination), and deterministic rule tests. Source inspection or internal counters may support a safety anti-claim but must not be the only closer for a user-visible behavior claim.
 
+Use `Probe type` to disclose the evidence class when it matters: live runtime, controlled edge, structural preservation, or contextual/manual. The `Tool` cell must name the actual observation channel and retained evidence, not merely a generic automation label.
+
+A strong closing record lets another verifier identify the subject and governing source, replay the real or explicitly controlled path, observe the binary threshold directly, and locate retained evidence. If any necessary channel is unavailable, record `BLOCKED`; do not substitute source review, a fixture, a mock, or a static screenshot for a stronger claim.
+
 Network capture, host network kill, real login/logout, sleep/wake, and system clock/timezone mutation are not default closers. Use them only when the user explicitly requires that proof class and a safe runnable method exists; otherwise keep the product claim and use a realistic substitute or mark the bullet contextual/out of proof scope.
 
 `Satisfies` on source contracts lists only ISCs whose decisive probe proves the mapped behavior. Topic-adjacent IDs are invalid.
@@ -229,7 +247,7 @@ Criterion now: [ISC added, split, tightened, or dropped]
 ```markdown
 ## Verification
 
-- ISC-001: [Test name, command reference, screenshot path, CI run, or commit]
+- ISC-001: PASS - [identified subject and source]; observed [value]; evidence [replayable command, recording, screenshot, CI run, or path]; verifier [agent/session]
 ```
 
-Omit each section when empty. Verification stores provenance, not copied logs or evidence paragraphs.
+Omit each section when empty. Verification stores concise provenance, not copied logs or evidence paragraphs. `FAIL` and `BLOCKED` never close a criterion or increment progress. Redact personal data from subjects and evidence references.
