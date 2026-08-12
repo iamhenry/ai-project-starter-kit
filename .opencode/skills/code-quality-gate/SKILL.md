@@ -9,6 +9,12 @@ Use this skill after implementation and before `verification-gate` or other inte
 
 Run it as a fresh subagent review gate. It reviews the implemented code, returns a decision, and never edits files.
 
+## Mode Dispatch
+
+- The default, when `mode` is omitted, is the existing issue mode below. Any mode other than the explicit `mode: isa` request uses the existing issue-mode contract; do not auto-detect ISA inputs.
+- When the caller explicitly supplies `mode: isa`, use the alternate contract in `references/isa-mode.md`. Do not require, read, create, or infer `{ISSUE_DIR}/plan.md` for that invocation.
+- The two modes have separate inputs and output contracts. Do not mix issue artifacts into ISA review or ISA inputs into issue review.
+
 ## Inputs
 
 Read the minimum available context:
