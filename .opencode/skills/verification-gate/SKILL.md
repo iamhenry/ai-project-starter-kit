@@ -7,6 +7,12 @@ description: Reusable verification gate for completed work before commit or merg
 
 Use this skill after implementation and after `code-quality-gate` returns `APPROVE_CODE`, before commit or merge.
 
+## Mode Dispatch
+
+- The default, when `mode` is omitted, is the existing issue mode below. Any mode other than the explicit `mode: isa` request uses the existing issue-mode contract; do not auto-detect ISA inputs.
+- When the caller explicitly supplies `mode: isa`, use the alternate contract in `references/isa-mode.md`. Do not require, read, create, or infer `{ISSUE_DIR}/plan.md` for that invocation.
+- The two modes have separate inputs and output contracts. Do not mix issue artifacts into ISA verification or ISA inputs into issue verification.
+
 Keep the scope narrow:
 
 - Prove the intended task outcome works.
