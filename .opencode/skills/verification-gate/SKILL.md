@@ -76,6 +76,11 @@ Prefer the smallest proof path that still demonstrates real user value.
 
 3. Execute verification.
 
+    - If a declared environment prerequisite is unavailable, allow at most one
+      narrow recovery attempt for that exact blocker. Do not redesign product
+      or infrastructure inside verification. If recovery fails, return
+      `BLOCKED` with the exact missing prerequisite and unlock condition.
+
    - For `web` or `mobile-web`, use `agent-browser` instead of re-inventing browser steps.
    - Before browser commands, load `agent-browser` and follow its own CLI-served setup and usage guidance.
    - Follow the `snapshot -> interact -> re-snapshot` cadence.
@@ -105,7 +110,15 @@ Prefer the smallest proof path that still demonstrates real user value.
 - Prove the whole flow, not just the final screen.
 - Capture only the evidence needed to support the verdict.
 - Never record secrets, tokens, private user data, or unnecessary personal information.
-- If `ISSUE_DIR` exists, store artifacts under `{ISSUE_DIR}/verification/` with `screenshots/` and `videos/` subfolders.
+- Raw snapshots, JSON, measurements, logs, base64, and duplicate media default
+  to the OS temp area and are not durable unless the plan or leaf explicitly
+  requires them. If `ISSUE_DIR` exists, store only
+  retained evidence under `{ISSUE_DIR}/verification/` with `screenshots/` and
+  `videos/` subfolders.
+- Retain the minimum user-observable evidence needed by the claim: screenshots
+  by default; a short video only when motion or lifecycle cannot be shown
+  otherwise. Do not create evidence theater or retain artifacts that add no
+  proof.
 - Always include artifact paths in the final report when evidence exists.
 
 ### Screenshot Hygiene
