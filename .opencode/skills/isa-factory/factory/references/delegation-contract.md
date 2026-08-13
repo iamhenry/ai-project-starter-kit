@@ -23,6 +23,8 @@ CURRENT STATE
 
 BOUNDARIES
 - [Assigned paths/capability only]
+- Declared path set and baseline: [complete product/config path set and
+  pre-task baseline identity]
 - Do not edit the ISA or JOURNAL, claim PASS, or own journey routing.
 - [Role-specific exclusions]
 
@@ -38,6 +40,12 @@ ASSIGNMENT
 
 REQUIRED EVIDENCE
 - [Changed paths/diff, checks, candidate identity, build/runtime identity, and/or per-leaf proof required by the owning skill]
+- Post-task diff classification: [every changed path declared or undeclared;
+  product/config/behavior impact and disposition for each path]
+- Any undeclared changed path blocks candidate freeze until reverted or
+  explicitly re-planned. Product/config/behavior impact remains required
+  evidence, not the only blocking category. This is a legitimacy/scope audit,
+  not a new pipeline phase.
 
 TRUE ESCALATION
 - Escalate only contradictory ISA text, unavailable external authority/access,

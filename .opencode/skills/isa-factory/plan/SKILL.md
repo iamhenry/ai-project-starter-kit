@@ -54,7 +54,13 @@ Load references as needed:
    interruption is allowed only for an ISA contradiction or genuine external
    authority/access that the available environment cannot supply. Otherwise
    return the packet with the blocker and continue no further.
-7. Return the locked slice contract using `references/slice-contract.md` in
+7. Lock the platform route, build/runtime prerequisites, required runtime
+   subject and data lineage, and one minimal smoke check for the selected
+   journey. Declare startable or factory-preparable setup for `Prepare Execution
+   Lane`; it does not block Plan. Only a missing or unsatisfiable prerequisite,
+   or unavailable required subject/data, routes the affected leaf
+   `dependency-blocked`; do not assign implementation or imply readiness.
+8. Return the locked slice contract using `references/slice-contract.md` in
    chat/context only. Do not write ISA, JOURNAL, issue, plan, dashboard,
    status, research, or other artifacts.
 
@@ -72,12 +78,16 @@ Load references as needed:
   the assigned work. Plan ends at the transient packet.
 - A missing dependency is not permission to widen the slice. Record it and
   route it.
+- A locked slice is incomplete without its platform route, build/runtime
+  prerequisites, subject/data lineage, and minimal smoke check. Missing
+  prerequisites block implementation rather than discovering setup after it.
 
 ## Output
 
 Return only the compact locked slice contract plus concise rationale/evidence
 needed by the next stage. Include ISA path and identity, journey, exact leaves
-and probes, capabilities, dependencies, candidate identity expectation,
-evidence requirements, hard blocker conditions, and out of scope. State
+and probes, capabilities, platform route, build/runtime prerequisites, required
+subject/data lineage, minimal smoke check, dependencies, candidate identity
+expectation, evidence requirements, hard blocker conditions, and out of scope. State
 `Status: blocked` only when no honest slice can be locked; otherwise return
 `Status: ready`.

@@ -65,6 +65,24 @@ text/probes/thresholds, identify dependencies and routes, and state whether
 implementation is required. A blocked packet routes to its declared blocker;
 do not invent a preflight/probe phase or persist the packet.
 
+### 1a. Prepare Execution Lane
+
+Before Implement, the factory prepares only the environment capabilities
+declared by the locked slice. Reuse a healthy existing lane when possible;
+otherwise start the required runtime, service, simulator, database, or local
+dependency using repository instructions, then run one minimal baseline smoke
+check.
+
+This preparation proves only that implementation can execute; it does not run
+ISA acceptance probes or prepare outcomes that depend on the new code. Keep the
+result transient and hand the selected runtime, target, process, and subject
+handles to downstream agents.
+
+Implementation agents do not troubleshoot environment setup. If preparation
+fails, allow one bounded recovery attempt owned by the factory. Then route a
+separate environment blocker or choose another slice; do not delegate product
+implementation into a broken lane.
+
 ### 2. Implement
 
 For each capability in the packet, delegate one fresh bounded `code` or
@@ -79,7 +97,11 @@ close/credit leaves.
 If every selected capability has `implementation_required: no`, skip Implement
 and Review. Freeze the immutable current committed candidate identity with an
 empty declared path set and route directly to Accept using the explicit
-no-implementation route. If any capability changes files, delegate a fresh
+no-implementation route. If any capability changes files, first classify the
+post-implementation diff against the complete declared path set and baseline.
+Any undeclared changed path blocks candidate freeze until reverted or explicitly
+re-planned; see
+`references/delegation-contract.md`. Then delegate a fresh
 `code-quality-gate` with explicit `mode: isa`, the exact `isa_path`, immutable
 locked slice, implementation summary, changed files/diff, checks, and frozen
 candidate identity. On `APPROVE_CODE`, continue. On `REVISE_CODE`, allow one
@@ -136,6 +158,11 @@ the phase unless handed to the next phase. Progress means only the supplied
 ISA's checkbox/progress movement performed by `isa-close`; activity, tests,
 commits, and agent claims are not progress. Never create duplicate status.
 
+After Close or a hard blocker, emit one compact update with current identity and
+progress/status from the ISA, plus either closed leaf IDs or blocker and unlock
+details from the current phase result. Never count activity, tests, commits, or
+agent claims as progress.
+
 ## Artifact Contract
 
 Allowed durable writes are the application files explicitly assigned by a
@@ -178,6 +205,10 @@ phase routing remain with the factory.
 - `FAIL`: route failing leaf evidence to the implementation owner, then narrow and re-plan; do not close.
 - `BLOCKED` or identity `VOID/BLOCKED`: route the exact unblock condition or invalidate and re-plan; do not close.
 - Close mismatch or missing authority: no ledger mutation; stop with exact path and reason.
+
+When acceptance blockers repeat, close any valid PASS leaves first; otherwise
+park the slice and re-plan toward executable or proof-only work. Do not repeat
+implementation and acceptance churn.
 
 ## Human Interrupts
 
