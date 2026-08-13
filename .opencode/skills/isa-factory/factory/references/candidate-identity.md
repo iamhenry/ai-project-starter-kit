@@ -15,6 +15,11 @@ runtime_subject: [selected device, app, data lineage, permissions, and external 
 
 Rules:
 
+- Canonical identity is a committed no-change candidate's commit plus tree
+  identity. A worktree candidate uses its base commit, complete declared path
+  set, and one exact diff/digest command with its result recorded before
+  Review. Carry that same recipe through Accept and Close; never mix digest
+  recipes.
 - A branch name, path, timestamp, app name, simulator, or `current` checkout
   alone is not identity.
 - For an explicit no-implementation route, use the current immutable committed

@@ -7,7 +7,10 @@ The ISA is canonical. In one in-memory transaction, then one file write:
 1. Identify current leaf ISCs and their valid existing `## Verification` PASS lines.
 2. Union existing valid PASS leaves with newly valid PASS packet leaves, keyed by ISC ID. Never count a parent/group row.
 3. For a repeated leaf, retain the existing line when it proves the same candidate identity; otherwise replace that leaf's line with the new provenance only after the new packet passes all checks.
-4. Set `progress: N/T`, where `N` is the number of unique current leaf ISCs with valid PASS provenance and `T` is the total current leaf count. Recount; never increment a stored number.
+4. Set `progress: N/T`, where `N` is the count of canonical valid PASS
+   provenance IDs for checked current leaf IDs and `T` is the total current leaf
+   count. Current/open leaves without PASS remain uncredited. Recount; never
+   increment a stored number.
 5. Derive `status` only from current progress: `ready` when `N=0`, `building` when `0<N<T`, and `verified` when `N=T`. Preserve `drafting` when the ISA is not a ready implementation contract; Close must not make a drafting or contradictory ISA verified.
 6. Update `updated` once. Do not edit criteria text, Test Strategy, source contracts, decisions, non-PASS records, or unrelated frontmatter.
 
@@ -22,6 +25,13 @@ JOURNAL event. A new candidate may replace the provenance for a leaf only when
 it is a valid PASS for the current leaf; the unique-leaf count remains bounded
 by `T`.
 
+Before the ISA write, define checked current leaf IDs as the IDs of credited
+or checked PASS leaves, not all current/open leaves. Assert set equality among
+those IDs, the canonical valid PASS provenance IDs after applying the packet
+set, and the recount set; `progress N` must equal that set's count. Also assert
+each newly credited leaf has exactly one valid PASS packet and one canonical
+provenance line. On any mismatch, block before mutation.
+
 After the ISA write, assert all of these before the second commit:
 
 - every credited ID is a current leaf;
@@ -30,6 +40,8 @@ After the ISA write, assert all of these before the second commit:
 - `N <= T` and status equals the lifecycle rule;
 - no non-PASS packet received credit;
 - no duplicate verification line exists for a leaf.
+- The checked current leaf set, canonical valid PASS provenance set, and
+  recounted progress set are equal.
 
 If any assertion fails, do not commit ISA/JOURNAL and return `blocked`.
 

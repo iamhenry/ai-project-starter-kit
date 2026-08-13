@@ -35,6 +35,13 @@ If identity cannot be established or any identity field mismatches, the verifica
 
 Use the existing platform routes, smallest-proof-path rule, evidence hygiene, screenshot hygiene, and artifact cleanup from `SKILL.md`. Execute only the declared probe for each locked leaf. A leaf is `PASS` only when its own consumer-boundary probe and exact pass condition are proven against the matched candidate; source inspection, mocks, fixtures, or another leaf's evidence are not substitutes.
 
+Before returning overall `PASS`, validate every Close packet field for every
+leaf (`isc`, `verdict`, `candidate`, `build`, `probe`, `subject`, `threshold`,
+`observed`, `evidence`, `verifier`, `authority`) is complete, non-ellipsized,
+and its evidence locator is retained and accessible through Close, not merely
+accessible in-session. Missing, placeholder, or inaccessible packet data is
+`BLOCKED`, not later packet-repair churn.
+
 Use one complete Close packet record per leaf, with these fields and no inferred values: `isc`, `verdict`, `candidate`, `build`, `probe`, `subject`, `threshold`, `observed`, `evidence`, `verifier`, and `authority`. `candidate` must carry the complete frozen candidate identity unchanged. Use per-leaf verdicts `PASS`, `FAIL`, or `BLOCKED`. `BLOCKED` means the declared proof cannot run or cannot establish its condition; `FAIL` means it ran and the condition was not met. Overall `PASS` requires every leaf to be `PASS`; any `FAIL` yields overall `FAIL`, and any `BLOCKED` yields overall `BLOCKED` unless a higher-priority identity failure already yields `VOID/BLOCKED`.
 
 - `FAIL`: route the failing leaf evidence to the implementation owner; do not edit code, ISA, or `JOURNAL`.
