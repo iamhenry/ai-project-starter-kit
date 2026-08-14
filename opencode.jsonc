@@ -7,7 +7,8 @@
   ],
   "plugin": [
     "@tarquinen/opencode-dcp@latest", // (https://github.com/Tarquinen/opencode-dynamic-context-pruning)
-    "@dietrichgebert/ponytail" // (https://github.com/DietrichGebert/ponytail)
+    "@dietrichgebert/ponytail", // (https://github.com/DietrichGebert/ponytail)
+    "opencode-claude-auth@latest" // (https://github.com/griffinmartin/opencode-claude-auth)
   ],
   "compaction": {
     "auto": false
