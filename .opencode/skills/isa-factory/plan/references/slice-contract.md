@@ -60,3 +60,7 @@ journey, verification/accept/close/commit/push]
 - Candidate identity is the exact subject expectation for fresh work: build,
   device/runtime, input/data lineage, account/permissions, and any external
   identity needed by the probe. Redact secrets and personal data.
+- If the probe requires a world-state this lane cannot produce with allowed
+  tools and existing subjects, route `dependency-blocked`. Do not lock
+  "acquire a better subject" as implementation. The factory then selects
+  other startable open work.
