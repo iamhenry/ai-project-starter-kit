@@ -57,7 +57,9 @@ Load references as needed:
 7. Lock the platform route, build/runtime prerequisites, required runtime
    subject and data lineage, and one minimal smoke check for the selected
    journey. Declare startable or factory-preparable setup for `Prepare Execution
-   Lane`; it does not block Plan. Only a missing or unsatisfiable prerequisite,
+   Lane`; it does not block Plan. Name the iterate lane (live-reload or
+   incremental runtime when the change can appear there) separately from the
+   Accept shipped artifact. Only a missing or unsatisfiable prerequisite,
    or unavailable required subject/data, routes the affected leaf
    `dependency-blocked`; do not assign implementation or imply readiness.
 8. Return the locked slice contract using `references/slice-contract.md` in
