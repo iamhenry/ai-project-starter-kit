@@ -133,10 +133,20 @@ destructive Git actions. See `isa-factory/close/references/verdict-contract.md`,
 
 ### 6. Repeat
 
-After Close, reread the supplied ISA and select the next open work from its
-current state. Stop when all leaves are closed. If work remains blocked, retain
-the concrete blocker and its unblock condition; do not claim progress or loop
-on the same failed delegation.
+A blocked leaf is not a blocked factory. After Close or a park, reread the
+supplied ISA. Re-check each parked leaf's unlock condition against current
+ISA, JOURNAL, and runtime evidence; unpark and plan any leaf whose condition
+is now met. Then select the next open leaf this lane can run without
+irreversibly altering state a still-parked leaf's unlock depends on. Stop
+when every remaining open leaf is closed or parked.
+
+A same-class miss is the same leaf failing for the same reason class (for
+example: required world-state missing or not ready, probe window missed,
+environment unreadiness after a mutation, or a state the current system
+cannot produce). A new input, URL, record, or retry of that class is not a
+new class. On a second same-class miss: close any sibling PASS, park that
+leaf with an exact unlock condition, and immediately plan different
+startable work. Do not loop the same failed delegation.
 
 ## Canonical Phase Contracts
 
@@ -158,10 +168,20 @@ the phase unless handed to the next phase. Progress means only the supplied
 ISA's checkbox/progress movement performed by `isa-close`; activity, tests,
 commits, and agent claims are not progress. Never create duplicate status.
 
-After Close or a hard blocker, emit one compact update with current identity and
-progress/status from the ISA, plus either closed leaf IDs or blocker and unlock
-details from the current phase result. Never count activity, tests, commits, or
-agent claims as progress.
+After Close, a parked leaf, a completed subagent wave, or a hard blocker, emit
+one compact chat progress card from the ISA's authoritative counts. Never write
+it as a file. Never count activity, tests, commits, or agent claims as closed.
+
+```md
+Closed N/T · remaining R · next: [one startable leaf or slice]
+
+| Lane | Criteria | Files | Agent |
+| --- | --- | --- | --- |
+| [A: short job] | [ISC ids] | [paths or —] | [owner or —] |
+```
+
+Show at most the current/next lanes. Mark parked leaves in Lane, not as closed.
+Critical path: one line under the table.
 
 ## Artifact Contract
 
@@ -206,9 +226,9 @@ phase routing remain with the factory.
 - `BLOCKED` or identity `VOID/BLOCKED`: route the exact unblock condition or invalidate and re-plan; do not close.
 - Close mismatch or missing authority: no ledger mutation; stop with exact path and reason.
 
-When acceptance blockers repeat, close any valid PASS leaves first; otherwise
-park the slice and re-plan toward executable or proof-only work. Do not repeat
-implementation and acceptance churn.
+When acceptance blockers repeat as the same class, close any valid PASS
+leaves first, park that leaf, and re-plan toward other open startable work.
+Do not repeat implementation and acceptance churn on the same class.
 
 ## Human Interrupts
 
