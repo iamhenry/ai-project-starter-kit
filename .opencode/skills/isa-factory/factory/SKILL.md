@@ -73,6 +73,13 @@ otherwise start the required runtime, service, simulator, database, or local
 dependency using repository instructions, then run one minimal baseline smoke
 check.
 
+Separate the iterate lane from the close artifact. If the change lives only
+in a layer a live-reload or incremental runtime can project (interpreted UI,
+styles, scripts), prepare or reuse that lane and do not rebuild the shipped
+binary to implement. Rebuild the native or packaged artifact when the change
+cannot appear without it. Accept still uses the ISA-named shipped identity;
+this lane is not proof.
+
 This preparation proves only that implementation can execute; it does not run
 ISA acceptance probes or prepare outcomes that depend on the new code. Keep the
 result transient and hand the selected runtime, target, process, and subject
