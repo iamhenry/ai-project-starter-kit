@@ -29,6 +29,10 @@ Rules:
   runtime behavior.
 - Accept must match all identity fields to trustworthy build/runtime evidence.
   Mismatch is `VOID/BLOCKED`, with no leaf PASS.
+- `build_identity` is the ISA-named shipped artifact (packaged binary, built
+  bundle, or equivalent digest), not a live-reload session, dev-client attach,
+  or hot-updated process. A live lane may host Implement; it cannot satisfy
+  Accept unless the ISA names that same artifact as the close subject.
 - If the candidate is claimed changed, `build_identity` must name and hash
   the primary shipped artifact the change lives in (the digest that would
   move if the change actually shipped). An unchanged primary digest is
