@@ -11,8 +11,12 @@ The ISA is canonical. In one in-memory transaction, then one file write:
    provenance IDs for checked current leaf IDs and `T` is the total current leaf
    count. Current/open leaves without PASS remain uncredited. Recount; never
    increment a stored number.
-5. Derive `status` only from current progress: `ready` when `N=0`, `building` when `0<N<T`, and `verified` when `N=T`. Preserve `drafting` when the ISA is not a ready implementation contract; Close must not make a drafting or contradictory ISA verified.
-6. Update `updated` once. Do not edit criteria text, Test Strategy, source contracts, decisions, non-PASS records, or unrelated frontmatter.
+5. Mark `[x]` every current leaf that already has a valid PASS provenance
+   line, not only leaves in the new packet. Never invent PASS, never un-PASS
+   a leaf, and never raise `N` without a valid line. A missing checkbox for
+   an existing valid PASS line is a write defect to correct in this same write.
+6. Derive `status` only from current progress: `ready` when `N=0`, `building` when `0<N<T`, and `verified` when `N=T`. Preserve `drafting` when the ISA is not a ready implementation contract; Close must not make a drafting or contradictory ISA verified.
+7. Update `updated` once. Do not edit criteria text, Test Strategy, source contracts, decisions, non-PASS records, or unrelated frontmatter.
 
 `FAIL`, `BLOCKED`, and `VOID` do not change `N`, `progress`, or status. A candidate identity mismatch blocks the entire close before any mutation; it is not a failed leaf.
 

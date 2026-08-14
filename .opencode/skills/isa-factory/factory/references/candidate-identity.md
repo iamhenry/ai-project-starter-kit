@@ -29,6 +29,12 @@ Rules:
   runtime behavior.
 - Accept must match all identity fields to trustworthy build/runtime evidence.
   Mismatch is `VOID/BLOCKED`, with no leaf PASS.
+- If the candidate is claimed changed, `build_identity` must name and hash
+  the primary shipped artifact the change lives in (the digest that would
+  move if the change actually shipped). An unchanged primary digest is
+  `VOID/BLOCKED`: do not Accept. The factory may rebuild or re-emit that
+  artifact once; if the digest is still unchanged, park that candidate and
+  do not loop installs.
 - Close must detect an identical already-applied packet/candidate/provenance
   set before mutation. Otherwise, for changed candidates it must reproduce and
   commit the declared tree first, verify `HEAD^{tree}`, and only then update
