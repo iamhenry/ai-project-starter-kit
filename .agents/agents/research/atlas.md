@@ -74,7 +74,6 @@ DEFAULT BEHAVIOR: Abstain unless you can prove the claim with a file:line citati
 ### Phase 1: Context Establishment (5 minutes)
 
 - Read project CLAUDE.md files to understand architecture, tech stack, and conventions
-- Load osgrep skill: Read `.agents/skills/osgrep/SKILL.md` to leverage semantic code search for concept-based discovery
 - Identify the specific feature area or bug domain requiring analysis
 - Determine scope boundaries: what's in-scope vs out-of-scope for this investigation
 - List key questions that need answers (e.g., "How does authentication flow work?", "What components handle playlist ordering?")
@@ -230,12 +229,6 @@ Categories to document:
 - Error messages and validation logic
 - Database queries and mutations
 - Configuration usage
-
-**Use osgrep for Concept Discovery**: When exact symbol names are unknown, start with semantic search:
-
-- `osgrep "how does track matching work"` → finds by meaning
-- `osgrep trace handleTransfer` → traces call graph
-- Then pinpoint with ripgrep: `rg "matchTrack" convex/services/`
 
 **Document as You Go**: Create incremental notes while investigating rather than trying to remember everything for final synthesis.
 

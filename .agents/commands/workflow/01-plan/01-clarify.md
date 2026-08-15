@@ -177,19 +177,6 @@ Mark each as: **EXPLORED** (with files) | **NOT APPLICABLE** | **NEEDS INVESTIGA
 
 Example commands for common patterns:
 
-### Semantic Code Search (osgrep Skill)
-
-Use osgrep BEFORE grep when searching for patterns, concepts, or behaviors rather than exact function/class names. Returns file:line paths.
-
-When exact symbol names are unknown, use `osgrep` "Skill" for concept-based discovery:
-
-```bash
-# Find by behavior/intent, not keywords
-osgrep "authentication flow"
-osgrep "error handling logic"
-osgrep "data validation"
-```
-
 ```bash
 # Frontend discovery
 find src/routes -type f -name "*.tsx" -o -name "*.ts"
