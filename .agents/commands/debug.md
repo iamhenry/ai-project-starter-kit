@@ -8,7 +8,7 @@ Investigate this bug: $ARGUMENTS
 You are the main orchestrator. Spawn three `general` subagents in parallel via the Task tool.
 
 Subagent A (5 Whys)
-- Use `@.claude/skills/5-whys/SKILL.md` for the method.
+- Use `@.agents/skills/5-whys/SKILL.md` for the method.
 - Ask one why at a time, investigate, then continue.
 - Every conclusion must include hard evidence.
 

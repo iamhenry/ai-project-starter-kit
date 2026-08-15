@@ -29,7 +29,7 @@ Invoke this skill when the user asks about:
 Run commands via the bundled script:
 
 ```bash
-node .claude/skills/astro-aso/scripts/astro-query.mjs <command> '<json-params>'
+node .agents/skills/astro-aso/scripts/astro-query.mjs <command> '<json-params>'
 ```
 
 ## Available Commands
@@ -39,7 +39,7 @@ node .claude/skills/astro-aso/scripts/astro-query.mjs <command> '<json-params>'
 List all tracked apps in Astro.
 
 ```bash
-node .claude/skills/astro-aso/scripts/astro-query.mjs list_apps '{}'
+node .agents/skills/astro-aso/scripts/astro-query.mjs list_apps '{}'
 ```
 
 ---
@@ -56,7 +56,7 @@ Search keyword rankings for apps.
 | appId   | string | no       | Filter by app ID          |
 
 ```bash
-node .claude/skills/astro-aso/scripts/astro-query.mjs search_rankings '{"keyword": "photo editor"}'
+node .agents/skills/astro-aso/scripts/astro-query.mjs search_rankings '{"keyword": "photo editor"}'
 ```
 
 ---
@@ -74,7 +74,7 @@ Get historical ranking data for a keyword.
 | store    | string | no       | Filter by store               |
 
 ```bash
-node .claude/skills/astro-aso/scripts/astro-query.mjs historical_rankings '{"keyword": "photo editor", "daysBack": 90}'
+node .agents/skills/astro-aso/scripts/astro-query.mjs historical_rankings '{"keyword": "photo editor", "daysBack": 90}'
 ```
 
 ---
@@ -92,7 +92,7 @@ Get all tracked keywords for an app.
 \*One of appName or appId required
 
 ```bash
-node .claude/skills/astro-aso/scripts/astro-query.mjs app_keywords '{"appName": "My App"}'
+node .agents/skills/astro-aso/scripts/astro-query.mjs app_keywords '{"appName": "My App"}'
 ```
 
 ---
@@ -110,7 +110,7 @@ Analyze keyword ranking trends over time.
 | store   | string | no       | Filter by store                      |
 
 ```bash
-node .claude/skills/astro-aso/scripts/astro-query.mjs keyword_trends '{"keyword": "photo editor", "period": "month"}'
+node .agents/skills/astro-aso/scripts/astro-query.mjs keyword_trends '{"keyword": "photo editor", "period": "month"}'
 ```
 
 ---
@@ -129,7 +129,7 @@ Compare rankings between two dates.
 | store   | string | no       | Filter by store          |
 
 ```bash
-node .claude/skills/astro-aso/scripts/astro-query.mjs compare_rankings '{"keyword": "photo editor", "date1": "2024-01-01", "date2": "2024-02-01"}'
+node .agents/skills/astro-aso/scripts/astro-query.mjs compare_rankings '{"keyword": "photo editor", "date1": "2024-01-01", "date2": "2024-02-01"}'
 ```
 
 ---
@@ -148,7 +148,7 @@ Get app ratings and review data.
 \*One of appName or appId required
 
 ```bash
-node .claude/skills/astro-aso/scripts/astro-query.mjs app_ratings '{"appName": "My App", "daysBack": 60}'
+node .agents/skills/astro-aso/scripts/astro-query.mjs app_ratings '{"appName": "My App", "daysBack": 60}'
 ```
 
 ---
@@ -164,7 +164,7 @@ Find competing apps ranking for a keyword.
 | limit   | number | no       | Max results (default: 10) |
 
 ```bash
-node .claude/skills/astro-aso/scripts/astro-query.mjs keyword_competitors '{"keyword": "photo editor", "limit": 20}'
+node .agents/skills/astro-aso/scripts/astro-query.mjs keyword_competitors '{"keyword": "photo editor", "limit": 20}'
 ```
 
 ---
@@ -182,7 +182,7 @@ Get recommended keywords based on existing ones.
 | limit   | number | no       | Max results (default: 10) |
 
 ```bash
-node .claude/skills/astro-aso/scripts/astro-query.mjs keyword_recommendations '{"keyword": "photo"}'
+node .agents/skills/astro-aso/scripts/astro-query.mjs keyword_recommendations '{"keyword": "photo"}'
 ```
 
 ---
@@ -201,7 +201,7 @@ Analyze competitive position for an app.
 \*One of appName or appId required
 
 ```bash
-node .claude/skills/astro-aso/scripts/astro-query.mjs competitive_landscape '{"appName": "My App"}'
+node .agents/skills/astro-aso/scripts/astro-query.mjs competitive_landscape '{"appName": "My App"}'
 ```
 
 ---
@@ -221,7 +221,7 @@ Find keyword opportunities (low difficulty, high popularity).
 \*One of appName or appId required
 
 ```bash
-node .claude/skills/astro-aso/scripts/astro-query.mjs keyword_opportunities '{"appName": "My App", "maxDifficulty": 30}'
+node .agents/skills/astro-aso/scripts/astro-query.mjs keyword_opportunities '{"appName": "My App", "maxDifficulty": 30}'
 ```
 
 ---
@@ -241,7 +241,7 @@ Detect sudden ranking changes and anomalies.
 \*One of appName or appId required
 
 ```bash
-node .claude/skills/astro-aso/scripts/astro-query.mjs ranking_anomalies '{"appName": "My App", "threshold": 15}'
+node .agents/skills/astro-aso/scripts/astro-query.mjs ranking_anomalies '{"appName": "My App", "threshold": 15}'
 ```
 
 ---
@@ -259,7 +259,7 @@ Predict future rankings based on trends.
 | daysForward | number | no       | Days to predict (default: 7) |
 
 ```bash
-node .claude/skills/astro-aso/scripts/astro-query.mjs ranking_predictions '{"keyword": "photo editor", "daysForward": 14}'
+node .agents/skills/astro-aso/scripts/astro-query.mjs ranking_predictions '{"keyword": "photo editor", "daysForward": 14}'
 ```
 
 ---
@@ -276,7 +276,7 @@ Find keywords with low competition.
 | limit         | number | no       | Max results (default: 20)    |
 
 ```bash
-node .claude/skills/astro-aso/scripts/astro-query.mjs low_competition_keywords '{"maxDifficulty": 25, "minPopularity": 30}'
+node .agents/skills/astro-aso/scripts/astro-query.mjs low_competition_keywords '{"maxDifficulty": 25, "minPopularity": 30}'
 ```
 
 ---
@@ -294,7 +294,7 @@ Get overall ASO health analysis for an app.
 \*One of appName or appId required
 
 ```bash
-node .claude/skills/astro-aso/scripts/astro-query.mjs analyze_aso_health '{"appName": "My App"}'
+node .agents/skills/astro-aso/scripts/astro-query.mjs analyze_aso_health '{"appName": "My App"}'
 ```
 
 ## Output Format
@@ -309,22 +309,22 @@ All commands return JSON with either:
 1. List all tracked apps:
 
    ```bash
-   node .claude/skills/astro-aso/scripts/astro-query.mjs list_apps '{}'
+   node .agents/skills/astro-aso/scripts/astro-query.mjs list_apps '{}'
    ```
 
 2. Get keywords for a specific app:
 
    ```bash
-   node .claude/skills/astro-aso/scripts/astro-query.mjs app_keywords '{"appName": "My App"}'
+   node .agents/skills/astro-aso/scripts/astro-query.mjs app_keywords '{"appName": "My App"}'
    ```
 
 3. Analyze keyword trends:
 
    ```bash
-   node .claude/skills/astro-aso/scripts/astro-query.mjs keyword_trends '{"keyword": "productivity", "period": "month"}'
+   node .agents/skills/astro-aso/scripts/astro-query.mjs keyword_trends '{"keyword": "productivity", "period": "month"}'
    ```
 
 4. Find opportunities:
    ```bash
-   node .claude/skills/astro-aso/scripts/astro-query.mjs keyword_opportunities '{"appName": "My App", "maxDifficulty": 40}'
+   node .agents/skills/astro-aso/scripts/astro-query.mjs keyword_opportunities '{"appName": "My App", "maxDifficulty": 40}'
    ```

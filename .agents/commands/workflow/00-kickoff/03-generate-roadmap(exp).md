@@ -11,7 +11,7 @@ subtask: false
 `(ex. # Core Flow Home: (Conversation List) → FAB → Capture/Gallery → Image Processing → New Conversation View (with Receipt Component showing parsed items)`
 
 ## Inputs
-1. output from: `.opencode/command/workflow/00-kickoff/02-technical-requirements.md` as `tech-adr.md`
+1. output from: `.agents/commands/workflow/00-kickoff/02-technical-requirements.md` as `tech-adr.md`
 
 ---
 

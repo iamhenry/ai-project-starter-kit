@@ -61,11 +61,11 @@ Is the calculation expensive (>1ms)?
 
 Load the specific reference file when working on that area:
 
-- **Effects issues**: `Read(.claude/skills/react-patterns/references/effects.md)`
-- **State structure**: `Read(.claude/skills/react-patterns/references/state.md)`
-- **Component design**: `Read(.claude/skills/react-patterns/references/components.md)`
-- **Performance**: `Read(.claude/skills/react-patterns/references/performance.md)`
-- **Event handling**: `Read(.claude/skills/react-patterns/references/events.md)`
+- **Effects issues**: `Read(.agents/skills/react-patterns/references/effects.md)`
+- **State structure**: `Read(.agents/skills/react-patterns/references/state.md)`
+- **Component design**: `Read(.agents/skills/react-patterns/references/components.md)`
+- **Performance**: `Read(.agents/skills/react-patterns/references/performance.md)`
+- **Event handling**: `Read(.agents/skills/react-patterns/references/events.md)`
 
 ## Core Principles
 

@@ -74,7 +74,7 @@ DEFAULT BEHAVIOR: Abstain unless you can prove the claim with a file:line citati
 ### Phase 1: Context Establishment (5 minutes)
 
 - Read project CLAUDE.md files to understand architecture, tech stack, and conventions
-- Load osgrep skill: Read `.claude/skills/osgrep/SKILL.md` to leverage semantic code search for concept-based discovery
+- Load osgrep skill: Read `.agents/skills/osgrep/SKILL.md` to leverage semantic code search for concept-based discovery
 - Identify the specific feature area or bug domain requiring analysis
 - Determine scope boundaries: what's in-scope vs out-of-scope for this investigation
 - List key questions that need answers (e.g., "How does authentication flow work?", "What components handle playlist ordering?")

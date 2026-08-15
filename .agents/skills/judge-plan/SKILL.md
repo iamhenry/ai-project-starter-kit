@@ -24,7 +24,7 @@ Read only these artifacts when available:
 - `{ISSUE_DIR}/plan.md`
 - `{ISSUE_DIR}/research/*.md`
 - `_ai/docs/ETHOS.md`
-- `.opencode/command/workflow/01-plan/02-create-issue.md` as the structural reference
+- `.agents/commands/workflow/01-plan/02-create-issue.md` as the structural reference
 
 If the task directory or `plan.md` is missing, return `ASK_USER` with the missing artifact.
 

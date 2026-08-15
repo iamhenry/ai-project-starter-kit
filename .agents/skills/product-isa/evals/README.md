@@ -15,7 +15,7 @@ The scenarios in `evals.json` check whether Product ISA changes preserve importa
 Copyable request:
 
 ```text
-Use the skill-creator workflow to evaluate `.opencode/skills/product-isa` with `.opencode/skills/product-isa/evals/evals.json`. Compare the edited skill against the preserved baseline, run every scenario for both versions, grade objective assertions, and open the eval viewer so I can review the outputs and benchmark. Do not revise the skill until I provide feedback.
+Use the skill-creator workflow to evaluate `.agents/skills/product-isa` with `.agents/skills/product-isa/evals/evals.json`. Compare the edited skill against the preserved baseline, run every scenario for both versions, grade objective assertions, and open the eval viewer so I can review the outputs and benchmark. Do not revise the skill until I provide feedback.
 ```
 
 ## First Formal Run

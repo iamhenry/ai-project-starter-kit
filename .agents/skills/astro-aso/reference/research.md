@@ -1,6 +1,6 @@
 # Astro ASO Research System
 
-This uses the `Astro Skill` from `@.claude/skills/astro-aso/SKILL.md` instead of the Astro Mac App. It reads the db from the Astro app.
+This uses the `Astro Skill` from `@.agents/skills/astro-aso/SKILL.md` instead of the Astro Mac App. It reads the db from the Astro app.
 
 ### **The "Golden Ratio" Baselines**
 

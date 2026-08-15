@@ -39,7 +39,7 @@ If a required input cannot be provided after ask, stop (Product ADR miss: sugges
 ## Invoke
 
 1. Run **PRE-FLIGHT** above.
-2. Load skill `technical-requirements` (`.opencode/skills/technical-requirements/SKILL.md`).
+2. Load skill `technical-requirements` (`.agents/skills/technical-requirements/SKILL.md`).
 3. Pass resolved paths (especially product ADR). Execute the skill end-to-end. Do not reimplement the flow in this command.
 
 **Output:** `_ai/docs/tech-adr.md`

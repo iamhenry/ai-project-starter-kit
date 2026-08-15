@@ -5,4 +5,4 @@ subtask: false
 model: opencode/kimi-k2.5-free
 ---
 
-1. Execute @.opencode/skills/git-commits/SKILL.md
+1. Execute @.agents/skills/git-commits/SKILL.md
