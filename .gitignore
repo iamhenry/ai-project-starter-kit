@@ -15,3 +15,10 @@ dist/
 # Ignore OSgrep
 .osgrep/
 .osgrep
+
+# Pi secrets and generated state
+.pi/auth.json
+.pi/trust.json
+.pi/models-store.json
+.pi/sessions/
+.pi/npm/

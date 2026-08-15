@@ -1,0 +1,10 @@
+{
+  "defaultProvider": "openai-codex",
+  "defaultModel": "gpt-5.5",
+  "defaultThinkingLevel": "medium",
+  "packages": [
+    "npm:pi-open-agents",
+    "npm:pi-multimodal-proxy",
+    "npm:pi-ollama-cloud"
+  ]
+}
