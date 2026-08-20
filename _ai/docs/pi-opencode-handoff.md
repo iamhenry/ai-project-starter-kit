@@ -1,6 +1,6 @@
 # Pi / OpenCode handoff
 
-Branch: `feat/pi-agent-migration`  
+Branch: `feat/pi-agent-migration`
 Do not merge to `main` until global OpenCode links are retargeted and Pi configs are linked global.
 
 ## Done
