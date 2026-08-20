@@ -1,49 +1,23 @@
 # Pi / OpenCode handoff
 
-Branch: `feat/pi-agent-migration`
-Do not merge to `main` until global OpenCode links are retargeted and Pi configs are linked global.
+Merged. Agents/skills live in `.agents/` (shared by Pi + OpenCode). Commands are OpenCode-only.
 
-## Done
+No OpenCode env var. It already reads `~/.config/opencode/{agent,command,skills}` (singular names still work).
 
-- Agents and skills live in `.agents/` so Pi and OpenCode share them. Commands are still OpenCode-only.
-- `.pi/settings.json` lists `pi-open-agents`, `pi-multimodal-proxy`, `pi-ollama-cloud`.
-- `.pi/extensions/safety.ts` blocks secret file access and catastrophic bash for all Pi agents/children.
-- `.pi/scripts/patch-open-agents.sh` forces `pi-open-agents` to scan `.agents/agents` only (not skills).
-- Upstream: https://github.com/andrea-tomassi/pi-open-agents/pull/7
-- Project PR: https://github.com/iamhenry/ai-project-starter-kit/pull/59
+## Other machine (same setup)
 
-## Breaks other projects on merge
-
-`~/.config/opencode` still points at the **main checkout**:
-
-```text
-agent    -> .../ai-project-starter-kit/.opencode/agent
-command  -> .../ai-project-starter-kit/.opencode/command
-skills   -> .../ai-project-starter-kit/.opencode/skills
-plugin   -> .../ai-project-starter-kit/.opencode/plugin   # still valid
-opencode.jsonc -> .../ai-project-starter-kit/opencode.jsonc
-```
-
-This branch deletes `.opencode/{agent,command,skills}`. Those 3 links go dangling. Every other repo that inherits global OpenCode loses agents, commands, and skills.
-
-`opencode.jsonc` also lost `build` / `plan` / `general` JSON. Those now live in `.agents/agents/*.md`.
-
-## Same-day as merge: make Pi configs global
-
-Same pattern as OpenCode: the **main checkout** is the source of truth. After merge, symlink Pi files into `~/.pi/agent/` so every project inherits them.
-
-KIT=`/Users/macvm/Desktop/Projects/other/ai-project-starter-kit`
-
-```text
-~/.pi/agent/settings.json              -> $KIT/.pi/settings.json
-~/.pi/agent/extensions/safety.ts       -> $KIT/.pi/extensions/safety.ts
-~/.pi/agent/patch-open-agents.sh       -> $KIT/.pi/scripts/patch-open-agents.sh
-~/.pi/agent/pi-update.sh               -> $KIT/.pi/scripts/pi-update.sh
-```
-
-Back up any existing global `settings.json` first. Then:
+Pull `main`. Set `KIT` to this clone. Then run:
 
 ```bash
+KIT="$HOME/Desktop/Projects/other/ai-project-starter-kit"
+
+# OpenCode — retarget the 3 dangling links. plugin + opencode.jsonc stay as-is.
+ln -sfn "$KIT/.agents/agents"   "$HOME/.config/opencode/agent"
+ln -sfn "$KIT/.agents/commands" "$HOME/.config/opencode/command"
+ln -sfn "$KIT/.agents/skills"   "$HOME/.config/opencode/skills"
+
+# Pi — backup first, then link kit files. Theme (dark) lives in kit settings.json.
+cp "$HOME/.pi/agent/settings.json" "$HOME/.pi/agent/settings.json.bak.$(date +%Y%m%d%H%M%S)"
 ln -sfn "$KIT/.pi/settings.json" "$HOME/.pi/agent/settings.json"
 mkdir -p "$HOME/.pi/agent/extensions"
 ln -sfn "$KIT/.pi/extensions/safety.ts" "$HOME/.pi/agent/extensions/safety.ts"
@@ -51,7 +25,7 @@ ln -sfn "$KIT/.pi/scripts/patch-open-agents.sh" "$HOME/.pi/agent/patch-open-agen
 ln -sfn "$KIT/.pi/scripts/pi-update.sh" "$HOME/.pi/agent/pi-update.sh"
 ```
 
-Leave these **local** (secrets / machine / generated):
+Leave **local** (do not symlink, do not commit):
 
 ```text
 ~/.pi/agent/auth.json
@@ -63,48 +37,28 @@ Leave these **local** (secrets / machine / generated):
 
 Do **not** global-link `.pi/agents/explorer.md`. That only disables bundled `explorer` in this repo.
 
-After linking, restart Pi in another project and confirm packages + `safety.ts` load.
+Pi may write `lastChangelogVersion` into kit `.pi/settings.json` through the symlink. Drop it; do not commit it.
 
-## Problem: slash commands are not shared
+## Check
 
-`.agents/commands` is OpenCode. Pi slash commands are `.pi/prompts` (non-recursive). Same markdown folder is not enough:
-
-- Nested files (`git/`, `workflow/`) do not become Pi `/` commands.
-- Pi ignores `name`, `agent`, `model`, `subtask`.
-- Bodies say `Task`; Pi’s tool is `subagent`.
-
-Naive first try if we iterate later:
-
-```json
-"prompts": [".agents/commands"]
+```bash
+ls -l ~/.config/opencode/{agent,command,skills,plugin}
+ls -l ~/.pi/agent/settings.json ~/.pi/agent/extensions/safety.ts ~/.pi/agent/{patch-open-agents,pi-update}.sh
 ```
 
-That only sees top-level files like `/debug`. Not a real dual-command setup.
+Then: open OpenCode in another project — agents, `/commands`, skills, `plan` denylist. Restart Pi — packages + `safety.ts`.
 
-## Remaining
+## Still true
 
-1. **Same-day as merge — OpenCode links, pick one**
-   - Retarget global links (keep singular names):
-     ```text
-     ~/.config/opencode/agent    -> .../.agents/agents
-     ~/.config/opencode/command  -> .../.agents/commands
-     ~/.config/opencode/skills   -> .../.agents/skills
-     ```
-   - Or add repo shims so old links keep working:
-     ```text
-     .opencode/agent   -> ../.agents/agents
-     .opencode/command -> ../.agents/commands
-     .opencode/skills  -> ../.agents/skills
-     ```
-2. After merge, open OpenCode in another project and confirm agents, `/commands`, skills, and `plan` denylist still load.
-3. `pi-open-agents` subagents are **blocking**. Do not install `pi-subagent-lite` beside it (same `subagent` tool, different schema, no `.agents` discovery, ignores `permission:`).
-4. Two Codex accounts: Pi native auth is one credential. Manual: `@narumitw/pi-accounts`. Auto-rotate: `pi-multi-account` — not installed; policy-sensitive.
-5. Keep using `.pi/scripts/pi-update.sh` until upstream PR 7 lands, then drop the local patch.
-6. Never commit `auth.json`, `trust.json`, `sessions/`, `npm/`, `models-store.json`.
-7. Project Pi extensions load only after this folder is trusted.
+- `pi-open-agents` subagents are **blocking**. Do not install `pi-subagent-lite` beside it.
+- Two Codex accounts: Pi native auth is one credential. Manual: `@narumitw/pi-accounts`. Auto-rotate: `pi-multi-account` — not installed.
+- Keep `.pi/scripts/pi-update.sh` until https://github.com/andrea-tomassi/pi-open-agents/pull/7 lands, then drop the local patch.
+- Project Pi extensions load only after this folder is trusted.
+- Slash commands are not shared with Pi (`.agents/commands` vs `.pi/prompts`). Do not set `"prompts": [".agents/commands"]` and expect nested `/git` commands.
 
 ## Do not
 
 - Copy `.agents` into every other repo.
 - Point other projects at `.agents` unless they also run Pi.
 - Run Lite + `pi-open-agents` in the same Pi process.
+- Add repo shims under `.opencode/{agent,command,skills}`. Global retarget is the setup.
