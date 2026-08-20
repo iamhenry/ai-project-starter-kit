@@ -27,7 +27,13 @@ no-implementation route from an absent diff, empty summary, or missing review.
 
 ## Candidate Identity Gate
 
-Before evaluating a leaf, establish that the runtime subject actually verified is the frozen candidate. Match every supplied candidate identity field, including `candidate_id`, `candidate_ref`, `candidate_digest` or tree identity, `base_head`, `declared_paths`, `build_identity`, and `runtime_subject`, to trustworthy runtime/build/source evidence. For the explicit no-implementation route, also verify an immutable committed `HEAD` and an empty `declared_paths`. Never substitute the current branch, latest checkout, app name, URL, simulator, or timestamp for identity.
+Before evaluating a leaf, establish that the runtime subject actually verified is the frozen candidate. Match every supplied candidate identity field, including `candidate_id`, `candidate_ref`, `candidate_digest` or tree identity, `base_head`, `declared_paths`, `build_identity`, and `runtime_subject`, to trustworthy runtime/build/source evidence. For the explicit no-implementation route, also verify an immutable committed `HEAD` and an empty `declared_paths`. Never substitute the current branch, latest checkout, app name, URL, simulator, timestamp, live-reload session, or hot-updated process for identity.
+
+A live-reload or incremental runtime is an Implement lane, not Accept proof.
+Produce or reuse the ISA-named shipped artifact for this gate. Rebuild it only
+when the candidate changed a layer that artifact must contain, or when no
+matching shipped identity exists yet. Do not rebuild to iterate, and do not
+PASS a leaf from a live session whose digest is not that shipped identity.
 
 If identity cannot be established or any identity field mismatches, the verification is `VOID/BLOCKED`: return overall `BLOCKED`, mark every leaf `BLOCKED` (or `VOID` where the report needs to distinguish invalidated evidence), and mark no leaf `PASS`. Do not accept partial identity evidence, reuse evidence from another candidate, or award credit/update the ISA or `JOURNAL`.
 
