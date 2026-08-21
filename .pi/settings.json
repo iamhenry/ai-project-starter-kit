@@ -1,12 +1,14 @@
 {
   "theme": "dark",
-  "defaultProvider": "openai-codex",
-  "defaultModel": "gpt-5.5",
+  "defaultProvider": "anthropic",
+  "defaultModel": "claude-sonnet-5",
   "defaultThinkingLevel": "medium",
   "defaultAgent": "build",
   "packages": [
     "npm:pi-open-agents",
     "npm:pi-multimodal-proxy",
-    "npm:pi-ollama-cloud"
-  ]
+    "npm:pi-ollama-cloud",
+    "npm:@gotgenes/pi-anthropic-auth"
+  ],
+  "lastChangelogVersion": "0.84.2"
 }
