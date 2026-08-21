@@ -6,9 +6,10 @@
   "defaultAgent": "build",
   "packages": [
     "npm:pi-open-agents",
-    "npm:pi-multimodal-proxy",
+    "npm:pi-multimodal-proxy@1.15.0",
     "npm:pi-ollama-cloud",
-    "npm:@gotgenes/pi-anthropic-auth"
+    "npm:@gotgenes/pi-anthropic-auth",
+    "git:github.com/capyup/pi-auto-compact@2d8bde795191f1913618b315b104d8563821fd39"
   ],
   "lastChangelogVersion": "0.84.2"
 }
