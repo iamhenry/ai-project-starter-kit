@@ -1,6 +1,6 @@
 ---
 name: second-opinion
-description: Obtain independent read-only critiques through `opencode run`. Use when the user asks for a second opinion, asks Grok/Luna/GLM/Kimi/Sol/DeepSeek, wants multiple models to review something, compare model opinions, or use OpenCode run for critique.
+description: Obtain independent read-only critiques through `opencode run`. Use when the user asks for a second opinion, asks Grok/Luna/GLM/Kimi/Sol/DeepSeek/Opus/Fable, wants multiple models to review something, compare model opinions, or use OpenCode run for critique.
 ---
 
 # Second Opinion
@@ -19,10 +19,14 @@ Match aliases case-insensitively and map them exactly:
 | `luna`, `luna high` | `openai/gpt-5.6-luna` | `high` |
 | `sol`, `sol medium` | `openai/gpt-5.6-sol` | `medium` |
 | `deepseek`, `deepseek v4 pro` | `ollama-cloud/deepseek-v4-pro` | none |
+| `opus`, `opus 5` | `anthropic/claude-opus-5` | none |
+| `fable`, `fable 5` | `anthropic/claude-fable-5` | none |
 
 Accept an explicitly supplied full `provider/model` ID. Add a variant only when the user explicitly supplies one; the Luna and Sol aliases above include their mapped variants.
 
-Separate explicit model selectors from the content to review. Do not treat model names merely mentioned inside that content as selectors. If no model is selected, ask one focused question: "Which model or models should I ask? Available aliases: Grok, GLM, Kimi, Luna, Sol, DeepSeek; or provide a full provider/model ID."
+Separate explicit model selectors from the content to review. Do not treat model names merely mentioned inside that content as selectors. If no model is selected, ask one focused question: "Which model or models should I ask? Available aliases: Grok, GLM, Kimi, Luna, Sol, DeepSeek, Opus, Fable; or provide a full provider/model ID."
+
+Run `opencode models` to list all installed model IDs if you need to confirm an alias or find a new one to add.
 
 If a selector is unknown or ambiguous, ask what model the user means. Never guess or silently choose a model because each call may spend credits.
 
