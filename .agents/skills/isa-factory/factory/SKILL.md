@@ -31,8 +31,10 @@ actions, or performs destructive actions.
 | `code` | Application implementation, tests, and code changes. |
 | `general` | Docs, non-code artifacts, and other bounded utility changes. |
 
-Use one fresh modifying agent by default. Do not fan out automatically; sequence
-overlapping work.
+Maximize useful concurrency with fresh agents whose assignments are bounded to
+one verifiable vertical slice or concrete capability. Fan out when collision
+risk is low; sequence shared paths, mutable state, subjects, outputs, or
+authority-sensitive writes rather than maximizing agent count for its own sake.
 
 ### Subagents and Skills
 
@@ -65,20 +67,27 @@ text/probes/thresholds, identify dependencies and routes, and state whether
 implementation is required. A blocked packet routes to its declared blocker;
 do not invent a preflight/probe phase or persist the packet.
 
+When more independent work is startable, fill a concurrent wave with additional
+fresh Plan invocations. Pass active leaf, path, dependency, runtime/data,
+subject, output, and verification-side-effect reservations as transient
+coordination context so no leaf or mutable surface gets two owners. Stop adding
+lanes when collision or integration cost would outweigh useful concurrency.
+
 ### 1a. Prepare Execution Lane
 
-Before Implement, the factory prepares only the environment capabilities
-declared by the locked slice. Reuse a healthy existing lane when possible;
-otherwise start the required runtime, service, simulator, database, or local
-dependency using repository instructions, then run one minimal baseline smoke
-check.
+Before Implement, prepare only the capabilities declared by each locked slice.
+Prefer the least costly healthy, traceable environment that can run the work.
+Reuse it when the change remains within its refresh boundary: the changes it
+can load without reprovisioning while still being attributable to the
+candidate. Rebuild or reprovision only when the change crosses that boundary,
+the exact probe requires a stronger artifact class, or environment health or
+candidate attribution cannot be established.
 
-Separate the iterate lane from the close artifact. If the change lives only
-in a layer a live-reload or incremental runtime can project (interpreted UI,
-styles, scripts), prepare or reuse that lane and do not rebuild the shipped
-binary to implement. Rebuild the native or packaged artifact when the change
-cannot appear without it. Accept still uses the ISA-named shipped identity;
-this lane is not proof.
+Separate iteration convenience from acceptance strength. The exact ISA
+criterion and probe choose the evidence class; a fresh agent or generic phase
+name does not imply a fresh build. Work from the authoritative project tree or
+a proven-complete content-addressed materialization, never an ad hoc filtered
+mirror whose required inputs may be absent.
 
 This preparation proves only that implementation can execute; it does not run
 ISA acceptance probes or prepare outcomes that depend on the new code. Keep the
@@ -93,7 +102,11 @@ implementation into a broken lane.
 ### 2. Implement
 
 For each capability in the packet, delegate one fresh bounded `code` or
-`general` agent using the delegation contract. The factory owns the journey;
+`general` agent using the delegation contract. Run low-collision assignments
+concurrently and sequence a shared enabling capability before its dependents.
+Introduce shared structure only when at least two selected or imminent journeys
+need it; otherwise prefer the local change.
+The factory owns the journey;
 the agent owns only the assigned capability and evidence preparation. Do not
 delegate implementation for `implementation_required: no`; preserve existing
 behavior and proceed to gates. Agents may not edit the ISA, `JOURNAL.md`, or
@@ -102,26 +115,34 @@ close/credit leaves.
 ### 3. Review
 
 If every selected capability has `implementation_required: no`, skip Implement
-and Review. Freeze the immutable current committed candidate identity with an
+and Review. Freeze the immutable current committed source identity with an
 empty declared path set and route directly to Accept using the explicit
-no-implementation route. If any capability changes files, first classify the
-post-implementation diff against the complete declared path set and baseline.
-Any undeclared changed path blocks candidate freeze until reverted or explicitly
-re-planned; see
-`references/delegation-contract.md`. Then delegate a fresh
-`code-quality-gate` with explicit `mode: isa`, the exact `isa_path`, immutable
-locked slice, implementation summary, changed files/diff, checks, and frozen
-candidate identity. On `APPROVE_CODE`, continue. On `REVISE_CODE`, allow one
-correction by a fresh implementation agent, freeze a new identity, and rerun
-review. On `ASK_USER`, interrupt only under the Human Interrupt rules.
+no-implementation route. If any capability changes files, classify the diff
+against its declared paths and content-aware baseline. Unchanged protected
+work is allowed; unexpected mutation or behavior-affecting undeclared content
+blocks freeze. See `references/delegation-contract.md`.
+
+Freeze a source identity for each lane and delegate fresh `code-quality-gate`
+reviews concurrently with explicit `mode: isa`, the exact `isa_path`, immutable
+locked slice, implementation summary, changed files/diff, checks, and source
+identity. Build/runtime identity is not required for Review. On
+`APPROVE_CODE`, integrate approved lanes into one immutable content-identified
+candidate. If integration changes reviewed content or a relevant dependency
+assumption, rerun Review only for affected lanes. On `REVISE_CODE`, allow one
+correction by a fresh implementation agent, freeze a new source identity, and
+rerun review. On `ASK_USER`, interrupt only under the Human Interrupt rules.
 
 ### 4. Accept
 
 Delegate a fresh `verification-gate` with explicit `mode: isa`, the same
-immutable slice and complete candidate identity, either the matching
-`APPROVE_CODE` result for an implementation slice or the explicit
-no-implementation route, and all required runtime/build prerequisites. The
-verifier owns runtime/product truth and returns an overall verdict plus a
+immutable slice, reviewed source identity, extended integrated/build/runtime
+identity, either the matching `APPROVE_CODE` result for an implementation slice
+or the explicit no-implementation route, and all required prerequisites.
+Produce each required artifact once per integrated candidate and verify
+independent journeys concurrently when subjects and mutable state cannot
+interfere. One real end-to-end execution is the default; add up to two more
+perspectives only when each addresses a distinct named risk. The verifier owns
+runtime/product truth and returns an overall verdict plus a
 complete in-context packet record for every leaf; each record carries every
 Close-required field unchanged, including the complete candidate identity. The
 factory only checks the contract, forwards the complete packet set unchanged,
@@ -138,6 +159,14 @@ destructive Git actions. See `isa-factory/close/references/verdict-contract.md`,
 `isa-factory/factory/references/candidate-identity.md`, and
 `isa-factory/close/references/ledger-update.md`.
 
+Serialize integrated candidate and authoritative ledger writes. A parked or
+non-PASS probe cannot close. Close valid siblings only when removing or
+correcting another lane does not change their accepted integrated candidate;
+otherwise rerun only materially affected evidence.
+
+A completed wave leaves one integrated runnable candidate. A lane with parked
+proof remains open and is not presented as a completed milestone.
+
 ### 6. Repeat
 
 A blocked leaf is not a blocked factory. After Close or a park, reread the
@@ -146,6 +175,12 @@ ISA, JOURNAL, and runtime evidence; unpark and plan any leaf whose condition
 is now met. Then select the next open leaf this lane can run without
 irreversibly altering state a still-parked leaf's unlock depends on. Stop
 when every remaining open leaf is closed or parked.
+
+An environment, tooling, or external-availability miss parks the dependent
+acceptance probe, not reviewed implementation. Keep that work intact and
+continue non-overlapping lanes. Re-plan only when journey intent, selected
+leaves, capability boundaries, or relevant dependency assumptions change;
+unrelated commits, protected work, or a renewed runtime handle are not enough.
 
 A same-class miss is the same leaf failing for the same reason class (for
 example: required world-state missing or not ready, probe window missed,
@@ -159,8 +194,9 @@ startable work. Do not loop the same failed delegation.
 
 The factory owns phase order, ownership, routing, revision, and completion; it
 does not restate phase schemas or mechanics. Keep the Plan packet transient and
-immutable, carry candidate identity unchanged, and forward complete per-leaf
-packets without credit or mutation. Canonical detail lives in
+immutable, grow candidate identity only through its canonical source and
+acceptance stages, and forward complete per-leaf packets without credit or
+mutation. Canonical detail lives in
 `isa-factory/plan/references/slice-contract.md`,
 `isa-factory/factory/references/candidate-identity.md`,
 `isa-factory/close/references/verdict-contract.md`,
@@ -175,16 +211,17 @@ the phase unless handed to the next phase. Progress means only the supplied
 ISA's checkbox/progress movement performed by `isa-close`; activity, tests,
 commits, and agent claims are not progress. Never create duplicate status.
 
-After Close, a parked leaf, a completed subagent wave, or a hard blocker, emit
-one compact chat progress card from the ISA's authoritative counts. Never write
-it as a file. Never count activity, tests, commits, or agent claims as closed.
+After each completed delegated task, Close, park, or hard blocker, emit one
+compact chat progress card from the ISA's authoritative counts. Batch agents
+that finish together into one card. Never write it as a file or count activity,
+tests, commits, or agent claims as closed.
 
 ```md
 Closed N/T · remaining R · next: [one startable leaf or slice]
 
-| Lane | Criteria | Files | Agent |
-| --- | --- | --- | --- |
-| [A: short job] | [ISC ids] | [paths or —] | [owner or —] |
+| Lane | State/outcome | Criteria | Evidence/trade-off | Collision/next |
+| --- | --- | --- | --- | --- |
+| [A: short job] | [active/completed/blocked] | [ISC ids] | [proof or blocker; choice made] | [none or exact edge; next] |
 ```
 
 Show at most the current/next lanes. Mark parked leaves in Lane, not as closed.
@@ -226,11 +263,18 @@ phase routing remain with the factory.
 ## Revision Routing
 
 - `isa-plan` blocked: route the concrete dependency, contract gap, or external authority need; interrupt only when permitted.
-- Implementation failure: allow one correction with a fresh bounded agent; then narrow and re-plan.
+- Implementation failure: allow one correction with a fresh bounded agent;
+  narrow or re-plan only when the slice boundary or relevant assumptions changed.
 - `REVISE_CODE`: one fresh implementation correction, new candidate identity, then rerun Review. A second review failure requires narrower re-plan.
 - `ASK_USER`: interrupt only for a true human interrupt; otherwise return the concrete missing prerequisite to its owner.
-- `FAIL`: route failing leaf evidence to the implementation owner, then narrow and re-plan; do not close.
-- `BLOCKED` or identity `VOID/BLOCKED`: route the exact unblock condition or invalidate and re-plan; do not close.
+- `FAIL`: route failing leaf evidence to the implementation owner; correct the
+  same slice when its contract still holds, and re-plan only when its boundary
+  or relevant assumptions changed. Do not close.
+- `BLOCKED`: park the probe with its exact unblock condition, preserve reviewed
+  implementation, and continue independent work. Do not close.
+- Identity `VOID/BLOCKED`: invalidate only the affected evidence/candidate,
+  restore traceability, and rerun the affected gate; re-plan only when the slice
+  contract or relevant assumptions changed.
 - Close mismatch or missing authority: no ledger mutation; stop with exact path and reason.
 
 When acceptance blockers repeat as the same class, close any valid PASS
@@ -245,10 +289,12 @@ fabricate evidence, or widen scope.
 
 ## Constraints And Completion
 
-- No preflight/probe phase, baseline/report artifact, automatic multi-agent fanout, or mandatory three-simulator policy.
+- No preflight/probe phase, baseline/report artifact, indiscriminate agent
+  fanout, or mandatory proof-count policy.
 - No duplicate ledger, issue, plan, dashboard, or product-ISA implementation.
 - No remote, push, destructive, reset, amend, force, branch-delete, or unrelated Git action.
-- One modifying agent by default; fresh agents per phase and correction.
+- Use as many bounded low-collision lanes as are useful; keep fresh agents per
+  phase and correction, and serialize true contention.
 - `done` means the current slice was validly closed by `isa-close`, or the whole supplied ISA is already complete. Otherwise return the concrete blocked/re-plan state.
 
 ## Output Check
