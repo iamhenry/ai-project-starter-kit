@@ -61,7 +61,8 @@ The entry records the operation and candidate pointer only. It must not become a
 
 ## Commit Ordering
 
-1. Candidate commit: exact verified candidate tree only. For a no-change
+1. Candidate commit: exact verified integrated tree only, excluding protected
+   unrelated working-environment content. For a no-change
    candidate whose committed `HEAD` already has the packet tree identity, reuse
    `HEAD`; otherwise verify `HEAD^{tree}` equals the packet tree identity after
    creating the candidate commit. Never create an empty commit.
