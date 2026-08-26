@@ -29,12 +29,14 @@ Capabilities:
   Dependencies: [prerequisites]
   Evidence obligation: [exact consumer-boundary evidence]
   Non-overlap boundary: [what this assignment does not own]
+  Collision surface: [shared paths/modules, mutable state, subject, output, or side effect]
 
 Dependencies:
 - [prerequisite or dependent] -> [affected leaf/capability]; [reason and evidence]
 
-Candidate identity expectation: [fresh agent identity plus exact runtime/data/
-subject identity it must preserve or select; no synthetic substitution]
+Source identity expectation: [declared paths, content identity, and base provenance required for Review]
+Acceptance identity expectation: [required proof class plus traceable integrated
+candidate, runtime/data/subject identity; no synthetic substitution]
 Evidence requirements: [subject lineage, live boundary, retained result, and
 the exact ISA threshold]
 Hard blockers: [ISA contradiction, unavailable true external authority/access,
@@ -57,9 +59,10 @@ journey, verification/accept/close/commit/push]
   behavior owner and one clear boundary. Otherwise split the assignment.
 - A capability can enable a proof-only leaf, but must not claim PASS or mutate
   ISA progress.
-- Candidate identity is the exact subject expectation for fresh work: build,
-  device/runtime, input/data lineage, account/permissions, and any external
-  identity needed by the probe. Redact secrets and personal data.
+- Source identity is frozen for Review before build/runtime identity exists.
+  Acceptance extends it with the immutable integrated candidate and the least
+  costly traceable environment satisfying the exact probe's evidence class.
+  Redact secrets and personal data.
 - If the probe requires a world-state this lane cannot produce with allowed
   tools and existing subjects, route `dependency-blocked`. Do not lock
   "acquire a better subject" as implementation. The factory then selects
