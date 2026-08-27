@@ -9,7 +9,9 @@
             "context": 262144,
             "output": 131072
           }
-        }
+        },
+        // not yet in models.dev catalog; registered locally, verified via ollama.com/api/tags
+        "glm-5.3-flash": {}
       }
     }
   },
@@ -21,8 +23,8 @@
     "@tarquinen/opencode-dcp@latest", // (https://github.com/Tarquinen/opencode-dynamic-context-pruning)
     "@dietrichgebert/ponytail", // (https://github.com/DietrichGebert/ponytail)
     "opencode-claude-auth@latest", // (https://github.com/griffinmartin/opencode-claude-auth)
-    "oc-codex-multi-auth", // (https://github.com/ndycode/oc-codex-multi-auth)
-    ["@showlotus/opencode-image-vision@latest", { "model": "ollama-cloud/minimax-m3" }], // (https://github.com/showlotus/opencode-image-vision)
+    // "oc-codex-multi-auth", // (https://github.com/ndycode/oc-codex-multi-auth)
+    // ["@showlotus/opencode-image-vision@latest", { "model": "ollama-cloud/minimax-m3" }], // (https://github.com/showlotus/opencode-image-vision)
   ],
   "compaction": {
     "auto": false

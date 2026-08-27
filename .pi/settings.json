@@ -1,5 +1,5 @@
 {
-  "theme": "dark",
+  // "theme": "dark",
   "defaultProvider": "anthropic",
   "defaultModel": "claude-sonnet-5",
   "defaultThinkingLevel": "medium",
@@ -11,5 +11,5 @@
     "npm:@gotgenes/pi-anthropic-auth",
     "git:github.com/capyup/pi-auto-compact@2d8bde795191f1913618b315b104d8563821fd39"
   ],
-  "lastChangelogVersion": "0.84.2"
+  "lastChangelogVersion": "0.84.3"
 }
