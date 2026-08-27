@@ -1,5 +1,5 @@
 {
-  // "theme": "dark",
+  "theme": "dark",
   "defaultProvider": "anthropic",
   "defaultModel": "claude-sonnet-5",
   "defaultThinkingLevel": "medium",
