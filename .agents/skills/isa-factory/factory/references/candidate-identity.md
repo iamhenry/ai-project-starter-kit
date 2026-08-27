@@ -1,46 +1,63 @@
 # Candidate Identity
 
-Freeze this transient identity before Review and carry it unchanged through
-Accept and Close:
+Identity grows in two stages so source review can find defects before artifact
+production while Accept still proves the exact runtime candidate.
+
+Freeze this source identity before Review:
 
 ```text
 candidate_id: [stable candidate label]
-candidate_ref: [immutable commit, snapshot, or explicit worktree subject]
-candidate_digest: [immutable candidate digest or tree identity]
-base_head: [base commit]
+candidate_ref: [immutable commit, snapshot, or explicit source subject]
+candidate_digest: [digest of the declared source candidate]
+base_head: [base commit used as provenance]
 declared_paths: [complete candidate path set]
-build_identity: [immutable build/run artifact and environment identity]
-runtime_subject: [selected device, app, data lineage, permissions, and external identity; redact secrets]
+```
+
+After `APPROVE_CODE`, extend it for Accept and Close:
+
+```text
+integrated_ref: [immutable integrated candidate reference]
+integrated_digest: [complete integrated tree or content identity]
+build_identity: [traceable artifact or execution-environment identity required by the probe]
+runtime_subject: [selected runtime, data lineage, permissions, and external identity; redact secrets]
 ```
 
 Rules:
 
-- Canonical identity is a committed no-change candidate's commit plus tree
-  identity. A worktree candidate uses its base commit, complete declared path
-  set, and one exact diff/digest command with its result recorded before
-  Review. Carry that same recipe through Accept and Close; never mix digest
-  recipes.
-- A branch name, path, timestamp, app name, simulator, or `current` checkout
-  alone is not identity.
+- A worktree source candidate records its base commit, complete declared path
+  set, and one exact diff/digest recipe before Review. Use the same recipe for
+  corrections; a branch name, path, timestamp, or `current` checkout alone is
+  not identity.
+- `base_head` records provenance. Another lane advancing repository state does
+  not invalidate reviewed source when its declared content and relevant
+  dependency assumptions remain unchanged.
+- The integrated candidate must have an immutable content identity. A mutable
+  working tree is not a frozen candidate. If integration changes reviewed
+  content or a relevant dependency assumption, rerun Review only for affected
+  lanes before Accept.
 - For an explicit no-implementation route, use the current immutable committed
-  `HEAD` and its tree identity, with `declared_paths: []`; the route must be
-  stated by the locked slice and must not be inferred from missing changes.
-- Review checks the candidate against the locked slice; it does not prove
-  runtime behavior.
-- Accept must match all identity fields to trustworthy build/runtime evidence.
-  Mismatch is `VOID/BLOCKED`, with no leaf PASS.
-- `build_identity` is the ISA-named shipped artifact (packaged binary, built
-  bundle, or equivalent digest), not a live-reload session, dev-client attach,
-  or hot-updated process. A live lane may host Implement; it cannot satisfy
-  Accept unless the ISA names that same artifact as the close subject.
-- If the candidate is claimed changed, `build_identity` must name and hash
-  the primary shipped artifact the change lives in (the digest that would
-  move if the change actually shipped). An unchanged primary digest is
-  `VOID/BLOCKED`: do not Accept. The factory may rebuild or re-emit that
-  artifact once; if the digest is still unchanged, park that candidate and
-  do not loop installs.
-- Close must detect an identical already-applied packet/candidate/provenance
-  set before mutation. Otherwise, for changed candidates it must reproduce and
-  commit the declared tree first, verify `HEAD^{tree}`, and only then update
-  the ISA/JOURNAL in a separate local commit; for no-change candidates it must
-  reuse the matching committed `HEAD` and never create an empty commit.
+  candidate and tree identity with `declared_paths: []`; do not infer this route
+  from missing changes.
+- Review requires only the source identity. `build_identity`,
+  `runtime_subject`, and the integrated identity are attached after
+  `APPROVE_CODE`; their absence at Review is not a blocker.
+- Accept uses the least costly traceable environment that can execute the exact
+  declared probe against the integrated candidate. The ISA's named evidence or
+  artifact class wins. Do not infer a packaged, release, or production artifact
+  merely from a fresh verifier or generic workflow wording.
+- Reuse a healthy environment when the change remains within its refresh
+  boundary: the changes it can load without reprovisioning while remaining
+  attributable to the integrated candidate. Rebuild or reprovision when the
+  change crosses that boundary, the probe requires a stronger class, or health
+  or attribution cannot be established. `Untraceable` means the runtime cannot
+  be attributed to the recorded integrated identity.
+- Build and Accept from the authoritative integrated tree or a proven-complete,
+  content-addressed materialization. An ad hoc filtered mirror whose inputs
+  cannot be proven complete is not a candidate.
+- Accept must match the complete extended identity to trustworthy source,
+  artifact, and runtime evidence. Mismatch is `VOID/BLOCKED`, with no leaf PASS.
+- Close detects an identical already-applied packet/candidate/provenance set
+  before mutation. Otherwise it commits the exact accepted integrated tree,
+  excluding protected unrelated work, verifies `HEAD^{tree}`, and only then
+  updates the ISA/JOURNAL separately. A no-change candidate reuses matching
+  committed `HEAD` and never creates an empty commit.

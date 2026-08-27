@@ -16,8 +16,9 @@ an assignment cannot pretend a blocked route is implementation work.
 
 For every automated assignment, require:
 
-- The candidate identity: exact runtime/build, subject/data lineage, and
-  permissions needed by the probe.
+- The source identity needed for Review, plus the proof class, subject/data
+  lineage, permissions, and attribution needed to extend it for Accept. Do not
+  require a build/runtime identity before that environment is selected.
 - The real user or consumer path, including controlled conditions only when
   the ISA explicitly permits them.
 - The direct observation channel named by the claim.
