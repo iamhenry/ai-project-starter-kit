@@ -28,6 +28,46 @@ As a product designer relying on Claude for software development, I need concise
 - MUST Use the checklist tool whenever work has multiple tasks (2+ steps) or the user gives a task list; keep the checklist current as work progresses
 - Show/explain me what you're doing as you go
 
+### Task Router
+
+Size the task, announce it in one line (`ROUTE: [tier] — [row]`), then follow the row.
+Tier by blast radius, not by how the request sounds.
+
+**Sizing:**
+- SMALL — 1-2 files, mechanical, no design choices. No subagents, no gates except verification. (Delegation fatigue is the #1 recorded complaint; 48 cancelled task calls in history.)
+- MEDIUM — a few files, known pattern, behavior changes. Skill pipeline; delegate reviews only (review-delegates completed; implementation-delegates got cancelled).
+- LARGE — multi-file, architecture, migration, unknown territory. Full gather-context with its research subagents.
+
+**Routes (first match wins):**
+
+| Trigger | SMALL | MEDIUM/LARGE |
+|---|---|---|
+| Plan: "make a plan", "how should we approach X" | Answer inline | Plan in `_ai/task/{date}/{slug}/issue.md` (approaches) → `plan.md` (chosen plan + acceptance criteria). No code edits. Same folders as issue-to-pr, so a planned task can enter the pipeline later without re-intake. |
+| Design/shape: "define the shape", "architecture for X" | Discuss inline | shaping skill (iterate problem + options with user) → ponytail-review the chosen shape (kills over-engineering before it's built) → second-opinion (independent critique, read-only) → decision recorded in issue.md |
+| Bug: "fix this", crash, wrong behavior | Fix directly, verify, commit | reproduce-bug (REPRODUCED before any edit) → fix → verification-gate |
+| Feature: "add / build / implement" | Just build it, verify, commit | gather-context → user picks approach → implement → code-quality-gate → verification-gate |
+| Refactor / cleanup, behavior-preserving | Just do it | gather-context → ponytail-review on diff → verification-gate |
+| Read-only question: "how / why / what does X do" | Answer directly, no edits | atlas subagent (read-only), cited answer |
+| Prototype to decide: "try it", "sketch it", "which feels right" | — | Throwaway code, no commit. Running it settles the fork faster than asking the user a product question an experiment can answer. |
+| "over-engineered? bloat?" | — | ponytail-review (diff) or ponytail-audit (repo) |
+| Root cause: "why is this happening" | — | five-whys |
+| "test this app / QA sweep / find bugs" | — | dogfood |
+| iOS / macOS: build, run, test, debug | — | xcodebuildmcp-cli (top workflow, 256 uses) |
+| Autonomous: "keep going until X", stepping away | — | tmux for long tasks + decision log in JOURNAL, checkpoint each milestone, never pause for reversible decisions |
+| Skill authoring: write/edit a SKILL.md | — | skill-creator + skill-quality-checklist |
+| Committing / "before I commit" | — | code-quality-gate → git-commits |
+| Issue → PR pipeline | — | issue-to-pr (don't hand-roll its stages) |
+
+**Standing rules:**
+- READ-ONLY DEFAULT until an edit intent is stated. ("no edits / read-only" was requested 50 times in history.)
+- Every code route ends in verification-gate. For iOS/macOS that already means building and running the real app via xcodebuildmcp — no separate build step. Skipping verification = not done.
+- Gate verdicts are three-way: PASS → next stage; REVISE → route notes to the owning skill/subagent, never patch ad hoc; ASK_USER → stop with one focused question.
+- Gate decisions (review, quality, verification) use fresh subagents with artifact paths only — never reuse main-agent context.
+- Subagents only for reviews or LARGE tasks, never SMALL. Never delegate when you own the task.
+- Resume/continue: pick up from JOURNAL/last commit state, announce where you resumed from, don't restart. (63 resume requests in history.)
+- User names a skill explicitly → it wins over this table.
+- Genuinely ambiguous after sizing → ask one question.
+
 ### Communication & Documentation
 - Be extremely terse without sacrificing clarity
 - Sacrifice grammar for the sake of concision

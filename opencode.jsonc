@@ -9,9 +9,7 @@
             "context": 262144,
             "output": 131072
           }
-        },
-        // not yet in models.dev catalog; registered locally, verified via ollama.com/api/tags
-        "glm-5.3-flash": {}
+        }
       }
     }
   },
