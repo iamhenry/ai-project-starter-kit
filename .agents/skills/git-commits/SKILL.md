@@ -9,9 +9,15 @@ description: Git commit workflow and message format. Use when making commits, as
 
 1. Run command to see all modified files `git status --porcelain`
 2. Run brief diff command to understand changes `git diff`
-3. Commit ALL (skip staging) using commit format below
-4. Push changes
-5. Then stop
+3. PRE-FLIGHT (before any commit): scan staged diff + filenames for sensitive info
+   - What to look for: passwords, API keys, tokens, secrets, private keys, credentials, personal data (emails, phone numbers, names of private individuals), logs, screenshots, session data
+   - Scan the diff (`git diff` / `git diff --cached`) AND filenames (e.g. `debug.log`, `screenshot.png`, `notes.txt`)
+   - Also check untracked files about to be committed
+   - If anything sensitive found: STOP, report it, ask the user. Never commit and "fix later". Git history keeps secrets forever.
+   - If clean: proceed
+4. Commit ALL (skip staging) using commit format below
+5. Push changes
+6. Then stop
 
 ## Format
 ```
