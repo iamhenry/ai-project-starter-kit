@@ -30,42 +30,44 @@ As a product designer relying on Claude for software development, I need concise
 
 ### Task Router
 
-Size the task, announce it in one line (`ROUTE: [tier] — [row]`), then follow the row.
-Tier by blast radius, not by how the request sounds.
+Size the task, announce it in one line (`ROUTE: [tier] — [row]`), then take the cheapest path that still matches blast radius.
+
+Tier by blast radius, not by how the request sounds. Table rows are default paths, not keyword law — if the phrase and the size disagree, size wins.
 
 **Sizing:**
-- SMALL — 1-2 files, mechanical, no design choices. No subagents, no gates except verification. (Delegation fatigue is the #1 recorded complaint; 48 cancelled task calls in history.)
-- MEDIUM — a few files, known pattern, behavior changes. Skill pipeline; delegate reviews only (review-delegates completed; implementation-delegates got cancelled).
-- LARGE — multi-file, architecture, migration, unknown territory. Full gather-context with its research subagents.
+- SMALL — 1-2 files, mechanical, no design choices. Do it yourself. No subagents, no gates except verification.
+- MEDIUM — a few files, known pattern. Skill pipeline; delegate reviews only.
+- LARGE — architecture, migration, unknown territory. Pay for intake: issue-to-pr (or gather-context if you only need research).
 
-**Routes (first match wins):**
+**Pay for uncertainty, not labels.** Known + small blast → cheapest row. Unknown / architectural → issue-to-pr (don't hand-roll its stages; skip PR placeholder if no remote). User names a skill → it wins.
+
+**Routes:**
 
 | Trigger | SMALL | MEDIUM/LARGE |
 |---|---|---|
-| Plan: "make a plan", "how should we approach X" | Answer inline | Plan in `_ai/task/{date}/{slug}/issue.md` (approaches) → `plan.md` (chosen plan + acceptance criteria). No code edits. Same folders as issue-to-pr, so a planned task can enter the pipeline later without re-intake. |
-| Design/shape: "define the shape", "architecture for X" | Discuss inline | shaping skill (iterate problem + options with user) → ponytail-review the chosen shape (kills over-engineering before it's built) → second-opinion (independent critique, read-only) → decision recorded in issue.md |
-| Bug: "fix this", crash, wrong behavior | Fix directly, verify, commit | reproduce-bug (REPRODUCED before any edit) → fix → verification-gate |
-| Feature: "add / build / implement" | Just build it, verify, commit | gather-context → user picks approach → implement → code-quality-gate → verification-gate |
+| Plan: "make a plan", "how should we approach X" | Answer inline | Plan in `_ai/task/{date}/{slug}/issue.md` (approaches) → `plan.md` (chosen plan + acceptance criteria). No code edits. Same folders as issue-to-pr, so a planned task can enter later without re-intake. |
+| Design/shape: "define the shape", "architecture for X" | Discuss inline | shaping skill → ponytail-review the chosen shape → second-opinion → decision recorded in issue.md |
+| Bug: "fix this", crash, wrong behavior | Fix directly, verify, commit | reproduce-bug (REPRODUCED before any edit). Known-pattern: fix → verification-gate. Architectural/unknown: issue-to-pr. |
+| Feature: "add / build / implement" | Just build it, verify, commit | Known-pattern: implement → code-quality-gate → verification-gate. Unknown/architectural: issue-to-pr. |
 | Refactor / cleanup, behavior-preserving | Just do it | gather-context → ponytail-review on diff → verification-gate |
 | Read-only question: "how / why / what does X do" | Answer directly, no edits | atlas subagent (read-only), cited answer |
-| Prototype to decide: "try it", "sketch it", "which feels right" | — | Throwaway code, no commit. Running it settles the fork faster than asking the user a product question an experiment can answer. |
+| Prototype to decide: "try it", "sketch it", "which feels right" | — | Throwaway code, no commit. |
 | "over-engineered? bloat?" | — | ponytail-review (diff) or ponytail-audit (repo) |
 | Root cause: "why is this happening" | — | five-whys |
 | "test this app / QA sweep / find bugs" | — | dogfood |
-| iOS / macOS: build, run, test, debug | — | xcodebuildmcp-cli (top workflow, 256 uses) |
-| Autonomous: "keep going until X", stepping away | — | tmux for long tasks + decision log in JOURNAL, checkpoint each milestone, never pause for reversible decisions |
+| iOS / macOS: build, run, test, debug | — | xcodebuildmcp-cli |
+| Autonomous: "keep going until X", stepping away | — | tmux + JOURNAL checkpoints; never pause for reversible decisions |
 | Skill authoring: write/edit a SKILL.md | — | skill-creator + skill-quality-checklist |
 | Committing / "before I commit" | — | code-quality-gate → git-commits |
-| Issue → PR pipeline | — | issue-to-pr (don't hand-roll its stages) |
+| Issue → PR pipeline | — | issue-to-pr |
 
 **Standing rules:**
-- READ-ONLY DEFAULT until an edit intent is stated. ("no edits / read-only" was requested 50 times in history.)
-- Every code route ends in verification-gate. For iOS/macOS that already means building and running the real app via xcodebuildmcp — no separate build step. Skipping verification = not done.
-- Gate verdicts are three-way: PASS → next stage; REVISE → route notes to the owning skill/subagent, never patch ad hoc; ASK_USER → stop with one focused question.
-- Gate decisions (review, quality, verification) use fresh subagents with artifact paths only — never reuse main-agent context.
-- Subagents only for reviews or LARGE tasks, never SMALL. Never delegate when you own the task.
-- Resume/continue: pick up from JOURNAL/last commit state, announce where you resumed from, don't restart. (63 resume requests in history.)
-- User names a skill explicitly → it wins over this table.
+- READ-ONLY DEFAULT until an edit intent is stated.
+- Every code route ends in verification-gate. iOS/macOS: that's xcodebuildmcp (build + run). Skipping verification = not done.
+- Gate verdicts: PASS → next; REVISE → owning skill, never patch ad hoc; ASK_USER → one focused question.
+- Gate decisions use fresh subagents with artifact paths only.
+- Subagents only for reviews or LARGE tasks, never SMALL.
+- Resume/continue: pick up from JOURNAL/last commit; don't restart.
 - Genuinely ambiguous after sizing → ask one question.
 
 ### Communication & Documentation
