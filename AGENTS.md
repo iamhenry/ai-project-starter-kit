@@ -53,6 +53,7 @@ Tier by blast radius, not by how the request sounds. Table rows are default path
 | Read-only question: "how / why / what does X do" | Answer directly, no edits | atlas subagent (read-only), cited answer |
 | Prototype to decide: "try it", "sketch it", "which feels right" | — | Throwaway code, no commit. |
 | "over-engineered? bloat?" | — | ponytail-review (diff) or ponytail-audit (repo) |
+| "ponytail debt / shortcuts / what did we defer" | — | ponytail-debt (ledger report) |
 | Root cause: "why is this happening" | — | five-whys |
 | "test this app / QA sweep / find bugs" | — | dogfood |
 | iOS / macOS: build, run, test, debug | — | xcodebuildmcp-cli |
@@ -70,6 +71,8 @@ Tier by blast radius, not by how the request sounds. Table rows are default path
 - Subagents only for reviews or LARGE tasks, never SMALL.
 - Resume/continue: pick up from JOURNAL/last commit; don't restart.
 - Genuinely ambiguous after sizing → ask one question.
+- PONYTAIL LENS: when writing code, reach for the laziest version that works — reuse what exists before building new, stdlib before custom, delete before add. If a diff feels heavier than the problem, ask what can go. Ponytail skills are there when a task smells like "too much code" — review for a diff, audit for a repo, debt for deferred shortcuts — but you don't need an excuse to think this way.
+- OPTIONS LENS: when comparing or ranking approaches, weight simplicity and reversibility heavily — fewest moving parts, fewest dependencies, most reuse of what exists. A useful tiebreaker: which option would be easiest to undo or delete later? Simple usually wins; choose complexity only with a concrete reason, not "someday we might need it."
 
 ### Communication & Documentation
 - Be extremely terse without sacrificing clarity
