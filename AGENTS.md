@@ -64,6 +64,7 @@ Tier by blast radius, not by how the request sounds. Table rows are default path
 **Standing rules:**
 - READ-ONLY DEFAULT until an edit intent is stated.
 - Every code route ends in verification-gate. iOS/macOS: that's xcodebuildmcp (build + run). Skipping verification = not done.
+- EVIDENCE PRINCIPLE: verification must be observable, not trusted. A diff proves change, not outcome — demand the smallest evidence that makes the claim observable: a claimed fix/new behavior → run the product and show the behavior (screenshot, recording, or real output at the point of change); a claimed "doesn't break" → run the touched surface (tests, build, affected flow); a bug fix → repro it before the fix, show it's gone after; an architectural change → audit-grade artifacts (run + suites + logs a human can open). Static review and mock-only tests are never sufficient alone for a user-observable claim. Size evidence to the claim, not the task.
 - Gate verdicts: PASS → next; REVISE → owning skill, never patch ad hoc; ASK_USER → one focused question.
 - Gate decisions use fresh subagents with artifact paths only.
 - Subagents only for reviews or LARGE tasks, never SMALL.
