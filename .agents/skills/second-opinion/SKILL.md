@@ -32,6 +32,10 @@ If a selector is unknown or ambiguous, ask what model the user means. Never gues
 
 ## Build The Prompt
 
+Write the prompt yourself. Do not ask the user to summarize. Problem is required and must stay neutral — facts and the decision, not your preferred option. Current and Ideal are user-visible behavior, not how the code works. Request-specific boundaries belong in Scope. Do not echo the user's wording as extra fields; Argument already carries that.
+
+Always include this contract. Do not drop or rewrite the questions.
+
 Create one independent prompt per model using this template:
 
 ```text
@@ -43,8 +47,20 @@ Return:
 3. Flaws and risks
 4. Minimal correction or recommendation
 
+Problem:
+- Current: <what the user can do or see now — behavior, not implementation>
+- Ideal: <what the user should be able to do or see — behavior, not implementation>
+- Scope: <what is in, what is out>
+
+Contract:
+- Shape: does this belong in what already exists, or are we inventing a new surface?
+- Cost: smallest reversible change? reuse / stdlib / native first; what can go?
+- Blast: what else moves, fails, leaks, or gets harder to undo?
+
+Answer the contract adversarially. Do not rubber-stamp.
+
 Argument:
-<the user's argument, preserved verbatim>
+<the user's argument, preserved verbatim; omit this section if they did not make one>
 ```
 
 Do not add another model's output to any prompt. Independent context prevents groupthink.
