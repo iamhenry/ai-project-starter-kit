@@ -21,7 +21,7 @@
     "@tarquinen/opencode-dcp@latest", // (https://github.com/Tarquinen/opencode-dynamic-context-pruning)
     "@dietrichgebert/ponytail", // (https://github.com/DietrichGebert/ponytail)
     "opencode-claude-auth@latest", // (https://github.com/griffinmartin/opencode-claude-auth)
-    "opencode-council@https://github.com/iamhenry/opencode-council/archive/refs/tags/v0.1.1.tar.gz",
+    "github:iamhenry/opencode-council#1951133a0f7209efcb54db2df2dd03be7342353f",
     "opencode-forge@https://github.com/iamhenry/opencode-forge/archive/refs/tags/v0.1.1.tar.gz",
     // "oc-codex-multi-auth", // (https://github.com/ndycode/oc-codex-multi-auth)
     // ["@showlotus/opencode-image-vision@latest", { "model": "ollama-cloud/minimax-m3" }], // (https://github.com/showlotus/opencode-image-vision)
