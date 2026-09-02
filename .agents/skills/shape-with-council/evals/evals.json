@@ -1,0 +1,53 @@
+{
+  "skill_name": "shape-with-council",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "/shape-with-council medium Replace the BB Voice orb with the new orb. Inspect the old and new components and every usage first.",
+      "expected_output": "A medium-depth Shape Contract grounded in local code, with Architect/Skeptic/Pragmatist deliberation and no ISA mutation before approval.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "/shape-with-council high Replace the app authentication architecture without disrupting existing users.",
+      "expected_output": "Independent security, migration, dependency, UX, and rollback evidence passes; medium Council; a separate critic; one revision; then a review-ready contract.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "/shape-with-council low Make a small CSS change using the beta Tailwind version already installed in this repo.",
+      "expected_output": "Low deliberation depth with targeted official beta-version research triggered independently, followed by a concise Shape Contract.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "/shape-with-council medium Add offline sync. This repository has no ISA.md or VISION.md yet.",
+      "expected_output": "At most three focused questions about canonical ISA creation and missing project truth before research or Council calls; no silent file creation.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "/shape-with-council low Shape a compact settings toggle. After showing the contract, treat my answer as Stop.",
+      "expected_output": "A review-ready contract followed by a terminal Stopped response with ISA changed: no and no further calls or edits.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "/shape-with-council medium Shape a profile export, but simulate the Council provider being unavailable.",
+      "expected_output": "An exact Council-stage failure, no fabricated consensus or provider failover, ISA changed: no, and one retry or unblock action.",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "/shape-with-council low Use the shared local ISA skill while shaping a compact settings change.",
+      "expected_output": "The workflow reads ../ISA/SKILL.md for ISA rules without duplicating those rules inside Shape With Council, while retaining its canonical path and approval boundary.",
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "/shape-with-council medium Shape a profile export. An existing _ai/docs/ISA.md contains completed C1 and open C2. After reviewing the contract, I explicitly approve it.",
+      "expected_output": "Only _ai/docs/ISA.md is patched; existing stable IDs and verification stay intact; new claims receive non-conflicting IDs; a decision entry records evidence, Council routing, dissent, and rationale; no implementation files change.",
+      "files": []
+    }
+  ]
+}
