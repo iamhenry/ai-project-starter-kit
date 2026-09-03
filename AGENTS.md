@@ -17,12 +17,12 @@ As a product designer relying on Claude for software development, I need concise
 
 ### Task Router
 
-Size the task, announce it in one line (`ROUTE: [tier] — [row]`), then take the cheapest path that still matches blast radius.
+Size the task, then take the cheapest path that still matches blast radius. If a workflow fits, announce `📣 ROUTE: [tier] — [workflow]`; otherwise `ROUTE: [tier] — [row]`.
 
 Tier by blast radius, not by how the request sounds. Table rows are default paths, not keyword law — if the phrase and the size disagree, size wins.
 
 **Sizing:**
-- SMALL — 1-2 files, mechanical, no design choices. Do it yourself. No subagents, no gates except verification.
+- SMALL — 1-2 files, mechanical, no design choices. Do it yourself. No subagents. Proof still required; load gate skills only if the step is fuzzy.
 - MEDIUM — a few files, known pattern. Skill pipeline; delegate reviews only.
 - LARGE — architecture, migration, unknown territory. Pay for intake: issue-to-pr (or gather-context if you only need research).
 
@@ -34,8 +34,8 @@ Tier by blast radius, not by how the request sounds. Table rows are default path
 |---|---|---|
 | Plan: "make a plan", "how should we approach X" | Answer inline | Plan in `_ai/task/{date}/{slug}/issue.md` (approaches) → `plan.md` (chosen plan + acceptance criteria). No code edits. Same folders as issue-to-pr, so a planned task can enter later without re-intake. |
 | Design/shape: "define the shape", "architecture for X" | Discuss inline | shaping skill → ponytail-review the chosen shape → second-opinion → decision recorded in issue.md |
-| Bug: "fix this", crash, wrong behavior | Fix directly, verify, commit | reproduce-bug (REPRODUCED before any edit). Known-pattern: fix → verification-gate. Architectural/unknown: issue-to-pr. |
-| Feature: "add / build / implement" | Just build it, verify, commit | Known-pattern: implement → code-quality-gate → verification-gate. Unknown/architectural: issue-to-pr. |
+| Bug: "fix this", crash, wrong behavior | **Fix-it** | **Fix-it**. Architectural/unknown → **Unknown**. |
+| Feature: "add / build / implement" | **Ship-it** | **Ship-it**. Unknown/architectural → **Unknown**. |
 | Refactor / cleanup, behavior-preserving | Just do it | gather-context → ponytail-review on diff → verification-gate |
 | Read-only question: "how / why / what does X do" | Answer directly, no edits | atlas subagent (read-only), cited answer |
 | Prototype to decide: "try it", "sketch it", "which feels right" | — | Throwaway code, no commit. |
@@ -50,12 +50,57 @@ Tier by blast radius, not by how the request sounds. Table rows are default path
 | Committing / "before I commit" | — | code-quality-gate → git-commits |
 | Issue → PR pipeline | — | issue-to-pr |
 
+### Task Workflows
+
+Router = first hop. Workflow = the whole job. Prefer a workflow when they
+want it finished, not one step.
+
+📣 ROUTE: [tier] — [workflow]
+No fit → router. Named skill → that skill. Unknown territory → **Unknown**.
+
+**Principles**
+
+1. RECIPE, THEN BUDGET
+   Same steps at every size. SMALL spends less; it does not skip proof.
+   HEURISTIC: WOULD I BE EMBARRASSED TO SPAWN A SUBAGENT FOR THIS STEP?
+
+2. FINISH THE JOB
+   Don't stop after the first hop. Done = a later reader can see it worked.
+   HEURISTIC: IF THEY ONLY COME BACK FOR THE PR OR THIS THREAD, CAN THEY
+   TELL IT WORKED WITHOUT RERUNNING ANYTHING?
+
+3. STAY OUT OF THE WAY
+   Don't make the human a step. Pull them in only for intent (shape) or
+   merge (PR).
+   HEURISTIC: AM I ASKING THEM TO CLICK THE APP, OR TO MAKE A CALL ONLY
+   THEY CAN MAKE?
+
+4. PROOF IS AN ARTIFACT, NOT A VIBE
+   Quality = sane diff. Evidence = a user would see it. Leave something
+   they can open. PR contains both; no PR → leave both in the thread.
+   HEURISTIC: WHAT CAN THEY OPEN TOMORROW THAT PROVES THIS?
+
+5. SKILLS ARE THE EXPENSIVE INSTRUMENT
+   Load `reproduce-bug`, `code-quality-gate`, `verification-gate` when the
+   step is fuzzy or high-blast. Otherwise do that step in-process.
+   HEURISTIC: IS THIS STEP FUZZY OR HIGH-BLAST? IF NO, DON'T LOAD THE SKILL.
+
+| Workflow | Smells like | Finish like |
+|---|---|---|
+| **Fix-it** | Broken, crash, wrong | Confirm → fix → quality → visible proof → commit. Can't confirm → report. Architectural → **Unknown**. |
+| **Ship-it** | Add / build / tweak, known | Build → quality → visible proof → commit. New surface → **Unknown**. |
+| **Unknown** | Architecture, unclear blast | `issue-to-pr`. Don't hand-roll. |
+| **Shape** | Plan / define the shape | Research → stop. No code until they approve. |
+| **Decide** | A vs B | Pick → stop. Don't implement the winner. |
+| **Prove** | QA, find bugs | Verify, no edits. File what you find. |
+| **Author-skill** | write/edit a SKILL.md | `skill-creator` → `skill-quality-checklist`. |
+
 **Standing rules:**
 
 | Area | Rule | Practical implication |
 |---|---|---|
 | Default behavior | Read-only until edit intent is explicit. | Inspect and explain before changing files. |
-| Verification | Every code route ends in verification-gate; iOS/macOS builds and runs via xcodebuildmcp. | A task isn't done until the result is observable. |
+| Verification | Code changes leave proof someone can open. Load `verification-gate` when the step is fuzzy or the blast is real; iOS/macOS via xcodebuildmcp. | A task isn't done until the result is observable. |
 | Evidence | Match evidence to the claim — diff proves change, not outcome. | New behavior → run the product and show it; bug fix → repro before, gone after; big change → tests and logs a human can open. |
 | Gate decisions | PASS continues; REVISE returns to the owning skill; ASK_USER asks one focused question. | Reviews use fresh subagents judging artifacts on disk — never patch ad hoc. |
 | Subagents | Only for reviews or large tasks, never small ones. | Avoid delegation overhead and stale context. |
