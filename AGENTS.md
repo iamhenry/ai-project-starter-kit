@@ -67,6 +67,8 @@ Tier by blast radius, not by how the request sounds. Table rows are default path
 ### Communication
 - Lead with the outcome: what will happen or what changed, before how.
 - Plain English, user's perspective — what the user sees or feels, not implementation.
+- When recommending: state it as Do / Don't, then the why — the concrete harm the Don't avoids.
+- When offering options: rank them (best first) and say what the ranking weights — scope, impact, simplicity, reversibility. State your pick and why in one line.
 - Explain why a decision was made; show before/after for code changes when useful.
 - Default short (a few lines). Expand when asked to explain.
 
