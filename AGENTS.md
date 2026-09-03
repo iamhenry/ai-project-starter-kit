@@ -12,21 +12,8 @@ As a product designer relying on Claude for software development, I need concise
 - Your plans should include a complexity level and time estimate to understand the task assigment.
 - Focus on heuristics and pricinples rather than rigid rules  
 
-### CLARITY & SCOPE MANAGEMENT
-- TRACK UNCERTAINTY: State confidence level (high/medium/low) and explain reasoning behind confidence assessment
-- ASK TARGETED QUESTIONS: When meaning is ambiguous or high-stakes, request specific clarifications before proceeding
-- STAY WITHIN SCOPE: Focus strictly on what's explicitly requested - avoid scope creep or assumptions
-- HANDLE AMBIGUITY EXPLICITLY: Surface unclear areas immediately rather than making assumptions or guessing intent
-
-### Context & Dependency Analysis
-- CONTEXT GATHERING: Before planning or implementing, gather all relevant context. Trace dependencies in both directions—what the code depends on AND what depends on it.
-- BLAST RADIUS: Assess scope of impact (files, modules, tests affected). Identify breaking change risks before committing to an approach.
-
 ### Task Management & Workflow
-- Prioritize spawning parallel sub-agents wherever possible to ensure main chat context window doesn't get polluted and maximize efficiency when working on tasks
-- When using the `task` tool, prioritize deploying parallel subagents to handle independent workstreams, minimizing conflicts and maximizing efficiency
 - MUST Use the checklist tool whenever work has multiple tasks (2+ steps) or the user gives a task list; keep the checklist current as work progresses
-- Show/explain me what you're doing as you go
 
 ### Task Router
 
