@@ -51,16 +51,18 @@ Tier by blast radius, not by how the request sounds. Table rows are default path
 | Issue → PR pipeline | — | issue-to-pr |
 
 **Standing rules:**
-- READ-ONLY DEFAULT until an edit intent is stated.
-- Every code route ends in verification-gate. iOS/macOS: that's xcodebuildmcp (build + run). Skipping verification = not done.
-- EVIDENCE PRINCIPLE: verification must be observable, not trusted. A diff proves change, not outcome — demand the smallest evidence that makes the claim observable: a claimed fix/new behavior → run the product and show the behavior (screenshot, recording, or real output at the point of change); a claimed "doesn't break" → run the touched surface (tests, build, affected flow); a bug fix → repro it before the fix, show it's gone after; an architectural change → audit-grade artifacts (run + suites + logs a human can open). Static review and mock-only tests are never sufficient alone for a user-observable claim. Size evidence to the claim, not the task.
-- Gate verdicts: PASS → next; REVISE → owning skill, never patch ad hoc; ASK_USER → one focused question.
-- Gate decisions use fresh subagents with artifact paths only.
-- Subagents only for reviews or LARGE tasks, never SMALL.
-- Resume/continue: pick up from JOURNAL/last commit; don't restart.
-- Genuinely ambiguous after sizing → ask one question.
-- PONYTAIL LENS: when writing code, reach for the laziest version that works — reuse what exists before building new, stdlib before custom, delete before add. If a diff feels heavier than the problem, ask what can go. Ponytail skills are there when a task smells like "too much code" — review for a diff, audit for a repo, debt for deferred shortcuts — but you don't need an excuse to think this way.
-- OPTIONS LENS: when comparing or ranking approaches, weight simplicity and reversibility heavily — fewest moving parts, fewest dependencies, most reuse of what exists. A useful tiebreaker: which option would be easiest to undo or delete later? Simple usually wins; choose complexity only with a concrete reason, not "someday we might need it."
+
+| Area | Rule | Practical implication |
+|---|---|---|
+| Default behavior | Read-only until edit intent is explicit. | Inspect and explain before changing files. |
+| Verification | Every code route ends in verification-gate; iOS/macOS builds and runs via xcodebuildmcp. | A task isn't done until the result is observable. |
+| Evidence | Match evidence to the claim — diff proves change, not outcome. | New behavior → run the product and show it; bug fix → repro before, gone after; big change → tests and logs a human can open. |
+| Gate decisions | PASS continues; REVISE returns to the owning skill; ASK_USER asks one focused question. | Reviews use fresh subagents judging artifacts on disk — never patch ad hoc. |
+| Subagents | Only for reviews or large tasks, never small ones. | Avoid delegation overhead and stale context. |
+| Resume | Pick up from JOURNAL/last commit. | Don't restart finished work. |
+| Ambiguity | Ask one question when uncertainty remains after sizing. | Don't guess when intent could change the implementation. |
+| Simplicity | Reuse existing code; prefer the laziest working solution. | Reuse before new, stdlib before custom, delete before add. |
+| Options | Favor simple, reversible approaches. | Complexity only when there's a concrete need — tiebreaker is "easiest to undo later." |
 
 ### Communication
 - Lead with the outcome: what will happen or what changed, before how.
