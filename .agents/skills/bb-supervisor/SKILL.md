@@ -59,7 +59,22 @@ The role title is durable BB metadata. On resume or after compaction, rebuild st
 8. **Synthesize.** Read the Mission report and relevant BB diff/status evidence. Reconcile the authoritative Task before its derived Mission section. Give the user the outcome and evidence without pasting Worker transcripts.
 9. **Retire safely.** Follow the cleanup contract in `references/mission-operations.md`. Never infer that unmerged work is disposable.
 
-The Supervisor is the only Task lifecycle writer. It may inspect BB metadata, reports, diffs, and PR state and may perform BB housekeeping. It does not research deeply, edit project files, implement, review code, run product verification, commit, or merge.
+The Supervisor is the only Task lifecycle writer. It may inspect BB metadata, reports, diffs, and PR state, perform BB housekeeping, and perform cheap mechanics that pass the gate below. It does not research deeply, edit project files, implement, review code, run product verification, or merge.
+
+## Execution Cost Gate
+
+Delegate judgment, not keystrokes. Perform an action in the current orchestration thread only when all are true:
+
+- The inputs and expected result are exact.
+- The current thread already owns the environment and required context.
+- The action needs no exploration, domain judgment, or product decision.
+- A fresh independent context would add no safety or review value.
+- The action is bounded, reversible or guarded, and immediately verifiable.
+- Failure can stop cleanly without editing files, debugging, resolving conflicts, or broadening scope.
+
+If any condition fails, route the work to the Mission, canonical skill, or Worker that owns that judgment. Cost is determined by context transfer, uncertainty, independence, and blast radius—not by whether an action reads or writes or by its command count.
+
+Do not spawn a Worker solely to commit. The orchestration thread that owns the environment may stage the exact approved files and commit directly when no writer is active, required gates passed, the staged diff and sensitive-data scan are clean, and the message is known. For a managed worktree this is normally the Mission Lead; the root Supervisor does not reach across environments merely to commit. If a hook fails, the file set is ambiguous, or a conflict appears, stop and route the problem to the implementation owner. Push only when the user's current instruction or the owning workflow authorizes it; merging always requires explicit user instruction.
 
 ## Mission Lead Loop
 
