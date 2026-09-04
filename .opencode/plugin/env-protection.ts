@@ -1,9 +1,10 @@
 /**
- * Environment & Secret File Protection Plugin
+ * Environment, Secret & Host Protection Plugin
  *
  * Blocks OpenCode agents from:
  * - Reading sensitive files like .env, .p8, and secrets directories
  * - Running commands that could expose environment variables
+ * - Running catastrophic commands that could damage the host or shared history
  *
  * This prevents accidental exposure of credentials, API keys, and private certificates.
  */
@@ -56,10 +57,29 @@ const PROTECTED_FILE_PATTERNS = [
 
 /**
  * Protected command patterns
- * Blocks CLI commands that could expose environment secrets
+ * Blocks secret exposure and catastrophic, effectively irreversible operations
  */
-const PROTECTED_COMMAND_PATTERNS = [
-  /convex\s+env/,         // Matches: convex env, npx convex env, etc.
+const PROTECTED_COMMAND_PATTERNS: Array<[RegExp, string]> = [
+  [/convex\s+env/, "exposes environment secrets"],
+  [/(?:^|[;&|]\s*)printenv\b/, "dumps environment secrets"],
+  [/(?:^|[;&|]\s*)env\s*(?:$|[|;])/, "dumps environment secrets"],
+  [/(?:^|[;&|]\s*)export\s+-p\b/, "dumps environment secrets"],
+  [/(?:^|[;&|]\s*)set\s*(?:$|[|;])/, "dumps shell variables"],
+  [/\b(?:sudo|doas)\b/, "attempts privilege escalation"],
+  [/\b(?:mkfs(?:\.[\w+-]+)?|newfs(?:_[\w+-]+)?)\b/i, "formats a filesystem"],
+  [/\bdiskutil\s+(?:eraseDisk|eraseVolume|partitionDisk|secureErase|zeroDisk|randomDisk)\b/i, "erases or repartitions a disk"],
+  [/\bdiskutil\s+apfs\s+(?:deleteContainer|deleteVolume|eraseVolume)\b/i, "deletes or erases an APFS container or volume"],
+  [/\bdd\b[^;&|\n]*\bof\s*=\s*["']?\/dev\//i, "writes directly to a device"],
+  [/\b(?:fdisk|gpt)\b[^;&|\n]*(?:destroy|remove|write)\b/i, "modifies a disk partition table"],
+  [/\brm\b(?=[^;&|\n]*(?:-[a-zA-Z]*[rR]|--recursive))(?=[^;&|\n]*(?:-[a-zA-Z]*f|--force))[^;&|\n]*\s["']?(?:\/|~|\$HOME)(?:["']?(?:\s|$)|\/|\*)/, "recursively deletes root or the home directory"],
+  [/\b(?:chmod|chown)\b(?=[^;&|\n]*(?:-R|--recursive))[^;&|\n]*\s["']?(?:\/|~|\$HOME)(?:["']?(?:\s|$)|\/|\*)/, "recursively changes root or home permissions"],
+  [/\b(?:shutdown|reboot|halt)\b/, "controls host power"],
+  [/\bkill\s+-9\s+-1\b/, "kills all accessible processes"],
+  [/:\(\)\s*\{\s*:\s*\|\s*:\s*&\s*\}\s*;/, "starts a fork bomb"],
+  [/\bgh\s+repo\s+delete\b/, "deletes a remote repository"],
+  [/\bgit\b[^;&|\n]*\bpush\b[^;&|\n]*(?:--force(?:-with-lease|-if-includes)?(?:=|\s|$)|(?:^|\s)-[a-zA-Z]*f[a-zA-Z]*(?:\s|$))/, "force-pushes shared history"],
+  [/\bgit\b[^;&|\n]*\b(?:filter-branch|filter-repo)\b/, "rewrites repository history"],
+  [/\bgit\b[^;&|\n]*\bupdate-ref\b[^;&|\n]*(?:\s-d(?:\s|$)|--delete(?:\s|$))/, "deletes a Git reference"],
 ];
 
 /**
@@ -73,8 +93,8 @@ const isProtectedFile = (filePath: string): boolean => {
 /**
  * Check if a command matches any protected patterns
  */
-const isProtectedCommand = (command: string): boolean => {
-  return PROTECTED_COMMAND_PATTERNS.some(pattern => pattern.test(command));
+const protectedCommandReason = (command: string): string | undefined => {
+  return PROTECTED_COMMAND_PATTERNS.find(([pattern]) => pattern.test(command))?.[1];
 };
 
 /**
@@ -100,10 +120,12 @@ export const EnvProtection = async (ctx: PluginContext) => {
       // Block commands that expose environment secrets
       if (toolName === "bash") {
         const command = output.args.command;
-        if (command && isProtectedCommand(command)) {
+        const reason = command ? protectedCommandReason(command) : undefined;
+        if (reason) {
           throw new Error(
             `🔒 BLOCKED COMMAND: "${command}"\n` +
-            `This command could expose environment secrets.`
+            `Reason: ${reason}.\n` +
+            `This command is blocked by the environment and host safety policy.`
           );
         }
       }

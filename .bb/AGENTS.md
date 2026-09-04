@@ -36,7 +36,7 @@ Fetch current truth anytime: `bb project list --json`. New project: `bb project 
 
 - **Project** = a registered workspace/repo. **Thread** = one agent conversation (the unit of work). **Environment** = where a thread runs (checkout or isolated worktree). **Machine** = execution host (primary host id: `host_mxhri6p392`).
 - Threads can be **parent → child**. Parent coordinates and receives lifecycle notifications.
-- Delegation defaults to one level: root coordinator → terminal worker. The explicitly invoked `bb-supervisor` workflow permits one narrow exception: Supervisor → Mission Lead → terminal provider-native Workers. Mission Leads do not create nested BB threads.
+- Delegation defaults to one level: root coordinator → terminal worker. A selected primary agent may define a narrower explicit delegation topology; otherwise direct children do not delegate.
 - Thread shells normally expose `BB_PROJECT_ID`, `BB_THREAD_ID`, `BB_ENVIRONMENT_ID`, and `BB_CLI`, but provider shells may occasionally lack them. Missing variables do **not** prove the conversation is outside BB.
 - Use `--json` on supported operational and inspection subcommands; check `--help` when unsure. Deep reference: `bb guide <threads|projects|environments|providers|machines|terminals|agent-configuration>`.
 
@@ -44,22 +44,18 @@ Fetch current truth anytime: `bb project list --json`. New project: `bb project 
 
 ## 3. Thread Role Router
 
-Roles describe responsibilities; they are not custom agent definitions.
+The selected agent prompt owns any specialized operating roles. These global defaults apply otherwise.
 
 | Signal | Role | Required behavior |
 |---|---|---|
-| The user explicitly invokes `bb-supervisor` in a root project thread, or the current title starts `[SUPERVISOR]` | **Supervisor** | Load `bb-supervisor`; delegate each substantive outcome to a Mission Lead and synthesize results. |
-| A direct child was explicitly briefed as a Mission Lead and its title starts `[MISSION]` | **Mission Lead** | Load `bb-supervisor`; own one task/worktree and use existing skills and their terminal subagents as needed. |
-| The prompt identifies a terminal Worker, or the thread is any other child | **Worker** | Complete the bounded assignment and report to the parent; do not delegate. |
-| None of these signals apply | **Standard thread** | Follow the normal task router and default one-level delegation rules below. |
-
-The `bb-supervisor` SOP lives at `~/Desktop/Projects/other/ai-project-starter-kit/.agents/skills/bb-supervisor/SKILL.md`. Enter Supervisor mode only through explicit user invocation; the persisted role title is sufficient to resume it after compaction.
+| `thread.parentThreadId == null` | **Root coordinator** | Follow the normal task router and delegate only independent, bounded work. |
+| `thread.parentThreadId != null` | **Terminal worker** | Complete the bounded assignment and report to the parent; do not delegate unless the selected agent prompt explicitly assigns a bounded exception. |
 
 ---
 
 ## 4. Delegation via Child Threads
 
-**Default:** only a root coordinator delegates independent, parallelizable work. A direct child is a terminal worker and completes its assignment itself. The only exception is a `[MISSION]` thread operating under the `bb-supervisor` SOP; it may use terminal provider-native subagents required by existing skills, but it does not create nested BB threads.
+**Default:** only a root coordinator delegates independent, parallelizable work. A direct child is a terminal worker and completes its assignment itself unless the selected agent prompt explicitly assigns a bounded exception.
 
 ### Resolve the parent first
 
@@ -71,9 +67,8 @@ bb thread show --self --json
 
 If it succeeds:
 
-- `thread.parentThreadId == null` → root coordinator; if its title starts `[SUPERVISOR]`, load `bb-supervisor` before acting.
-- `thread.parentThreadId != null` and title starts `[MISSION]` → Mission Lead; load `bb-supervisor` and follow its bounded exception.
-- Any other `thread.parentThreadId != null` → terminal worker; do **not** call `bb thread spawn`, OpenCode `Task`, `functions.task`, or any other agent/subagent workflow. Report blockers to the parent instead.
+- `thread.parentThreadId == null` → root coordinator; follow the selected agent prompt and normal task router.
+- `thread.parentThreadId != null` → terminal worker unless the selected agent prompt explicitly assigns a bounded exception. Without that exception, do **not** call `bb thread spawn`, OpenCode `Task`, `functions.task`, or any other agent/subagent workflow; report blockers to the parent instead.
 
 If it fails because `BB_THREAD_ID` is unset, distinguish two cases:
 
@@ -116,7 +111,7 @@ Rules:
 - `--parent-self` and `--parent-thread <verified-id>` are equivalent native child-thread routes. Prefer explicit `--parent-thread` when shell context is missing or uncertain.
 - Omit the parent flag only for intentionally independent root work—not as a fallback for missing environment variables.
 - Use `--visibility visible` for normal workers so their cards and sidebar entries appear in BB. Never use `hidden` for work the user should monitor.
-- A child with a non-null `parentThreadId` must not delegate unless it is an explicit `[MISSION]` thread operating under `bb-supervisor`; invoked skills own any provider-native subagents their contracts require, and Mission Leads must not create nested BB threads.
+- A child with a non-null `parentThreadId` must not delegate unless the selected agent prompt explicitly assigns a bounded exception. Invoked skills own any provider-native subagents their contracts require; do not create nested BB threads beyond the selected agent's explicit topology.
 - Child permission is capped by the parent's mode. `--permission-mode` options: `accept-edits`, `auto` (default), `full`.
 - For review/fix follow-ups on the *same* files: get env id from `bb thread show <id> --json`, then `--environment <env-id>`.
 - Use `--new-environment worktree` only for a Git repo with at least one commit. For same-checkout work, pass the verified parent's `environment.id` explicitly with `--environment <environment-id>`; use `$BB_ENVIRONMENT_ID` only when it is actually set.
@@ -153,15 +148,14 @@ Rules:
 
 | Situation | Do this |
 | --- | --- |
-| Explicit BB Supervisor session | Load `bb-supervisor`; Supervisor creates one `[MISSION]` child/worktree per independent outcome |
-| Multi-step or parallelizable work outside BB Supervisor | Root coordinator spawns native direct children; terminal workers never delegate |
+| Multi-step or parallelizable work | Root coordinator spawns native direct children; terminal workers never delegate without an explicit selected-agent exception |
 | Work in a specific repo | Spawn with that repo's `--project <id>` |
 | Work that shouldn't touch the repo / needs isolation | `--new-environment worktree` |
 | Quick question or 1-file change | Do it yourself; don't spawn |
 | Long-running process (server, watch) | `bb terminal` — a real PTY the user can see and stop |
 | Recurring / scheduled work | `bb automation create` (script mode for deterministic checks, agent mode for reasoning) |
 | Recalled context needed | `bb thread search`, `bb thread log --all`, or memory plugin (`bb memory search`) |
-| Need another agent | Root coordinator uses a native direct child; a `[MISSION]` Lead may use terminal skill subagents; other workers report the need instead of spawning |
+| Need another agent | Root coordinator uses a native direct child; other workers report the need unless their selected agent prompt grants a bounded exception |
 | Unknown host detail | Check `~/SYSTEMS.md` first, then `bb guide` |
 
 ---
