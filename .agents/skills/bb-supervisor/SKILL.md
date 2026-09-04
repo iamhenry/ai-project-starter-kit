@@ -1,6 +1,6 @@
 ---
 name: bb-supervisor
-description: Manually invoked SOP for running a long-lived BB project supervisor and its per-task Mission Leads. Use only when the user explicitly invokes bb-supervisor, asks the current thread to enter BB Supervisor mode, or when a persisted [SUPERVISOR] or [MISSION] thread resumes. Do not trigger for ordinary delegation.
+description: Manually invoked SOP for running a long-lived BB project supervisor and its per-task Mission Leads. Use only when the user explicitly invokes bb-supervisor, asks the current thread to enter BB Supervisor mode, or when a persisted 🦄 Supervisor or 🚀 Mission thread resumes. Do not trigger for ordinary delegation.
 ---
 
 # BB Supervisor
@@ -8,15 +8,25 @@ description: Manually invoked SOP for running a long-lived BB project supervisor
 Coordinate project work through BB without turning the supervisor into a worker.
 Supervisor, Mission Lead, and Worker are roles, not custom agent types.
 
-## Roles
+## Role Router
 
-| Role | BB shape | Responsibility |
+| Signal and title | Role | Responsibility |
 |---|---|---|
-| **Supervisor** | One long-lived root thread titled `[SUPERVISOR] <project>` | Understand requests, create Missions, track them, synthesize results, and retire completed Missions safely. |
-| **Mission Lead** | One direct child titled `[MISSION] <outcome>` in an explicitly selected environment | Own one outcome end to end and run the appropriate existing workflow and skills. |
-| **Worker** | A fresh subagent used by an existing skill | Research, implement, review, or verify one bounded assignment, then report to the Mission Lead. |
+| Explicitly invoked root, or root title starts `🦄` | **Supervisor** | Own native Tasks, create Missions, synthesize results, and retire completed Missions safely. |
+| Explicitly briefed direct child whose title starts `🚀` | **Mission Lead** | Own one outcome end to end in its selected environment and run the appropriate existing workflow and skills. |
+| Title starts `👷🏽`, or any other non-Mission child | **Worker** | Complete one bounded assignment, report to the Mission Lead, and never delegate. |
 
 Workers are transient. Do not create permanent specialist agents or manager threads.
+
+## Read On Demand
+
+| Before you... | Read |
+|---|---|
+| Create, attach, update, or summarize a Task | [`references/task-tracking.md`](references/task-tracking.md) |
+| Spawn, retry, stop, or retire a Mission | [`references/mission-operations.md`](references/mission-operations.md) |
+| Use a dynamic BB Workflow | [`references/dynamic-workflows.md`](references/dynamic-workflows.md) |
+
+Read only the references required by the current action. Their contracts are part of this SOP; do not improvise abbreviated versions.
 
 ## Activate Or Resume
 
@@ -29,57 +39,27 @@ Workers are transient. Do not create permanent specialist agents or manager thre
    ```
 
    If the search returns no unique match, or the candidate's project, parent, or environment cannot be verified, stop and report; never spawn a replacement.
-3. A root thread entering this workflow becomes the Supervisor. Run `bb thread update --self --title "[SUPERVISOR] <project>"`.
-4. A direct child explicitly briefed as a Mission Lead uses `[MISSION] <outcome>` and follows the Mission loop below.
-5. Any other child is a terminal Worker and must not become a supervisor or delegate further.
+3. A root thread entering this workflow becomes the Supervisor. Run `bb thread update --self --title "🦄 <project>"`.
+4. A direct child explicitly briefed as a Mission Lead uses `🚀 <outcome>` and follows the Mission loop below.
+5. A `👷🏽 <assignment>` thread, or any other non-Mission child, is a terminal Worker and must not become a supervisor or delegate further.
+
+Treat legacy `[SUPERVISOR]` and `[MISSION]` titles as resumable during migration, but use only the emoji titles for new or renamed threads.
 
 The role title is durable BB metadata. On resume or after compaction, rebuild state from BB rather than relying on recalled conversation.
 
 ## Supervisor Loop
 
 1. **Frame the outcome.** Clarify only ambiguity that could materially change the work. Otherwise choose the simplest reversible path.
-2. **Create one Mission per independent outcome.** Resolve the native BB sections `Missions - Active`, `Missions - Blocked`, and `Missions - Ready for review`; create any missing section once. Spawn every new Mission into `Missions - Active`. Parallelize only Missions that do not share writes or ordering dependencies.
-3. **Choose the environment.** Apply the gate below before spawning; a new Mission thread does not automatically require a new worktree.
-4. **Brief the Mission Lead.** Load and follow `subagent-delegation` for every Mission brief, with the Mission role/depth constraints and selected environment mode as its preamble. Do not restate the templates here.
-5. **Spawn the Mission.** Create one visible direct BB child in the selected environment. Pass the project explicitly and identify the child as a Mission Lead in both its title and prompt.
-6. **Track without hovering.** Prefer BB lifecycle notifications or `bb thread wait`; do not poll repeatedly. Route follow-ups with `bb thread tell`.
-7. **Synthesize.** Read the Mission report and relevant BB diff/status evidence. For a `status` request, follow the Mission Status protocol below. Give the user the outcome, evidence, blockers, decisions, and thread link without pasting Worker transcripts.
-8. **Retire safely.** Follow the cleanup gate below and the Mission failure contract in the Mission Spawn Shape section. Never infer that unmerged work is disposable.
+2. **Track substantive work.** Read `references/task-tracking.md`. Create or reuse one native Task for a confirmed durable outcome; skip Task ceremony for a one-turn advisory or status request.
+3. **Create one Mission per active Task.** Read `references/mission-operations.md` before acting. Reconcile attached and orphaned direct Missions as defined in `references/task-tracking.md`; reuse the one verified Mission and spawn only when none exists. Parallelize only Missions that do not share writes or ordering dependencies.
+4. **Choose the environment.** Use the environment gate in `references/mission-operations.md`; a new Mission thread does not automatically require a new worktree.
+5. **Brief the Mission Lead.** Load and follow `subagent-delegation` for every Mission brief, with the Mission role/depth constraints, Task key, and selected environment mode as its preamble. Do not restate the templates here.
+6. **Spawn and attach the Mission.** Follow both references exactly. Create one visible direct BB child titled `🚀 <outcome>`, attach it to the Task, then advance Task state only after attachment succeeds.
+7. **Track without hovering.** Prefer BB lifecycle notifications or `bb thread wait`; do not poll repeatedly. Route follow-ups with `bb thread tell`.
+8. **Synthesize.** Read the Mission report and relevant BB diff/status evidence. Reconcile the authoritative Task before its derived Mission section. Give the user the outcome and evidence without pasting Worker transcripts.
+9. **Retire safely.** Follow the cleanup contract in `references/mission-operations.md`. Never infer that unmerged work is disposable.
 
-The Supervisor may inspect BB metadata, reports, diffs, and PR state and may perform BB housekeeping. It does not research deeply, edit project files, implement, review code, run product verification, commit, or merge.
-
-### Mission Spawn Shape
-
-Choose the environment with this small gate:
-
-| Task | Mode |
-|---|---|
-| Read, inspect, explain, or review current work | `SHARED` |
-| Continue existing dirty work with confirmed intent | `SHARED` |
-| Make unrelated changes or run parallel write work | `MANAGED_WORKTREE` |
-| Writing intent or ownership is unclear | Ask one focused question before spawning. |
-
-For `SHARED`, record the existing environment's Git status/diff as a baseline, verify its ID, and attach the new Mission thread to it:
-
-```bash
-bb thread spawn --parent-self --project <project-id> \
-  --title "[MISSION] <outcome>" --environment <existing-environment-id> \
-  --visibility visible --prompt "ROLE: Mission Lead. ENVIRONMENT_MODE: SHARED. ..."
-```
-
-For `MANAGED_WORKTREE`, create a fresh managed worktree:
-
-```bash
-bb thread spawn --parent-self --project <project-id> \
-  --title "[MISSION] <outcome>" --new-environment worktree \
-  --visibility visible --prompt "ROLE: Mission Lead. ENVIRONMENT_MODE: MANAGED_WORKTREE. ..."
-```
-
-Use an explicit verified parent ID when `--parent-self` is unavailable. Do not silently fall back from `MANAGED_WORKTREE` to `SHARED`. Allow at most one write-capable Mission in a shared environment.
-
-**Mission failure contract.** When a Mission thread dies or reports a fatal failure: if the failure is marked `retryable:false`, preserve the Mission and its environment, stop, and report the failure upward without spawning anything. If `retryable:true`, retry the same Mission once in the same environment; a second failure is `retryable:false`. Any replacement Mission (different title, environment, or parent) requires the user's explicit approval before spawning.
-
-When the Mission thread dies without reporting, the Supervisor classifies the failure itself: treat it as `retryable:true` once per Mission, and a second silent death as `retryable:false`. Do not retry more than once.
+The Supervisor is the only Task lifecycle writer. It may inspect BB metadata, reports, diffs, and PR state and may perform BB housekeeping. It does not research deeply, edit project files, implement, review code, run product verification, commit, or merge.
 
 ## Mission Lead Loop
 
@@ -87,13 +67,14 @@ The Mission Lead is the accountable task orchestrator. It may do lightweight syn
 
 1. Restate the outcome and success criteria briefly.
 2. Follow the global task router and load the smallest applicable workflow.
-3. Before provider-native delegation, run `pwd` and compare it with the Mission environment directory from `bb thread show --self --json`. If shell context is missing, make one recovery attempt using the procedure in Activate Or Resume step 2; if ambiguous, stop and report. Never delegate into a wrong or unverified checkout, and never spawn a replacement.
-4. Invoke existing skills for substantive stages. Those skills own their topology and any fresh-context Workers; when they delegate, preserve stricter skill contracts and follow `subagent-delegation` for the brief.
-5. Keep one write-capable Worker active at a time in the Mission environment. Independent read-only research may run in parallel.
-6. Sequence implementation, fresh code review, and fresh verification. Route revision findings back to the original implementation owner.
-7. Reproduce bugs before fixing when applicable. Favor root-cause fixes, guard against regressions and over-hardening, and retain the minimum useful proof.
-8. Never merge. Stop for the user's explicit merge instruction.
-9. At a blocker, review handoff, completion, or explicit `status` request, begin the upward report with the exact Mission Status envelope below. Then report the outcome, changed files, checks and evidence, blockers or risks, and PR state.
+3. Use a dynamic BB Workflow only when predictable multi-stage sequencing, parallel fan-out, preview, or resumption provides concrete value. If it qualifies, read `references/dynamic-workflows.md` before generating or running it. Directly invoke the canonical skill for ordinary work.
+4. Before provider-native delegation, run `pwd` and compare it with the Mission environment directory from `bb thread show --self --json`. If shell context is missing, make one recovery attempt using the procedure in Activate Or Resume step 2; if ambiguous, stop and report. Never delegate into a wrong or unverified checkout, and never spawn a replacement.
+5. Invoke existing skills for substantive stages. Those skills own their complete topology, Workers, artifacts, gates, and stop conditions; when they delegate, preserve stricter skill contracts and follow `subagent-delegation` for the brief.
+6. Keep one write-capable Worker active at a time in the Mission environment. Independent read-only research may run in parallel. Prefix a controllable Worker title, Task-tool description, or Workflow label with `👷🏽`.
+7. Sequence implementation, fresh code review, and fresh verification. Route revision findings back to the original implementation owner.
+8. Reproduce bugs before fixing when applicable. Favor root-cause fixes, guard against regressions and over-hardening, and retain the minimum useful proof.
+9. Never merge. Stop for the user's explicit merge instruction.
+10. At a blocker, review handoff, completion, or explicit `status` request, use the exact envelope in `references/task-tracking.md`, then report the outcome and evidence. Mission Leads and Workers never mutate Task lifecycle state.
 
 Do not create nested BB child threads. Only invoked skills may create provider-native subagents, according to their contracts.
 
@@ -114,109 +95,24 @@ Keep `plan` for explicitly selected plan-only primary sessions. Do not use `orch
 
 ## Source Of Truth
 
-- BB thread relationships and titles identify ownership.
-- A direct Mission's native BB section identifies its workflow state.
+- Native BB Task status and labels are the durable lifecycle authority for substantive work.
+- Task-to-Mission attachment plus BB thread relationships and emoji titles identify ownership.
+- A direct Mission's native BB section is a derived lifecycle view and must be reconciled from its Task.
 - Mission `pendingTodos` identify the current step.
+- A Workflow run identifies execution-stage progress only; it never updates Task or section state.
 - The Mission environment, Git state, checks, and PR state identify work status.
 - Task artifacts required by an invoked skill remain authoritative for that workflow.
 - Conversation history is context, not the durable status ledger.
-- Do not create supervisor-specific status files, task databases, or duplicate plans.
+- Do not create custom supervisor status files, task databases, or duplicate plans.
 
-On resume, list the Supervisor's direct Mission children and inspect only the active or blocked ones needed to answer the user.
-
-## Mission Status
-
-Use native BB sections as the project board:
-
-| Section | Meaning |
-|---|---|
-| `Missions - Active` | Work is running or has a current actionable step. |
-| `Missions - Blocked` | Work needs user input, an external dependency, or failure recovery. |
-| `Missions - Ready for review` | The requested outcome and required gates passed; unmerged work is preserved for the user. |
-
-Archived direct Missions are the completed history. Do not create a `Done` section.
-
-Mission reports start with:
-
-```text
-MISSION_STATUS
-STATE: ACTIVE|BLOCKED|READY_FOR_REVIEW
-CURRENT_STEP: <one sentence>
-NEXT_ACTION: <one sentence>
-RETRYABLE: true|false|n/a
-ENVIRONMENT_MODE: SHARED|MANAGED_WORKTREE
-ENVIRONMENT_ID: <id>
-COMMIT: <sha|none>
-PR: <url|none>
-READY_TO_RETIRE: yes|no
-```
-
-The Mission reports evidence; only the Supervisor moves the direct Mission:
-
-```bash
-bb thread update <mission-thread-id> --section <section-id>
-```
-
-On `status`:
-
-1. List only the Supervisor's direct Missions, including archived Missions for completed history.
-2. Use this priority: archived = completed; verified `READY_FOR_REVIEW` = ready; pending interaction, thread error, `BLOCKED`, or `retryable:false` = blocked; otherwise = active.
-3. If an idle Mission has no running Worker, no current todo, and no valid status envelope, move it to blocked with reason `missing status report`; do not guess.
-4. Reconcile any stale section, then report `Mission | State | Current step | Evidence | Next action`.
-5. Never list provider-native Workers as project work items. Inspect them only when direct Mission state is inconsistent.
-
-## Safe Mission Cleanup
-
-Cleanup is an orchestration operation owned by the Supervisor.
-
-Before retiring a Mission, require the Mission Lead to report its environment mode and `READY_TO_RETIRE`.
-
-### Managed Worktree
-
-Independently inspect:
-
-```bash
-bb environment status <environment-id> --merge-base-branch <branch>
-bb environment diff <environment-id>
-bb environment pull-request show <environment-id>
-```
-
-Archive the environment's threads only after one of these gates passes:
-
-- **Completed work:** its PR is confirmed merged **and** status/diff show no newer local work beyond that merged PR; or the Mission was read-only and the environment is clean with no commits or changes to retain.
-- **Abandoned work:** the Supervisor states the exact unmerged commits or changes that cleanup will destroy and the user gives explicit informed approval to discard them.
-
-If neither gate passes, preserve the environment and report the blocker.
-
-After a gate passes, run:
-
-```bash
-bb environment archive-threads <environment-id>
-```
-
-When the final thread in a managed environment is archived, BB removes that worktree and branch. Therefore:
-
-- use `bb thread stop <mission-thread-id>` to pause while preserving work;
-- never use `rm -rf`, raw `git worktree remove`, or `bb thread delete` for routine cleanup;
-- never treat a merged PR as sufficient when newer local work exists;
-- never clean the Supervisor's own project environment as part of Mission retirement.
-
-### Shared Environment
-
-Compare the current Git state with the recorded baseline and Mission outcome. If the Mission is complete and introduced no unexpected changes, archive only its thread:
-
-```bash
-bb thread archive <mission-thread-id>
-```
-
-Never run `bb environment archive-threads` for a shared Mission because it would also archive the Supervisor and other threads using that environment. If the Mission is incomplete or its changes are unclear, use `bb thread stop <mission-thread-id>` and report the blocker instead.
-
-Archiving preserves BB conversation history and metadata while releasing the runtime; it does not preserve a running agent process.
+On resume, read `references/task-tracking.md`, list open Tasks, resolve their attached direct Missions, and inspect only the active or blocked work needed to answer the user.
 
 ## Operating Boundaries
 
 - Remain reactive. Automation may message the Supervisor, but it must not bypass it and spawn work directly.
 - Nothing auto-merges.
+- Create or reuse a Task only for confirmed substantive durable work. Epics are optional grouping for multiple related Tasks, not a default wrapper.
+- Workflows are optional Mission execution recipes, not Task or lifecycle owners.
 - Keep review and verification attached to the existing Mission and environment.
 - Prefer one Mission Lead with clear accountability over several overlapping owners.
 - Use a dedicated machine only when requested or when the task is explicitly resource-heavy.
@@ -230,8 +126,8 @@ Keep updates short:
 ## Status
 - [Outcome and current state]
 
-## Missions
-- [Mission title, thread link, state]
+## Tasks and Missions
+- [Task card, 🚀 Mission link, state, and Workflow run when present]
 
 ## Evidence
 - [Checks, diff, PR, or proof]
