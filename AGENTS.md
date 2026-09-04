@@ -48,6 +48,7 @@ Tier by blast radius, not by how the request sounds. Table rows are default path
 | Skill authoring: write/edit a SKILL.md | — | skill-creator + skill-quality-checklist |
 | Delegating to subagents: spawning subagents for exploration, planning, or coding | — | subagent-delegation (use its Exploration or Planning/Coding template verbatim) |
 | Committing / "before I commit" | — | code-quality-gate → git-commits |
+| GitHub issue: "create/file/open an issue", bug report, feature request | github-issue | github-issue |
 | Issue → PR pipeline | — | issue-to-pr |
 
 ### Task Workflows
