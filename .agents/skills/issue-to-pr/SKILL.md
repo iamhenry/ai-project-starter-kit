@@ -97,6 +97,7 @@ This skill connects modular skills, checks whether each stage produced the expec
 
 ### 5. Implementation Orchestration
 
+- If `{ISSUE_DIR}/issue.md` classifies the task as `bug`, invoke `reproduce-bug` after `APPROVE_PLAN` and before any implementation delegation. Continue only on `REPRODUCED`; on `NOT_REPRODUCED` or `BLOCKED`, stop and report its structured result. On `REPRODUCED`, pass the reproduction result and evidence paths to implementation subagent(s); do not duplicate its SOP or write reproduction details into `plan.md`.
 - Do not implement directly from this wrapper.
 - Always delegate write operations to implementation subagents.
 - Delegate relevant read or research operations when needed.
