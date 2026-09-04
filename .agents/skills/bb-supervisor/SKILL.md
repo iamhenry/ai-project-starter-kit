@@ -38,12 +38,12 @@ The role title is durable BB metadata. On resume or after compaction, rebuild st
 ## Supervisor Loop
 
 1. **Frame the outcome.** Clarify only ambiguity that could materially change the work. Otherwise choose the simplest reversible path.
-2. **Create one Mission per independent outcome.** Parallelize only Missions that do not share writes or ordering dependencies.
+2. **Create one Mission per independent outcome.** Resolve the native BB sections `Missions - Active`, `Missions - Blocked`, and `Missions - Ready for review`; create any missing section once. Spawn every new Mission into `Missions - Active`. Parallelize only Missions that do not share writes or ordering dependencies.
 3. **Choose the environment.** Apply the gate below before spawning; a new Mission thread does not automatically require a new worktree.
 4. **Brief the Mission Lead.** Load and follow `subagent-delegation` for every Mission brief, with the Mission role/depth constraints and selected environment mode as its preamble. Do not restate the templates here.
 5. **Spawn the Mission.** Create one visible direct BB child in the selected environment. Pass the project explicitly and identify the child as a Mission Lead in both its title and prompt.
 6. **Track without hovering.** Prefer BB lifecycle notifications or `bb thread wait`; do not poll repeatedly. Route follow-ups with `bb thread tell`.
-7. **Synthesize.** Read the Mission report and relevant BB diff/status evidence. Give the user the outcome, evidence, blockers, decisions, and thread link without pasting transcripts.
+7. **Synthesize.** Read the Mission report and relevant BB diff/status evidence. For a `status` request, follow the Mission Status protocol below. Give the user the outcome, evidence, blockers, decisions, and thread link without pasting Worker transcripts.
 8. **Retire safely.** Follow the cleanup gate below and the Mission failure contract in the Mission Spawn Shape section. Never infer that unmerged work is disposable.
 
 The Supervisor may inspect BB metadata, reports, diffs, and PR state and may perform BB housekeeping. It does not research deeply, edit project files, implement, review code, run product verification, commit, or merge.
@@ -93,7 +93,7 @@ The Mission Lead is the accountable task orchestrator. It may do lightweight syn
 6. Sequence implementation, fresh code review, and fresh verification. Route revision findings back to the original implementation owner.
 7. Reproduce bugs before fixing when applicable. Favor root-cause fixes, guard against regressions and over-hardening, and retain the minimum useful proof.
 8. Never merge. Stop for the user's explicit merge instruction.
-9. Report upward with the outcome, changed files, checks and evidence, blockers or risks (a fatal failure is marked `retryable:true` or `retryable:false`), PR state, environment mode (`SHARED` or `MANAGED_WORKTREE`), environment ID, and whether the Mission is `READY_TO_RETIRE`.
+9. At a blocker, review handoff, completion, or explicit `status` request, begin the upward report with the exact Mission Status envelope below. Then report the outcome, changed files, checks and evidence, blockers or risks, and PR state.
 
 Do not create nested BB child threads. Only invoked skills may create provider-native subagents, according to their contracts.
 
@@ -115,12 +115,55 @@ Keep `plan` for explicitly selected plan-only primary sessions. Do not use `orch
 ## Source Of Truth
 
 - BB thread relationships and titles identify ownership.
+- A direct Mission's native BB section identifies its workflow state.
+- Mission `pendingTodos` identify the current step.
 - The Mission environment, Git state, checks, and PR state identify work status.
 - Task artifacts required by an invoked skill remain authoritative for that workflow.
 - Conversation history is context, not the durable status ledger.
 - Do not create supervisor-specific status files, task databases, or duplicate plans.
 
 On resume, list the Supervisor's direct Mission children and inspect only the active or blocked ones needed to answer the user.
+
+## Mission Status
+
+Use native BB sections as the project board:
+
+| Section | Meaning |
+|---|---|
+| `Missions - Active` | Work is running or has a current actionable step. |
+| `Missions - Blocked` | Work needs user input, an external dependency, or failure recovery. |
+| `Missions - Ready for review` | The requested outcome and required gates passed; unmerged work is preserved for the user. |
+
+Archived direct Missions are the completed history. Do not create a `Done` section.
+
+Mission reports start with:
+
+```text
+MISSION_STATUS
+STATE: ACTIVE|BLOCKED|READY_FOR_REVIEW
+CURRENT_STEP: <one sentence>
+NEXT_ACTION: <one sentence>
+RETRYABLE: true|false|n/a
+ENVIRONMENT_MODE: SHARED|MANAGED_WORKTREE
+ENVIRONMENT_ID: <id>
+COMMIT: <sha|none>
+PR: <url|none>
+READY_TO_RETIRE: yes|no
+```
+
+The Mission reports evidence; only the Supervisor moves the direct Mission:
+
+```bash
+bb thread update <mission-thread-id> --section <section-id>
+```
+
+On `status`:
+
+1. List only the Supervisor's direct Missions, including archived Missions for completed history.
+2. Use this priority: archived = completed; verified `READY_FOR_REVIEW` = ready; pending interaction, thread error, `BLOCKED`, or `retryable:false` = blocked; otherwise = active.
+3. If an idle Mission has no running Worker, no current todo, and no valid status envelope, move it to blocked with reason `missing status report`; do not guess.
+4. Reconcile any stale section, then report `Mission | State | Current step | Evidence | Next action`.
+5. Never list provider-native Workers as project work items. Inspect them only when direct Mission state is inconsistent.
 
 ## Safe Mission Cleanup
 
