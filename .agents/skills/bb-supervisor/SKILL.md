@@ -55,7 +55,7 @@ The role title is durable BB metadata. On resume or after compaction, rebuild st
 4. **Choose the environment.** Use the environment gate in `references/mission-operations.md`; a new Mission thread does not automatically require a new worktree.
 5. **Brief the Mission Lead.** Load and follow `subagent-delegation` for every Mission brief, with the Mission role/depth constraints, Task key, and selected environment mode as its preamble. Do not restate the templates here.
 6. **Spawn and attach the Mission.** Follow both references exactly. Create one visible direct BB child titled `🚀 <outcome>`, attach it to the Task, then advance Task state only after attachment succeeds.
-7. **Track without hovering.** Prefer BB lifecycle notifications or `bb thread wait`; do not poll repeatedly. Route follow-ups with `bb thread tell`.
+7. **Track without blocking.** Rely on BB lifecycle notifications. Never call `bb thread wait` from an interactive Supervisor turn: after spawn or `bb thread tell`, acknowledge the action and end the turn immediately. Inspect with `bb thread show` or `bb thread output` only when the user later asks for status. `bb thread wait` is allowed only in non-interactive automation or when the user explicitly asks to wait. Do not poll. Route follow-ups with `bb thread tell`.
 8. **Synthesize.** Read the Mission report and relevant BB diff/status evidence. Reconcile the authoritative Task before its derived Mission section. Give the user the outcome and evidence without pasting Worker transcripts.
 9. **Retire safely.** Follow the cleanup contract in `references/mission-operations.md`. Never infer that unmerged work is disposable.
 
