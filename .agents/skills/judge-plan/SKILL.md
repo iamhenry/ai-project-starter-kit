@@ -42,7 +42,7 @@ Required major sections:
 - Codebase Orientation, Dependencies, Data Flow, and relevant model or architecture notes
 - Deliverables and Error Handling
 - Implementation Checklist with phased, atomic checklist tasks and concrete file paths or locations
-- Verification Gate Plan with `Verification Mode`, `Objective`, `Primary Flow`, `Regression Check`, `Evidence Plan`, `Pass Criteria`, and `Blocked Conditions`
+- Verification Gate Plan with `Verification Mode`, `Objective`, `Primary Flow`, `Regression Check`, `Mechanical`, `Observable`, `Pass Criteria`, and `Blocked Conditions`
 
 ## Review Steps
 
@@ -62,7 +62,7 @@ Score out of 100:
   - 10 required major sections exist.
   - 10 acceptance criteria and Gherkin are measurable, testable, and markdown-valid.
   - 10 implementation checklist uses action prefixes, files or locations, and phased tasks.
-  - 10 verification gate includes `Verification Mode`, `Objective`, `Primary Flow`, `Regression Check`, `Evidence Plan`, `Pass Criteria`, and `Blocked Conditions`.
+  - 10 verification gate includes `Verification Mode`, `Objective`, `Primary Flow`, `Regression Check`, `Mechanical`, `Observable`, `Pass Criteria`, and `Blocked Conditions`. Mechanical must name a command that would fail if the Objective were unmet. Observable must be a retained path, or `n/a` only when platform is `non-ui`.
 - Proposal fidelity: 35
   - 15 plan implements the selected approach.
   - 10 plan does not drift into unselected scope.
@@ -71,7 +71,7 @@ Score out of 100:
 - Actionability: 20
   - 8 tasks identify files or locations.
   - 6 tasks are atomic enough for implementation agents.
-  - 4 verification steps are concrete.
+  - 4 verification steps are concrete, including a named Mechanical command.
   - 2 risks or blockers are clear.
 - Style alignment: 5
   - 5 follows create-issue formatting and repo planning style.
@@ -84,6 +84,9 @@ Return `REVISE_PLAN` regardless of score if any are true:
 - The plan contradicts or drops the chosen proposal.
 - Implementation tasks are too vague to execute safely.
 - Markdown structure is broken enough that agents may misread it, including malformed fences around Gherkin or code examples.
+- Mechanical is missing, vague (no named command), or not machine-checkable. Missing Mechanical on an older in-flight plan is `REVISE_PLAN`, not `ASK_USER`.
+- Platform is `web`, `mobile-web`, `ios`, or `macos` and Mechanical is only lint, typecheck, format, or compile. Those may appear as extra commands, not as the sole oracle.
+- Platform is `web`, `mobile-web`, `ios`, or `macos` and Observable is missing, `n/a`, or has no retained evidence path.
 
 Return `APPROVE_PLAN` when no hard fail applies and the score is 85 or higher.
 

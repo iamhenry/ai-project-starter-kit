@@ -274,7 +274,7 @@ Start every checklist item with an **ALL CAPS** Action Verb followed by a colon.
 
 **IMPORTANT NOTES:**
 
-- Focus ONLY on code implementation - NO test creation unless explicitly requested
+- Focus on code implementation. Do not add a test suite. Prefer an existing check as Mechanical. A new test is in-scope only as that oracle, and must assert the user-visible Objective, not compilation.
 - Each task should specify the files to create/modify
 - Break down into atomic tasks following the guidelines above
 
@@ -290,7 +290,7 @@ Once implementation is complete, verify the task outcome before attempting a com
 - [ ] **ios / macos**: Apple app verification targets
 - [ ] **non-ui**: Direct command, API, log, or test proof when UI automation is not the strongest signal
 
-**NOTE**: This phase is SEPARATE from implementation and from commit. The goal is to prove the intended task behavior works end to end, not just to run code quality commands.
+**NOTE**: This phase is SEPARATE from implementation and from commit. Prove the intended task behavior with a named Mechanical command first, then user-observable evidence when the platform is UI. Do not treat lint/typecheck alone as the user flow.
 
 ---
 
@@ -305,18 +305,22 @@ Use the `verification-gate` skill to prove the task works before commit. `web` a
 - **Objective**: The single main outcome that must be proven
 - **Primary Flow**: 3-5 checkpoints covering the core happy-path flow
 - **Regression Check**: 1 lightweight adjacent behavior check when relevant
-- **Evidence Required**: `screenshot | recording | test output | logs`
-- **Pass Criteria**: Exact condition that counts as success
+- **Mechanical**: Named command(s) plus expected exit/output. Prefer an existing check. Lint/typecheck/format may be extra, never the only command when Platform is UI. A new test must assert the Objective, not compilation. "tests pass" is not enough.
+- **Observable**: Retained evidence path under `{ISSUE_DIR}/verification/screenshots/` or `videos/`, or `n/a` when Platform is `non-ui`. UI platforms must name a path. Screenshot vs recording lives here, not in a separate evidence field.
+- **Pass Criteria**: Exact condition that counts as success. Must be checkable from Mechanical output and, when not `n/a`, the Observable artifact.
 - **Blocked Conditions**: Missing auth, data, environment, or tooling that would prevent reliable verification
 
 **Evidence rules:**
+- Mechanical is a command the verifier re-runs and quotes. It is not a paragraph.
 - Use `screenshot` when a static state is enough to prove the outcome
 - Use `recording` when the user journey requires interaction or async state changes; prefer one recording for the full sequence instead of multiple short clips
-- Use `test output` or `logs` when direct command, API, or automated test proof is clearer than UI evidence
+- Use `test output` or `logs` as Mechanical proof; they do not replace Observable on UI platforms
 - Save browser artifacts to `_ai/task/{SLUG}/verification/videos/{step}.webm`
 - Save browser artifacts to `_ai/task/{SLUG}/verification/screenshots/{step}.png`
 
 **Example (`web`):**
+- Mechanical: `pnpm test -- generate-cancel` exits 0
+- Observable: `_ai/task/{SLUG}/verification/screenshots/cancel.png`
 1. Open `http://localhost:3000/create`
 2. Decide the lightest proof: use `screenshot` if a static state is enough, or `recording` if the flow needs interaction proof
 3. If using `recording`, record one full sequence: select model -> enter prompt -> submit -> wait for completion -> verify generated images render
@@ -324,7 +328,7 @@ Use the `verification-gate` skill to prove the task works before commit. `web` a
 
 ---
 
-[Generate a verification target with 3-5 checkpoints for the primary flow and 0-1 regression checks. Use the lightest evidence required that proves success or failure. Prefer a single full-flow recording for interactive journeys and screenshots only for static proof states.]
+[Generate a verification target with Mechanical command(s), Observable path or `n/a`, 3-5 primary-flow checkpoints, and 0-1 regression checks. Named oracle tests only; do not add a suite.]
 
 #### Phase 3: Commit Changes
 
@@ -368,7 +372,7 @@ Once verification passes, commit the work using the repo's normal commit convent
 - **Use subtasks**: Group related work under parent tasks (e.g., 4, 4.1, 4.2, 4.3)
 - **Specify implementation details** as bullet points under each subtask
 - **Avoid broad terms**: No "system", "integration", "complete" in task titles
-- **DO NOT include test creation** in implementation tasks unless explicitly requested in the task description
+- **DO NOT include a test suite** in implementation tasks. Prefer an existing check as Mechanical. A new test is allowed only as that oracle, and must assert the Objective.
 - **Verification gate** should be listed in Phase 2 after implementation tasks; **commit + hook remediation** should be listed separately in Phase 3
 - Distinguish between "writing code" and "running validation commands"
 

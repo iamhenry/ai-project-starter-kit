@@ -23,7 +23,7 @@ Read the minimum available context:
 - Required: changed files and/or git diff
 - Optional but useful: `{ISSUE_DIR}/issue.md`
 - Optional but useful: implementation summary from the implementation agent
-- Optional but useful: test, build, lint, and typecheck output
+- Required when `plan.md` names Mechanical command(s): raw output for those commands. Missing that output is `REVISE_CODE`. This gate does not run the commands or edit tests.
 - Optional but useful: `_ai/prompts/quality/code-review.md` as the review standard
 - Optional but useful: `_ai/prompts/quality/code-guidelines.md` as the quality standard
 
@@ -33,9 +33,9 @@ If `plan.md` or the changed code/diff is missing, return `ASK_USER` with the mis
 
 - `ISSUE_DIR` is the artifact directory created by `gather-context` for the current pipeline run.
 - Required: `plan.md`, plus changed files and/or git diff.
-- Optional but useful: `issue.md`, implementation summary, test/build/lint/typecheck output, and quality docs.
-- If expected command output is missing and needed to judge safely, return `ASK_USER` with the missing command output.
-- If command output is missing because it is not applicable, do not penalize it.
+- Optional but useful: `issue.md`, implementation summary, and quality docs.
+- If `plan.md` names Mechanical command(s) and their raw output is missing, return `REVISE_CODE`. Do not run the commands.
+- If command output is missing because the plan has no Mechanical field (legacy plan), do not invent a requirement here.
 
 ## Review Process
 
@@ -44,7 +44,7 @@ If `plan.md` or the changed code/diff is missing, return `ASK_USER` with the mis
 3. Trigger wider dependency review only when the change touches shared modules, public interfaces, global state, async side effects, security-sensitive paths, or common components.
 4. Compare implementation against the referenced quality docs without copying them into the report.
 5. Heavily weight simplicity: prefer the smallest code that satisfies `plan.md`; penalize speculative abstractions, extra surfaces, duplicate state, and unplanned features.
-6. Check provided test, build, lint, and typecheck output. Do not invent results that were not provided or run.
+6. Check provided Mechanical / test / build / lint / typecheck output. Do not invent results that were not provided. Do not run commands or edit tests.
 7. Return a concise structured decision to the orchestrator.
 
 ## Weighted Rubric
@@ -55,7 +55,7 @@ Score out of 100:
 | --- | ---: | --- |
 | Correctness against `plan.md` | 30 | Implements required behavior; respects scope/out-of-scope; has no obvious regressions against plan acceptance criteria. |
 | Simplicity / KISS / YAGNI | 25 | Uses the smallest solution that satisfies the plan; avoids speculative abstractions/features; avoids duplicate state or sources of truth. |
-| Tests / build / typecheck | 15 | Relevant checks pass when provided; coverage matches changed risk; missing expected output is handled explicitly. |
+| Tests / build / typecheck | 15 | Plan-named Mechanical output is present and passing; coverage matches changed risk; missing named output is a hard fail. |
 | Architecture / repo style | 15 | Follows existing patterns; respects boundaries/interfaces; avoids unnecessary dependencies. |
 | Security / error handling | 10 | Has no privacy/security regression; handles failure paths safely. |
 | Readability / maintainability | 5 | Names and structure are understandable; code is easy to review/change. |
@@ -71,13 +71,15 @@ Scoring anchors:
 Return `REVISE_CODE` regardless of score if any are true:
 
 - Relevant test, build, lint, or typecheck output fails.
+- Plan-named Mechanical command output is missing or failing.
+- New or changed Mechanical test that does not assert the plan Objective (compile/lint/typecheck-only oracle).
 - High severity bug with direct code evidence.
 - Security or privacy issue.
 - Implementation contradicts `plan.md`.
 - Unplanned scope drift.
 - Overengineered solution where a simpler approach satisfies `plan.md`.
 
-Return `ASK_USER` instead when the blocker is missing context, ambiguous product intent, unclear plan scope, conflicting artifacts, or unavailable verification output needed to decide safely.
+Return `ASK_USER` instead when the blocker is missing context, ambiguous product intent, unclear plan scope, or conflicting artifacts. Missing Mechanical output is `REVISE_CODE`, not `ASK_USER`.
 
 ## Decision Rules
 
@@ -85,7 +87,7 @@ Return `ASK_USER` instead when the blocker is missing context, ambiguous product
 - `REVISE_CODE`: hard fail applies, or score is below 85 with actionable implementation changes.
 - `ASK_USER`: required inputs are missing, product behavior is ambiguous, or deciding would require guessing beyond the artifacts.
 
-If `REVISE_CODE`, the orchestrator routes notes back to implementation subagent(s), then reruns this gate on the revised diff.
+If `REVISE_CODE`, the orchestrator routes notes back to implementation subagent(s), then reruns this gate on the revised diff. After 2 `REVISE_CODE` verdicts the orchestrator stops with `EXHAUSTED`; this gate does not count retries.
 
 ## Output Format
 
@@ -117,7 +119,7 @@ Return exactly this structure:
 - Do not edit files.
 - Do not implement fixes.
 - Do not create review artifacts or helper files.
-- Do not run broad QA; use `verification-gate` after approval.
+- Do not run Mechanical commands, tests, or broad QA. Require attached output; use `verification-gate` after approval.
 - Do not duplicate the full quality docs; reference `_ai/prompts/quality/code-review.md` and `_ai/prompts/quality/code-guidelines.md`.
 - Do not commit changes.
 - Keep findings concise and evidence-based. Speculative risks must be marked low confidence or omitted.

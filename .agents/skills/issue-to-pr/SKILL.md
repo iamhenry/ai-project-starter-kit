@@ -105,15 +105,15 @@ This skill connects modular skills, checks whether each stage produced the expec
 - If `{ISSUE_DIR}/plan.md` lacks safe delegation structure, create an ad hoc delegation todo list in memory/context only and delegate safely.
 - Do not save a new plan to disk or revise `{ISSUE_DIR}/plan.md` just to add delegation structure.
 - Avoid overlapping file edits; when overlap exists, sequence agents instead of parallelizing them.
-- Collect the implementation summary, changed files, commands run, and known risks from implementation subagents.
+- Collect the implementation summary, changed files, commands run, known risks, and raw Mechanical command output from implementation subagents.
 
 ### 6. Code Quality Gate
 
 - After implementation is complete, delegate review to a fresh subagent using `code-quality-gate`.
-- The subagent must receive `{ISSUE_DIR}/plan.md`, implementation summary, changed files, commands run, and known risks.
+- The subagent must receive `{ISSUE_DIR}/plan.md`, implementation summary, changed files, commands run, known risks, and raw Mechanical command output when the plan names it.
 - Gate: `code-quality-gate` returns `APPROVE_CODE`, `REVISE_CODE`, or `ASK_USER` with concise evidence.
 - Continue to verification only on `APPROVE_CODE`.
-- If `REVISE_CODE`, route notes back to implementation subagent(s), revise implementation, then rerun `code-quality-gate`.
+- If `REVISE_CODE`, route notes back to implementation subagent(s), revise implementation, then rerun `code-quality-gate`. After 2 `REVISE_CODE` verdicts, stop with `EXHAUSTED`. This counter is separate from verification `FAIL`s.
 - If `ASK_USER`, stop and ask the focused question.
 - Do not review or patch code directly from this wrapper.
 
@@ -122,8 +122,10 @@ This skill connects modular skills, checks whether each stage produced the expec
 - After `code-quality-gate` returns `APPROVE_CODE`, delegate verification to a fresh subagent using `verification-gate`.
 - The subagent must receive `{ISSUE_DIR}/plan.md`, the implementation summary, changed files, and any relevant test/build output.
 - `verification-gate` reads `{ISSUE_DIR}/plan.md` and routes proof by platform: `web`/`mobile-web` through `agent-browser`, `ios`/`macos` through `xcodebuildmcp-cli`, and `non-ui` through a direct proof path.
-- Gate: `verification-gate` returns `PASS`, `FAIL`, or `BLOCKED` with evidence.
-- Continue only on `PASS`; route `FAIL` or `BLOCKED` to the implementation owner or user as appropriate.
+- Gate: `verification-gate` returns `PASS`, `FAIL`, or `BLOCKED` with evidence on disk at `{ISSUE_DIR}/verification/result.md`.
+- After it returns, run only a file-existence check: `test -f` on `{ISSUE_DIR}/verification/result.md` and every cited evidence path. Missing file = `FAIL`. This is not QA.
+- Continue only on `PASS` when every `test -f` succeeds. A `PASS` paragraph with missing files is `FAIL`.
+- On `FAIL`, route the raw Mechanical/Observable error to the implementation owner, then rerun `code-quality-gate` before verifying again. After 2 `FAIL` verdicts, stop with `EXHAUSTED`. Do not retry `BLOCKED`.
 - Do not run QA directly or define browser, iOS, macOS, or non-UI verification steps in this wrapper.
 
 ### 8. PR Placeholder
@@ -141,8 +143,9 @@ Allowed task artifacts:
 - `{ISSUE_DIR}/issue.md`
 - `{ISSUE_DIR}/plan.md`
 - `{ISSUE_DIR}/research/*.md`
+- `{ISSUE_DIR}/verification/` (`result.md`, `screenshots/`, `videos/`) owned by `verification-gate`
 
-Do not create helper docs, reference files, sidecar state, ADR files, or wrapper-specific metadata unless this contract is intentionally revised later.
+Do not create helper docs, reference files, sidecar state, ADR files, or wrapper-specific metadata. The wrapper must not write `{ISSUE_DIR}/verification/`; it only checks cited paths exist.
 
 ---
 
@@ -158,6 +161,7 @@ Do not create helper docs, reference files, sidecar state, ADR files, or wrapper
 | Implementation code changes                          | Implementation subagents           |
 | Code quality decision                                | `code-quality-gate` fresh subagent |
 | Verification proof                                   | `verification-gate` fresh subagent |
+| `{ISSUE_DIR}/verification/`                          | `verification-gate` fresh subagent |
 | Pipeline order, gates, revision routing              | `issue-to-pr`                      |
 
 When an artifact is missing or malformed, ask the owner to revise it. Do not fix it inside this wrapper.
@@ -186,9 +190,11 @@ Judge, implementation, code quality, and verification work is delegated:
 - Missing `{ISSUE_DIR}/plan.md`: rerun or revise `create-issue`.
 - `judge-plan` returns `REVISE_PLAN`: route notes back to `create-issue` and request a revised `{ISSUE_DIR}/plan.md`.
 - `judge-plan` returns `ASK_USER`: stop and ask its one focused question.
-- `code-quality-gate` returns `REVISE_CODE`: route notes back to implementation subagent(s), revise implementation, and rerun `code-quality-gate`.
+- `code-quality-gate` returns `REVISE_CODE`: route notes back to implementation subagent(s), revise implementation, and rerun `code-quality-gate`. After 2 `REVISE_CODE` verdicts, stop with `EXHAUSTED`.
 - `code-quality-gate` returns `ASK_USER`: stop and ask its focused question.
-- `verification-gate` returns `FAIL` or `BLOCKED`: route evidence to the implementation owner or user; do not patch or verify directly here.
+- `verification-gate` returns `FAIL`: route the raw error to the implementation owner, rerun `code-quality-gate`, then `verification-gate`. After 2 `FAIL` verdicts, stop with `EXHAUSTED`.
+- `verification-gate` returns `BLOCKED`: stop and report the unlock condition to the user; do not retry.
+- `verification-gate` returns `PASS` but `test -f` fails on `result.md` or a cited path: treat as `FAIL`.
 - Any unexpected state: stop with the artifact path, expected state, actual state, and owning stage.
 
 ---
@@ -202,7 +208,7 @@ Judge, implementation, code quality, and verification work is delegated:
 - Do not duplicate decision logic from `gather-context`, `create-issue`, judge skills, implementation skills, verification skills, or PR workflows.
 - Do not define detailed implementation execution prompts.
 - Do not perform code quality review directly or skip `code-quality-gate` before verification.
-- Do not run QA directly or define web, mobile-web, iOS, macOS, or non-UI verification flows beyond `verification-gate` delegation.
+- Do not run QA directly or define web, mobile-web, iOS, macOS, or non-UI verification flows beyond `verification-gate` delegation. The wrapper may run `test -f` on cited verification paths only.
 - Do not define PR creation or review details beyond placeholders.
 - Prefer artifact handoff over hidden state.
 - Prefer modular delegation over bloating this wrapper.

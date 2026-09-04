@@ -12,6 +12,7 @@ Use this skill after implementation and after `code-quality-gate` returns `APPRO
 - The default, when `mode` is omitted, is the existing issue mode below. Any mode other than the explicit `mode: isa` request uses the existing issue-mode contract; do not auto-detect ISA inputs.
 - When the caller explicitly supplies `mode: isa`, use the alternate contract in `references/isa-mode.md`. Do not require, read, create, or infer `{ISSUE_DIR}/plan.md` for that invocation.
 - The two modes have separate inputs and output contracts. Do not mix issue artifacts into ISA verification or ISA inputs into issue verification.
+- Mechanical and Observable lanes below apply to issue mode only. ISA mode keeps declared leaf probes in `references/isa-mode.md`.
 
 Keep the scope narrow:
 
@@ -32,7 +33,8 @@ Collect the minimum context needed to verify the work:
   - Objective: single outcome to prove
   - Primary Flow: shortest realistic proof path
   - Regression Check: one adjacent behavior to protect, or `None`
-  - Evidence Required: artifact, command output, API response, file result, or `None`
+  - Mechanical: named command(s) plus expected exit code or output
+  - Observable: retained evidence path, or `n/a` for `non-ui`
   - Pass Criteria: concrete success condition
   - Blocked Conditions: known missing auth, data, environment, device, service, or tooling
 - changed behavior or files
@@ -42,9 +44,13 @@ Collect the minimum context needed to verify the work:
 
 If key prerequisites are missing and you cannot verify safely, return `BLOCKED`.
 
+If Mechanical is missing from `plan.md`, return `BLOCKED` with unlock: revise the plan. Do not invent a command.
+
 If the code-quality-gate result is missing, `REVISE_CODE`, or `ASK_USER`, return `BLOCKED` and do not run platform QA.
 
 `plan.md` owns what to prove. This skill owns how to prove it by choosing the platform route and smallest proof path.
+
+This skill must not edit application code, tests, or scorers. Re-run the named Mechanical command; do not rewrite it.
 
 ## Platform Routes
 
@@ -81,7 +87,13 @@ Prefer the smallest proof path that still demonstrates real user value.
       or infrastructure inside verification. If recovery fails, return
       `BLOCKED` with the exact missing prerequisite and unlock condition.
 
-   - For `web` or `mobile-web`, use `agent-browser` instead of re-inventing browser steps.
+    - Run Mechanical first. Execute the plan-named command(s) and quote raw
+      output in the report. Do not paraphrase pass/fail. If Mechanical fails,
+      return `FAIL` and skip Observable.
+    - Then run Observable when it is not `n/a`. Use the platform route below.
+      `PASS` requires both lanes when both are declared.
+
+    - For `web` or `mobile-web`, use `agent-browser` instead of re-inventing browser steps.
    - Before browser commands, load `agent-browser` and follow its own CLI-served setup and usage guidance.
    - Follow the `snapshot -> interact -> re-snapshot` cadence.
    - Use named sessions.
@@ -94,16 +106,19 @@ Prefer the smallest proof path that still demonstrates real user value.
    - Keep execution minimal: choose the smallest build, test, launch, simulator, or UI check that proves the Verification Target.
    - If `xcodebuildmcp-cli` is missing or the required project/device/runtime is unavailable, return `BLOCKED` with the missing prerequisite.
 
-   - For `non-ui`, run the smallest direct proof path available.
-   - Prefer assertions tied to user-visible outcomes: command success, API response shape, file creation, persisted data, or other concrete results.
+    - For `non-ui`, Mechanical is the proof path. Observable is `n/a`.
+    - Prefer assertions tied to user-visible outcomes: command success, API response shape, file creation, persisted data, or other concrete results.
 
 4. Decide the verdict.
 
-   - `PASS`: the main flow completes and the success state is proven.
-   - `FAIL`: the flow breaks, the result is wrong, or the outcome cannot be proven.
-   - `BLOCKED`: required auth, data, environment, or tooling is missing.
+    - `PASS`: Mechanical passed, and Observable is proven when it is not `n/a`.
+    - `FAIL`: Mechanical failed, the flow breaks, the result is wrong, cited files are missing, or the outcome cannot be proven.
+    - `BLOCKED`: required auth, data, environment, or tooling is missing.
 
 5. Report the result.
+   - Write `{ISSUE_DIR}/verification/result.md` first.
+   - Run `test -f` on that file and every cited Observable path. Missing file = `FAIL`, not `PASS`.
+   - Do not return `PASS` from chat alone.
 
 ## Evidence Rules
 
@@ -120,6 +135,7 @@ Prefer the smallest proof path that still demonstrates real user value.
   otherwise. Do not create evidence theater or retain artifacts that add no
   proof.
 - Always include artifact paths in the final report when evidence exists.
+- `"No artifacts"` is allowed only when Observable is `n/a`. If Observable names a path, that file must exist or the verdict is `FAIL`.
 
 ### Screenshot Hygiene
 
@@ -148,11 +164,14 @@ Use this exact structure:
 - Objective: [single outcome verified]
 - Primary flow: [short description]
 - Regression check: [short description or "None"]
+- Mechanical: [command] → [exit code / quoted raw excerpt]
+- Observable: [artifact path or `n/a`]
 - Verdict: `PASS|FAIL|BLOCKED`
 
 ### Evidence
 
-- [artifact path or "No artifacts"]
+- [artifact path; `"No artifacts"` only when Observable is `n/a`]
+- Report: `{ISSUE_DIR}/verification/result.md`
 
 ### Notes
 
