@@ -39,7 +39,7 @@ Resolve the three native sections once. Archived direct Missions are completed h
 
 Update a Task only at start, blocker, review handoff, and completion. At each boundary add at most one concise comment with evidence and next action; include the Workflow run ID when present. Remove the `blocked` label when work resumes. Never create a Task per Worker or Workflow stage, and never mirror Worker events into Task comments.
 
-Emit the standalone native `::task{key="<task-key>"}` card for creation, blocker, review handoff, completion, and explicit `status` responses.
+Emit the standalone native `::task{key="<task-key>"}` card for creation, blocker, review handoff, completion, and explicit `status` responses. The directive must be the only content on its line: never prefix it with a bullet or append arrows, status, or prose; put those on separate lines.
 
 Only the Supervisor moves a direct Mission:
 
