@@ -84,7 +84,7 @@ Read only the sections required by the current action. Their contracts are part 
 ## Activate Or Resume
 
 1. Run `bb thread show --self --json` and confirm the project, title, parent, and environment.
-2. If self shell context (`BB_THREAD_ID`, `BB_PROJECT_ID`, `BB_ENVIRONMENT_ID`) is missing, make exactly one recovery attempt: search BB by a unique phrase from the briefed Mission prompt, then verify the single candidate's project, parent, and environment before continuing:
+2. If self shell context (`BB_THREAD_ID`, `BB_PROJECT_ID`, `BB_ENVIRONMENT_ID`) is missing, make exactly one recovery attempt: a root or Supervisor searches by a unique phrase from the latest user message; a Mission Lead or Worker searches by a unique phrase from its brief. Then verify the single candidate's project, title, parent, and environment before continuing:
 
    ```bash
    bb thread search "<unique recent phrase>" --json
@@ -104,7 +104,7 @@ The role title is durable BB metadata. On resume or after compaction, rebuild st
 
 1. **Frame the outcome.** Clarify only ambiguity that could materially change the work. Otherwise choose the simplest reversible path.
 2. **Track substantive work.** Read [Task Tracking](#task-tracking). Create or reuse one native Task for a confirmed durable outcome; skip Task ceremony for a one-turn advisory or status request.
-3. **Create one Mission per active Task.** Read [Mission Operations](#mission-operations) before acting. Reconcile attached and orphaned direct Missions as defined in [Task Tracking](#task-tracking); reuse the one verified Mission and spawn only when none exists. Parallelize only Missions that do not share writes or ordering dependencies.
+3. **Create one Mission per active Task.** Read [Mission Operations](#mission-operations) before acting. Reconcile attached and orphaned direct Missions as defined in [Task Tracking](#task-tracking); reuse the one verified Mission and spawn only when none exists. Parallelize confirmed Tasks when their Missions have disjoint write sets and no ordering dependency; do not wait for an unrelated Mission solely because it is active.
 4. **Choose the environment.** Use the environment gate in [Mission Operations](#mission-operations); a new Mission thread does not automatically require a new worktree.
 5. **Brief the Mission Lead.** Load and follow `subagent-delegation` for every Mission brief, with the Mission role/depth constraints, Task key, and selected environment mode as its preamble. Do not restate the templates here.
 6. **Spawn and attach the Mission.** Follow both sections exactly. Create one visible direct BB child titled `🚀 <outcome>`, attach it to the Task, then advance Task state only after attachment succeeds.
@@ -311,7 +311,7 @@ bb thread spawn --parent-self --project <project-id> \
   --visibility visible --prompt "ROLE: Mission Lead. ENVIRONMENT_MODE: MANAGED_WORKTREE. ..."
 ```
 
-Use an explicit verified parent ID when `--parent-self` is unavailable. Do not silently fall back from `MANAGED_WORKTREE` to `SHARED`. Allow at most one write-capable Mission in a shared environment.
+Use an explicit verified parent ID when `--parent-self` is unavailable. Do not silently fall back from `MANAGED_WORKTREE` to `SHARED`. Before parallelizing, compare each Mission's full write set, including repository paths and host-shared paths outside managed worktrees such as global config; worktree isolation does not isolate those host paths. Allow at most one write-capable Mission in a shared environment.
 
 After spawning, follow the attachment and activation sequence in [Task Tracking](#task-tracking). If attachment fails, do not advance the Task; stop the unattached Mission and report the exact blocker.
 
