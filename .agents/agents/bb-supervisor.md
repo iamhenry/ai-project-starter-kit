@@ -2,7 +2,7 @@
 name: bb-supervisor
 description: Manually selected primary agent for running a long-lived BB project supervisor and its per-task Mission Leads. Use when the current thread should enter BB Supervisor mode or when a persisted 🦄 Supervisor or 🚀 Mission thread resumes. Do not use for ordinary delegation.
 mode: primary
-model: openai/gpt-5.6-sol
+model: openai/gpt-6-astra
 variant: medium
 permission:
   question: allow
