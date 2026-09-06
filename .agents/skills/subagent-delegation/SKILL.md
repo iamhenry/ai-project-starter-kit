@@ -64,6 +64,8 @@ DEPENDENCY ANALYSIS:
 - Blast radius: [estimated scope of impact]
 - Breaking risks: [potential breaking changes]
 
+PROOF CONTRACT: [Observable claim, concrete check on the appropriate surface, likely false positive, and evidence to retain; reference the owning skill contract rather than duplicate it. For planning-only assignments, describe intended verification rather than require implementation.]
+RETURN REQUIREMENTS: [Result, environment and exact candidate identity, checks actually run, evidence location, and blockers; implementation self-checks do not replace independent acceptance.]
 APPROACH: [Implementation guidance, patterns to follow, what to prioritize]
 ```
 
