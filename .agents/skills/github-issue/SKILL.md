@@ -31,6 +31,8 @@ Fill only the sections that have content. Delete empty ones. Keep the body short
 
 Ask one question if a required field below is missing and would make the issue useless. Otherwise draft with what you have and mark unknowns as `unknown`.
 
+Ground the problem statement in first principles: who or what is affected, what they need to achieve, what observable gap prevents it, and why that gap matters. Separate facts from assumptions; do not present a requested solution or suspected root cause as the problem. Use only supplied or verified evidence and mark unknowns rather than inventing rationale.
+
 ### Bug
 
 Required: what happened, what should happen, how to repro.
