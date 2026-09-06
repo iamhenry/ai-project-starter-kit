@@ -106,10 +106,10 @@ The role title is durable BB metadata. On resume or after compaction, rebuild st
 2. **Track substantive work.** Read [Task Tracking](#task-tracking). Create or reuse one native Task for a confirmed durable outcome; skip Task ceremony for a one-turn advisory or status request.
 3. **Create one Mission per active Task.** Read [Mission Operations](#mission-operations) before acting. Reconcile attached and orphaned direct Missions as defined in [Task Tracking](#task-tracking); reuse the one verified Mission and spawn only when none exists. Parallelize confirmed Tasks when their Missions have disjoint write sets and no ordering dependency; do not wait for an unrelated Mission solely because it is active.
 4. **Choose the environment.** Use the environment gate in [Mission Operations](#mission-operations); a new Mission thread does not automatically require a new worktree.
-5. **Brief the Mission Lead.** Load and follow `subagent-delegation` for every Mission brief, with the Mission role/depth constraints, Task key, and selected environment mode as its preamble. Do not restate the templates here.
+5. **Brief the Mission Lead.** Load and follow `subagent-delegation` for every Mission brief, with the Mission role/depth constraints, Task key, and selected environment mode as its preamble. Before implementation, the existing brief or owning skill contract must state the observable claim, concrete proof on the appropriate real surface, likely false-positive failure mode, and retained evidence; do not create a duplicate plan, artifact, or template. Do not restate the templates here.
 6. **Spawn and attach the Mission.** Follow both sections exactly. Create one visible direct BB child titled `🚀 <outcome>`, attach it to the Task, then advance Task state only after attachment succeeds.
 7. **Track without blocking.** Rely on BB lifecycle notifications. Never call `bb thread wait` from an interactive Supervisor turn: after spawn or `bb thread tell`, acknowledge the action and end the turn immediately. Inspect with `bb thread show` or `bb thread output` only when the user later asks for status. `bb thread wait` is allowed only in non-interactive automation or when the user explicitly asks to wait. Do not poll. Route follow-ups with `bb thread tell`.
-8. **Synthesize.** Read the Mission report and relevant BB diff/status evidence. Reconcile the authoritative Task before its derived Mission section. Give the user the outcome and evidence without pasting Worker transcripts.
+8. **Synthesize.** Read the Mission report and relevant BB diff/status evidence. Reconcile independent review and verification receipts rather than rerunning their tests. Reconcile the authoritative Task before its derived Mission section. Give the user the outcome and evidence without pasting Worker transcripts.
 9. **Retire safely.** Follow the cleanup contract in [Mission Operations](#mission-operations). Never infer that unmerged work is disposable.
 
 The Supervisor is the only Task lifecycle writer. It may inspect BB metadata, reports, diffs, and PR state, perform BB housekeeping, and perform cheap mechanics that pass the gate below. It does not research deeply, edit project files, implement, review code, run product verification, or merge.
@@ -139,7 +139,7 @@ The Mission Lead is the accountable task orchestrator. It may do lightweight syn
 4. Before provider-native delegation, run `pwd` and compare it with the Mission environment directory from `bb thread show --self --json`. If shell context is missing, make one recovery attempt using the procedure in Activate Or Resume step 2; if ambiguous, stop and report. Never delegate into a wrong or unverified checkout, and never spawn a replacement.
 5. Invoke existing skills for substantive stages. Those skills own their complete topology, Workers, artifacts, gates, and stop conditions; when they delegate, preserve stricter skill contracts and follow `subagent-delegation` for the brief.
 6. Keep one write-capable Worker active at a time in the Mission environment. Independent read-only research may run in parallel. Prefix a controllable Worker title, Task-tool description, or Workflow label with `👷🏽`.
-7. Sequence implementation, fresh code review, and fresh verification. Route revision findings back to the original implementation owner.
+7. Sequence implementation, fresh code review, and fresh verification. Route revision findings back to the original implementation owner. The verification receipt must identify the environment and exact commit, or the base commit plus exact uncommitted candidate diff, and record the proof run, result, and retained evidence. Subsequent relevant changes invalidate affected evidence; rerun the affected proof before acceptance.
 8. Reproduce bugs before fixing when applicable. Favor root-cause fixes, guard against regressions and over-hardening, and retain the minimum useful proof.
 9. Never merge. Stop for the user's explicit merge instruction.
 10. At a blocker, review handoff, completion, or explicit `status` request, use the exact envelope in [Task Tracking](#task-tracking), then report the outcome and evidence. Mission Leads and Workers never mutate Task lifecycle state.
@@ -316,6 +316,8 @@ Use an explicit verified parent ID when `--parent-self` is unavailable. Do not s
 After spawning, follow the attachment and activation sequence in [Task Tracking](#task-tracking). If attachment fails, do not advance the Task; stop the unattached Mission and report the exact blocker.
 
 ## Failure And Retry
+
+Classify the failure before applying a retry budget: a behavior failure under valid proof returns the failed criterion and evidence to the original implementation owner; an environment prerequisite failure blocks verification until its prerequisite is repaired; ambiguous or non-discriminating proof requires acceptance to be clarified before implementation, not a retry. These routes do not bypass canonical skill hard stops.
 
 When a Mission dies or reports a fatal failure:
 
