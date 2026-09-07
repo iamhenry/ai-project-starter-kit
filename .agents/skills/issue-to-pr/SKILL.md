@@ -59,6 +59,8 @@ This skill connects modular skills, checks whether each stage produced the expec
 
 `ISSUE_DIR` is created by `gather-context` using `_ai/task/{YYYY-MM-DD}/{slug}`. All pipeline artifacts are relative to `ISSUE_DIR`.
 
+Use existing `issue.md`, `plan.md`, and stage reports rather than restarting intake. Explicit user changes take precedence: route reconciliation of affected criteria to the artifact owner, then repeat only invalidated gates. Before dispatch, check the actual next-stage inputs; repair pipeline-owned gaps through their owners, not by asking the user to author documents. Ask only for missing intent or permission. Allow one narrow repair per underlying prerequisite or receipt gap, within existing stricter limits; if it remains unresolved, stop with the owner and unlock condition. Renaming a gap or redispatching never resets a budget.
+
 ### 1. Gather Context And Intake
 
 - Run `gather-context` with the raw user issue/request.
@@ -76,7 +78,7 @@ This skill connects modular skills, checks whether each stage produced the expec
 - The subagent must receive only the task artifacts it needs, not accumulated conversation context.
 - The review must be clean, independent, and adversarial enough to catch weak assumptions before planning.
 - Gate: `{ISSUE_DIR}/issue.md` contains `Judge Decision` with `Status: SELECTED` or `Status: ASK_USER`.
-- If `ASK_USER`, stop and ask the one focused question from `judge-proposal`.
+- If `ASK_USER`, use Revision Routing to distinguish an owned artifact gap from a user decision.
 
 ### 3. Create Issue Plan
 
@@ -93,7 +95,7 @@ This skill connects modular skills, checks whether each stage produced the expec
 - The subagent must receive only `{ISSUE_DIR}/issue.md`, `{ISSUE_DIR}/plan.md`, and relevant `{ISSUE_DIR}/research/*.md` artifacts.
 - The review must be independent from the proposal judge and main-agent working context.
 - Gate: `{ISSUE_DIR}/plan.md` contains `Plan Judge` with `APPROVE_PLAN`, `REVISE_PLAN`, or `ASK_USER`.
-- Continue only on `APPROVE_PLAN`; route `REVISE_PLAN` to `create-issue` and stop on `ASK_USER`.
+- Continue only on `APPROVE_PLAN`; route `REVISE_PLAN` to `create-issue` and handle `ASK_USER` through Revision Routing.
 
 ### 5. Implementation Orchestration
 
@@ -113,8 +115,8 @@ This skill connects modular skills, checks whether each stage produced the expec
 - The subagent must receive `{ISSUE_DIR}/plan.md`, implementation summary, changed files, commands run, known risks, and raw Mechanical command output when the plan names it.
 - Gate: `code-quality-gate` returns `APPROVE_CODE`, `REVISE_CODE`, or `ASK_USER` with concise evidence.
 - Continue to verification only on `APPROVE_CODE`.
-- If `REVISE_CODE`, route notes back to implementation subagent(s), revise implementation, then rerun `code-quality-gate`. After 2 `REVISE_CODE` verdicts, stop with `EXHAUSTED`. This counter is separate from verification `FAIL`s.
-- If `ASK_USER`, stop and ask the focused question.
+- If `REVISE_CODE`, classify the findings before routing: missing Mechanical output needs a receipt from the implementation owner, not a source edit; a failed prerequisite needs its setup owner; a demonstrated code defect needs a bounded correction. Rerun `code-quality-gate` after the relevant repair. After 2 `REVISE_CODE` verdicts, stop with `EXHAUSTED`, including receipt-only rejections. This counter is separate from verification `FAIL`s.
+- If `ASK_USER`, repair a pipeline-owned missing input under the prerequisite rule above; otherwise stop and ask the focused question.
 - Do not review or patch code directly from this wrapper.
 
 ### 7. Verification Gate
@@ -125,7 +127,7 @@ This skill connects modular skills, checks whether each stage produced the expec
 - Gate: `verification-gate` returns `PASS`, `FAIL`, or `BLOCKED` with evidence on disk at `{ISSUE_DIR}/verification/result.md`.
 - After it returns, run only a file-existence check: `test -f` on `{ISSUE_DIR}/verification/result.md` and every cited evidence path. Missing file = `FAIL`. This is not QA.
 - Continue only on `PASS` when every `test -f` succeeds. A `PASS` paragraph with missing files is `FAIL`.
-- On `FAIL`, route the raw Mechanical/Observable error to the implementation owner, then rerun `code-quality-gate` before verifying again. After 2 `FAIL` verdicts, stop with `EXHAUSTED`. Do not retry `BLOCKED`.
+- On `FAIL`, route demonstrated code defects to implementation and rerun `code-quality-gate` before verifying the changed candidate. Route missing or inadequate proof to the verification owner without unrelated source edits. After 2 `FAIL` verdicts, stop with `EXHAUSTED`, including evidence-only failures. On `BLOCKED`, stop and report the prerequisite owner and unlock condition; do not redispatch verification against the unchanged blocker.
 - Do not run QA directly or define browser, iOS, macOS, or non-UI verification steps in this wrapper.
 
 ### 8. PR Placeholder
@@ -185,15 +187,15 @@ Judge, implementation, code quality, and verification work is delegated:
 
 ## Revision Routing
 
+Before any correction, compare the failed criterion with prior findings: what changed, and why would this repair resolve the underlying failure? A rejection is not automatic permission for more code. Reconsider recurring failures before the cap; if no supported repair remains, stop with the evidence and decision needed. Never use exhaustion to waive safety or independent acceptance.
+
 - Missing `{ISSUE_DIR}/issue.md`, missing `{ISSUE_DIR}/research/*.md` files, or missing approaches: rerun or revise `gather-context`.
-- `judge-proposal` returns `ASK_USER`: stop and ask its one focused question.
+- `judge-proposal` returns `ASK_USER`: route pipeline-owned gaps to `gather-context` within the prerequisite bound; ask the user only for the remaining decision.
 - Missing `{ISSUE_DIR}/plan.md`: rerun or revise `create-issue`.
 - `judge-plan` returns `REVISE_PLAN`: route notes back to `create-issue` and request a revised `{ISSUE_DIR}/plan.md`.
-- `judge-plan` returns `ASK_USER`: stop and ask its one focused question.
-- `code-quality-gate` returns `REVISE_CODE`: route notes back to implementation subagent(s), revise implementation, and rerun `code-quality-gate`. After 2 `REVISE_CODE` verdicts, stop with `EXHAUSTED`.
-- `code-quality-gate` returns `ASK_USER`: stop and ask its focused question.
-- `verification-gate` returns `FAIL`: route the raw error to the implementation owner, rerun `code-quality-gate`, then `verification-gate`. After 2 `FAIL` verdicts, stop with `EXHAUSTED`.
-- `verification-gate` returns `BLOCKED`: stop and report the unlock condition to the user; do not retry.
+- `judge-plan` returns `ASK_USER`: route pipeline-owned gaps to their artifact owners within the prerequisite bound; ask the user only for the remaining decision.
+- `code-quality-gate` returns `REVISE_CODE` or `ASK_USER`: use step 6's classified routing and unchanged verdict ceiling.
+- `verification-gate` returns `FAIL` or `BLOCKED`: use step 7's classified routing and unchanged verdict ceiling. A blocked gate does not restart itself; its owner may repair the prerequisite within the existing bound before a new dispatch.
 - `verification-gate` returns `PASS` but `test -f` fails on `result.md` or a cited path: treat as `FAIL`.
 - Any unexpected state: stop with the artifact path, expected state, actual state, and owning stage.
 

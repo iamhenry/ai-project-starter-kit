@@ -26,7 +26,7 @@ Read only these artifacts when available:
 - `_ai/docs/ETHOS.md`
 - `.agents/commands/workflow/01-plan/02-create-issue.md` as the structural reference
 
-If the task directory or `plan.md` is missing, return `ASK_USER` with the missing artifact.
+If the task directory or `plan.md` is missing, return `ASK_USER` with the missing artifact and its owner (`gather-context` for the directory, `create-issue` for the plan). The caller routes bounded repair from approved context rather than asking the user to author it. Missing intent or permission still requires a user decision.
 
 ## Artifact Contract
 
@@ -51,7 +51,7 @@ Required major sections:
 3. Check proposal fidelity: the plan must implement the selected proposal and not silently switch approach.
 4. Check actionability: tasks must be concrete enough for a junior implementation agent, with files, actions, and verification.
 5. Check markdown parse safety: headings, lists, tables, and fenced code blocks must be well-formed enough that agents will not misread the plan.
-6. Check ETHOS lightly: prefer tracer-bullet scope, reuse, user trust, safe failure, and minimal friction. Do not re-litigate architecture unless the plan contradicts these principles in a blocking way.
+6. Check ETHOS lightly when present; otherwise use existing project and safety instructions without requiring a new ETHOS file. Prefer tracer-bullet scope, reuse, user trust, safe failure, and minimal friction. Do not re-litigate architecture unless the plan contradicts these principles in a blocking way.
 
 ## Scorecard
 
