@@ -40,6 +40,7 @@ Collect the minimum context needed to verify the work:
 - changed behavior or files
 - target URL, command, or environment
 - auth, seed data, or other prerequisites
+- for bug tasks: the reproduction result and evidence paths from `reproduce-bug`, supplying the faithful smoke to reuse
 - code-quality-gate result: `APPROVE_CODE`
 
 If key prerequisites are missing, use only the bounded recovery below when safe and authorized; otherwise return `BLOCKED` naming the prerequisite owner and unlock condition, not a code defect or a demand that the user perform routine setup.
@@ -98,6 +99,14 @@ Prefer the smallest proof path that still demonstrates real user value.
       accepted: the observed evidence comes from the primary flow on the
       candidate commit (or base commit plus exact uncommitted diff), not a
       different path, an earlier candidate, or implementer claims alone.
+    - For bug fixes, the primary flow is the same faithful reproduction smoke
+      that triggered the original bug (from the reproduction result), now
+      expected to pass on the candidate. Reuse it before/after rather than
+      inventing a new flow.
+    - When the plan's Regression Check is not `None`, run that one regression.
+      Add further counterexamples only when the change touches overrides or
+      precedence handling and an explicit case is warranted; do not expand
+      verification into broad QA.
 
     - For `web` or `mobile-web`, use `agent-browser` instead of re-inventing browser steps.
    - Before browser commands, load `agent-browser` and follow its own CLI-served setup and usage guidance.
@@ -132,6 +141,11 @@ Prefer the smallest proof path that still demonstrates real user value.
 - Independently establish the candidate and assess the proof rather than accepting implementer claims. Reuse Observable evidence only when it remains valid for the same candidate and relevant conditions; relevant changes invalidate affected proof and require it to be rerun. Mechanical is still rerun as required above.
 - Capture only the evidence needed to support the verdict.
 - Never record secrets, tokens, private user data, or unnecessary personal information.
+- If any temporary diagnostic instrumentation was added during reproduction or
+  diagnosis, it must be removed from the candidate or explicitly justified in
+  Notes before `PASS`. Inspect the candidate diff and retained evidence for
+  secrets, personal data, or full prompt bodies; if found, that is `FAIL` until
+  sanitized.
 - Raw snapshots, JSON, measurements, logs, base64, and duplicate media default
   to the OS temp area and are not durable unless the plan or leaf explicitly
   requires them. If `ISSUE_DIR` exists, store only

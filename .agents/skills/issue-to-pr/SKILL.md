@@ -100,6 +100,8 @@ Use existing `issue.md`, `plan.md`, and stage reports rather than restarting int
 ### 5. Implementation Orchestration
 
 - If `{ISSUE_DIR}/issue.md` classifies the task as `bug`, invoke `reproduce-bug` after `APPROVE_PLAN` and before any implementation delegation. Continue only on `REPRODUCED` with evidence matching the reported entry point; a mocked or different-path reproduction does not authorize production edits. On `NOT_REPRODUCED` or `BLOCKED`, stop and report its structured result. Before dispatching implementation, require an evidence-backed causal explanation that distinguishes the proposed cause from competing explanations — suspicion about code alone is not enough. On `REPRODUCED`, pass the reproduction result and evidence paths to implementation subagent(s); do not duplicate its SOP or write reproduction details into `plan.md`.
+- When the causal explanation is not obvious from the reproduction result, route one bounded diagnostic step before implementation: one hypothesis, one smallest discriminating probe that is safe to run without production edits, its observation, then the next action (proceed, or one focused question to the owner). "Obvious" means existing reproduction observations already discriminate the proposed cause from competing explanations; if they do not, run the diagnostic step. Diagnostic probes may be delegated as read/safe work even though causal evidence is still required before any production edit.
+- If the reproduction observations do not discriminate the cause and a probe needs more visibility, the implementation owner may add minimal temporary instrumentation, but only inside a safe, authorized, disposable diagnostic context (branch, sandbox, or explicitly approved run): prefer existing logs first; instrument only at the uncertain boundary, recording the relevant inputs, the decision it enables, its output, and a correlation marker only when needed; count injected inputs, retries, external calls, and side effects as real cost and weigh them before adding it; never log secrets, personal data, or full prompt bodies. This never authorizes an evidence-backed production fix before the causal gate above; instrumentation for diagnosis must be removed or handed to implementation with a removal requirement.
 - Do not implement directly from this wrapper.
 - Always delegate write operations to implementation subagents.
 - Delegate relevant read or research operations when needed.
@@ -108,6 +110,7 @@ Use existing `issue.md`, `plan.md`, and stage reports rather than restarting int
 - Do not save a new plan to disk or revise `{ISSUE_DIR}/plan.md` just to add delegation structure.
 - Avoid overlapping file edits; when overlap exists, sequence agents instead of parallelizing them.
 - Collect the implementation summary, changed files, commands run, known risks, and raw Mechanical command output from implementation subagents.
+- For bug tasks, also pass the reproduction result and evidence paths (including the reproduction smoke steps) to verification so it can reuse the same faithful smoke for the before/after proof.
 
 ### 6. Code Quality Gate
 
@@ -122,7 +125,7 @@ Use existing `issue.md`, `plan.md`, and stage reports rather than restarting int
 ### 7. Verification Gate
 
 - After `code-quality-gate` returns `APPROVE_CODE`, delegate verification to a fresh subagent using `verification-gate`.
-- The subagent must receive `{ISSUE_DIR}/plan.md`, the implementation summary, changed files, and any relevant test/build output.
+- The subagent must receive `{ISSUE_DIR}/plan.md`, the implementation summary, changed files, any relevant test/build output, and for bug tasks the reproduction result and evidence paths so the original smoke can be reused as the before/after proof.
 - `verification-gate` reads `{ISSUE_DIR}/plan.md` and routes proof by platform: `web`/`mobile-web` through `agent-browser`, `ios`/`macos` through `xcodebuildmcp-cli`, and `non-ui` through a direct proof path.
 - Gate: `verification-gate` returns `PASS`, `FAIL`, or `BLOCKED` with evidence on disk at `{ISSUE_DIR}/verification/result.md`.
 - Before treating the work as PR-ready, confirm the cited evidence is accessible (embedded or linked, paths resolve) and each artifact is labeled before/after where the claim depends on a state change, with stated limits. Evidence that does not open or does not support the claim is not PR-ready.
