@@ -115,7 +115,7 @@ Rules:
 - Child permission is capped by the parent's mode. `--permission-mode` options: `accept-edits`, `auto` (default), `full`.
 - For review/fix follow-ups on the *same* files: get env id from `bb thread show <id> --json`, then `--environment <env-id>`.
 - Use `--new-environment worktree` only for a Git repo with at least one commit. For same-checkout work, pass the verified parent's `environment.id` explicitly with `--environment <environment-id>`; use `$BB_ENVIRONMENT_ID` only when it is actually set.
-- **Don't poll.** Use `bb thread wait <id>` to block (it may be silent while waiting), or let lifecycle notifications arrive.
+- **Don't wait or poll in interactive chat.** Never use `bb thread wait`; it blocks the main chat. After spawning or steering a child, acknowledge the action and immediately end the interactive turn without waiting or polling. Continue when lifecycle notifications arrive.
 - Steer/queue follow-ups: `bb thread tell <id> "..."` (steers by default; `--mode queue` for non-urgent).
 - Inspect results: `bb thread show <id>`, `bb thread show <id> --git-diff`, `bb thread output <id>`.
 - Stop stuck/finished hidden workers: `bb thread stop <id>`.
@@ -131,7 +131,7 @@ Rules:
 | List projects / machines | `bb project list [--include-personal]` / `bb machine list` |
 | List providers & models | `bb provider list`, `bb provider models <provider-id>` |
 | Delegate a task | Root coordinator: `bb thread spawn --parent-self ...` or `bb thread spawn --parent-thread <verified-parent-id> ...` |
-| Wait for / message a thread | `bb thread wait <id>`, `bb thread tell <id> "..."` |
+| Message a thread | `bb thread tell <id> "..."` |
 | Review a thread's work | `bb thread show <id> --git-diff`, `bb thread log <id>` |
 | Read/write files on host | `bb file read\|write\|list` (`--root` confines mutations) |
 | Long-running command (dev server) | `bb terminal create --thread <id> --command "pnpm dev"` |
