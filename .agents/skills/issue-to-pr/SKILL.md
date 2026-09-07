@@ -125,6 +125,7 @@ Use existing `issue.md`, `plan.md`, and stage reports rather than restarting int
 - The subagent must receive `{ISSUE_DIR}/plan.md`, the implementation summary, changed files, and any relevant test/build output.
 - `verification-gate` reads `{ISSUE_DIR}/plan.md` and routes proof by platform: `web`/`mobile-web` through `agent-browser`, `ios`/`macos` through `xcodebuildmcp-cli`, and `non-ui` through a direct proof path.
 - Gate: `verification-gate` returns `PASS`, `FAIL`, or `BLOCKED` with evidence on disk at `{ISSUE_DIR}/verification/result.md`.
+- Before treating the work as PR-ready, confirm the cited evidence is accessible (embedded or linked, paths resolve) and each artifact is labeled before/after where the claim depends on a state change, with stated limits. Evidence that does not open or does not support the claim is not PR-ready.
 - After it returns, run only a file-existence check: `test -f` on `{ISSUE_DIR}/verification/result.md` and every cited evidence path. Missing file = `FAIL`. This is not QA.
 - Continue only on `PASS` when every `test -f` succeeds. A `PASS` paragraph with missing files is `FAIL`.
 - On `FAIL`, route demonstrated code defects to implementation and rerun `code-quality-gate` before verifying the changed candidate. Route missing or inadequate proof to the verification owner without unrelated source edits. After 2 `FAIL` verdicts, stop with `EXHAUSTED`, including evidence-only failures. On `BLOCKED`, stop and report the prerequisite owner and unlock condition; do not redispatch verification against the unchanged blocker.

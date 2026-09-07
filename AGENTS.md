@@ -102,7 +102,7 @@ No fit → router. Named skill → that skill. Unknown territory → **Unknown**
 |---|---|---|
 | Default behavior | Read-only until edit intent is explicit. | Inspect and explain before changing files. |
 | Verification | Code changes leave proof someone can open. Load `verification-gate` when the step is fuzzy or the blast is real; iOS/macOS via xcodebuildmcp. | A task isn't done until the result is observable. |
-| Evidence | Match evidence to the claim — diff proves change, not outcome. | New behavior → run the product and show it; bug fix → reproduce the reported behavior and establish the cause before editing, then repro before, gone after; big change → tests and logs a human can open. Passing tests or a merged diff alone never substitute for causal evidence. |
+| Evidence | Match evidence to the claim — diff proves change, not outcome. | New behavior → run the product and show it; bug fix → reproduce the reported behavior and establish the cause before editing, then repro before, gone after; big change → tests and logs a human can open. Evidence artifacts must exist, open, and support the claim. Passing tests or a merged diff alone never substitute for causal evidence. |
 | Gate decisions | PASS continues; REVISE returns to the owning skill; ASK_USER asks one focused question. | Reviews use fresh subagents judging artifacts on disk — never patch ad hoc. |
 | Subagents | Only for reviews or large tasks, never small ones. | Avoid delegation overhead and stale context. |
 | Resume | Pick up from JOURNAL/last commit. | Don't restart finished work. |

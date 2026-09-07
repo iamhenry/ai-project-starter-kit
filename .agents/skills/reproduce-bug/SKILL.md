@@ -62,7 +62,10 @@ Prefer the smallest repro path that still proves the bug clearly.
 3. Attempt reproduction.
 
    - Reproduce through the reported entry point: the screen, command, or flow the reporter actually used. A unit test, a different code path, or a mocked dependency can support a finding but never confirms a real user-flow bug by itself.
+   - Prefer user-visible proof first: show what the user actually sees going wrong, then add mechanical proof (logs, command output, file state) to pin the failure. Observable alone can be ambiguous; mechanical alone can miss the user's actual experience.
+   - When the requester explicitly asks for a screenshot (or other specific artifact), capture it or return `BLOCKED` naming the missing prerequisite; do not substitute a different artifact silently.
    - Check for existing faithful evidence (logs, screenshots, reports from the actual flow) before spending on a new reproduction; valid existing evidence that matches the reported entry point can avoid a new expensive repro run.
+   - Clearly mark controlled evidence (staging data, seeded fixtures, scripted runs); it supports diagnosis but never proves live user behavior on its own.
    - Reuse the smallest part of the `dogfood` workflow needed to reproduce the reported bug.
    - Capture `📸` when a single static proof state is enough.
    - Capture `🎥` when the bug requires interaction or timing proof; prefer one recording for the full sequence.
