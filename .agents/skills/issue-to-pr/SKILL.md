@@ -99,7 +99,7 @@ Use existing `issue.md`, `plan.md`, and stage reports rather than restarting int
 
 ### 5. Implementation Orchestration
 
-- If `{ISSUE_DIR}/issue.md` classifies the task as `bug`, invoke `reproduce-bug` after `APPROVE_PLAN` and before any implementation delegation. Continue only on `REPRODUCED`; on `NOT_REPRODUCED` or `BLOCKED`, stop and report its structured result. On `REPRODUCED`, pass the reproduction result and evidence paths to implementation subagent(s); do not duplicate its SOP or write reproduction details into `plan.md`.
+- If `{ISSUE_DIR}/issue.md` classifies the task as `bug`, invoke `reproduce-bug` after `APPROVE_PLAN` and before any implementation delegation. Continue only on `REPRODUCED` with evidence matching the reported entry point; a mocked or different-path reproduction does not authorize production edits. On `NOT_REPRODUCED` or `BLOCKED`, stop and report its structured result. Before dispatching implementation, require an evidence-backed causal explanation that distinguishes the proposed cause from competing explanations — suspicion about code alone is not enough. On `REPRODUCED`, pass the reproduction result and evidence paths to implementation subagent(s); do not duplicate its SOP or write reproduction details into `plan.md`.
 - Do not implement directly from this wrapper.
 - Always delegate write operations to implementation subagents.
 - Delegate relevant read or research operations when needed.
@@ -125,6 +125,7 @@ Use existing `issue.md`, `plan.md`, and stage reports rather than restarting int
 - The subagent must receive `{ISSUE_DIR}/plan.md`, the implementation summary, changed files, and any relevant test/build output.
 - `verification-gate` reads `{ISSUE_DIR}/plan.md` and routes proof by platform: `web`/`mobile-web` through `agent-browser`, `ios`/`macos` through `xcodebuildmcp-cli`, and `non-ui` through a direct proof path.
 - Gate: `verification-gate` returns `PASS`, `FAIL`, or `BLOCKED` with evidence on disk at `{ISSUE_DIR}/verification/result.md`.
+- Before treating the work as PR-ready, confirm the cited evidence is accessible (embedded or linked, paths resolve) and each artifact is labeled before/after where the claim depends on a state change, with stated limits. Evidence that does not open or does not support the claim is not PR-ready.
 - After it returns, run only a file-existence check: `test -f` on `{ISSUE_DIR}/verification/result.md` and every cited evidence path. Missing file = `FAIL`. This is not QA.
 - Continue only on `PASS` when every `test -f` succeeds. A `PASS` paragraph with missing files is `FAIL`.
 - On `FAIL`, route demonstrated code defects to implementation and rerun `code-quality-gate` before verifying the changed candidate. Route missing or inadequate proof to the verification owner without unrelated source edits. After 2 `FAIL` verdicts, stop with `EXHAUSTED`, including evidence-only failures. On `BLOCKED`, stop and report the prerequisite owner and unlock condition; do not redispatch verification against the unchanged blocker.

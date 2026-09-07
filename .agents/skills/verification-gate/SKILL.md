@@ -94,6 +94,10 @@ Prefer the smallest proof path that still demonstrates real user value.
       or return `BLOCKED`; if it demonstrates a failure, return `FAIL` and skip Observable.
     - Then run Observable when it is not `n/a`. Use the platform route below.
       `PASS` requires both lanes when both are declared.
+    - Proof must match the reported flow for the exact candidate being
+      accepted: the observed evidence comes from the primary flow on the
+      candidate commit (or base commit plus exact uncommitted diff), not a
+      different path, an earlier candidate, or implementer claims alone.
 
     - For `web` or `mobile-web`, use `agent-browser` instead of re-inventing browser steps.
    - Before browser commands, load `agent-browser` and follow its own CLI-served setup and usage guidance.
@@ -115,7 +119,7 @@ Prefer the smallest proof path that still demonstrates real user value.
 
     - `PASS`: Mechanical passed, and Observable is proven when it is not `n/a`.
     - `FAIL`: under valid prerequisites and a clear target, Mechanical failed, the flow breaks, the result is wrong, cited files are missing, or the evidence does not prove the outcome. Distinguish code defects from evidence gaps in Notes and route to the actual owner.
-    - `BLOCKED`: required auth, data, environment, tooling, or a discriminating verification target is missing.
+    - `BLOCKED`: required auth, data, environment, tooling, or a discriminating verification target is missing. A required screenshot or artifact that was explicitly requested but cannot be captured is `BLOCKED` (missing prerequisite), not `PASS`; if the plan declares it Observable and it is absent, that is `FAIL` per the file-existence rule.
 
 5. Report the result.
    - Write `{ISSUE_DIR}/verification/result.md` first.
