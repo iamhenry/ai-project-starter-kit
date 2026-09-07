@@ -4,40 +4,40 @@ Source of truth: the **complete** skills tree shipped inside the globally instal
 
 **License:** the upstream skills docs are governed by the Apache License, Version 2.0, copyright **2026 Software Mansion S.A.** — the upstream package's exact `LICENSE` file is bundled verbatim at `./LICENSE` in this directory (195 lines: full Apache-2.0 text, the copyright line, and the upstream "Additional Terms: Proprietary Binary Components" section). There is no separate upstream NOTICE file. The additional terms apply only to the package's proprietary binaries, none of which are imported here — the 28 imported files are Markdown docs covered by the Apache-2.0 grant, which requires retaining the license text and copyright notice on redistribution; `./LICENSE` provides both.
 
-Import path: `skills/<upstream-dir>/` for each of the 18 upstream skill directories, imported verbatim (full content, not summaries) except for the precise adaptations listed below. This file is the only place recording the upstream relationship.
+Import path: `<upstream-dir>/` directly beneath `.agents/skills/argent/` for each of the 18 upstream skill directories, imported verbatim (full content, not summaries) except for the precise adaptations listed below. This file is the only place recording the upstream relationship.
 
 ## Complete upstream inventory (source → destination)
 
 | Upstream path (package root `skills/`) | Destination (repo root `.agents/skills/argent/`) |
 | --- | --- |
-| `argent-android-emulator-setup/SKILL.md` | `skills/argent-android-emulator-setup/SKILL.md` |
-| `argent-create-flow/SKILL.md` | `skills/argent-create-flow/SKILL.md` |
-| `argent-create-flow/references/flow-yaml.md` | `skills/argent-create-flow/references/flow-yaml.md` |
-| `argent-create-flow/references/live-authoring.md` | `skills/argent-create-flow/references/live-authoring.md` |
-| `argent-create-flow/references/reliability-and-recovery.md` | `skills/argent-create-flow/references/reliability-and-recovery.md` |
-| `argent-device-interact/SKILL.md` | `skills/argent-device-interact/SKILL.md` |
-| `argent-device-interact/references/gesture-examples.md` | `skills/argent-device-interact/references/gesture-examples.md` |
-| `argent-ios-device-interact/SKILL.md` | `skills/argent-ios-device-interact/SKILL.md` |
-| `argent-ios-device-setup/SKILL.md` | `skills/argent-ios-device-setup/SKILL.md` |
-| `argent-ios-simulator-setup/SKILL.md` | `skills/argent-ios-simulator-setup/SKILL.md` |
-| `argent-lens/SKILL.md` | `skills/argent-lens/SKILL.md` |
-| `argent-metro-debugger/SKILL.md` | `skills/argent-metro-debugger/SKILL.md` |
-| `argent-metro-debugger/references/failure-scenarios.md` | `skills/argent-metro-debugger/references/failure-scenarios.md` |
-| `argent-metro-debugger/references/source-maps.md` | `skills/argent-metro-debugger/references/source-maps.md` |
-| `argent-native-profiler/SKILL.md` | `skills/argent-native-profiler/SKILL.md` |
-| `argent-qa-flows/SKILL.md` | `skills/argent-qa-flows/SKILL.md` |
-| `argent-react-native-app-workflow/SKILL.md` | `skills/argent-react-native-app-workflow/SKILL.md` |
-| `argent-react-native-optimization/SKILL.md` | `skills/argent-react-native-optimization/SKILL.md` |
-| `argent-react-native-optimization/references/fix-reference.md` | `skills/argent-react-native-optimization/references/fix-reference.md` |
-| `argent-react-native-optimization/references/lint-rules.md` | `skills/argent-react-native-optimization/references/lint-rules.md` |
-| `argent-react-native-optimization/references/semantic-checklist.md` | `skills/argent-react-native-optimization/references/semantic-checklist.md` |
-| `argent-react-native-profiler/SKILL.md` | `skills/argent-react-native-profiler/SKILL.md` |
-| `argent-react-native-profiler/references/diagnostic-tools.md` | `skills/argent-react-native-profiler/references/diagnostic-tools.md` |
-| `argent-screen-recording/SKILL.md` | `skills/argent-screen-recording/SKILL.md` |
-| `argent-screenshot-diff/SKILL.md` | `skills/argent-screenshot-diff/SKILL.md` |
-| `argent-settings-permissions/SKILL.md` | `skills/argent-settings-permissions/SKILL.md` |
-| `argent-test-ui-flow/SKILL.md` | `skills/argent-test-ui-flow/SKILL.md` |
-| `argent-tv-interact/SKILL.md` | `skills/argent-tv-interact/SKILL.md` |
+| `argent-android-emulator-setup/SKILL.md` | `argent-android-emulator-setup/SKILL.md` |
+| `argent-create-flow/SKILL.md` | `argent-create-flow/SKILL.md` |
+| `argent-create-flow/references/flow-yaml.md` | `argent-create-flow/references/flow-yaml.md` |
+| `argent-create-flow/references/live-authoring.md` | `argent-create-flow/references/live-authoring.md` |
+| `argent-create-flow/references/reliability-and-recovery.md` | `argent-create-flow/references/reliability-and-recovery.md` |
+| `argent-device-interact/SKILL.md` | `argent-device-interact/SKILL.md` |
+| `argent-device-interact/references/gesture-examples.md` | `argent-device-interact/references/gesture-examples.md` |
+| `argent-ios-device-interact/SKILL.md` | `argent-ios-device-interact/SKILL.md` |
+| `argent-ios-device-setup/SKILL.md` | `argent-ios-device-setup/SKILL.md` |
+| `argent-ios-simulator-setup/SKILL.md` | `argent-ios-simulator-setup/SKILL.md` |
+| `argent-lens/SKILL.md` | `argent-lens/SKILL.md` |
+| `argent-metro-debugger/SKILL.md` | `argent-metro-debugger/SKILL.md` |
+| `argent-metro-debugger/references/failure-scenarios.md` | `argent-metro-debugger/references/failure-scenarios.md` |
+| `argent-metro-debugger/references/source-maps.md` | `argent-metro-debugger/references/source-maps.md` |
+| `argent-native-profiler/SKILL.md` | `argent-native-profiler/SKILL.md` |
+| `argent-qa-flows/SKILL.md` | `argent-qa-flows/SKILL.md` |
+| `argent-react-native-app-workflow/SKILL.md` | `argent-react-native-app-workflow/SKILL.md` |
+| `argent-react-native-optimization/SKILL.md` | `argent-react-native-optimization/SKILL.md` |
+| `argent-react-native-optimization/references/fix-reference.md` | `argent-react-native-optimization/references/fix-reference.md` |
+| `argent-react-native-optimization/references/lint-rules.md` | `argent-react-native-optimization/references/lint-rules.md` |
+| `argent-react-native-optimization/references/semantic-checklist.md` | `argent-react-native-optimization/references/semantic-checklist.md` |
+| `argent-react-native-profiler/SKILL.md` | `argent-react-native-profiler/SKILL.md` |
+| `argent-react-native-profiler/references/diagnostic-tools.md` | `argent-react-native-profiler/references/diagnostic-tools.md` |
+| `argent-screen-recording/SKILL.md` | `argent-screen-recording/SKILL.md` |
+| `argent-screenshot-diff/SKILL.md` | `argent-screenshot-diff/SKILL.md` |
+| `argent-settings-permissions/SKILL.md` | `argent-settings-permissions/SKILL.md` |
+| `argent-test-ui-flow/SKILL.md` | `argent-test-ui-flow/SKILL.md` |
+| `argent-tv-interact/SKILL.md` | `argent-tv-interact/SKILL.md` |
 
 Totals: 18 upstream skill directories, 28 files (18 SKILL.md + 10 reference files), all imported. No upstream file is dropped or summarized. The parent `SKILL.md`, this file, and `LICENSE` are bundle additions, not upstream content.
 

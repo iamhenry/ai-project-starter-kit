@@ -5,7 +5,7 @@ description: Run Argent skills to drive, test, debug, profile, and prove iOS, An
 
 # Argent (bundled skills, CLI-only)
 
-This parent bundles all official Argent skills from `@swmansion/argent` (see `UPSTREAM.md` for source, version, and inventory). The nested skills under `skills/` describe **MCP tool calls**; this parent is the **CLI translation layer** — no MCP client is required.
+This parent bundles all official Argent skills from `@swmansion/argent` (see `UPSTREAM.md` for source, version, and inventory). The skills in the direct `argent-*` child directories describe **MCP tool calls**; this parent is the **CLI translation layer** — no MCP client is required.
 
 ## CLI-only guard (applies to every nested skill)
 
@@ -56,24 +56,24 @@ Each nested skill is self-contained; load only what the current task needs, and 
 
 | Task need | Load |
 | --- | --- |
-| iOS simulator boot / pick a UDID | `skills/argent-ios-simulator-setup/SKILL.md` |
-| Android emulator boot / serial | `skills/argent-android-emulator-setup/SKILL.md` |
-| Physical iPhone cabling/trust/signing setup | `skills/argent-ios-device-setup/SKILL.md` |
-| Tap, swipe, type, screenshots, waits on any platform | `skills/argent-device-interact/SKILL.md` (references: `references/gesture-examples.md`) |
-| Physical iPhone interaction contract | `skills/argent-ios-device-interact/SKILL.md` |
-| Apple TV / Android TV / Fire TV control | `skills/argent-tv-interact/SKILL.md` |
-| Create / record / edit / repair a flow YAML | `skills/argent-create-flow/SKILL.md` (references: `references/flow-yaml.md`, `references/live-authoring.md`, `references/reliability-and-recovery.md`) |
-| QA regression flow with two-pass proof | `skills/argent-qa-flows/SKILL.md` |
-| Interactive UI testing loops | `skills/argent-test-ui-flow/SKILL.md` |
-| Visual regression / before-after screenshot compare | `skills/argent-screenshot-diff/SKILL.md` |
-| Record the screen as video | `skills/argent-screen-recording/SKILL.md` |
-| Grant/deny/reset runtime permissions | `skills/argent-settings-permissions/SKILL.md` |
-| Metro/JS-runtime debugging (CDP) | `skills/argent-metro-debugger/SKILL.md` (references: `references/failure-scenarios.md`, `references/source-maps.md`) |
-| Start/debug RN app, Metro, builds | `skills/argent-react-native-app-workflow/SKILL.md` |
-| Native profiling (xctrace/Perfetto) | `skills/argent-native-profiler/SKILL.md` |
-| React/Hermes profiling | `skills/argent-react-native-profiler/SKILL.md` (references: `references/diagnostic-tools.md`) |
-| RN performance optimization pipeline | `skills/argent-react-native-optimization/SKILL.md` (references: `references/lint-rules.md`, `references/semantic-checklist.md`, `references/fix-reference.md`) |
-| Design variants with human pick (Lens) | `skills/argent-lens/SKILL.md` |
+| iOS simulator boot / pick a UDID | `argent-ios-simulator-setup/SKILL.md` |
+| Android emulator boot / serial | `argent-android-emulator-setup/SKILL.md` |
+| Physical iPhone cabling/trust/signing setup | `argent-ios-device-setup/SKILL.md` |
+| Tap, swipe, type, screenshots, waits on any platform | `argent-device-interact/SKILL.md` (references: `references/gesture-examples.md`) |
+| Physical iPhone interaction contract | `argent-ios-device-interact/SKILL.md` |
+| Apple TV / Android TV / Fire TV control | `argent-tv-interact/SKILL.md` |
+| Create / record / edit / repair a flow YAML | `argent-create-flow/SKILL.md` (references: `references/flow-yaml.md`, `references/live-authoring.md`, `references/reliability-and-recovery.md`) |
+| QA regression flow with two-pass proof | `argent-qa-flows/SKILL.md` |
+| Interactive UI testing loops | `argent-test-ui-flow/SKILL.md` |
+| Visual regression / before-after screenshot compare | `argent-screenshot-diff/SKILL.md` |
+| Record the screen as video | `argent-screen-recording/SKILL.md` |
+| Grant/deny/reset runtime permissions | `argent-settings-permissions/SKILL.md` |
+| Metro/JS-runtime debugging (CDP) | `argent-metro-debugger/SKILL.md` (references: `references/failure-scenarios.md`, `references/source-maps.md`) |
+| Start/debug RN app, Metro, builds | `argent-react-native-app-workflow/SKILL.md` |
+| Native profiling (xctrace/Perfetto) | `argent-native-profiler/SKILL.md` |
+| React/Hermes profiling | `argent-react-native-profiler/SKILL.md` (references: `references/diagnostic-tools.md`) |
+| RN performance optimization pipeline | `argent-react-native-optimization/SKILL.md` (references: `references/lint-rules.md`, `references/semantic-checklist.md`, `references/fix-reference.md`) |
+| Design variants with human pick (Lens) | `argent-lens/SKILL.md` |
 
 For iOS bug reproduction and user-flow verification, start with the `reproduce-bug` / `verification-gate` routing outside this bundle, then use `argent-create-flow` (authoring) and `argent-ios-simulator-setup` / `argent-ios-device-setup` (device pick) from here.
 
