@@ -61,7 +61,8 @@ Prefer the smallest repro path that still proves the bug clearly.
 
 3. Attempt reproduction.
 
-   - For `browser-interactive` or `browser-static`, use the `dogfood` skill instead of rebuilding browser repro instructions here.
+   - Reproduce through the reported entry point: the screen, command, or flow the reporter actually used. A unit test, a different code path, or a mocked dependency can support a finding but never confirms a real user-flow bug by itself.
+   - Check for existing faithful evidence (logs, screenshots, reports from the actual flow) before spending on a new reproduction; valid existing evidence that matches the reported entry point can avoid a new expensive repro run.
    - Reuse the smallest part of the `dogfood` workflow needed to reproduce the reported bug.
    - Capture `📸` when a single static proof state is enough.
    - Capture `🎥` when the bug requires interaction or timing proof; prefer one recording for the full sequence.
@@ -80,6 +81,7 @@ Prefer the smallest repro path that still proves the bug clearly.
 ## Evidence Rules
 
 - Match the evidence to the bug.
+- Prefer cheap user-observable proof (what the user sees) plus mechanical proof (logs, command output, file state) together; observable alone can be ambiguous, mechanical alone can miss the user's actual experience.
 - Use screenshots for static visible issues.
 - Use a single full-sequence video for interaction-heavy repros.
 - Never capture secrets, tokens, private user data, or unnecessary personal information.

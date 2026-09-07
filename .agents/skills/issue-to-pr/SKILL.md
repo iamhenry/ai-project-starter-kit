@@ -99,7 +99,7 @@ Use existing `issue.md`, `plan.md`, and stage reports rather than restarting int
 
 ### 5. Implementation Orchestration
 
-- If `{ISSUE_DIR}/issue.md` classifies the task as `bug`, invoke `reproduce-bug` after `APPROVE_PLAN` and before any implementation delegation. Continue only on `REPRODUCED`; on `NOT_REPRODUCED` or `BLOCKED`, stop and report its structured result. On `REPRODUCED`, pass the reproduction result and evidence paths to implementation subagent(s); do not duplicate its SOP or write reproduction details into `plan.md`.
+- If `{ISSUE_DIR}/issue.md` classifies the task as `bug`, invoke `reproduce-bug` after `APPROVE_PLAN` and before any implementation delegation. Continue only on `REPRODUCED` with evidence matching the reported entry point; a mocked or different-path reproduction does not authorize production edits. On `NOT_REPRODUCED` or `BLOCKED`, stop and report its structured result. Before dispatching implementation, require an evidence-backed causal explanation that distinguishes the proposed cause from competing explanations — suspicion about code alone is not enough. On `REPRODUCED`, pass the reproduction result and evidence paths to implementation subagent(s); do not duplicate its SOP or write reproduction details into `plan.md`.
 - Do not implement directly from this wrapper.
 - Always delegate write operations to implementation subagents.
 - Delegate relevant read or research operations when needed.
