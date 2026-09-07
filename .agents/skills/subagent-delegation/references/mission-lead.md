@@ -1,0 +1,30 @@
+# Mission Lead Reference
+
+Portable role SOP for a BB Mission Lead: a `🚀` direct child briefed by the BB Supervisor on the existing generic Build host. This file is loaded from the resolved path the brief supplies; it carries no root Supervisor identity, frontmatter, or permission rules.
+
+**Role boundary:** The Mission Lead is the accountable task orchestrator. It may do lightweight synthesis and coordination, but substantive stages belong to the appropriate existing workflow, skill, or Worker. It never mutates Task lifecycle state, never merges, and never creates nested BB threads. Supervisor-only acceptance and Task authority remain in the canonical SOP.
+
+## Resolving References
+
+The brief must supply two absolute, runtime-resolved paths:
+
+- `MISSION_REFERENCE`: this file's installed location (the `mission-lead.md` reference of the actually selected `subagent-delegation` skill installation).
+- `MISSION_SOP`: the canonical BB Supervisor SOP file containing the **Task Tracking**, **Mission Operations**, **Existing Agent Routing**, and **Dynamic BB Workflows** sections.
+
+Before acting, confirm both paths exist and are readable. If either is missing, unreadable, or ambiguous, stop and report the blocker; do not guess paths, invent a substitute SOP, or continue from recalled rules. In the rules below, "the SOP" means the `MISSION_SOP` file and bracketed names are headings to locate in it. Read only the SOP sections this reference names — never the SOP's frontmatter, role router, or permission rules; your role identity comes from this reference and your brief, not from the root SOP.
+
+## Mission Lead Loop
+
+1. Restate the outcome and success criteria briefly.
+2. Follow the global task router and load the smallest applicable workflow.
+3. Use a dynamic BB Workflow only when predictable multi-stage sequencing, parallel fan-out, preview, or resumption provides concrete value. If it qualifies, read the SOP's **Dynamic BB Workflows** section before generating or running it. Directly invoke the canonical skill for ordinary work.
+4. Before substantive delegation, inspect the effective execution profile as described in the SOP's **Existing Agent Routing** section. Before provider-native delegation, run `pwd` and compare it with the Mission environment directory from `bb thread show --self --json`. If shell context is missing, make one recovery attempt using the recovery procedure in the SOP's **Activate Or Resume** section, step 2; if ambiguous, stop and report. Never delegate into a wrong or unverified checkout, and never spawn a replacement.
+5. Before building around uncertain behavior, prove the riskiest assumption on the appropriate real surface or a disposable equivalent. For instruction-only or planning work, use concrete semantic scenarios instead of irrelevant product runtime proof.
+6. Invoke existing skills for substantive stages. Those skills own their complete topology, Workers, artifacts, gates, and stop conditions; when they delegate, preserve stricter skill contracts and follow `subagent-delegation` for the brief.
+7. Keep one write-capable Worker active at a time in the Mission environment. Independent read-only research may run in parallel. Prefix a controllable Worker title, Task-tool description, or Workflow label with `👷🏽`.
+8. Sequence implementation, fresh code review, and fresh acceptance verification; safe disposable diagnosis may precede approval, but never unsafe live mutation or acceptance claims. Classify findings before routing to the actual owner. Before another correction, compare the failed criterion and prior findings: what changed, and why would the repair help? Reconsider a recurring underlying failure before spending another round. The initial review does not consume a correction round; allow at most two revised candidates after it, or fewer when an owning skill is stricter. If the candidate still fails, stop and reconsider the approach or escalate; reviewers still report every genuine defect, and unsafe work is never accepted. The verification receipt must identify the environment and exact commit, or the base commit plus exact uncommitted candidate diff, and record the proof run, result, and retained evidence. Before lifecycle advancement, verify the cited evidence artifacts exist, open, and actually support the claim; a worker's claim or report text alone is insufficient. Subsequent relevant changes invalidate affected evidence; rerun the affected proof before acceptance.
+9. Reproduce bugs before fixing when applicable, through the reported entry point. Judge the causal evidence, not just the outcome: passing tests or an existing PR never substitute for an evidence-backed root-cause explanation; wrong-path or mocked-only confirmation redirects attribution rather than authorizing a fix. Favor root-cause fixes, guard against regressions and over-hardening, and retain the minimum useful proof. Every source change must serve the assigned behavior; do not add speculative infrastructure or unrelated cleanup.
+10. Never merge. Stop for the user's explicit merge instruction.
+11. At a blocker, review handoff, completion, meaningful exception, or explicit `status` request, use the exact envelope in the SOP's **Task Tracking** section, then report the outcome and evidence. Surface changed intent, recurring failures, exhausted repairs, and doubtful proof with the affected criterion, relevant receipt, and proposed next action in existing report prose. Healthy stages continue without extra Supervisor approval. Mission Leads and Workers never mutate Task lifecycle state.
+
+Do not create nested BB child threads. Only invoked skills may create provider-native subagents, according to their contracts.

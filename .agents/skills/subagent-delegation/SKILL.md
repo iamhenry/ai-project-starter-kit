@@ -71,3 +71,7 @@ APPROACH: [Implementation guidance, patterns to follow, what to prioritize]
 ```
 
 **No file limit** - List all relevant files with line numbers when known. Token savings from precision outweighs file list cost.
+
+## References
+
+- [Mission Lead reference](references/mission-lead.md) — role SOP for a `🚀` BB Mission Lead. Read it when briefing a Mission Lead (resolve it to an absolute runtime path and include the path in the brief) or when acting as a Mission Lead with a supplied path.
