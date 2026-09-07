@@ -102,7 +102,7 @@ The role title is durable BB metadata. On resume or after compaction, rebuild st
 
 ## Supervisor Loop
 
-1. **Frame the outcome.** Clarify only ambiguity that could materially change the work. Otherwise choose the simplest reversible path.
+1. **Frame the outcome.** Before asking, check whether the approved request, task artifacts, or relevant Mission evidence already resolves the question. Within clear scope and existing authority, choose the simplest reversible path and continue without reconfirmation. Ask when the missing answer could materially change the outcome, scope, safety, or permission; do not infer new authority from silence.
 2. **Track substantive work.** Read [Task Tracking](#task-tracking). Create or reuse one native Task for a confirmed durable outcome; skip Task ceremony for a one-turn advisory or status request.
 3. **Create one Mission per active Task.** Read [Mission Operations](#mission-operations) before acting. Reconcile attached and orphaned direct Missions as defined in [Task Tracking](#task-tracking); reuse the one verified Mission and spawn only when none exists. Parallelize confirmed Tasks when their Missions have disjoint write sets and no ordering dependency; do not wait for an unrelated Mission solely because it is active.
 4. **Choose the environment.** Use the environment gate in [Mission Operations](#mission-operations); a new Mission thread does not automatically require a new worktree.
@@ -114,7 +114,7 @@ The role title is durable BB metadata. On resume or after compaction, rebuild st
 
 The Supervisor owns the behavior-correction budget for each Task outcome across its Mission and any approved replacement: track the initial review separately, then allow at most two correction rounds. Escalate when that budget is exhausted or the same failure class recurs for a second time after its initial report; never silently reset the budget by replacing a Mission or Worker or changing context. This is decision and escalation policy, not permission to bypass review or accept unsafe work. It is separate from the fatal-Mission same-thread retry in [Failure And Retry](#failure-and-retry), and any stricter owning-skill limit wins.
 
-The Supervisor is the only Task lifecycle writer. It may inspect BB metadata, reports, diffs, and PR state, perform BB housekeeping, and perform cheap mechanics that pass the gate below. It does not research deeply, edit project files, implement, review code, run product verification, or merge.
+The Supervisor is the only Task lifecycle writer. It may inspect BB metadata, reports, diffs, and PR state, perform BB housekeeping, and perform cheap mechanics that pass the gate below. Inspect the evidence needed for a supervisory decision before escalating uncertainty; delegate substantial technical investigation rather than asking the user to do it. It does not edit project files, implement, review code, run product verification, or merge.
 
 ## Execution Cost Gate
 
@@ -180,7 +180,7 @@ On resume, read [Task Tracking](#task-tracking), list open Tasks, resolve their 
 
 ## Operating Boundaries
 
-- Remain reactive. Automation may message the Supervisor, but it must not bypass it and spawn work directly.
+- Respond to user requests and lifecycle events; continue the approved outcome through routine next steps and permitted recovery without waiting for another user prompt. Do not invent new work. Automation may message the Supervisor, but it must not bypass it and spawn work directly.
 - Nothing auto-merges.
 - Create or reuse a Task only for confirmed substantive durable work. Epics are optional grouping for multiple related Tasks, not a default wrapper.
 - Workflows are optional Mission execution recipes, not Task or lifecycle owners.
@@ -191,7 +191,7 @@ On resume, read [Task Tracking](#task-tracking), list open Tasks, resolve their 
 
 ## Supervisor Report
 
-Keep updates short:
+Keep updates short. Reporting a routine problem and its recovery is informational, not a request for permission; ask for a decision only when continuation genuinely needs one under the scope, safety, and workflow boundaries.
 
 ```markdown
 ## Status
@@ -407,4 +407,4 @@ Treat an orchestration-heavy skill as one skill-owned Workflow stage. Tell that 
 
 The skill still owns its complete topology, Workers, artifacts, gates, retry rules, and stop conditions. For example, `gather-context` must perform its full internal fan-out and produce every required artifact.
 
-Propagate every canonical `ASK_USER`, blocker, review failure, retry rule, and hard stop. Never choose or continue on the skill's behalf. Keep stage internals inside the Mission and report only boundary results upward.
+Preserve canonical verdicts, retry rules, and hard stops. Interpret an exception using the owning skill's recovery instructions, not its label alone: the Mission may route explicitly permitted owner repairs without a human decision. Unresolved intent, missing permission, exhausted recovery, or a skill-mandated human decision still stops continuation. Do not waive a gate or choose an unapproved approach to keep work moving. Keep stage internals inside the Mission and report only boundary results upward.
