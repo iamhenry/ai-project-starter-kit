@@ -5,7 +5,7 @@ description: Fresh-subagent code quality review gate after implementation and be
 
 # Code Quality Gate
 
-Use this skill after implementation and before `verification-gate` or other interactive/platform verification.
+Use this skill after implementation and before final acceptance verification. This ordering does not prohibit safe, disposable previews or risk probes during implementation; those are diagnosis, not acceptance or permission for unsafe live installation or mutation.
 
 Run it as a fresh subagent review gate. It reviews the implemented code, returns a decision, and never edits files.
 
@@ -27,14 +27,14 @@ Read the minimum available context:
 - Optional but useful: `_ai/prompts/quality/code-review.md` as the review standard
 - Optional but useful: `_ai/prompts/quality/code-guidelines.md` as the quality standard
 
-If `plan.md` or the changed code/diff is missing, return `ASK_USER` with the missing input.
+If `plan.md` or the changed code/diff is missing, return `ASK_USER` naming the missing input and its owner. The caller repairs pipeline-owned gaps from approved context before redispatch; only unresolved intent or permission needs a human decision.
 
 ## Artifact Contract
 
 - `ISSUE_DIR` is the artifact directory created by `gather-context` for the current pipeline run.
 - Required: `plan.md`, plus changed files and/or git diff.
 - Optional but useful: `issue.md`, implementation summary, and quality docs.
-- If `plan.md` names Mechanical command(s) and their raw output is missing, return `REVISE_CODE`. Do not run the commands.
+- If `plan.md` names Mechanical command(s) and their raw output is missing, return `REVISE_CODE` identifying an evidence gap, not a code defect. Request the receipt from the implementation owner without source changes. Do not run the commands.
 - If command output is missing because the plan has no Mechanical field (legacy plan), do not invent a requirement here.
 
 ## Review Process
@@ -44,7 +44,7 @@ If `plan.md` or the changed code/diff is missing, return `ASK_USER` with the mis
 3. Trigger wider dependency review only when the change touches shared modules, public interfaces, global state, async side effects, security-sensitive paths, or common components.
 4. Compare implementation against the referenced quality docs without copying them into the report.
 5. Heavily weight simplicity: prefer the smallest code that satisfies `plan.md`; penalize speculative abstractions, extra surfaces, duplicate state, and unplanned features.
-6. Check provided Mechanical / test / build / lint / typecheck output. Do not invent results that were not provided. Do not run commands or edit tests.
+6. Check provided Mechanical / test / build / lint / typecheck output. Distinguish demonstrated code failures from commands blocked by environment prerequisites; identify prerequisite repair in the findings, not speculative source changes. Do not invent results that were not provided. Do not run commands or edit tests.
 7. Return a concise structured decision to the orchestrator.
 
 ## Weighted Rubric
@@ -87,7 +87,7 @@ Return `ASK_USER` instead when the blocker is missing context, ambiguous product
 - `REVISE_CODE`: hard fail applies, or score is below 85 with actionable implementation changes.
 - `ASK_USER`: required inputs are missing, product behavior is ambiguous, or deciding would require guessing beyond the artifacts.
 
-If `REVISE_CODE`, the orchestrator routes notes back to implementation subagent(s), then reruns this gate on the revised diff. After 2 `REVISE_CODE` verdicts the orchestrator stops with `EXHAUSTED`; this gate does not count retries.
+If `REVISE_CODE`, the orchestrator routes the actual gap to the implementation owner: supply missing receipts or correct demonstrated defects, then rerun this gate on the exact candidate. Compare repeated findings with the prior criterion before proposing another edit; an unchanged underlying failure calls for reconsideration, not automatic correction. After 2 `REVISE_CODE` verdicts the orchestrator stops with `EXHAUSTED`, including evidence-only rejections; this gate does not count retries.
 
 ## Output Format
 

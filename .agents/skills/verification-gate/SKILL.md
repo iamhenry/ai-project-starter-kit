@@ -42,11 +42,11 @@ Collect the minimum context needed to verify the work:
 - auth, seed data, or other prerequisites
 - code-quality-gate result: `APPROVE_CODE`
 
-If key prerequisites are missing and you cannot verify safely, return `BLOCKED`.
+If key prerequisites are missing, use only the bounded recovery below when safe and authorized; otherwise return `BLOCKED` naming the prerequisite owner and unlock condition, not a code defect or a demand that the user perform routine setup.
 
 If Mechanical is missing from `plan.md`, return `BLOCKED` with unlock: revise the plan. Do not invent a command.
 
-If the code-quality-gate result is missing, `REVISE_CODE`, or `ASK_USER`, return `BLOCKED` and do not run platform QA.
+If the code-quality-gate result is missing, `REVISE_CODE`, or `ASK_USER`, return `BLOCKED` and do not run final acceptance QA. Safe, disposable previews and risk probes may occur earlier outside this gate; they do not authorize unsafe live installation or mutation, or count as independent acceptance.
 
 `plan.md` owns what to prove. This skill owns how to prove it by choosing the platform route and smallest proof path.
 
@@ -85,11 +85,13 @@ Prefer the smallest proof path that still demonstrates real user value.
     - If a declared environment prerequisite is unavailable, allow at most one
       narrow recovery attempt for that exact blocker. Do not redesign product
       or infrastructure inside verification. If recovery fails, return
-      `BLOCKED` with the exact missing prerequisite and unlock condition.
+      `BLOCKED` with the exact missing prerequisite and unlock condition. Count
+      any caller-side attempt at the same recovery; redispatch is not a reset.
 
     - Run Mechanical first. Execute the plan-named command(s) and quote raw
-      output in the report. Do not paraphrase pass/fail. If Mechanical fails,
-      return `FAIL` and skip Observable.
+      output in the report. Do not paraphrase pass/fail. If Mechanical cannot
+      run because a prerequisite is missing, use the bounded recovery above
+      or return `BLOCKED`; if it demonstrates a failure, return `FAIL` and skip Observable.
     - Then run Observable when it is not `n/a`. Use the platform route below.
       `PASS` requires both lanes when both are declared.
 
@@ -112,8 +114,8 @@ Prefer the smallest proof path that still demonstrates real user value.
 4. Decide the verdict.
 
     - `PASS`: Mechanical passed, and Observable is proven when it is not `n/a`.
-    - `FAIL`: Mechanical failed, the flow breaks, the result is wrong, cited files are missing, or the outcome cannot be proven.
-    - `BLOCKED`: required auth, data, environment, or tooling is missing.
+    - `FAIL`: under valid prerequisites and a clear target, Mechanical failed, the flow breaks, the result is wrong, cited files are missing, or the evidence does not prove the outcome. Distinguish code defects from evidence gaps in Notes and route to the actual owner.
+    - `BLOCKED`: required auth, data, environment, tooling, or a discriminating verification target is missing.
 
 5. Report the result.
    - Write `{ISSUE_DIR}/verification/result.md` first.
@@ -122,7 +124,8 @@ Prefer the smallest proof path that still demonstrates real user value.
 
 ## Evidence Rules
 
-- Prove the whole flow, not just the final screen.
+- Prove the whole flow, not just the final screen. Evidence must distinguish the claimed outcome from its likely false positive; successful commands or plausible screenshots alone may not do that. If the target itself cannot discriminate success, return `BLOCKED` for plan-owner clarification rather than inventing acceptance or editing code.
+- Independently establish the candidate and assess the proof rather than accepting implementer claims. Reuse Observable evidence only when it remains valid for the same candidate and relevant conditions; relevant changes invalidate affected proof and require it to be rerun. Mechanical is still rerun as required above.
 - Capture only the evidence needed to support the verdict.
 - Never record secrets, tokens, private user data, or unnecessary personal information.
 - Raw snapshots, JSON, measurements, logs, base64, and duplicate media default

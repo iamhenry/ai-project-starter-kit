@@ -13,7 +13,8 @@ Required task folder:
 
 - `{ISSUE_DIR}/issue.md`
 - `{ISSUE_DIR}/research/*.md`
-- `_ai/docs/ETHOS.md`
+
+Optional guidance: `_ai/docs/ETHOS.md`.
 
 Artifact contract:
 
@@ -26,9 +27,9 @@ Artifact contract:
 
 1. Read `issue.md` first. Extract goal, acceptance criteria, constraints, risks, and all approaches.
 2. Read every `research/*.md`. Treat cited findings as evidence; treat uncited claims as weak signal.
-3. Read `_ai/docs/ETHOS.md`. Use it to resolve tradeoffs, not to invent new scope.
+3. Read `_ai/docs/ETHOS.md` when present. Use it to resolve tradeoffs, not to invent new scope. When absent, use existing project and safety instructions for the principle and phase-fit scores; absence alone is not a rejection or a request to create the file.
 
-If any required input is missing or approaches are not present, return `ASK_USER` and ask for the missing artifact or proposal set.
+If required task inputs or approaches are missing, return `ASK_USER` identifying the gap and `gather-context` as repair owner. The caller routes bounded artifact repair; ask the user only when the remaining gap requires product intent or permission.
 
 ## Hard Gates
 

@@ -108,7 +108,7 @@ The role title is durable BB metadata. On resume or after compaction, rebuild st
 4. **Choose the environment.** Use the environment gate in [Mission Operations](#mission-operations); a new Mission thread does not automatically require a new worktree.
 5. **Brief the Mission Lead.** Load and follow `subagent-delegation` for every Mission brief, with the Mission role/depth constraints, Task key, and selected environment mode as its preamble. Before implementation, the existing brief or owning skill contract must state the observable claim, concrete proof on the appropriate real surface, likely false-positive failure mode, and retained evidence; do not create a duplicate plan, artifact, or template. Do not restate the templates here.
 6. **Spawn and attach the Mission.** Follow both sections exactly. Create one visible direct BB child titled `🚀 <outcome>`, attach it to the Task, then advance Task state only after attachment succeeds.
-7. **Track without blocking.** Rely on BB lifecycle notifications. Never call `bb thread wait` from an interactive Supervisor turn: after spawn or `bb thread tell`, acknowledge the action and end the turn immediately. Inspect with `bb thread show` or `bb thread output` only when the user later asks for status. `bb thread wait` is allowed only in non-interactive automation or when the user explicitly asks to wait. Do not poll. Route follow-ups with `bb thread tell`.
+7. **Track without blocking.** Rely on BB lifecycle notifications. Never call `bb thread wait` from an interactive Supervisor turn: after spawn or `bb thread tell`, acknowledge the action and end the turn immediately. On notifications, meaningful exceptions, or user status requests, inspect relevant Mission reports and receipts with `bb thread show` or `bb thread output`. Judge the outcome or exception, not every healthy stage; do not poll or surveil Worker transcripts. `bb thread wait` is allowed only in non-interactive automation or when the user explicitly asks to wait. Route follow-ups with `bb thread tell`.
 8. **Synthesize.** Read the Mission report and relevant BB diff/status evidence. Reconcile independent review and verification receipts rather than rerunning their tests. Reconcile the authoritative Task before its derived Mission section. Give the user the outcome and evidence without pasting Worker transcripts.
 9. **Retire safely.** Follow the cleanup contract in [Mission Operations](#mission-operations). Never infer that unmerged work is disposable.
 
@@ -142,10 +142,10 @@ The Mission Lead is the accountable task orchestrator. It may do lightweight syn
 5. Before building around uncertain behavior, prove the riskiest assumption on the appropriate real surface or a disposable equivalent. For instruction-only or planning work, use concrete semantic scenarios instead of irrelevant product runtime proof.
 6. Invoke existing skills for substantive stages. Those skills own their complete topology, Workers, artifacts, gates, and stop conditions; when they delegate, preserve stricter skill contracts and follow `subagent-delegation` for the brief.
 7. Keep one write-capable Worker active at a time in the Mission environment. Independent read-only research may run in parallel. Prefix a controllable Worker title, Task-tool description, or Workflow label with `👷🏽`.
-8. Sequence implementation, fresh code review, and fresh verification. Route revision findings back to the original implementation owner. The initial review does not consume a correction round; allow at most two revised candidates after it, or fewer when an owning skill is stricter. If the candidate still fails, stop and reconsider the approach or escalate; reviewers still report every genuine defect, and unsafe work is never accepted. The verification receipt must identify the environment and exact commit, or the base commit plus exact uncommitted candidate diff, and record the proof run, result, and retained evidence. Subsequent relevant changes invalidate affected evidence; rerun the affected proof before acceptance.
+8. Sequence implementation, fresh code review, and fresh acceptance verification; safe disposable diagnosis may precede approval, but never unsafe live mutation or acceptance claims. Classify findings before routing to the actual owner. Before another correction, compare the failed criterion and prior findings: what changed, and why would the repair help? Reconsider a recurring underlying failure before spending another round. The initial review does not consume a correction round; allow at most two revised candidates after it, or fewer when an owning skill is stricter. If the candidate still fails, stop and reconsider the approach or escalate; reviewers still report every genuine defect, and unsafe work is never accepted. The verification receipt must identify the environment and exact commit, or the base commit plus exact uncommitted candidate diff, and record the proof run, result, and retained evidence. Subsequent relevant changes invalidate affected evidence; rerun the affected proof before acceptance.
 9. Reproduce bugs before fixing when applicable. Favor root-cause fixes, guard against regressions and over-hardening, and retain the minimum useful proof. Every source change must serve the assigned behavior; do not add speculative infrastructure or unrelated cleanup.
 10. Never merge. Stop for the user's explicit merge instruction.
-11. At a blocker, review handoff, completion, or explicit `status` request, use the exact envelope in [Task Tracking](#task-tracking), then report the outcome and evidence. Mission Leads and Workers never mutate Task lifecycle state.
+11. At a blocker, review handoff, completion, meaningful exception, or explicit `status` request, use the exact envelope in [Task Tracking](#task-tracking), then report the outcome and evidence. Surface changed intent, recurring failures, exhausted repairs, and doubtful proof with the affected criterion, relevant receipt, and proposed next action in existing report prose. Healthy stages continue without extra Supervisor approval. Mission Leads and Workers never mutate Task lifecycle state.
 
 Do not create nested BB child threads. Only invoked skills may create provider-native subagents, according to their contracts.
 
@@ -258,7 +258,7 @@ bb thread update <mission-thread-id> --section <section-id>
 
 ## Mission Status Envelope
 
-At a blocker, review handoff, completion, or explicit `status` request, the Mission Lead begins its report with:
+At a blocker, review handoff, completion, meaningful exception, or explicit `status` request, the Mission Lead begins its report with:
 
 ```text
 MISSION_STATUS
@@ -320,7 +320,7 @@ After spawning, follow the attachment and activation sequence in [Task Tracking]
 
 ## Failure And Retry
 
-Classify the failure before applying a retry budget: a behavior failure under valid proof returns the failed criterion and evidence to the original implementation owner; an environment prerequisite failure blocks verification until its prerequisite is repaired; ambiguous or non-discriminating proof requires acceptance to be clarified before implementation, not a retry. These routes do not bypass canonical skill hard stops.
+Classify the failure before applying a retry budget: a behavior failure under valid proof returns the failed criterion and evidence to the original implementation owner; missing receipts go to the evidence owner; environment prerequisites go to their setup owner; ambiguous or non-discriminating proof goes to the plan or verification owner, not to unrelated source edits. Reconcile explicit user changes in the existing authoritative task artifacts before judging against them. Ask the user only for unresolved intent or permission. Administrative repair is bounded by the owning workflow, never a way to reset correction budgets or bypass canonical skill hard stops.
 
 When a Mission dies or reports a fatal failure:
 
