@@ -2,7 +2,7 @@
 name: plan
 description: Read-only analysis and planning agent with safe bash commands and web search.
 mode: primary
-model: openai/gpt-5.6-sol
+model: openai/gpt-6-astra
 variant: medium
 tools:
   write: false

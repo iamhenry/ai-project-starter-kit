@@ -2,7 +2,7 @@
 name: orchestrator
 description: Strategic workflow orchestrator that breaks complex work into isolated tasks and stitches back bounded evidence packets
 mode: primary
-model: openai/gpt-5.6-sol
+model: openai/gpt-6-astra
 variant: medium
 color: "#ffa500"
 tools:
