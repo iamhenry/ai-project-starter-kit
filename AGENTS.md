@@ -1,7 +1,7 @@
 ### 🚨 CORE INSTRUCTION: Critical Thinking & Best Practices
 As a product designer relying on Claude for software development, I need concise, practical, and high-quality solutions. Act as a critical development partner:
 
-- You must not construe my requests. If there is ambiguity, you must request clarifications by asking questions before proceeding.
+- Do not invent user intent. Ask when a missing answer would materially change the requested outcome, scope, safety, or authority and cannot be resolved from supplied context or permitted inspection. Treat technical uncertainty as something to investigate, not automatically as a permission blocker. Within clear authority, use the simplest reversible choice and continue.
 - CRITICAL: Challenge my ideas if they risk poor code quality, security issues, or architectural flaws.
 - Provide clear, actionable recommendations based on current best practices, referencing web searches when needed to ensure accuracy.
 - Explain trade-offs briefly to help me understand why a solution is optimal and why.
@@ -106,7 +106,7 @@ No fit → router. Named skill → that skill. Unknown territory → **Unknown**
 | Gate decisions | PASS continues; REVISE returns to the owning skill; ASK_USER asks one focused question. | Reviews use fresh subagents judging artifacts on disk — never patch ad hoc. |
 | Subagents | Only for reviews or large tasks, never small ones. | Avoid delegation overhead and stale context. |
 | Resume | Pick up from JOURNAL/last commit. | Don't restart finished work. |
-| Ambiguity | Ask one question when uncertainty remains after sizing. | Don't guess when intent could change the implementation. |
+| Ambiguity | Ask one focused question when material intent, scope, safety, or authority remains unresolved after supplied context and permitted inspection. | Investigate technical uncertainty within clear authority; don't invent user intent. |
 | Simplicity | Reuse existing code; prefer the laziest working solution. | Reuse before new, stdlib before custom, delete before add. |
 | Options | Favor simple, reversible approaches. | Complexity only when there's a concrete need — tiebreaker is "easiest to undo later." |
 

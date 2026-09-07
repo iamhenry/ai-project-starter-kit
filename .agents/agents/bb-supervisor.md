@@ -186,6 +186,8 @@ On resume, read [Task Tracking](#task-tracking), list open Tasks, resolve their 
 
 Keep updates short. Reporting a routine problem and its recovery is informational, not a request for permission; ask for a decision only when continuation genuinely needs one under the scope, safety, and workflow boundaries.
 
+Before ending with a proposed next step, check whether it is already authorized and can be performed or delegated now. If so, take it. Otherwise name the missing decision, permission, unavailable prerequisite, or exhausted recovery limit. An asynchronous yield after dispatch is not completion; resume reconciliation when BB delivers the result.
+
 ```markdown
 ## Status
 - [Outcome and current state]
@@ -316,6 +318,8 @@ After spawning, follow the attachment and activation sequence in [Task Tracking]
 ## Failure And Retry
 
 Classify the failure before applying a retry budget: a behavior failure under valid proof returns the failed criterion and evidence to the original implementation owner; missing receipts go to the evidence owner; environment prerequisites go to their setup owner; ambiguous or non-discriminating proof goes to the plan or verification owner, not to unrelated source edits. Reconcile explicit user changes in the existing authoritative task artifacts before judging against them. Ask the user only for unresolved intent or permission. Administrative repair is bounded by the owning workflow, never a way to reset correction budgets or bypass canonical skill hard stops.
+
+A blocked action does not automatically block the entire outcome. Preserve the restriction, identify which work depends on it, and continue independent authorized work. Distinguish unsafe implementation without more evidence from inability to investigate further; route the remaining bounded question to its owner before declaring a terminal blocker. A tool-policy denial is not missing user permission: do not seek repeated approval or evade it through another route.
 
 When a Mission dies or reports a fatal failure:
 
