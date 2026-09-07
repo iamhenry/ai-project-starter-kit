@@ -29,11 +29,14 @@ Collect only the context needed to attempt reproduction:
 - bug summary
 - expected behavior
 - actual behavior
+- conditions under which it occurs (environment, data, timing, account), if known
 - starting URL, screen, command, or environment
 - known repro steps, if any
 - account, auth, test data, or feature flag prerequisites
 
 If the bug report is vague, reduce it to one testable repro target before proceeding.
+
+Treat the original report and its attached media as the authority on the symptom (what was seen and when), not as proof of the cause. This skill does not own root cause: cause statements in the report are hypotheses for the owner, never findings to accept. Reuse the report's existing details and media; do not re-interview the reporter for what the report already contains.
 
 ## Modes
 
@@ -58,6 +61,7 @@ Prefer the smallest repro path that still proves the bug clearly.
    - Start from the first meaningful action.
    - End at the exact failing state or at proof that the bug did not occur.
    - Avoid extra setup steps unless they are required to trigger the issue.
+   - Keep the flow rerunnable as the cheapest faithful before/after check: after a fix, the same entry point should flip the expected/actual contrast without rework.
 
 3. Attempt reproduction.
 
@@ -66,6 +70,8 @@ Prefer the smallest repro path that still proves the bug clearly.
    - When the requester explicitly asks for a screenshot (or other specific artifact), capture it or return `BLOCKED` naming the missing prerequisite; do not substitute a different artifact silently.
    - Check for existing faithful evidence (logs, screenshots, reports from the actual flow) before spending on a new reproduction; valid existing evidence that matches the reported entry point can avoid a new expensive repro run.
    - Clearly mark controlled evidence (staging data, seeded fixtures, scripted runs); it supports diagnosis but never proves live user behavior on its own.
+   - Record observations separately from hypotheses. "The save button produced no network call" is an observation; "the handler is not wired" is a hypothesis. Report only what was observed; leave cause claims to the fix stage.
+   - Prefer existing logs over new instrumentation.
    - Reuse the smallest part of the `dogfood` workflow needed to reproduce the reported bug.
    - Capture `📸` when a single static proof state is enough.
    - Capture `🎥` when the bug requires interaction or timing proof; prefer one recording for the full sequence.
@@ -113,11 +119,11 @@ Use this exact structure:
 
 ### Notes
 
-- [key failure point, proof point, or blocker]
+- [key failure point, proof point, or blocker; observations only, kept separate from any cause hypothesis]
 
 ### Next Action
 
-- [fix bug / refine bug report / unblock environment]
+- [fix bug / refine bug report / unblock environment / one diagnostic question to owner if cause is unclear]
 ```
 
 ## Examples
