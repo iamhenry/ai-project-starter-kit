@@ -48,9 +48,11 @@ Choose exactly one primary mode:
    - Use when the bug is visible on load and a screenshot is enough to prove it.
 3. `non-browser`
    - Use when the bug is reproduced more directly through a command, API call, file output, log, or data check.
+   - iOS user journeys count here: load the `argent` skill and replay the reported entry point as a flow on a simulator or connected iPhone. Save the flow ONLY at `_ai/task/{SLUG}/reproduction/flows/<safe-name>.yaml` (safe name: letters, numbers, `_`, `-`) so `verification-gate` can replay the exact file on the candidate.
+   - The flow must assert the initial screen state and the expected behavior (not just that the actions ran) — the reproduction contract in the `argent` skill. Establish that the installed app matches the exact candidate before replay; missing/stale app means build/install via `xcodebuildmcp-cli` first, or `BLOCKED` if provenance cannot be established.
+   - The flow result plus `--json` report is the observable proof; mechanical proof (build, logs) stays with `xcodebuildmcp-cli`.
 
 Prefer the smallest repro path that still proves the bug clearly.
-
 ## Workflow
 
 1. Define the repro target.
@@ -95,6 +97,7 @@ Prefer the smallest repro path that still proves the bug clearly.
 - Use a single full-sequence video for interaction-heavy repros.
 - Never capture secrets, tokens, private user data, or unnecessary personal information.
 - If a task directory exists, store artifacts under `_ai/task/{SLUG}/reproduction/` with `screenshots/` and `videos/` subfolders.
+- For iOS flow reproduction, the replayable flow itself is durable evidence: keep it at `_ai/task/{SLUG}/reproduction/flows/<safe-name>.yaml` alongside the other artifacts.
 - Always include artifact paths when evidence exists.
 
 ## Output
@@ -131,3 +134,4 @@ Use this exact structure:
 - `browser-interactive`: Open settings -> toggle notifications -> save -> page resets and loses the new state.
 - `browser-static`: Open pricing page -> CTA text is clipped on mobile.
 - `non-browser`: Run import command -> command exits successfully but no output file is created.
+- `non-browser` (iOS flow): Launch app -> open settings -> toggle notifications -> save -> toggle reverts instead of persisting.
