@@ -1,9 +1,9 @@
 ---
-name: github-issue
+name: create-ticket
 description: Draft and file GitHub issues after categorizing them as bug, feature, or task. Use whenever the user wants to create, open, write, or file a GitHub issue, gh issue, bug report, feature request, or task ticket, or attach supplied screenshots or videos to a new or existing issue. Prefer this over freeform issue writing. Do not use for local `_ai/task` plans or the issue-to-pr pipeline.
 ---
 
-# GitHub Issue
+# Create Ticket
 
 Categorize first. Draft the matching template. File only after the user confirms, unless they already said to create/file it.
 
