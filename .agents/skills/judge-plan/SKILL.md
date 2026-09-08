@@ -7,6 +7,8 @@ description: Lean standalone gate for reviewing create-issue plan artifacts befo
 
 Use this skill after `create-issue` writes a local plan artifact and before any implementation starts.
 
+Use a fresh session separate from the plan author and proposal judge, even for a short plan. Scale depth, not independence: brief required sections suffice for known small work; expand scrutiny for uncertain or consequential changes. Do not demand diagrams, multiple phases, or prose with no decision value. For standalone review, accept the approved proposal/intent directly instead of requiring pipeline `issue.md`; pipeline gaps still go to their owners.
+
 Keep the scope narrow:
 
 - Check whether agents can safely execute the plan.
@@ -39,10 +41,10 @@ Required major sections:
 - Acceptance Criteria with measurable checkbox criteria
 - User Story and Gherkin BDD Scenarios in valid markdown fences
 - Scope and Boundaries
-- Codebase Orientation, Dependencies, Data Flow, and relevant model or architecture notes
+- Codebase Orientation, Dependencies, and relevant data flow/model/architecture notes (brief inapplicability is enough when unaffected)
 - Deliverables and Error Handling
-- Implementation Checklist with phased, atomic checklist tasks and concrete file paths or locations
-- Verification Gate Plan with `Verification Mode`, `Objective`, `Primary Flow`, `Regression Check`, `Mechanical`, `Observable`, `Pass Criteria`, and `Blocked Conditions`
+- Implementation Checklist with atomic tasks and concrete file paths or locations; phases when useful
+- Verification Target with `Platform` (legacy `Verification Mode`), `Objective`, `Primary Flow`, `Regression Check`, `Mechanical`, `Observable`, `Pass Criteria`, and `Blocked Conditions`
 
 ## Review Steps
 
@@ -61,8 +63,8 @@ Score out of 100:
 - Create-issue structure: 40
   - 10 required major sections exist.
   - 10 acceptance criteria and Gherkin are measurable, testable, and markdown-valid.
-  - 10 implementation checklist uses action prefixes, files or locations, and phased tasks.
-  - 10 verification gate includes `Verification Mode`, `Objective`, `Primary Flow`, `Regression Check`, `Mechanical`, `Observable`, `Pass Criteria`, and `Blocked Conditions`. Mechanical must name a command that would fail if the Objective were unmet. Observable must be a retained path, or `n/a` only when platform is `non-ui`.
+  - 10 implementation checklist uses action prefixes and files or locations; phases only when useful.
+  - 10 verification target includes `Platform` (legacy `Verification Mode`), `Objective`, `Primary Flow`, `Regression Check`, `Mechanical`, `Observable`, `Pass Criteria`, and `Blocked Conditions`. Mechanical must fail when a relevant machine-checkable condition is unmet; together the declared lanes must distinguish the Objective from a likely false positive. Do not require an end-to-end test framework when an existing content/asset assertion plus actual-surface evidence suffices. Observable must be a retained path, or `n/a` only when platform is `non-ui`.
 - Proposal fidelity: 35
   - 15 plan implements the selected approach.
   - 10 plan does not drift into unselected scope.
@@ -97,6 +99,8 @@ Return `ASK_USER` when required artifacts are missing, product intent is ambiguo
 ## Writeback Rule
 
 Append or update one concise `## Plan Judge` section at the end of `plan.md`. Do not create a separate review file.
+
+For an explicit no-edits review, return the same decision in chat with `Writeback: not authorized`; do not mutate the plan. A delivery caller must obtain authorized owner writeback before relying on a pipeline artifact gate.
 
 If a `## Plan Judge` section already exists, replace that section only. Preserve the rest of `plan.md` exactly.
 

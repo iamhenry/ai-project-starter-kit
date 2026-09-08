@@ -22,11 +22,13 @@ Size the task, then take the cheapest path that still matches blast radius. If a
 Tier by blast radius, not by how the request sounds. Table rows are default paths, not keyword law — if the phrase and the size disagree, size wins.
 
 **Sizing:**
-- SMALL — 1-2 files, mechanical, no design choices. Do it yourself. No subagents. Proof still required; load gate skills only if the step is fuzzy.
+- SMALL — 1-2 files, mechanical, no design choices. Implement directly; keep intake and planning short. Fresh quality review and separate fresh acceptance still apply to delivery; each skill scales its own effort.
 - MEDIUM — a few files, known pattern. Skill pipeline; delegate reviews only.
 - LARGE — architecture, migration, unknown territory. Pay for intake: issue-to-pr (or gather-context if you only need research).
 
 **Pay for uncertainty, not labels.** Known + small blast → cheapest row. Unknown / architectural → issue-to-pr (don't hand-roll its stages; skip PR placeholder if no remote). User names a skill → it wins.
+
+Choose focused skill vs delivery composition from the requested endpoint. Research, review, or verification alone stops there; no-edits requests never authorize implementation. Full delivery preserves all applicable responsibilities through `issue-to-pr` composition, with brief artifacts for known small work. Supply scope and authority, optionally S/M/L/XL with risk rationale; owners may revise the estimate and own execution, effort, evidence, recovery, and completion. A same-agent skill call does not replace a fresh reviewer or verifier.
 
 **Routes:**
 
@@ -63,7 +65,7 @@ No fit → router. Named skill → that skill. Unknown territory → **Unknown**
 
 1. RECIPE, THEN BUDGET
    Same steps at every size. SMALL spends less; it does not skip proof.
-   HEURISTIC: WOULD I BE EMBARRASSED TO SPAWN A SUBAGENT FOR THIS STEP?
+   HEURISTIC: CAN THE OWNER MAKE THIS STEP SMALLER WITHOUT LOSING ITS CONTRACT?
 
 2. FINISH THE JOB
    Don't stop after the first hop. Done = a later reader can see it worked.
@@ -82,9 +84,10 @@ No fit → router. Named skill → that skill. Unknown territory → **Unknown**
    HEURISTIC: WHAT CAN THEY OPEN TOMORROW THAT PROVES THIS?
 
 5. SKILLS ARE THE EXPENSIVE INSTRUMENT
-   Load `reproduce-bug`, `code-quality-gate`, `verification-gate` when the
-   step is fuzzy or high-blast. Otherwise do that step in-process.
-   HEURISTIC: IS THIS STEP FUZZY OR HIGH-BLAST? IF NO, DON'T LOAD THE SKILL.
+   Use the owning skills rather than duplicate their procedures. Fresh quality
+   review and separate fresh acceptance remain required for small delivery;
+   their owners choose the lightest credible depth.
+   HEURISTIC: WHAT UNCERTAINTY DOES MORE EFFORT RESOLVE?
 
 | Workflow | Smells like | Finish like |
 |---|---|---|
@@ -101,10 +104,10 @@ No fit → router. Named skill → that skill. Unknown territory → **Unknown**
 | Area | Rule | Practical implication |
 |---|---|---|
 | Default behavior | Read-only until edit intent is explicit. | Inspect and explain before changing files. |
-| Verification | Match assurance to risk, complexity, and uncertainty. Prefer the smallest check that gives credible confidence: a focused diff and file/content check usually suffices for simple mechanical or documentation changes; substantive behavior, security, public-contract, or migration changes warrant independent review and stronger proof. | After corrections, assess whether earlier evidence still supports the resulting candidate. Reuse it where sound; broaden or repeat verification when changed dependencies, failures, uncertainty, or consequences warrant fresh assurance. Ask: what meaningful failure could this extra check catch? Use `verification-gate` when verification is fuzzy or high-impact; iOS/macOS via xcodebuildmcp. |
+| Verification | Fresh quality review and separate fresh acceptance are required for delivery; depth scales with risk, complexity, and uncertainty. The owning gates may use focused diff/content checks for mechanical or documentation changes, and stronger proof for behavior, security, public contracts, or migrations. | Owners assess which evidence remains valid after corrections and identify rechecks; the caller routes them. Reuse sound evidence; coupled, uncertain, or consequential changes can warrant broader or full fresh assurance. Follow `code-quality-gate` and `verification-gate` rather than duplicate their procedures. |
 | Evidence | Match evidence to the claim — diff proves change, not outcome. | New behavior → run the product and show it; bug fix → reproduce the reported behavior and establish the cause before editing, then repro before, gone after; big change → tests and logs a human can open. Evidence artifacts must exist, open, and support the claim. Passing tests or a merged diff alone never substitute for causal evidence. |
 | Gate decisions | PASS continues; REVISE returns to the owning skill; ASK_USER asks one focused question. | Reviews use fresh subagents judging artifacts on disk — never patch ad hoc. |
-| Subagents | Only for reviews or large tasks, never small ones. | Avoid delegation overhead and stale context. |
+| Subagents | Fresh delivery reviews and acceptance are intentional even for small tasks; research and implementation fan-out need concrete value. | Narrow the brief and depth rather than silently remove independence. |
 | Resume | Pick up from JOURNAL/last commit. | Don't restart finished work. |
 | Ambiguity | Ask one focused question when material intent, scope, safety, or authority remains unresolved after supplied context and permitted inspection. | Investigate technical uncertainty within clear authority; don't invent user intent. |
 | Simplicity | Reuse existing code; prefer the laziest working solution. | Reuse before new, stdlib before custom, delete before add. |

@@ -7,7 +7,7 @@ description: Fresh-subagent code quality review gate after implementation and be
 
 Use this skill after implementation and before final acceptance verification. This ordering does not prohibit safe, disposable previews or risk probes during implementation; those are diagnosis, not acceptance or permission for unsafe live installation or mutation.
 
-Run it as a fresh subagent review gate. It reviews the implemented code, returns a decision, and never edits files.
+Run it as a fresh subagent review gate, separate from the implementer. A same-agent skill invocation is not independence. Fresh context reduces self-confirmation bias; it does not guarantee unbiased review. Small changes still receive fresh review, focused on the diff, intent, and concrete risks; expand depth for uncertainty, coupling, security, or consequential failure. It returns a decision and never edits files.
 
 ## Mode Dispatch
 
@@ -19,7 +19,7 @@ Run it as a fresh subagent review gate. It reviews the implemented code, returns
 
 Read the minimum available context:
 
-- Required: `{ISSUE_DIR}/plan.md`
+- Required: `{ISSUE_DIR}/plan.md` for pipeline calls; for a standalone call, an explicit approved scope, acceptance criteria, boundaries, and any named Mechanical commands may be supplied directly instead. Below, `plan.md` means that approved contract for standalone review; do not create pipeline artifacts just to review a diff.
 - Required: changed files and/or git diff
 - Optional but useful: `{ISSUE_DIR}/issue.md`
 - Optional but useful: implementation summary from the implementation agent
@@ -27,12 +27,12 @@ Read the minimum available context:
 - Optional but useful: `_ai/prompts/quality/code-review.md` as the review standard
 - Optional but useful: `_ai/prompts/quality/code-guidelines.md` as the quality standard
 
-If `plan.md` or the changed code/diff is missing, return `ASK_USER` naming the missing input and its owner. The caller repairs pipeline-owned gaps from approved context before redispatch; only unresolved intent or permission needs a human decision.
+If the approved contract or changed code/diff is missing, return `ASK_USER` naming the missing input and its owner. The caller repairs pipeline-owned gaps from approved context before redispatch; only unresolved intent or permission needs a human decision. A missing pipeline plan is not permission to silently switch to standalone inputs.
 
 ## Artifact Contract
 
 - `ISSUE_DIR` is the artifact directory created by `gather-context` for the current pipeline run.
-- Required: `plan.md`, plus changed files and/or git diff.
+- Required: the approved contract above, plus changed files and/or git diff and exact candidate identity (commit or base plus uncommitted diff).
 - Optional but useful: `issue.md`, implementation summary, and quality docs.
 - If `plan.md` names Mechanical command(s) and their raw output is missing, return `REVISE_CODE` identifying an evidence gap, not a code defect. Request the receipt from the implementation owner without source changes. Do not run the commands.
 - If command output is missing because the plan has no Mechanical field (legacy plan), do not invent a requirement here.
@@ -72,7 +72,7 @@ Return `REVISE_CODE` regardless of score if any are true:
 
 - Relevant test, build, lint, or typecheck output fails.
 - Plan-named Mechanical command output is missing or failing.
-- New or changed Mechanical test that does not assert the plan Objective (compile/lint/typecheck-only oracle).
+- New or changed Mechanical test that asserts no relevant condition of the Objective (compile/lint/typecheck-only oracle). Mechanical and Observable may cover different parts of the outcome; do not demand a new end-to-end harness when focused assertions plus actual-surface proof suffice.
 - High severity bug with direct code evidence.
 - Security or privacy issue.
 - Implementation contradicts `plan.md`.
@@ -87,7 +87,7 @@ Return `ASK_USER` instead when the blocker is missing context, ambiguous product
 - `REVISE_CODE`: hard fail applies, or score is below 85 with actionable implementation changes.
 - `ASK_USER`: required inputs are missing, product behavior is ambiguous, or deciding would require guessing beyond the artifacts.
 
-If `REVISE_CODE`, the orchestrator routes the actual gap to the implementation owner: supply missing receipts or correct demonstrated defects, then rerun this gate on the exact candidate. Compare repeated findings with the prior criterion before proposing another edit; an unchanged underlying failure calls for reconsideration, not automatic correction. After 2 `REVISE_CODE` verdicts the orchestrator stops with `EXHAUSTED`, including evidence-only rejections; this gate does not count retries.
+If `REVISE_CODE`, the caller routes the actual gap to its owner: missing receipts to implementation, failed prerequisites to setup, and demonstrated defects to implementation. Then obtain fresh review of the resulting candidate. Identify which prior findings and evidence remain valid and which need rechecking; a narrow correction need not repeat unrelated review, while coupled, uncertain, or consequential changes may warrant full fresh assurance. Compare repeated findings before proposing another edit; an unchanged failure calls for reconsideration. After 2 `REVISE_CODE` verdicts the caller stops with `EXHAUSTED`, including evidence-only rejections; carry prior verdicts across dispatches. If fresh delegation is unavailable, report the limitation, not APPROVE_CODE from self-review.
 
 ## Output Format
 

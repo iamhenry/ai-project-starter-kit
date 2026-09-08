@@ -1,11 +1,17 @@
 ---
 name: gather-context
-description: Research first SOP before implementing any code change. Use when starting any task that involves modifying an existing codebase features bugs refactors open source contributions. Triggers when I want to work on X help me implement or fix or refactor X gather relevant context for X lets work on this. Launches parallel atlas subagents for local codebase evidence plus voyager external signal research, then presents 3 ranked approaches minimal diff first for user approval before any code is written.
+description: Research existing code before changes, or answer a focused codebase question. Calibrates local and external investigation to uncertainty, then presents supported approaches, minimal diff first, without implementing them.
 ---
 
 # Gather Context
 
-Research a codebase before touching it. Parallel research -> synthesis -> 3 ranked approaches -> wait for approval.
+Research a codebase before touching it. Inspect -> synthesize -> present supported approaches -> stop at the authorized endpoint.
+
+## Scope And Effort
+
+Accept the raw request, scope, authority, and any existing evidence. An optional S/M/L/XL estimate with risk rationale is context, not a fixed topology; revise it when evidence warrants. For a known small change, inspect the affected path, callers, adjacent patterns, and checks directly. Expand investigation for uncertain behavior, shared contracts, security, or consequential failure. Do not fabricate alternatives or external research when one supported approach is sufficient.
+
+For a focused research-only/no-edits request, return a cited answer and unresolved gaps, then stop: no task artifacts, proposal selection, or implementation. For delivery intake, use the artifact workflow below. Missing technical facts call for bounded investigation; missing material intent or authority calls for one focused question. Reuse sound evidence; after changes, identify affected findings and necessary rechecks rather than automatically restarting research.
 
 **Primary goal for open source:** Changes must look like the maintainer wrote them. Minimal diff. Maximum style alignment.
 
@@ -39,7 +45,7 @@ If the issue is underspecified in a way that would materially change the impleme
 
 When the caller requests **intake only**, stop after Phase 0 and return `ISSUE_DIR`, the task classification, and unresolved intake questions; leave research, approaches, and judge sections pending. On an explicit request to resume research, reuse that directory and the current intake, reconcile any supplied reproduction evidence, and continue at Phase 1 without repeating intake or reproduction. Without an intake-only request, follow the normal full workflow.
 
-## Phase 1 — Define Target Scenarios, Then Launch Research Agents in Parallel
+## Phase 1 — Define Target Scenarios And Investigate
 
 Before launching subagents, generate two Gherkin scenarios from the original user query: one happy path and one edge path. Keep them minimal and targeted. We are defining the smallest user-visible contract for a simple enhancement, not a full spec.
 
@@ -68,13 +74,11 @@ Rules:
 - Keep it minimal and targeted to the enhancement being requested
 - These scenarios are the target goal for all subagents
 
-Spawn all five agents simultaneously using the Task tool:
-- Agents 1-4 use `subagent_type: atlas`
-- Agent 5 uses `subagent_type: voyager`
+Use the five lenses below, not a mandatory five-agent campaign. Cover applicable lenses directly for small known work; delegate substantial independent local questions to `atlas` and external questions to `voyager` only when needed and permitted. Parallelize independent questions, not overlapping busywork. Record why a lens is inapplicable rather than inventing findings.
 
 Pass both scenarios to every subagent as part of its task context so research stays anchored to the same target behavior.
 
-**Evidence requirement:** Agents 1-4 must cite findings with code snippets, file paths, and line numbers. Agent 5 must cite URLs and quote/snippet the relevant source. No assertions without evidence. Each agent must save its full evidence report under `{ISSUE_DIR}/research/`. If results are thin or inconclusive, note gaps explicitly in Phase 2 — do not proceed with assumptions.
+**Evidence requirement:** Cite local findings with file paths and line numbers; cite external findings with URLs and relevant snippets. For compact research, retain citations inline in `issue.md` and say so in Research Index. For delegated or substantial research, save reports under `{ISSUE_DIR}/research/` using the relevant names below. If results are thin or inconclusive, note gaps explicitly in Phase 2 — do not proceed with assumptions.
 
 ### Agent 1: Code Archaeology
 > What does this code do today, and how?
@@ -157,7 +161,7 @@ Output:
 
 ## Phase 2 — Synthesize
 
-After all 5 agents return, combine findings:
+After the selected investigation completes, combine applicable findings (lens names below identify subject matter, not required agent counts):
 
 1. **Gherkin Happy Path** — the happy path scenario from Phase 1, surfaced verbatim
 2. **Gherkin Edge Path** — the edge path scenario from Phase 1, surfaced verbatim
@@ -168,9 +172,9 @@ After all 5 agents return, combine findings:
 7. **Style rules** — the extracted cheatsheet from Agent 4
 8. **Blast radius** — scope of impact from Agent 2
 9. **External signal** — cited implementation-shaping findings from Agent 5
-10. **Research Index** — links to all five files in `{ISSUE_DIR}/research/`
+10. **Research Index** — links to reports actually produced, or inline citations for compact research
 
-Update `issue.md` with the synthesized scenario sections and Research Index. Keep full evidence in the research files, not in `issue.md`.
+Update `issue.md` with the synthesized scenario sections and Research Index. Keep substantial evidence in linked research files; concise evidence may remain inline.
 
 ## Decision Heuristics (Apply to every proposal)
 
@@ -184,22 +188,22 @@ Use these as hard filters before presenting options:
 
 ---
 
-## Phase 3 — Present 3 Approaches
+## Phase 3 — Present Supported Approaches
 
 Rank by: **minimal diff + style alignment first** -> more involved last.
 
-Each option must include one regression probe describing how to verify no duplicate trigger/clobber regressions were introduced.
+Each option must include a relevant regression probe, or explain why no adjacent behavior is affected. Include duplicate trigger/clobber checks when that risk exists.
 
 For each option ask: *"Would a maintainer approve this PR without asking for changes?"*
 
 Reason from first principles: work backwards from the goal — what is the simplest change that satisfies the requirement without introducing concepts the codebase doesn't already use?
 
-Write the 3 synthesized approaches into the `Approaches` section of `{ISSUE_DIR}/issue.md`. Do not create `approaches.md`, `decision.md`, `handoff.md`, `plans/`, or `suggestions.md` for this pipeline.
+Write the supported approaches into the `Approaches` section of `{ISSUE_DIR}/issue.md`; one obvious approach is enough, otherwise compare meaningful alternatives. Do not create `approaches.md`, `decision.md`, `handoff.md`, `plans/`, or `suggestions.md` for this pipeline.
 
 ---
 
 ## Phase 4 — Hard Stop
 
-Present the 3 options and **wait for explicit user selection**.
+Return `ISSUE_DIR`, classification, evidence locations, supported approaches, and unresolved gaps. Stop for explicit user selection unless selection was already authorized to `judge-proposal`; then hand off to that owner, not implementation.
 
-Do not begin implementation until the user picks an approach.
+This skill never implements. Existing approval may be reused only while scope and relevant evidence remain valid.
