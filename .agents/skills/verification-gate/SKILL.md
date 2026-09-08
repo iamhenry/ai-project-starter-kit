@@ -1,6 +1,6 @@
 ---
 name: verification-gate
-description: Reusable verification gate for completed work before commit or merge. Use when implementation is done and Claude must prove the task works, verify the main user flow, route verification by platform, and return a PASS/FAIL/BLOCKED verdict with evidence. Web and mobile-web verification uses agent-browser. iOS and macOS verification uses xcodebuildmcp-cli.
+description: Reusable verification gate for completed work before commit or merge. Use when implementation is done and Claude must prove the task works, verify the main user flow, route verification by platform, and return a PASS/FAIL/BLOCKED verdict with evidence. Web and mobile-web verification uses agent-browser. iOS and macOS verification uses xcodebuildmcp-cli, with argent flow replay for iOS user-flow proof.
 ---
 
 # Verification Gate
@@ -62,7 +62,8 @@ Choose exactly one primary platform route:
 2. `mobile-web`
    - Use `agent-browser` with a mobile viewport/device profile for responsive browser UI flows and visible states.
 3. `ios`
-   - Use `xcodebuildmcp-cli` for simulator/device build, launch, UI, and test verification.
+   - Use `xcodebuildmcp-cli` for build and mechanical proof; it equals mechanical proof for iOS.
+   - For user-flow (observable) proof: replay the exact reproduction flow with `argent` when one exists, otherwise the XcodeBuildMCP UI check.
 4. `macos`
    - Use `xcodebuildmcp-cli` for macOS app build, launch, UI, and test verification.
 5. `non-ui`
@@ -115,11 +116,27 @@ Prefer the smallest proof path that still demonstrates real user value.
    - Use screenshots for static proof points.
    - Use recordings only for multi-step interactions or async transitions that are hard to prove with screenshots alone.
 
-   - For `ios` or `macos`, use `xcodebuildmcp-cli`.
-   - First verify the CLI exists.
-   - Use help-first discovery before commands: inspect available commands/options instead of relying on stale recipes.
-   - Keep execution minimal: choose the smallest build, test, launch, simulator, or UI check that proves the Verification Target.
-   - If `xcodebuildmcp-cli` is missing or the required project/device/runtime is unavailable, return `BLOCKED` with the missing prerequisite.
+    - For `ios` or `macos`, use `xcodebuildmcp-cli`.
+    - First verify the CLI exists.
+    - Use help-first discovery before commands: inspect available commands/options instead of relying on stale recipes.
+    - Keep execution minimal: choose the smallest build, test, launch, simulator, or UI check that proves the Verification Target.
+    - If `xcodebuildmcp-cli` is missing or the required project/device/runtime is unavailable, return `BLOCKED` with the missing prerequisite.
+
+    - `macos` observable proof is always the XcodeBuildMCP UI check.
+    - `ios` without a reproduction flow: observable proof is the smallest XcodeBuildMCP UI check that proves the Verification Target. Do not author a flow during verification.
+    - `ios` with a reproduction flow from `reproduce-bug` (stored at
+      `_ai/task/{SLUG}/reproduction/flows/<safe-name>.yaml`): load `argent`
+      and replay that exact file on the exact candidate with `argent flow run
+      <path.yaml> --device <id> --platform ios --json`, selecting a device per
+      the `argent` skill. Establish candidate provenance for the installed app
+      before replay (the `argent` skill's provenance rule); a stale or
+      unprovable install is not a valid replay target. A pass on the flow that
+      originally triggered the bug is the strongest user-flow proof the fix
+      works; a pass from any other path does not substitute for it.
+    - A flow replay failing for environment reasons (device missing, runner
+      build/signing errors) is `BLOCKED`, not `FAIL`; a flow that runs and
+      reports a failed step is `FAIL`.
+    - Keep the device selection and report from the replay in the result notes.
 
     - For `non-ui`, Mechanical is the proof path. Observable is `n/a`.
     - Prefer assertions tied to user-visible outcomes: command success, API response shape, file creation, persisted data, or other concrete results.
