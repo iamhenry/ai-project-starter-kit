@@ -37,6 +37,8 @@ Artifact directory rule:
 
 If the issue is underspecified in a way that would materially change the implementation, stop here and ask 1-3 targeted questions instead of forcing options.
 
+When the caller requests **intake only**, stop after Phase 0 and return `ISSUE_DIR`, the task classification, and unresolved intake questions; leave research, approaches, and judge sections pending. On an explicit request to resume research, reuse that directory and the current intake, reconcile any supplied reproduction evidence, and continue at Phase 1 without repeating intake or reproduction. Without an intake-only request, follow the normal full workflow.
+
 ## Phase 1 — Define Target Scenarios, Then Launch Research Agents in Parallel
 
 Before launching subagents, generate two Gherkin scenarios from the original user query: one happy path and one edge path. Keep them minimal and targeted. We are defining the smallest user-visible contract for a simple enhancement, not a full spec.
