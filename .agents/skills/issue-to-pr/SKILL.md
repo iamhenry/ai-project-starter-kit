@@ -20,38 +20,11 @@ description: Orchestrate and judge an issue-to-PR pipeline without editing artif
 | `xcodebuildmcp-cli`          | Apple-platform proof path used by `verification-gate`.    | Supports iOS and macOS validation without defining it here.                      |
 | PR placeholder               | Future owner handles PR handoff.                          | Keeps review and merge policy outside this wrapper.                              |
 
-## Available Capabilities
-
-### Agents
-
-| Name      | Use for                                          | Delegate when                                 | Avoid when                                  |
-| --------- | ------------------------------------------------ | --------------------------------------------- | ------------------------------------------- |
-| `code`    | Implementation, bug fixes, refactors, tests.     | Approved write or code changes are ready.     | Research, docs-only edits, judging, QA.     |
-| `general` | Docs, config, task artifacts, utility workflows. | Non-code edits or orchestration utility work. | App code implementation and gate decisions. |
-
-### Subagents
-
-| Name      | Use for                                     | Delegate when                                        | Avoid when                                   |
-| --------- | ------------------------------------------- | ---------------------------------------------------- | -------------------------------------------- |
-| `atlas`   | Local codebase research.                    | Architecture, data flow, dependencies, blast radius. | Pure external docs, judging, implementation. |
-| `voyager` | External docs, API, and framework research. | Version-specific docs or best practices are needed.  | Repo-local evidence is enough.               |
-
-Note: although `atlas` and `voyager` have write permissions for research artifacts, this pipeline uses them only for research/reporting unless a stage explicitly assigns an artifact write.
-
-### Skills
-
-| Name                | Use for                          | Delegate when                                       | Avoid when                                   |
-| ------------------- | -------------------------------- | --------------------------------------------------- | -------------------------------------------- |
-| `judge-proposal`    | Proposal selection gate.         | `{ISSUE_DIR}/issue.md` has approaches and research. | Implementation, plan creation, code review.  |
-| `judge-plan`        | Plan readiness gate.             | `{ISSUE_DIR}/plan.md` exists.                       | Architecture redesign or implementation.     |
-| `code-quality-gate` | Post-implementation code review. | Implementation is done, before verification.        | Fixing code or QA.                           |
-| `verification-gate` | Behavior proof.                  | `APPROVE_CODE` is returned.                         | Exploratory QA or missing prerequisites.     |
-| `agent-browser`     | Web and mobile-web proof path.   | `verification-gate` needs browser proof.            | Direct orchestrator QA or non-browser proof. |
-| `xcodebuildmcp-cli` | iOS and macOS proof path.        | `verification-gate` needs Apple-platform proof.     | Web or non-UI proof.                         |
-
 Orchestrate and judge the pipeline. Do not create, edit, append, or repair task artifacts directly.
 
 This skill connects modular skills, checks whether each stage produced the expected artifact, and routes revisions back to the owning skill or subagent when the pipeline is off track.
+
+Use this composition for authorized delivery; focused research, planning, review, or verification calls remain valid and stop at their requested endpoint. Supply scope, authority, and optionally S/M/L/XL with a risk/uncertainty rationale. Each owner calibrates its own inputs, execution, effort, independence, evidence, recovery, and completion; size is not a stage-skip rule. A tiny delivery still passes applicable intake, selection, plan, implementation, fresh quality, and separate fresh acceptance responsibilities. Do not reproduce owners' operating procedures here or grant publication beyond user authority.
 
 ---
 
@@ -59,36 +32,29 @@ This skill connects modular skills, checks whether each stage produced the expec
 
 `ISSUE_DIR` is created by `gather-context` using `_ai/task/{YYYY-MM-DD}/{slug}`. All pipeline artifacts are relative to `ISSUE_DIR`.
 
-Use existing `issue.md`, `plan.md`, and stage reports rather than restarting intake. Explicit user changes take precedence: route reconciliation of affected criteria to the artifact owner, then repeat only invalidated gates. Before dispatch, check the actual next-stage inputs; repair pipeline-owned gaps through their owners, not by asking the user to author documents. Ask only for missing intent or permission. Allow one narrow repair per underlying prerequisite or receipt gap, within existing stricter limits; if it remains unresolved, stop with the owner and unlock condition. Renaming a gap or redispatching never resets a budget.
+Use existing `issue.md`, `plan.md`, and stage reports rather than restarting intake. Explicit user changes take precedence: route reconciliation to the artifact owner and request the owners' assessment of affected evidence and required rechecks. Preserve sound unrelated evidence; coupled, uncertain, or consequential changes may justify broader fresh assurance, not an automatic whole-pipeline restart. Before dispatch, check the owner's declared inputs; repair pipeline-owned gaps through their owners, not by asking the user to author documents. Ask only for missing intent or permission. Allow one narrow repair per underlying prerequisite or receipt gap, within existing stricter limits; if it remains unresolved, stop with the owner and unlock condition. Renaming a gap or redispatching never resets a budget.
 
 ### 1. Gather Context And Intake
 
 - Run `gather-context` with the raw user issue/request in **intake-only** mode. Before research, require `{ISSUE_DIR}/issue.md` with the task classification and a sufficiently clear reported behavior or requested outcome; unresolved intake questions return to their owner under Revision Routing.
 - For `bug` tasks, invoke `reproduce-bug` at this boundary, before research, proposal selection, or planning. Continue only on `REPRODUCED` with evidence matching the reported entry point; a mocked or different-path reproduction does not satisfy this gate. On `NOT_REPRODUCED` or `BLOCKED`, stop and report its structured result and next action. Safe, bounded prerequisite investigation may resolve a blocker, but does not authorize production edits or bypass reproduction. Reuse valid existing faithful evidence through the reproduction owner rather than requiring another run.
 - For non-bug tasks, skip reproduction. Resume `gather-context` at Phase 1 in the same `ISSUE_DIR`, passing the reproduction result and evidence paths for bugs so research and proposals are grounded in observations. Reproduction establishes the symptom, not the cause; research investigates the cause, and the causal gate before implementation still applies.
-- If manually orchestrating `gather-context`, preserve its exact research topology: 4 `atlas` agents plus 1 `voyager` agent.
-- `general` may scaffold or synthesize artifacts only; it must not replace the specialized `gather-context` research agents.
-- `gather-context` owns issue intake, task folder creation, and `{ISSUE_DIR}/issue.md` creation/update.
-- Write supporting research under `{ISSUE_DIR}/research/*.md`.
-- Append or update the approach options in `{ISSUE_DIR}/issue.md`.
-- Gate: `{ISSUE_DIR}/issue.md`, all required `{ISSUE_DIR}/research/*.md`, and `Approaches` in `{ISSUE_DIR}/issue.md` exist.
+- Let `gather-context` choose investigation depth and applicable evidence locations under its own contract; do not prescribe a research fan-out or option count.
+- Gate: its declared intake, evidence, and supported approaches are present in the existing `ISSUE_DIR`.
 - If the gate fails, route revision back to `gather-context`; do not patch artifacts here.
 
 ### 2. Proposal Judge Checkpoint
 
 - Delegate review to a fresh subagent using `judge-proposal`.
 - The subagent must receive only the task artifacts it needs, not accumulated conversation context.
-- The review must be clean, independent, and adversarial enough to catch weak assumptions before planning.
+- Pass selection authority explicitly; the proposal owner must not infer permission to choose for the user.
 - Gate: `{ISSUE_DIR}/issue.md` contains `Judge Decision` with `Status: SELECTED` or `Status: ASK_USER`.
 - If `ASK_USER`, use Revision Routing to distinguish an owned artifact gap from a user decision.
 
 ### 3. Create Issue Plan
 
-- Before running `create-issue`, verify `{ISSUE_DIR}` exists.
-- Run the `create-issue` workflow after the proposal is selected.
-- Instruct `create-issue` or the executing agent to write `{ISSUE_DIR}/plan.md`.
-- The plan should be based on `{ISSUE_DIR}/issue.md`, accepted approach details, and `{ISSUE_DIR}/research/*.md`.
-- After `create-issue`, verify `{ISSUE_DIR}/plan.md` exists.
+- Invoke the tracked `create-issue` owner at `.agents/commands/workflow/01-plan/02-create-issue.md` after selection, passing the existing `ISSUE_DIR` and approved artifacts. It owns plan structure and proportional detail.
+- Gate: its declared output `{ISSUE_DIR}/plan.md` exists.
 - If the plan artifact appears elsewhere or `{ISSUE_DIR}/plan.md` is missing, stop and route as a `create-issue` output mismatch; do not create `{ISSUE_DIR}/plan.md` here.
 
 ### 4. Plan Judge Checkpoint
@@ -117,23 +83,22 @@ Use existing `issue.md`, `plan.md`, and stage reports rather than restarting int
 ### 6. Code Quality Gate
 
 - After implementation is complete, delegate review to a fresh subagent using `code-quality-gate`.
-- The subagent must receive `{ISSUE_DIR}/plan.md`, implementation summary, changed files, commands run, known risks, and raw Mechanical command output when the plan names it.
+- Pass the inputs declared by `code-quality-gate`, including exact candidate identity and available receipts.
 - Gate: `code-quality-gate` returns `APPROVE_CODE`, `REVISE_CODE`, or `ASK_USER` with concise evidence.
 - Continue to verification only on `APPROVE_CODE`.
-- If `REVISE_CODE`, classify the findings before routing: missing Mechanical output needs a receipt from the implementation owner, not a source edit; a failed prerequisite needs its setup owner; a demonstrated code defect needs a bounded correction. Rerun `code-quality-gate` after the relevant repair. After 2 `REVISE_CODE` verdicts, stop with `EXHAUSTED`, including receipt-only rejections. This counter is separate from verification `FAIL`s.
+- On `REVISE_CODE`, route the gate's classified findings and requested rechecks to their owners. Enforce its declared verdict ceiling across dispatches, separate from verification failures.
 - If `ASK_USER`, repair a pipeline-owned missing input under the prerequisite rule above; otherwise stop and ask the focused question.
 - Do not review or patch code directly from this wrapper.
 
 ### 7. Verification Gate
 
 - After `code-quality-gate` returns `APPROVE_CODE`, delegate verification to a fresh subagent using `verification-gate`.
-- The subagent must receive `{ISSUE_DIR}/plan.md`, the implementation summary, changed files, any relevant test/build output, and for bug tasks the reproduction result and evidence paths so the original smoke can be reused as the before/after proof.
-- `verification-gate` reads `{ISSUE_DIR}/plan.md` and routes proof by platform: `web`/`mobile-web` through `agent-browser`, `ios`/`macos` through `xcodebuildmcp-cli`, and `non-ui` through a direct proof path.
+- Pass the inputs declared by `verification-gate`, including the current candidate and bug reproduction evidence where applicable. It owns the shortest credible proof route and prerequisite recovery.
 - Gate: `verification-gate` returns `PASS`, `FAIL`, or `BLOCKED` with evidence on disk at `{ISSUE_DIR}/verification/result.md`.
 - Before treating the work as PR-ready, confirm the cited evidence is accessible (embedded or linked, paths resolve) and each artifact is labeled before/after where the claim depends on a state change, with stated limits. Evidence that does not open or does not support the claim is not PR-ready.
 - After it returns, run only a file-existence check: `test -f` on `{ISSUE_DIR}/verification/result.md` and every cited evidence path. Missing file = `FAIL`. This is not QA.
 - Continue only on `PASS` when every `test -f` succeeds. A `PASS` paragraph with missing files is `FAIL`.
-- On `FAIL`, route demonstrated code defects to implementation and rerun `code-quality-gate` before verifying the changed candidate. Route missing or inadequate proof to the verification owner without unrelated source edits. After 2 `FAIL` verdicts, stop with `EXHAUSTED`, including evidence-only failures. On `BLOCKED`, stop and report the prerequisite owner and unlock condition; do not redispatch verification against the unchanged blocker.
+- On `FAIL` or `BLOCKED`, route the verification owner's classified outcome and requested rechecks; enforce its declared ceiling across dispatches. Source corrections require fresh code-quality approval before acceptance. Do not redispatch against an unchanged blocker or add unrelated edits for a proof gap.
 - Do not run QA directly or define browser, iOS, macOS, or non-UI verification steps in this wrapper.
 
 ### 8. PR Placeholder
@@ -195,7 +160,7 @@ Judge, implementation, code quality, and verification work is delegated:
 
 Before any correction, compare the failed criterion with prior findings: what changed, and why would this repair resolve the underlying failure? A rejection is not automatic permission for more code. Reconsider recurring failures before the cap; if no supported repair remains, stop with the evidence and decision needed. Never use exhaustion to waive safety or independent acceptance.
 
-- Missing `{ISSUE_DIR}/issue.md`, missing `{ISSUE_DIR}/research/*.md` files, or missing approaches: rerun or revise `gather-context`.
+- Missing `gather-context`-declared intake, cited evidence, or approaches: route repair to `gather-context`; compact inline research is not a missing report.
 - `judge-proposal` returns `ASK_USER`: route pipeline-owned gaps to `gather-context` within the prerequisite bound; ask the user only for the remaining decision.
 - Missing `{ISSUE_DIR}/plan.md`: rerun or revise `create-issue`.
 - `judge-plan` returns `REVISE_PLAN`: route notes back to `create-issue` and request a revised `{ISSUE_DIR}/plan.md`.

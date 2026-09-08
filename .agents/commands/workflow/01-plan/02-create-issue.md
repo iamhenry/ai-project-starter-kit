@@ -6,13 +6,13 @@ allowed-tools: [Bash(mkdir:*), Bash(cat:*), Bash(date:*), Task]
 
 # Create Issue Command
 
-Creates detailed task templates using comprehensive templates designed for delegating work to junior developers. Creates local files in `_ai/task/`.
+Owns the local implementation plan, not implementation or publication. Accept approved intent, selected approach, boundaries, and cited evidence from the caller or existing `issue.md`; do not infer a new task from repository activity. Create or revise `{ISSUE_DIR}/plan.md`, then return its path, scope, verification target, and unresolved gaps. Missing material intent or authority requires one focused question; missing owned artifacts need bounded repair from approved context, not invented requirements.
 
 ## ⚠️ CRITICAL REQUIREMENTS
 
 **BEFORE PROCEEDING - VERIFY:**
 
-- [ ] ALL 15+ template sections included (no exceptions)
+- [ ] Include the required behavioral contract: acceptance criteria, user story/scenarios, scope, relevant code orientation/dependencies, deliverables/error risks, actionable checklist, and Verification Target. For small known work, short sections and explicit inapplicability suffice; use the fuller template below only where it resolves real uncertainty. Diagrams, models, ADR prose, and multiple phases are not mandatory for a mechanical change.
 - [ ] Local file created in `_ai/task/` directory
 
 ## Usage
@@ -21,8 +21,8 @@ Creates detailed task templates using comprehensive templates designed for deleg
 
 ### Auto-Generation
 
-- When no arguments provided: auto-generates title and description using natural language based on current context
-- Uses git status, recent commits, and general project state for smart defaults
+- When no arguments are provided, reuse explicit approved intent from current context; ask if it is absent.
+- Use git status and recent commits to ground technical context, not invent user intent.
 
 ### My Manual Inputs
 
@@ -32,7 +32,7 @@ Creates detailed task templates using comprehensive templates designed for deleg
 
 ## Implementation
 
-You are a task template creator that takes user input and creates comprehensive, well-structured templates as GitHub issues and/or local files.
+You create a proportionate local plan from approved user input. This command does not file GitHub issues, implement, commit, or publish.
 
 ### Input Processing
 
@@ -50,13 +50,13 @@ When no title/description provided:
 1. Analyze current context (git status, recent commits, branch name)
 2. Generate a practical task title and description using natural language
 3. Focus on immediate development needs and current work
-4. Default to generic development task if context is minimal
+4. If approved intent is absent, stop with the missing decision rather than defaulting to a generic task.
 
 ---
 
 ### Task Template
 
-Create tasks using this comprehensive template (used for both GitHub issues and local files):
+Use this expanded local template as reference; keep only the required contract above and applicable detail. An optional size estimate is advisory: calibrate planning to risk and uncertainty. After a correction, reconcile affected criteria and identify needed downstream rechecks; do not require a whole-plan rewrite for an isolated change.
 
 ````markdown
 ## [PARSED TASK TITLE]
@@ -284,7 +284,7 @@ Start every checklist item with an **ALL CAPS** Action Verb followed by a colon.
 
 #### Phase 2: Verification Gate
 
-Once implementation is complete, verify the task outcome before attempting a commit. Choose the lightest verification target that can prove the core user flow works:
+Once implementation is complete, obtain a fresh `code-quality-gate` decision, then a separate fresh `verification-gate` acceptance decision before any authorized commit. These skills own review depth, proof-route selection, recovery, and completion; small work narrows their effort, not their independence. Define what must be proven:
 
 - [ ] **web / mobile-web**: Browser verification targets for desktop or responsive/mobile browser UI
 - [ ] **ios / macos**: Apple app verification targets
@@ -303,9 +303,9 @@ Use the `verification-gate` skill to prove the task works before commit. `web` a
 **Required fields:**
 - **Platform**: `web | mobile-web | ios | macos | non-ui`
 - **Objective**: The single main outcome that must be proven
-- **Primary Flow**: 3-5 checkpoints covering the core happy-path flow
+- **Primary Flow**: Shortest realistic path covering the core outcome; no fixed checkpoint count
 - **Regression Check**: 1 lightweight adjacent behavior check when relevant
-- **Mechanical**: Named command(s) plus expected exit/output. Prefer an existing check. Lint/typecheck/format may be extra, never the only command when Platform is UI. A new test must assert the Objective, not compilation. "tests pass" is not enough.
+- **Mechanical**: Named command(s) plus expected exit/output asserting a relevant machine-checkable condition of the Objective. Prefer an existing check or focused content/asset assertion; together with Observable it must distinguish success, not require new end-to-end infrastructure. Lint/typecheck/format may be extra, never the only command when Platform is UI. "tests pass" is not enough.
 - **Observable**: Retained evidence path under `{ISSUE_DIR}/verification/screenshots/` or `videos/`, or `n/a` when Platform is `non-ui`. UI platforms must name a path. Screenshot vs recording lives here, not in a separate evidence field.
 - **Pass Criteria**: Exact condition that counts as success. Must be checkable from Mechanical output and, when not `n/a`, the Observable artifact.
 - **Blocked Conditions**: Missing auth, data, environment, or tooling that would prevent reliable verification
@@ -328,11 +328,11 @@ Use the `verification-gate` skill to prove the task works before commit. `web` a
 
 ---
 
-[Generate a verification target with Mechanical command(s), Observable path or `n/a`, 3-5 primary-flow checkpoints, and 0-1 regression checks. Named oracle tests only; do not add a suite.]
+[Generate a verification target with Mechanical command(s), Observable path or `n/a`, the shortest primary flow, and a relevant regression check. Named oracle tests only; do not add a suite. Let verification-gate challenge a costly or weak proof route rather than mandate replica infrastructure.]
 
 #### Phase 3: Commit Changes
 
-Once verification passes, commit the work using the repo's normal commit conventions.
+Only when the user authorized a commit, after required gates pass, use the repo's normal commit conventions. Planning alone grants no commit, push, PR, or merge authority.
 
 - [ ] **Create Commit**: Attempt the commit after Phase 2 passes
 - [ ] **Handle Hook Failures**: If commit hooks fail, inspect the output, fix the issues, and retry the commit
@@ -406,11 +406,11 @@ When creating local files:
    - Remove articles (a, an, the) and filler words (for, with, using)
    - Example: "Implement Spotify Preflight Token Validation" → `spotify-preflight-validation`
 2. Create timestamp using `date +%Y-%m-%d`
-3. Create directory: `_ai/task/{TIMESTAMP}-{SLUG}/`
+3. Reuse caller-supplied `ISSUE_DIR`; otherwise create `_ai/task/{TIMESTAMP}/{SLUG}/`.
 4. Write file as: `plan.md`
-5. Full path: `_ai/task/{TIMESTAMP}-{SLUG}/plan.md`
+5. Full path: `{ISSUE_DIR}/plan.md`.
 
-Example: `_ai/task/2025-11-20-spotify-preflight-validation/plan.md`
+Example: `_ai/task/2025-11-20/spotify-preflight-validation/plan.md`
 
 ---
 
@@ -426,7 +426,7 @@ Example: `_ai/task/2025-11-20-spotify-preflight-validation/plan.md`
 
 1. **Parse Arguments**: Extract content, auto-generate if needed
 2. **Generate Content**: Create comprehensive task template using parsed/generated data
-3. **Create Local File**: Write to `_ai/task/{TIMESTAMP}-{SLUG}/plan.md`
+3. **Create Local File**: Write to `{ISSUE_DIR}/plan.md`; verify it exists before reporting completion. On a write failure, return the path, owner, and unlock condition; do not redirect silently or retry indefinitely.
 4. **Report Results**: Provide clear feedback on file location
 
 Start by processing $ARGUMENTS, auto-generating content if needed, and creating the local file.

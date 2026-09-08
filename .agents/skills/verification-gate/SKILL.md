@@ -5,7 +5,9 @@ description: Reusable verification gate for completed work before commit or merg
 
 # Verification Gate
 
-Use this skill after implementation and after `code-quality-gate` returns `APPROVE_CODE`, before commit or merge.
+Use this skill for delivery acceptance after implementation and `code-quality-gate` approval, or for an explicitly focused request to verify existing behavior. Focused proof is not delivery approval.
+
+Run acceptance in a fresh verifier session, separate from implementation and code-quality review, including for small changes and standalone calls. Invoking this skill in the implementer's session does not supply independence. If that separation is unavailable, return `BLOCKED`; fresh context reduces self-confirmation bias, not all bias. A focused verification request stops at its verdict and does not authorize fixes, commits, or publication.
 
 ## Mode Dispatch
 
@@ -28,6 +30,8 @@ Collect the minimum context needed to verify the work:
 
 `ISSUE_DIR` is the artifact directory created by `gather-context` for the current pipeline run.
 
+For standalone calls, accept the same Verification Target fields below directly with approved scope, exact candidate identity, and an authorized evidence directory; no pipeline plan is required. References to `plan.md` below mean that supplied target. Distinguish the requested endpoint explicitly: focused verification of existing behavior does not require an unassigned code-quality stage; delivery acceptance, including standalone delivery acceptance, requires `APPROVE_CODE` and both independent gates. Missing pipeline inputs never authorize switching to focused verification; route them to their owners.
+
 - `plan.md` Verification Target:
   - Platform: `web|mobile-web|ios|macos|non-ui`
   - Objective: single outcome to prove
@@ -41,13 +45,13 @@ Collect the minimum context needed to verify the work:
 - target URL, command, or environment
 - auth, seed data, or other prerequisites
 - for bug tasks: the reproduction result and evidence paths from `reproduce-bug`, supplying the faithful smoke to reuse
-- code-quality-gate result: `APPROVE_CODE`
+- for delivery acceptance: code-quality-gate result `APPROVE_CODE`
 
 If key prerequisites are missing, use only the bounded recovery below when safe and authorized; otherwise return `BLOCKED` naming the prerequisite owner and unlock condition, not a code defect or a demand that the user perform routine setup.
 
-If Mechanical is missing from `plan.md`, return `BLOCKED` with unlock: revise the plan. Do not invent a command.
+If Mechanical is missing from the target, return `BLOCKED` naming the missing command and target owner (plan owner for pipeline calls, supplied-target owner for standalone calls). Do not invent a command or require a standalone caller to create a plan.
 
-If the code-quality-gate result is missing, `REVISE_CODE`, or `ASK_USER`, return `BLOCKED` and do not run final acceptance QA. Safe, disposable previews and risk probes may occur earlier outside this gate; they do not authorize unsafe live installation or mutation, or count as independent acceptance.
+For delivery acceptance, if the code-quality-gate result is missing, `REVISE_CODE`, or `ASK_USER`, return `BLOCKED` and do not run final acceptance QA. For explicitly focused verification, proceed without that stage only within the supplied target and authority, retaining fresh verifier independence; state in Notes that the verdict proves only the requested behavior and does not imply delivery approval. Neither route authorizes unsafe live installation or mutation.
 
 `plan.md` owns what to prove. This skill owns how to prove it by choosing the platform route and smallest proof path.
 
@@ -70,6 +74,8 @@ Choose exactly one primary platform route:
    - Use direct tests, build commands, API calls, CLI checks, data checks, or file assertions.
 
 Prefer the smallest proof path that still demonstrates real user value.
+
+Prefer the actual affected surface when safe and authorized. Before building a substitute, compare its setup cost and evidential value with resolving the concrete prerequisite for the real surface. A replica can omit the very integration under test; it cannot silently replace required real-flow proof. If proof infrastructure would exceed the change itself, reconsider the route before adding it: reuse existing checks or a direct preview, or return the precise blocker. Scale depth to risk and uncertainty, not ceremony. A static content/diff check can prove an instruction-only change; it cannot prove a changed UI renders correctly.
 
 ## Workflow
 
@@ -105,9 +111,9 @@ Prefer the smallest proof path that still demonstrates real user value.
       expected to pass on the candidate. Reuse it before/after rather than
       inventing a new flow.
     - When the plan's Regression Check is not `None`, run that one regression.
-      Add further counterexamples only when the change touches overrides or
-      precedence handling and an explicit case is warranted; do not expand
-      verification into broad QA.
+       Add further counterexamples when concrete risk, coupling, or uncertainty
+       warrants them; explain the failure they could catch rather than expanding
+       verification into unrelated QA.
 
     - For `web` or `mobile-web`, use `agent-browser` instead of re-inventing browser steps.
    - Before browser commands, load `agent-browser` and follow its own CLI-served setup and usage guidance.
@@ -148,14 +154,14 @@ Prefer the smallest proof path that still demonstrates real user value.
     - `BLOCKED`: required auth, data, environment, tooling, or a discriminating verification target is missing. A required screenshot or artifact that was explicitly requested but cannot be captured is `BLOCKED` (missing prerequisite), not `PASS`; if the plan declares it Observable and it is absent, that is `FAIL` per the file-existence rule.
 
 5. Report the result.
-   - Write `{ISSUE_DIR}/verification/result.md` first.
+    - Write `{ISSUE_DIR}/verification/result.md` first (or `result.md` in the authorized standalone evidence directory).
    - Run `test -f` on that file and every cited Observable path. Missing file = `FAIL`, not `PASS`.
    - Do not return `PASS` from chat alone.
 
 ## Evidence Rules
 
 - Prove the whole flow, not just the final screen. Evidence must distinguish the claimed outcome from its likely false positive; successful commands or plausible screenshots alone may not do that. If the target itself cannot discriminate success, return `BLOCKED` for plan-owner clarification rather than inventing acceptance or editing code.
-- Independently establish the candidate and assess the proof rather than accepting implementer claims. Reuse Observable evidence only when it remains valid for the same candidate and relevant conditions; relevant changes invalidate affected proof and require it to be rerun. Mechanical is still rerun as required above.
+- Independently establish the candidate and assess the proof rather than accepting implementer claims. After corrections, identify affected claims and required rechecks. Reuse unaffected Observable evidence only with an explicit explanation of why changed files and conditions do not invalidate it; rerun affected proof on the current candidate. Coupled, uncertain, or consequential changes can warrant broader or full fresh verification. Mechanical is still rerun as required above.
 - Capture only the evidence needed to support the verdict.
 - Never record secrets, tokens, private user data, or unnecessary personal information.
 - If any temporary diagnostic instrumentation was added during reproduction or
@@ -193,6 +199,8 @@ Prefer the smallest proof path that still demonstrates real user value.
 
 ## Output
 
+Return failed criteria, evidence/prerequisite owner, and required rechecks in Notes. For delivery, the caller routes defects through implementation and fresh code-quality review before acceptance; proof gaps return here without unrelated edits. Focused verification reports findings and stops, without assigning fixes or implying delivery approval. After 2 `FAIL` verdicts, including evidence-only failures, stop with `EXHAUSTED`; carry prior verdicts across dispatches. `BLOCKED` does not redispatch itself against an unchanged prerequisite. Never use exhaustion to waive acceptance.
+
 Use this exact structure:
 
 ```md
@@ -209,7 +217,7 @@ Use this exact structure:
 ### Evidence
 
 - [artifact path; `"No artifacts"` only when Observable is `n/a`]
-- Report: `{ISSUE_DIR}/verification/result.md`
+- Report: [pipeline `{ISSUE_DIR}/verification/result.md` or authorized standalone `result.md` path]
 
 ### Notes
 
