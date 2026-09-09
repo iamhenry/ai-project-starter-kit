@@ -58,12 +58,18 @@ Prefer the smallest repro path that still proves the bug clearly.
 1. Define the repro target.
    - State the exact behavior you are trying to trigger.
    - Keep it to one bug at a time.
+   - Choose the smallest attempt budget capable of distinguishing the bug from
+     ordinary variance. Spend additional attempts only when timing,
+     intermittency, or an inconclusive result makes them evidentially useful.
+     Example: one failing API call may prove a deterministic bug; a reported
+     race may need bounded repetition to expose the ordering failure.
 
 2. Map the shortest repro flow.
    - Start from the first meaningful action.
    - End at the exact failing state or at proof that the bug did not occur.
    - Avoid extra setup steps unless they are required to trigger the issue.
    - Keep the flow rerunnable as the cheapest faithful before/after check: after a fix, the same entry point should flip the expected/actual contrast without rework.
+   - Record that exact command or flow as the reusable smoke check for verification; do not make verification rediscover or broaden it.
 
 3. Attempt reproduction.
 
@@ -86,6 +92,9 @@ Prefer the smallest repro path that still proves the bug clearly.
    - `REPRODUCED`: the reported bug was triggered and proven.
    - `NOT_REPRODUCED`: the reported bug did not occur after a reasonable attempt.
    - `BLOCKED`: required auth, data, environment, or tooling is missing.
+   - Stop when the evidence supports a trustworthy result. Repeat only when
+     another attempt could materially change that result, not merely add
+     confidence.
 
 5. Report the result.
 
@@ -111,6 +120,7 @@ Use this exact structure:
 - Bug: [short bug summary]
 - Repro target: [exact behavior tested]
 - Result: `REPRODUCED|NOT_REPRODUCED|BLOCKED`
+- Reusable smoke: [exact command or flow to rerun after a fix, or "Unavailable — [reason]"]
 
 ### Repro Steps
 
@@ -122,7 +132,8 @@ Use this exact structure:
 
 ### Notes
 
-- [key failure point, proof point, or blocker; observations only, kept separate from any cause hypothesis]
+- Observed boundary: [where expected and actual behavior first diverged, or "Unknown"]
+- [key proof point or blocker; observations only, kept separate from any cause hypothesis]
 
 ### Next Action
 

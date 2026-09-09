@@ -5,7 +5,7 @@ description: Root cause analysis for software bugs using the 5 Whys technique. U
 
 # 5 Whys Debugging
 
-Ask "why" five times systematically to find the root cause of a bug.
+Ask successive evidence-backed "why" questions to find the root cause of a bug. Five is a reminder to look beneath symptoms, not a required round count.
 
 ---
 
@@ -20,18 +20,12 @@ Ask "why" five times systematically to find the root cause of a bug.
 ```
 ASK why #1 → STOP → INVESTIGATE → ANSWER with evidence
      ↓
-ASK why #2 → STOP → INVESTIGATE → ANSWER with evidence
+ASK why #2 only if it can distinguish the remaining cause
      ↓
-... repeat until root cause PROVEN
+... continue only while the next why narrows the causal chain
 ```
 
 You MUST search the codebase and gather evidence between each "why" question. If you find yourself typing "WHY #2" without having investigated after "WHY #1", you are doing it wrong.
-
----
-
-## ✅ MANDATORY: Progress Tracking
-
-Use a todo list to track each "why" round. Mark complete before proceeding to the next.
 
 ---
 
@@ -66,6 +60,7 @@ This isn't exhaustive — follow whatever trail the problem reveals.
 
 > ⚠️ **CRITICAL RULES**
 > - After each "why" question, WAIT for investigation results before moving to the next
+> - Test one causal hypothesis with the smallest safe discriminating probe per round
 > - Never ask multiple whys in one response
 > - All answers must cite specific files, lines, or logs as evidence
 
@@ -75,12 +70,18 @@ Work through this ONE step at a time. Do not skip ahead.
 2. Ask "Why did this happen?"
 3. ⛔ **STOP AND INVESTIGATE** - Search the codebase, read files, check logs. Do NOT continue until you have code evidence.
 4. Present findings and the answer to "why"
-5. Ask the next "Why?" based on that answer
+5. Ask the next "Why?" only when it can distinguish the current explanation from a plausible alternative
 6. ⛔ **STOP AND INVESTIGATE** - Same techniques, deeper layer. Do NOT continue without evidence.
-7. Repeat steps 4-6 until reaching root cause (usually 5 iterations)
-   - If you hit a wall and can't find the root cause, STOP and explain what you know and what's missing
+7. Repeat steps 4-6 until an exit criterion is met:
+   - `PROVEN`: evidence identifies an actionable cause; stop
+   - `REJECTED`: evidence disproves the current hypothesis; continue only with one evidence-supported next hypothesis
+   - `BLOCKED`: required evidence or access is unavailable; stop and name the unlock condition
+   - `EXHAUSTED`: another "why" would be speculation or would not change the action; stop and report what remains unknown
    - Never make up evidence or fabricate a root cause
 8. Present findings in this format:
+
+Example: if evidence proves expired-session handling is the actionable defect,
+stop there unless the task explicitly asks why that handling was omitted.
 
 ```
 **Problem**
@@ -88,6 +89,9 @@ Work through this ONE step at a time. Do not skip ahead.
 
 **Root Cause**
 [The underlying reason - reference specific commits, files, lines when known]
+
+**Result**
+`PROVEN|REJECTED|BLOCKED|EXHAUSTED`
 
 **Reproduction Scenarios**
 [Step-by-step scenarios showing how the bug manifests, with actual values/logs]
