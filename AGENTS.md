@@ -60,6 +60,8 @@ Size the task, then take the cheapest path that still matches blast radius. If a
 
 Tier by blast radius, not by how the request sounds. Table rows are default paths, not keyword law — if the phrase and the size disagree, size wins.
 
+**Frame before routing:** For every actionable user request, first restate the task in one concise problem statement derived from first principles: the desired outcome, the current gap or obstacle, and the constraints. Do not introduce implementation assumptions. If the request is materially ambiguous, ask one focused question before choosing a route.
+
 **Sizing:**
 - SMALL — typically 1-2 files, mechanical, no design choices. Prefer direct implementation with brief intake and planning. Focused diff review and meaningful verification usually suffice for trivial, low-risk changes; risk or uncertainty can justify independent review even for one file.
 - MEDIUM — a few files, known pattern. Use the relevant skill pipeline; delegate when parallel work or independent review adds concrete value.
@@ -75,14 +77,17 @@ Choose focused skill vs delivery composition from the requested endpoint. Resear
 |---|---|---|
 | Plan: "make a plan", "how should we approach X" | Answer inline | Plan in `_ai/task/{date}/{slug}/issue.md` (approaches) → `plan.md` (chosen plan + acceptance criteria). No code edits. Same folders as issue-to-pr, so a planned task can enter later without re-intake. |
 | Design/shape: "define the shape", "architecture for X" | Discuss inline | shaping skill → ponytail-review the chosen shape → second-opinion → decision recorded in issue.md |
+| Decide: "A or B", compare, choose | Decide inline; stop | **Decide**; use Council or second-opinion only when it resolves consequential uncertainty. Stop without implementing. |
 | Bug: "fix this", crash, wrong behavior | **Fix-it** | **Fix-it**. Architectural/unknown → **Unknown**. |
 | Feature: "add / build / implement" | **Ship-it** | **Ship-it**. Unknown/architectural → **Unknown**. |
 | Refactor / cleanup, behavior-preserving | Just do it | gather-context → ponytail-review on diff → verification-gate |
 | Read-only question: "how / why / what does X do" | Answer directly, no edits | atlas subagent (read-only), cited answer |
+| Review: code, diff, or PR | Focused read-only review | Local changes → code-quality-gate; GitHub PR → pr-reviewer. No fixes unless requested. |
 | Prototype to decide: "try it", "sketch it", "which feels right" | — | Throwaway code, no commit. |
 | "over-engineered? bloat?" | — | ponytail-review (diff) or ponytail-audit (repo) |
 | "ponytail debt / shortcuts / what did we defer" | — | ponytail-debt (ledger report) |
 | Root cause: "why is this happening" | — | five-whys |
+| Verify: prove, smoke test, acceptance check | Run the smallest discriminating check | verification-gate. Return PASS, FAIL, or BLOCKED with inspected evidence. No edits unless requested. |
 | "test this app / QA sweep / find bugs" | — | dogfood |
 | iOS / macOS: build, run, test, debug | — | xcodebuildmcp-cli |
 | Autonomous: "keep going until X", stepping away | — | tmux + JOURNAL checkpoints; continue on reversible decisions within authorized scope; ask when intent, authority, or a required approval remains unresolved |
@@ -136,7 +141,7 @@ No fit → router. Named skill → that skill. Unknown territory → **Unknown**
 | **Unknown** | Architecture, unclear blast | `issue-to-pr`. Don't hand-roll. |
 | **Shape** | Plan / define the shape | Research → stop. No code until they approve. |
 | **Decide** | A vs B | Pick → stop. Don't implement the winner. |
-| **Prove** | QA, find bugs | Verify, no edits. File what you find. |
+| **Prove** | Verify a specified claim | Run the smallest check capable of disproving it → inspect the result or artifact → PASS, FAIL, or BLOCKED. No edits unless requested. |
 | **Author-skill** | write/edit a SKILL.md | `skill-creator` → `skill-quality-checklist`. |
 
 **Standing rules:**
@@ -145,7 +150,7 @@ No fit → router. Named skill → that skill. Unknown territory → **Unknown**
 |---|---|---|
 | Default behavior | Implementation requests authorize in-scope local edits and relevant checks without repeated permission. Research, review, and planning requests remain read-only for implementation files. | Inspect before editing. Complete authorized work; ask only when unresolved intent or authority materially changes the outcome. |
 | Verification | Choose the smallest meaningful checks that establish the requested outcome and satisfy required project checks. Focused diff/content review and verification usually suffice for trivial, low-risk changes. Favor independent quality review and acceptance as behavioral impact, security risk, public-contract changes, migration risk, or uncertainty increase. | Reuse valid evidence; repeat or broaden checks when relevant changes, failures, or unresolved concerns justify the cost. Prefer expensive final acceptance on a stable candidate while preserving early checks needed for reproduction, baselines, or development feedback. Use `code-quality-gate` and `verification-gate` when independent gates are warranted. Report unrelated existing failures without expanding scope to fix them. |
-| Evidence | Match evidence to the claim — diff proves change, not outcome. | New behavior → run the product and show it; bug fix → reproduce the reported behavior and establish the cause before editing, then repro before, gone after; big change → tests and logs a human can open. Evidence artifacts must exist, open, and support the claim. Passing tests or a merged diff alone never substitute for causal evidence. |
+| Evidence | Match evidence to the claim — diff proves change, not outcome. | New behavior → run the product and show it; bug fix → reproduce the reported behavior and establish the cause before editing, then repro before, gone after; big change → tests and logs a human can open. Evidence must exercise and demonstrate the exact claimed target, and the agent must inspect any cited artifact before relying on it. Passing tests or a merged diff alone never substitute for causal evidence. |
 | Gate decisions | PASS continues; REVISE returns to the owning skill; ASK_USER asks one focused question. | When independent gates are required, use fresh subagents judging artifacts on disk — never substitute a same-agent review or patch ad hoc. |
 | Subagents | Delegate when parallel work or independent judgment materially improves speed or confidence enough to justify coordination cost. | Avoid fan-out for trivial mechanical work. When independence matters, use a separate agent with a written brief; risk matters more than file count. |
 | Resume | Pick up from JOURNAL/last commit. | Don't restart finished work. |
