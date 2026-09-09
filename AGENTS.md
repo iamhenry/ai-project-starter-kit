@@ -56,56 +56,61 @@ Treat a new correction as contextual evidence, not an automatic universal rule. 
 
 ### Task Router
 
-Size the task, then take the cheapest path that still matches blast radius. If a workflow fits, announce `📣 ROUTE: [tier] — [workflow]`; otherwise `ROUTE: [tier] — [row]`.
+Frame the task, identify every applicable task fact below, then compose the smallest workload that covers them. Announce `📣 ROUTE: [tier] — [skill → skill]` before acting.
 
-Tier by blast radius, not by how the request sounds. Table rows are default paths, not keyword law — if the phrase and the size disagree, size wins.
+Tier by blast radius, not by how the request sounds. Size scales each selected skill's SOP; it does not make an applicable skill optional.
+
+**Frame before routing:** For every actionable user request, first restate the task in one concise problem statement derived from first principles: the desired outcome, the current gap or obstacle, and the constraints. Do not introduce implementation assumptions. If the request is materially ambiguous, ask one focused question before choosing a route.
 
 **Sizing:**
-- SMALL — typically 1-2 files, mechanical, no design choices. Prefer direct implementation with brief intake and planning. Focused diff review and meaningful verification usually suffice for trivial, low-risk changes; risk or uncertainty can justify independent review even for one file.
-- MEDIUM — a few files, known pattern. Use the relevant skill pipeline; delegate when parallel work or independent review adds concrete value.
-- LARGE — architecture, migration, unknown territory. Pay for intake: issue-to-pr (or gather-context if you only need research).
+- SMALL — typically 1-2 files, mechanical, no design choices. Run each applicable skill narrowly against the changed surface.
+- MEDIUM — a few files, known pattern. Broaden each applicable skill only across affected paths and distinct risks.
+- LARGE — architecture, migration, or substantial uncertainty. Pay for deeper discovery, decomposition, and evidence without automatically invoking issue-to-pr.
 
-**Pay for uncertainty, not labels.** Known + small blast → cheapest row. Unknown / architectural → issue-to-pr (don't hand-roll its stages; skip PR placeholder if no remote). User names a skill → it wins.
+**Composition contract:** A skill is required when its task fact applies or the user names it. Skills own their SOPs; the main agent owns selection, ordering, handoffs, and stopping. Use a specialized skill whenever one owns the work; implement directly only when none does. `issue-to-pr` is an explicit full-pipeline request, never an automatic fallback.
 
-Choose focused skill vs delivery composition from the requested endpoint. Research, review, or verification alone stops there; no-edits requests never authorize implementation. Full delivery preserves all applicable responsibilities through `issue-to-pr` composition, with brief artifacts for known small work. Supply scope and authority, optionally S/M/L/XL with risk rationale; owners may revise the estimate and own execution, effort, evidence, recovery, and completion. A same-agent skill call does not replace a fresh reviewer or verifier.
+Research, review, planning, or verification alone stops at that endpoint; no-edits requests never authorize implementation. For delivery, compose every applicable row and preserve its responsibility through completion. Supply scope and authority, optionally S/M/L/XL with risk rationale; skill owners may revise the estimate and own execution, evidence, recovery, and completion.
 
-**Routes:**
+**Composition table:**
 
-| Trigger | SMALL | MEDIUM/LARGE |
+| Task fact | Required owner | Responsibility |
 |---|---|---|
-| Plan: "make a plan", "how should we approach X" | Answer inline | Plan in `_ai/task/{date}/{slug}/issue.md` (approaches) → `plan.md` (chosen plan + acceptance criteria). No code edits. Same folders as issue-to-pr, so a planned task can enter later without re-intake. |
-| Design/shape: "define the shape", "architecture for X" | Discuss inline | shaping skill → ponytail-review the chosen shape → second-opinion → decision recorded in issue.md |
-| Bug: "fix this", crash, wrong behavior | **Fix-it** | **Fix-it**. Architectural/unknown → **Unknown**. |
-| Feature: "add / build / implement" | **Ship-it** | **Ship-it**. Unknown/architectural → **Unknown**. |
-| Refactor / cleanup, behavior-preserving | Just do it | gather-context → ponytail-review on diff → verification-gate |
-| Read-only question: "how / why / what does X do" | Answer directly, no edits | atlas subagent (read-only), cited answer |
-| Prototype to decide: "try it", "sketch it", "which feels right" | — | Throwaway code, no commit. |
-| "over-engineered? bloat?" | — | ponytail-review (diff) or ponytail-audit (repo) |
-| "ponytail debt / shortcuts / what did we defer" | — | ponytail-debt (ledger report) |
-| Root cause: "why is this happening" | — | five-whys |
-| "test this app / QA sweep / find bugs" | — | dogfood |
-| iOS / macOS: build, run, test, debug | — | xcodebuildmcp-cli |
-| Autonomous: "keep going until X", stepping away | — | tmux + JOURNAL checkpoints; continue on reversible decisions within authorized scope; ask when intent, authority, or a required approval remains unresolved |
-| Skill authoring: write/edit a SKILL.md | — | skill-creator + skill-quality-checklist |
-| Delegating to subagents: spawning subagents for exploration, planning, or coding | — | subagent-delegation (use its handoff brief verbatim) |
-| Committing / "before I commit" | — | code-quality-gate → git-commits |
-| GitHub issue: "create/file/open an issue", bug report, feature request | create-ticket | create-ticket |
-| Issue → PR pipeline | — | issue-to-pr |
+| Plan: "make a plan", "how should we approach X" | gather-context for substantial planning; answer small plans inline | Produce the requested plan and stop without implementation. |
+| Design/shape: "define the shape", "architecture for X" | shaping | Define the behavior or architecture; add independent critique only when another applicable row requires it. Stop for approval. |
+| Decide: "A or B", compare, choose | Council or second-opinion for consequential uncertainty; decide small settled choices inline | Make the decision and stop without implementing it. |
+| Technical uncertainty could change the work | gather-context | Resolve the uncertainty, then recompose from the evidence; unknown is a condition, not a workflow. |
+| Focused codebase question | gather-context | Return a cited answer and stop without implementation. |
+| Reported defect or wrong behavior | reproduce-bug | Reproduce faithfully before editing; if blocked or not reproduced, report rather than guess. |
+| Root cause requested or unclear | five-whys | Establish an evidence-backed cause before a fix. |
+| Implementation requested | Matching implementation skill, otherwise the main agent | Make the smallest in-scope change using existing patterns. |
+| Any completed implementation | code-quality-gate in a fresh reviewer subagent | Review the exact candidate proportionally. Same-agent self-review never substitutes. |
+| Code-quality-gate approved the candidate | verification-gate in a different fresh verifier subagent | Run proportional mechanical and user-observable proof of the exact outcome. |
+| Existing local code or diff needs review only | code-quality-gate | Return the review verdict; do not fix unless requested. |
+| Existing GitHub PR needs review | pr-reviewer | Review the PR read-only; do not fix unless requested. |
+| Prototype to decide: "try it", "sketch it", "which feels right" | Main agent with disposable code | Let observed results decide; do not commit the prototype. |
+| Over-engineering review | ponytail-review for a diff; ponytail-audit for a repository | Report what to delete or simplify; do not edit unless requested. |
+| Deferred ponytail shortcuts | ponytail-debt | Return the debt ledger without changing code. |
+| Focused verification request: prove, smoke test, acceptance check | verification-gate | Verify the specified claim and stop without edits. |
+| Broad exploratory QA: "test this app", "QA sweep", "find bugs" | dogfood | Explore and report with reproduction evidence; do not silently turn findings into fixes. |
+| iOS or macOS build, run, test, or debug | xcodebuildmcp-cli | Own the platform commands and mechanical evidence. |
+| Long-running or explicitly autonomous work | tmux | Continue within authorized scope; ask only when intent, authority, or a required approval remains unresolved. |
+| Skill authoring: write/edit a SKILL.md | skill-creator → skill-quality-checklist | Author, then independently quality-check the skill. |
+| Delegating exploration, planning, or coding | subagent-delegation | Use its handoff brief verbatim. |
+| Commit or push requested | git-commits | Run its preflight and publish only within explicit authority. |
+| GitHub issue requested | create-ticket | Draft and file the requested issue. |
+| Full issue-to-PR pipeline explicitly requested | issue-to-pr | Run the composed gated pipeline; never infer this route from size or uncertainty alone. |
 
-### Task Workflows
+### Task Composition
 
-Router = first hop. Workflow = the whole job. Prefer a workflow when they
-want it finished, not one step.
+Before acting, state the selected skills in dependency order and briefly justify non-obvious additions. If new evidence changes which task facts apply, update the composition explicitly rather than expanding silently.
 
-📣 ROUTE: [tier] — [workflow]
-No fit → router. Named skill → that skill. Unknown territory → **Unknown**.
+Canonical order: understand → reproduce and diagnose → implement → independent quality review → independent verification → publish. Omit a stage only when its task fact does not apply; never reorder a dependency.
 
 **Principles**
 
-1. RECIPE, THEN BUDGET
-   Preserve the outcome and evidence standards at every size; scale workflow
-   steps and review depth to risk and uncertainty.
-   HEURISTIC: CAN THE OWNER MAKE THIS STEP SMALLER WITHOUT LOSING ITS CONTRACT?
+1. RELEVANCE, THEN BUDGET
+   Select every applicable skill, then scale each SOP to risk and uncertainty.
+   HEURISTIC: WHICH TASK FACTS APPLY, AND WHAT IS THE SMALLEST VALID RUN OF EACH OWNER?
 
 2. FINISH THE JOB
    Don't stop after the first hop. Done = a later reader can see it worked.
@@ -123,32 +128,22 @@ No fit → router. Named skill → that skill. Unknown territory → **Unknown**
    they can open. PR contains both; no PR → leave both in the thread.
    HEURISTIC: WHAT CAN THEY OPEN TOMORROW THAT PROVES THIS?
 
-5. SKILLS ARE THE EXPENSIVE INSTRUMENT
-   Use the owning skills rather than duplicate their procedures. Scale independent
-   review and acceptance to risk and uncertainty; trivial, low-risk mechanical
-   changes may use focused diff review and verification without separate agents.
-   HEURISTIC: WHAT UNCERTAINTY DOES MORE EFFORT RESOLVE?
-
-| Workflow | Smells like | Finish like |
-|---|---|---|
-| **Fix-it** | Broken, crash, wrong | Faithfully reproduce the reported behavior (reported entry point) → evidence-backed cause → fix → quality → visible proof → commit only if requested. Can't confirm → report. Architectural → **Unknown**. |
-| **Ship-it** | Add / build / tweak, known | Build → quality → visible proof → commit only if requested. New surface → **Unknown**. |
-| **Unknown** | Architecture, unclear blast | `issue-to-pr`. Don't hand-roll. |
-| **Shape** | Plan / define the shape | Research → stop. No code until they approve. |
-| **Decide** | A vs B | Pick → stop. Don't implement the winner. |
-| **Prove** | QA, find bugs | Verify, no edits. File what you find. |
-| **Author-skill** | write/edit a SKILL.md | `skill-creator` → `skill-quality-checklist`. |
+5. SKILLS OWN THE WORK
+   Applicable skills are maintained SOPs, not optional escalation. Invoke them
+   instead of reproducing their procedures ad hoc. Review and verification use
+   fresh, separate subagents at every size; only their scope and depth scale.
+   HEURISTIC: DID EACH APPLICABLE RESPONSIBILITY REACH ITS INDEPENDENT OWNER?
 
 **Standing rules:**
 
 | Area | Rule | Practical implication |
 |---|---|---|
 | Default behavior | Implementation requests authorize in-scope local edits and relevant checks without repeated permission. Research, review, and planning requests remain read-only for implementation files. | Inspect before editing. Complete authorized work; ask only when unresolved intent or authority materially changes the outcome. |
-| Verification | Choose the smallest meaningful checks that establish the requested outcome and satisfy required project checks. Focused diff/content review and verification usually suffice for trivial, low-risk changes. Favor independent quality review and acceptance as behavioral impact, security risk, public-contract changes, migration risk, or uncertainty increase. | Reuse valid evidence; repeat or broaden checks when relevant changes, failures, or unresolved concerns justify the cost. Prefer expensive final acceptance on a stable candidate while preserving early checks needed for reproduction, baselines, or development feedback. Use `code-quality-gate` and `verification-gate` when independent gates are warranted. Report unrelated existing failures without expanding scope to fix them. |
-| Evidence | Match evidence to the claim — diff proves change, not outcome. | New behavior → run the product and show it; bug fix → reproduce the reported behavior and establish the cause before editing, then repro before, gone after; big change → tests and logs a human can open. Evidence artifacts must exist, open, and support the claim. Passing tests or a merged diff alone never substitute for causal evidence. |
+| Verification | Every completed implementation goes through `code-quality-gate` and then `verification-gate` in fresh, separate subagents. Size scales their scope, never their independence or applicability. | Quality approval precedes acceptance. Verification runs the smallest mechanical and user-observable checks that can disprove the claimed outcome, adding coverage only for distinct affected risks. Report unrelated existing failures without expanding scope to fix them. |
+| Evidence | Match evidence to the claim — diff proves change, not outcome. | New behavior → run the product and show it; bug fix → reproduce the reported behavior and establish the cause before editing, then repro before, gone after; big change → tests and logs a human can open. Evidence must exercise and demonstrate the exact claimed target, and the agent must inspect any cited artifact before relying on it. Passing tests or a merged diff alone never substitute for causal evidence. |
 | Gate decisions | PASS continues; REVISE returns to the owning skill; ASK_USER asks one focused question. | When independent gates are required, use fresh subagents judging artifacts on disk — never substitute a same-agent review or patch ad hoc. |
-| Subagents | Delegate when parallel work or independent judgment materially improves speed or confidence enough to justify coordination cost. | Avoid fan-out for trivial mechanical work. When independence matters, use a separate agent with a written brief; risk matters more than file count. |
-| Resume | Pick up from JOURNAL/last commit. | Don't restart finished work. |
+| Subagents | Review and verification always use fresh, separate subagents. Other delegation is proportional and must improve speed, coverage, or judgment enough to justify coordination cost. | The implementing agent never approves or accepts its own work. Avoid unrelated fan-out for trivial tasks; risk matters more than file count. |
+| Resume | Pick up from the current worktree and last commit. | Don't restart finished work. |
 | Ambiguity | Ask one focused question when material intent, scope, safety, or authority remains unresolved after supplied context and permitted inspection. | Investigate technical uncertainty within clear authority; don't invent user intent. |
 | Simplicity | Reuse existing code; prefer the laziest working solution. | Reuse before new, stdlib before custom, delete before add. |
 | Options | Favor simple, reversible approaches. | Complexity only when there's a concrete need — tiebreaker is "easiest to undo later." |
