@@ -1,39 +1,24 @@
 ---
 name: subagent-delegation
-description: Structured context templates for delegating work to subagents. Use whenever spawning subagents for exploration, planning, or coding tasks so they receive complete structured context.
+description: Structured handoff brief for delegating work to subagents. Use whenever spawning subagents for exploration, planning, or coding so they receive one complete task contract.
 ---
 
 # Subagent Delegation
 
-When delegating to subagents, ALWAYS provide structured context to help the subagent understand the current situation. Use the delegation templates below.
+When delegating to subagents, fill the handoff brief below. One contract for discovery, planning, and implementation — MODE changes how fields fill, not which fields exist.
 
-**When to provide KEY FILES with line numbers:**
-
-- Planning/coding phase: YES (provide files discovered from exploration)
-- Refactoring/debugging: YES (provide specific files to modify)
-- Exploration phase: optional (supply known evidence; let subagent discover missing entry points)
-- Building on existing patterns: YES (provide reference implementations)
-
-**Format:**
+**Key Files format** when known:
 
 - Line ranges: `file.ts:123-145` for precise navigation
 - Function refs: `(function: handleAuth - validates token)`
 - Interface refs: `(interface: SpotifyTrack - add album field)`
 - Pattern refs: `(similar to: spotify.ts:862)`
 
+Pass every relevant file you already know. Token savings from precision outweighs list cost. Discovery may write `discover`.
+
 **Reusing existing reports:** When an authoritative report or plan already exists, verify it exists and read its latest scope before sending the brief, and point the subagent at that path to reuse its facts rather than copying them into the brief; never invent a report artifact as a prerequisite. If findings materially change the task scope, reconcile the change in the owning artifact and continue with a concise delta follow-up rather than restarting or expanding silently.
 
-**Brief proportionally, not ceremonially.** The templates above are defaults, not mandatory boilerplate: no fixed lengths, exhaustive checklists, or prose for its own sake. Three heuristics decide how much detail a brief needs — Can the subagent identify the next action and stopping condition without rereading the conversation? Does the stated proof distinguish success from the likely false positive? Is the detail already authoritative in a linked artifact? Add detail only where a heuristic exposes uncertainty. Keep scope, authority, safety, and owning-skill gates explicit; never drop them for brevity.
-
-## Shared Handoff Contract
-
-Every brief answers these five questions, in the fields below or a verified authoritative reference—not a second checklist to fill out:
-
-- **Scope:** What is included, excluded, and authorized to change or publish?
-- **Direct route:** What is the next action, supplied context, and approach? For discovery, give the question, known evidence, and search boundaries rather than inventing an implementation route.
-- **Definition of done:** What observable result completes this assignment? Research may end with a cited answer and explicit remaining uncertainty; implementation ends at its assigned acceptance target.
-- **Verification:** How will each result be checked, what evidence must return, and who accepts it? Return expected versus observed results and evidence references; implementation receipts identify the exact candidate. Existing gates own their procedures and technical verdicts; worker completion is not independent acceptance.
-- **Exit criteria:** Stop at the requested endpoint, a blocker that invalidates the route, or the effective investigation/correction limit. Name the limit, what counts against it, and the escalation owner in the brief; use the owning workflow's stricter limits. If none applies, the delegating owner sets a finite task-sized timebox or attempt limit before starting. Report the result or blocker without expanding scope; replanning or replacement does not reset consumed budgets.
+**Brief proportionally, not ceremonially.** The brief is a default, not mandatory boilerplate: no fixed lengths, exhaustive checklists, or prose for its own sake. Three heuristics decide how much detail a brief needs — Can the subagent identify the next action and stopping condition without rereading the conversation? Does the stated proof distinguish success from the likely false positive? Is the detail already authoritative in a linked artifact? Add detail only where a heuristic exposes uncertainty. Keep scope, authority, safety, and owning-skill gates explicit; never drop them for brevity.
 
 ### Delegate uncertainty deliberately
 
@@ -43,65 +28,57 @@ State whether the assignment is discovery, planning, implementation, or an expli
 - If it is a local detail within the agreed route, let the worker read relevant code, check assumptions, and investigate within the brief's bounds. Prevent repeated discovery, not necessary understanding. Material contradictory evidence stops dependent implementation and returns a concise delta to the owner; independent authorized work may continue.
 - For an authorized discovery-to-implementation sequence, the accountable orchestrator resolves findings into the existing brief or plan before handing off dependent implementation. No extra thread, artifact, or human approval is needed for settled, reversible decisions within authority; unresolved intent or permission still goes to the user.
 
-The delegating owner supplies the five answers and reuses prior findings. Implementation workers receive the selected route, relevant files/patterns, prerequisites, and acceptance target—not an invitation to repeat project discovery. Unknown files or exact probes are valid discovery inputs, not reasons to fabricate precision or block research.
+The delegating owner fills every field except Success Criteria Result / Evidence. Implementation workers receive the selected route, relevant files, and criteria — not an invitation to repeat project discovery. Unknown files or exact probes are valid discovery inputs, not reasons to fabricate precision or block research. Existing gates own their procedures; name the check, do not paste `verification-gate`.
 
-## Pattern: Exploration (Files optional)
+## Handoff Brief
 
-```
-TASK: [Describe what to find/understand]
-MODE / ENDPOINT: [Discovery or planning; named question/decision and the report that ends this assignment]
-
-CURRENT STATE: [What we know now, current understanding]
-DEPENDENCIES: [What depends on this code? What does this code depend on? Assess blast radius.]
-TARGET STATE: [What understanding we need to achieve]
-DEFINITION OF DONE: [Named questions answered with supporting citations, remaining uncertainty explicit, and the requested report delivered; no implementation or unassigned follow-on work]
-CONSTRAINTS: [Scope limits, areas to avoid, time constraints]
-EXIT CRITERIA: [Effective investigation limit, counting unit, escalation owner, and stop conditions from the Shared Handoff Contract]
-DECISIONS MADE: [Relevant decisions that affect exploration]
-FOCUS: [Specific patterns, concepts, or areas to investigate]
-RECENT CONTEXT: [Why this exploration matters now, user preferences]
-OUT OF SCOPE: [What to explicitly ignore or avoid]
-RETURN REQUIREMENTS: [The report or cited answer to return; for a research assignment, state that completion is a cited answer to the named question — with the source citations it must carry — and that the assignment ends at the report: no implementation, then stop. Evidence location and blockers.]
-VERIFICATION: [What evidence supports the answer, how unsupported conclusions will be distinguished from findings, and who accepts the report]
-
-KEY FILES: [Known evidence or entry points if available; otherwise subagent discovers]
-APPROACH: [Search keywords, directories to focus on, patterns to identify]
-```
-
-## Pattern: Planning/Coding (Files from exploration)
+Use this brief verbatim, populated with actual context:
 
 ```
-TASK: [Describe what to design/implement]
-MODE / ENDPOINT: [Planning, implementation, or authorized sequence; requested terminal deliverable]
+### Mode
+[discovery | planning | implementation | sequence. Heuristic: does the unknown change what we should build, or only how to carry out a settled change?]
 
-CURRENT STATE: [Existing behavior, what code does now]
-TARGET STATE: [Desired behavior, expected outcome]
-DEFINITION OF DONE: [Concrete observable acceptance criteria for this assignment and its requested deliverable; planning ends at the approved planning endpoint, while implementation names the required checks/evidence and acceptance owner under PROOF CONTRACT]
-CONSTRAINTS: [Tech requirements, compatibility, performance limits]
-DECISIONS MADE: [Architecture choices, patterns to follow]
-FOCUS: [Priority areas, critical paths, what to get right first]
-RECENT CONTEXT: [Recent discoveries, user preferences, session context]
-OUT OF SCOPE: [What to explicitly ignore or avoid]
+### Problem
+[Describe what is wrong or missing, who or what it affects, and why resolving it matters.]
 
-KEY FILES:
-- path/to/file.ts:start-end (identifier: name - relevance note)
-- path/to/file.ts:start-end (identifier: name - relevance note)
-- path/to/file.ts:start-end (identifier: name - relevance note)
-[List all relevant files with line numbers - no limit]
+### Vision
+[1–3 sentences: what the user should experience when this assignment is done. Experiential context, not implementation steps.]
 
-DEPENDENCY ANALYSIS:
-- Dependents: [files/modules that depend on these]
-- Dependencies: [what these files depend on]
-- Blast radius: [estimated scope of impact]
-- Breaking risks: [potential breaking changes]
+### Goal
+[State the smallest exact, measurable outcome that will count as complete.]
 
-EXECUTION BOUNDS: [Source-change scope boundary, first proof of the riskiest behavior on an appropriate real or disposable surface, and effective limit, counting unit, stop conditions and escalation owner from the Shared Handoff Contract and owning workflow.]
-PROOF CONTRACT: [Observable claim and concrete proof proportionate to task type, surface, and uncertainty, chosen so it distinguishes success from the likely false positive: concrete mechanical proof and, where the surface admits it, meaningful user-observable proof; static semantic scenarios for instruction-only work; for planning-only assignments, describe intended implementation verification, not require implementation. When a modality is genuinely inapplicable to the task, say so in one concise reason instead of performing it. State the evidence to retain in an openable artifact, and that unresolved precise probes about an unknown behavior are resolved during investigation before implementation rather than fabricate probes or treat missing precision alone as a spawn blocker. Reference the owning skill contract rather than duplicating its stages.]
-RETURN REQUIREMENTS: [Result, environment and exact candidate identity, checks actually run, evidence location, and blockers; implementation self-checks do not replace independent acceptance. State what counts as done, the requested endpoint, whether this role may publish or finalize anything (commit/push/PR/merge), and that it stops when done — no unassigned follow-on work.]
-APPROACH: [Selected route, files/patterns and prerequisites for implementation; bounded questions for planning; handle local uncertainty and contradictory evidence under Delegate uncertainty deliberately]
+### Current State
+[Describe how it works today. Include baseline evidence such as observed behavior, commands, screenshots, logs, or file references. Include dependencies and blast radius.]
+
+### Ideal State
+[Describe what should be true or what the user should experience when the work is complete. Do not describe implementation steps. For discovery, state the understanding needed and remaining uncertainty.]
+
+### Boundaries
+[Define what is included, excluded, constrained, or dependent. Identify anything that must not change. Record publish authority (commit, push, PR, merge).]
+
+### Decisions Made
+[Record choices already settled that the worker must follow — architecture, pattern, approach, or explicit non-goals. Do not reopen them unless new evidence contradicts them.]
+
+### Key Files
+[List known paths as `path:start-end` (name — why). If unknown, write discover. Pass files you already know — do not make the worker rediscover them.]
+
+### Success Criteria
+
+#### C1 — [State one atomic, observable, binary claim about the completed state.]
+- Probe: [Specify the exact command, test, file check, query, or browser assertion that directly verifies this claim.]
+- Expected: [State the precise output, behavior, value, or threshold required to pass.]
+- Falsifier: [State the specific observation that would prove the claim false.]
+- Result: [Record PASS, FAIL, or BLOCKED only after executing the probe.]
+- Evidence: [Record fresh observed output, screenshot, link, or file reference. Include the tested revision or environment when relevant.]
+
+[Repeat this block for each additional criterion. A probe may be mechanical or user-observable; name the check, do not paste owning-skill procedure. If a falsifiable criterion cannot be written yet, this is discovery — do not invent precision. One criterion can be enough.]
+
+### Deliverable
+[Specify exactly what the agent must create, modify, or return, including the expected format or location.]
+
+### Exit Criteria
+[Declare the work complete only when every criterion has fresh PASS evidence produced by its declared probe. Do not infer completion from implementation, file existence, or unchecked assumptions. Stop and ask instead of guessing when intent or authority is ambiguous, access is missing, a criterion cannot be verified, or the work requires a change outside Boundaries.]
 ```
-
-**No file limit** - List all relevant files with line numbers when known. Token savings from precision outweighs file list cost.
 
 ## References
 
