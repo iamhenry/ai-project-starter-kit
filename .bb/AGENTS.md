@@ -57,7 +57,7 @@ The selected agent prompt owns any specialized operating roles. These global def
 
 **Default:** only a root coordinator delegates independent, parallelizable work. A direct child is a terminal worker and completes its assignment itself unless the selected agent prompt explicitly assigns a bounded exception.
 
-Named provider subagents use the provider's native delegation path. For example, invoke OpenCode's `Task` tool when a workflow assigns Atlas or Voyager so the configured agent prompt, model, and reasoning apply. The OpenCode BB plugin binds the resulting provider child session to BB. Use `bb thread spawn` instead when the work needs a separate environment, cross-project execution, an independent thread lifecycle, or the provider has no suitable native subagent. Do not replace a requested named provider subagent with a generic BB child.
+When a workflow names a provider-specific subagent and the current provider exposes it, use the provider's native delegation path so the configured agent prompt, model, and reasoning apply. For example, use OpenCode's `Task` tool for Atlas or Voyager. Otherwise, use a BB direct child. Use BB direct children when work requires a separate environment, cross-project execution, or an independent thread lifecycle. Do not replace an available named provider subagent with a generic BB child.
 
 ### Resolve the parent first
 
