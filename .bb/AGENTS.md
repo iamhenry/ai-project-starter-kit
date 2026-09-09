@@ -57,6 +57,8 @@ The selected agent prompt owns any specialized operating roles. These global def
 
 **Default:** only a root coordinator delegates independent, parallelizable work. A direct child is a terminal worker and completes its assignment itself unless the selected agent prompt explicitly assigns a bounded exception.
 
+Named provider subagents use the provider's native delegation path. For example, invoke OpenCode's `Task` tool when a workflow assigns Atlas or Voyager so the configured agent prompt, model, and reasoning apply. The OpenCode BB plugin binds the resulting provider child session to BB. Use `bb thread spawn` instead when the work needs a separate environment, cross-project execution, an independent thread lifecycle, or the provider has no suitable native subagent. Do not replace a requested named provider subagent with a generic BB child.
+
 ### Resolve the parent first
 
 Start with:
@@ -130,7 +132,8 @@ Rules:
 | Orient: current project/thread/env | `bb status` |
 | List projects / machines | `bb project list [--include-personal]` / `bb machine list` |
 | List providers & models | `bb provider list`, `bb provider models <provider-id>` |
-| Delegate a task | Root coordinator: `bb thread spawn --parent-self ...` or `bb thread spawn --parent-thread <verified-parent-id> ...` |
+| Delegate to a named provider subagent | Use the provider's native delegation tool, such as OpenCode `Task` for Atlas or Voyager |
+| Delegate isolated or cross-project work | Root coordinator: `bb thread spawn --parent-self ...` or `bb thread spawn --parent-thread <verified-parent-id> ...` |
 | Message a thread | `bb thread tell <id> "..."` |
 | Review a thread's work | `bb thread show <id> --git-diff`, `bb thread log <id>` |
 | Read/write files on host | `bb file read\|write\|list` (`--root` confines mutations) |
@@ -148,14 +151,14 @@ Rules:
 
 | Situation | Do this |
 | --- | --- |
-| Multi-step or parallelizable work | Root coordinator spawns native direct children; terminal workers never delegate without an explicit selected-agent exception |
+| Multi-step or parallelizable work | Root coordinator uses named provider subagents when assigned by the workflow; otherwise use BB direct children. Terminal workers never delegate without an explicit selected-agent exception |
 | Work in a specific repo | Spawn with that repo's `--project <id>` |
 | Work that shouldn't touch the repo / needs isolation | `--new-environment worktree` |
 | Quick question or 1-file change | Do it yourself; don't spawn |
 | Long-running process (server, watch) | `bb terminal` — a real PTY the user can see and stop |
 | Recurring / scheduled work | `bb automation create` (script mode for deterministic checks, agent mode for reasoning) |
 | Recalled context needed | `bb thread search`, `bb thread log --all`, or memory plugin (`bb memory search`) |
-| Need another agent | Root coordinator uses a native direct child; other workers report the need unless their selected agent prompt grants a bounded exception |
+| Need another agent | Root coordinator uses the named provider subagent when one is assigned; use a BB direct child for isolation, cross-project work, or when no suitable provider subagent exists |
 | Unknown host detail | Check `~/SYSTEMS.md` first, then `bb guide` |
 
 ---
