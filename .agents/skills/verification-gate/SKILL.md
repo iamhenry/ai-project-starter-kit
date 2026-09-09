@@ -21,6 +21,7 @@ Keep the scope narrow:
 - Prove the intended task outcome works.
 - Choose the lightest platform route that creates confidence.
 - Return a clear verdict with evidence.
+- Optimize for the first trustworthy signal, not the most verification activity.
 
 Do not use this skill for exploratory QA or bug hunting. Use `dogfood` for that.
 
@@ -90,6 +91,17 @@ Prefer the actual affected surface when safe and authorized. Before building a s
 
 3. Execute verification.
 
+    - Run the declared Mechanical check, Primary Flow, and Regression Check
+      first. Once every declared claim is proven and no material risk remains
+      unresolved, stop; more passing checks are useful only when they exercise
+      a distinct failure mode.
+    - If that fast path is inconclusive, add another check only when it targets
+      a named unresolved risk and could change the verdict. Prefer the cheapest
+      next check and, when practical, change one verification variable at a
+      time. If no available check can resolve the uncertainty, return `BLOCKED`
+      with the missing signal. Example: for a chunk-ordering bug, add a boundary
+      case only when the normal live smoke never crosses that chunk boundary.
+
     - If a declared environment prerequisite is unavailable, allow at most one
       narrow recovery attempt for that exact blocker. Do not redesign product
       or infrastructure inside verification. If recovery fails, return
@@ -107,13 +119,14 @@ Prefer the actual affected surface when safe and authorized. Before building a s
       candidate commit (or base commit plus exact uncommitted diff), not a
       different path, an earlier candidate, or implementer claims alone.
     - For bug fixes, the primary flow is the same faithful reproduction smoke
-      that triggered the original bug (from the reproduction result), now
-      expected to pass on the candidate. Reuse it before/after rather than
-      inventing a new flow.
+       that triggered the original bug (from the reproduction result), now
+       expected to pass on the candidate. Reuse it before/after rather than
+       inventing a new flow. If the reproduction evidence does not identify a
+       rerunnable faithful smoke, return `BLOCKED` instead of substituting a
+       broader flow.
     - When the plan's Regression Check is not `None`, run that one regression.
-       Add further counterexamples when concrete risk, coupling, or uncertainty
-       warrants them; explain the failure they could catch rather than expanding
-       verification into unrelated QA.
+       Add another counterexample only when it covers a distinct named failure
+       mode that remains unresolved; do not expand into unrelated QA.
 
     - For `web` or `mobile-web`, use `agent-browser` instead of re-inventing browser steps.
    - Before browser commands, load `agent-browser` and follow its own CLI-served setup and usage guidance.
@@ -222,6 +235,10 @@ Use this exact structure:
 ### Notes
 
 - [key proof point, failure point, or blocker]
+
+### Risk
+
+- [anything not verified, or "None within the declared target"]
 
 ### Next Action
 
