@@ -57,7 +57,7 @@ The selected agent prompt owns any specialized operating roles. These global def
 
 **Default:** only a root coordinator delegates independent, parallelizable work. A direct child is a terminal worker and completes its assignment itself unless the selected agent prompt explicitly assigns a bounded exception.
 
-When a workflow names a provider-specific subagent and the current provider exposes it, use the provider's native delegation path so the configured agent prompt, model, and reasoning apply. For example, use OpenCode's `Task` tool for Atlas or Voyager. Otherwise, use a BB direct child. Use BB direct children when work requires a separate environment, cross-project execution, or an independent thread lifecycle. Do not replace an available named provider subagent with a generic BB child.
+When delegation is appropriate and the current provider exposes native subagents, use the provider's native delegation path so the selected subagent's configured prompt, model, and reasoning apply. For OpenCode, use the `Task` tool and select a suitable available `subagent_type`. Otherwise, use a BB direct child. Use BB direct children when work requires a separate environment, cross-project execution, or an independent thread lifecycle. Do not replace a suitable provider subagent with a generic BB child.
 
 ### Resolve the parent first
 
@@ -132,7 +132,7 @@ Rules:
 | Orient: current project/thread/env | `bb status` |
 | List projects / machines | `bb project list [--include-personal]` / `bb machine list` |
 | List providers & models | `bb provider list`, `bb provider models <provider-id>` |
-| Delegate to a named provider subagent | Use the provider's native delegation tool, such as OpenCode `Task` for Atlas or Voyager |
+| Delegate to a provider subagent | Use the provider's native delegation tool, such as OpenCode `Task` with a suitable available `subagent_type` |
 | Delegate isolated or cross-project work | Root coordinator: `bb thread spawn --parent-self ...` or `bb thread spawn --parent-thread <verified-parent-id> ...` |
 | Message a thread | `bb thread tell <id> "..."` |
 | Review a thread's work | `bb thread show <id> --git-diff`, `bb thread log <id>` |
@@ -151,14 +151,14 @@ Rules:
 
 | Situation | Do this |
 | --- | --- |
-| Multi-step or parallelizable work | Root coordinator uses named provider subagents when assigned by the workflow; otherwise use BB direct children. Terminal workers never delegate without an explicit selected-agent exception |
+| Multi-step or parallelizable work | Root coordinator uses a suitable provider-native subagent when available; otherwise use BB direct children. Terminal workers never delegate without an explicit selected-agent exception |
 | Work in a specific repo | Spawn with that repo's `--project <id>` |
 | Work that shouldn't touch the repo / needs isolation | `--new-environment worktree` |
 | Quick question or 1-file change | Do it yourself; don't spawn |
 | Long-running process (server, watch) | `bb terminal` — a real PTY the user can see and stop |
 | Recurring / scheduled work | `bb automation create` (script mode for deterministic checks, agent mode for reasoning) |
 | Recalled context needed | `bb thread search`, `bb thread log --all`, or memory plugin (`bb memory search`) |
-| Need another agent | Root coordinator uses the named provider subagent when one is assigned; use a BB direct child for isolation, cross-project work, or when no suitable provider subagent exists |
+| Need another agent | Root coordinator uses a suitable provider-native subagent when available; use a BB direct child for isolation, cross-project work, or when no suitable provider subagent exists |
 | Unknown host detail | Check `~/SYSTEMS.md` first, then `bb guide` |
 
 ---
