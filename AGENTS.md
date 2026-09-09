@@ -93,7 +93,7 @@ Research, review, planning, or verification alone stops at that endpoint; no-edi
 | Focused verification request: prove, smoke test, acceptance check | verification-gate | Verify the specified claim and stop without edits. |
 | Broad exploratory QA: "test this app", "QA sweep", "find bugs" | dogfood | Explore and report with reproduction evidence; do not silently turn findings into fixes. |
 | iOS or macOS build, run, test, or debug | xcodebuildmcp-cli | Own the platform commands and mechanical evidence. |
-| Long-running or explicitly autonomous work | tmux with JOURNAL checkpoints | Continue within authorized scope; ask only when intent, authority, or a required approval remains unresolved. |
+| Long-running or explicitly autonomous work | tmux | Continue within authorized scope; ask only when intent, authority, or a required approval remains unresolved. |
 | Skill authoring: write/edit a SKILL.md | skill-creator → skill-quality-checklist | Author, then independently quality-check the skill. |
 | Delegating exploration, planning, or coding | subagent-delegation | Use its handoff brief verbatim. |
 | Commit or push requested | git-commits | Run its preflight and publish only within explicit authority. |
@@ -143,7 +143,7 @@ Canonical order: understand → reproduce and diagnose → implement → indepen
 | Evidence | Match evidence to the claim — diff proves change, not outcome. | New behavior → run the product and show it; bug fix → reproduce the reported behavior and establish the cause before editing, then repro before, gone after; big change → tests and logs a human can open. Evidence must exercise and demonstrate the exact claimed target, and the agent must inspect any cited artifact before relying on it. Passing tests or a merged diff alone never substitute for causal evidence. |
 | Gate decisions | PASS continues; REVISE returns to the owning skill; ASK_USER asks one focused question. | When independent gates are required, use fresh subagents judging artifacts on disk — never substitute a same-agent review or patch ad hoc. |
 | Subagents | Review and verification always use fresh, separate subagents. Other delegation is proportional and must improve speed, coverage, or judgment enough to justify coordination cost. | The implementing agent never approves or accepts its own work. Avoid unrelated fan-out for trivial tasks; risk matters more than file count. |
-| Resume | Pick up from JOURNAL/last commit. | Don't restart finished work. |
+| Resume | Pick up from the current worktree and last commit. | Don't restart finished work. |
 | Ambiguity | Ask one focused question when material intent, scope, safety, or authority remains unresolved after supplied context and permitted inspection. | Investigate technical uncertainty within clear authority; don't invent user intent. |
 | Simplicity | Reuse existing code; prefer the laziest working solution. | Reuse before new, stdlib before custom, delete before add. |
 | Options | Favor simple, reversible approaches. | Complexity only when there's a concrete need — tiebreaker is "easiest to undo later." |
