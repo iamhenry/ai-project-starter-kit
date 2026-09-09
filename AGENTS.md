@@ -87,7 +87,7 @@ Choose focused skill vs delivery composition from the requested endpoint. Resear
 | iOS / macOS: build, run, test, debug | — | xcodebuildmcp-cli |
 | Autonomous: "keep going until X", stepping away | — | tmux + JOURNAL checkpoints; continue on reversible decisions within authorized scope; ask when intent, authority, or a required approval remains unresolved |
 | Skill authoring: write/edit a SKILL.md | — | skill-creator + skill-quality-checklist |
-| Delegating to subagents: spawning subagents for exploration, planning, or coding | — | subagent-delegation (use its Exploration or Planning/Coding template verbatim) |
+| Delegating to subagents: spawning subagents for exploration, planning, or coding | — | subagent-delegation (use its handoff brief verbatim) |
 | Committing / "before I commit" | — | code-quality-gate → git-commits |
 | GitHub issue: "create/file/open an issue", bug report, feature request | create-ticket | create-ticket |
 | Issue → PR pipeline | — | issue-to-pr |
@@ -178,6 +178,6 @@ No fit → router. Named skill → that skill. Unknown territory → **Unknown**
 ---
 
 ### Subagent Delegation
-When delegating tasks, follow the `subagent-delegation` skill (`.agents/skills/subagent-delegation/SKILL.md`) — use its Exploration or Planning/Coding template verbatim, populated with actual context.
+When delegating tasks, follow the `subagent-delegation` skill (`.agents/skills/subagent-delegation/SKILL.md`) — use its handoff brief verbatim, populated with actual context.
 
 ---
