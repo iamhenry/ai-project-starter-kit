@@ -77,37 +77,34 @@ For each keyword candidate, evaluate:
 Calculate an **Opportunity Score** for each keyword:
 
 ```
-Opportunity = (Volume × 0.4) + ((100 - Difficulty) × 0.3) + (Relevance × 0.3)
+Opportunity = Volume × (1 - Difficulty) × Relevance
 ```
 
 Where:
-- Volume: 1-100 scale
-- Difficulty: 1-100 scale (inverted — lower difficulty = higher score)
-- Relevance: 1-100 scale (manual assessment)
+- Volume: normalized from the raw 1-100 score to a 0-1 scale
+- Difficulty: normalized from the raw 1-100 score to a 0-1 scale, then inverted — lower difficulty = higher score
+- Relevance: 0-1 scale (manual assessment)
+
+The resulting Opportunity Score is normalized to a 0-100 scale. Because the inputs are multiplied, a keyword that is weak on volume, difficulty, or relevance scores low overall.
 
 ### Phase 4: Keyword Grouping
 
 Group keywords into strategic buckets:
 
-**Primary Keywords (3-5)**
-- Highest opportunity score
+**Primary Keywords (top 5-7)**
+- Highest opportunity scores
 - Must appear in title or subtitle
 - These define your core positioning
 
-**Secondary Keywords (5-10)**
+**Secondary Keywords (ranks 8-20)**
 - Good opportunity but lower priority
 - Target in subtitle and keyword field
 - May rotate based on performance
 
-**Long-tail Keywords (10-20)**
+**Long-tail Keywords (all remaining relevant keywords)**
 - Lower volume but very specific intent
 - Fill remaining keyword field space
 - Often easier to rank for
-
-**Aspirational Keywords (3-5)**
-- High volume, high difficulty
-- Long-term targets as the app grows
-- Track but don't sacrifice primary keywords for these
 
 ## Output Format
 
@@ -122,7 +119,7 @@ Group keywords into strategic buckets:
 
 | Keyword | Volume | Difficulty | Relevance | Opportunity | Current Rank | Action |
 |---------|--------|------------|-----------|-------------|--------------|--------|
-| [keyword] | [1-100] | [1-100] | [1-100] | [score] | [rank or —] | Primary |
+| [keyword] | [1-100] | [1-100] | [0-1] | [score] | [rank or —] | Primary |
 
 **Keyword Strategy:**
 
