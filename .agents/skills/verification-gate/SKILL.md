@@ -7,7 +7,7 @@ description: Reusable verification gate for completed work before commit or merg
 
 Use this skill for delivery acceptance after implementation and `code-quality-gate` approval, or for an explicitly focused request to verify existing behavior. Focused proof is not delivery approval.
 
-Run acceptance in a fresh verifier session, separate from implementation and code-quality review, including for small changes and standalone calls. Invoking this skill in the implementer's session does not supply independence. If that separation is unavailable, return `BLOCKED`; fresh context reduces self-confirmation bias, not all bias. A focused verification request stops at its verdict and does not authorize fixes, commits, or publication.
+Run acceptance in a fresh verifier session, separate from implementation. MEDIUM+ tasks also require separation from code-quality review; SMALL combined-gate tasks may verify in the same fresh session after `APPROVE_CODE`. Invoking this skill in the implementer's session does not supply independence. If the required separation is unavailable, return `BLOCKED`; fresh context reduces self-confirmation bias, not all bias. A focused verification request stops at its verdict and does not authorize fixes, commits, or publication.
 
 ## Mode Dispatch
 

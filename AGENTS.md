@@ -131,7 +131,8 @@ Canonical order: understand → reproduce and diagnose → implement → indepen
 5. SKILLS OWN THE WORK
    Applicable skills are maintained SOPs, not optional escalation. Invoke them
    instead of reproducing their procedures ad hoc. Review and verification use
-   fresh, separate subagents at every size; only their scope and depth scale.
+   fresh subagents independent from the implementer at every size; SMALL tasks
+   may combine both gates in one session, while MEDIUM+ keeps them separate.
    HEURISTIC: DID EACH APPLICABLE RESPONSIBILITY REACH ITS INDEPENDENT OWNER?
 
 **Standing rules:**
