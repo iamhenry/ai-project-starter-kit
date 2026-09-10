@@ -53,7 +53,7 @@ If key prerequisites are missing, use only the bounded recovery below when safe 
 
 If Mechanical is missing from the target, return `BLOCKED` naming the missing command and target owner (plan owner for pipeline calls, supplied-target owner for standalone calls). Do not invent a command or require a standalone caller to create a plan.
 
-For delivery acceptance, if the code-quality-gate result is missing, `REVISE_CODE`, or `ASK_USER`, return `BLOCKED` and do not run final acceptance QA. For explicitly focused verification, proceed without that stage only within the supplied target and authority, retaining fresh verifier independence; state in Notes that the verdict proves only the requested behavior and does not imply delivery approval. Neither route authorizes unsafe live installation or mutation.
+For delivery acceptance, if the code-quality-gate result is missing, `REVISE_CODE`, or `ASK_USER`, return `BLOCKED` and do not run final acceptance QA. Exception: when dispatched as a combined small-task gate (SMALL scope, one fresh subagent performing review then verification and returning both verdicts), proceed after the review verdict is `APPROVE_CODE` within the same session. For explicitly focused verification, proceed without that stage only within the supplied target and authority, retaining fresh verifier independence; state in Notes that the verdict proves only the requested behavior and does not imply delivery approval. Neither route authorizes unsafe live installation or mutation.
 
 `plan.md` owns what to prove. This skill owns how to prove it by choosing the platform route and smallest proof path.
 
