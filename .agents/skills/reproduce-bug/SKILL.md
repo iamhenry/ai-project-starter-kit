@@ -57,12 +57,9 @@ Prefer the smallest repro path that still proves the bug clearly.
 
 1. Define the repro target.
    - State the exact behavior you are trying to trigger.
+   - State the falsifier: the observation that distinguishes the reported bug
+     from expected behavior.
    - Keep it to one bug at a time.
-   - Choose the smallest attempt budget capable of distinguishing the bug from
-     ordinary variance. Spend additional attempts only when timing,
-     intermittency, or an inconclusive result makes them evidentially useful.
-     Example: one failing API call may prove a deterministic bug; a reported
-     race may need bounded repetition to expose the ordering failure.
 
 2. Map the shortest repro flow.
    - Start from the first meaningful action.
@@ -71,7 +68,7 @@ Prefer the smallest repro path that still proves the bug clearly.
    - Keep the flow rerunnable as the cheapest faithful before/after check: after a fix, the same entry point should flip the expected/actual contrast without rework.
    - Record that exact command or flow as the reusable smoke check for verification; do not make verification rediscover or broaden it.
 
-3. Attempt reproduction.
+3. Run the smallest faithful reproduction.
 
    - Reproduce through the reported entry point: the screen, command, or flow the reporter actually used. A unit test, a different code path, or a mocked dependency can support a finding but never confirms a real user-flow bug by itself.
    - Prefer user-visible proof first: show what the user actually sees going wrong, then add mechanical proof (logs, command output, file state) to pin the failure. Observable alone can be ambiguous; mechanical alone can miss the user's actual experience.
@@ -79,7 +76,11 @@ Prefer the smallest repro path that still proves the bug clearly.
    - Check for existing faithful evidence (logs, screenshots, reports from the actual flow) before spending on a new reproduction; valid existing evidence that matches the reported entry point can avoid a new expensive repro run.
    - Clearly mark controlled evidence (staging data, seeded fixtures, scripted runs); it supports diagnosis but never proves live user behavior on its own.
    - Record observations separately from hypotheses. "The save button produced no network call" is an observation; "the handler is not wired" is a hypothesis. Report only what was observed; leave cause claims to the fix stage.
-   - Prefer existing logs over new instrumentation.
+   - Instrument only enough to locate the first observed divergence. Prefer
+     existing evidence and logs, then existing debug flags or tool-level
+     inspectors. This skill must not edit application code to add logging. If
+     source instrumentation is the smallest useful next probe, return that
+     need to the diagnosis or implementation owner.
    - Reuse the smallest part of the `dogfood` workflow needed to reproduce the reported bug.
    - Capture `📸` when a single static proof state is enough.
    - Capture `🎥` when the bug requires interaction or timing proof; prefer one recording for the full sequence.
@@ -87,16 +88,35 @@ Prefer the smallest repro path that still proves the bug clearly.
    - For `non-browser`, run the shortest direct repro path available.
    - Prefer concrete proof: failing output, wrong response, missing file, broken state, or other observable result.
 
-4. Decide the result.
+4. Spend evidence only while it changes the decision.
+
+   - Principle: optimize for the first trustworthy result, not a fixed number
+     of attempts.
+   - Heuristic: continue only when a specific question remains and the next
+     probe adds a new signal that could change the result at proportionate cost
+     and risk.
+   - Before another probe, be able to state the unresolved question, the new
+     signal, and how that signal changes the decision. If any part is missing,
+     stop with the result the current evidence supports.
+   - Do not repeat an unchanged blocked or failed setup. Repetition is useful
+     when repetition is itself the probe, such as a race, timing failure, or
+     intermittent report; state the observation window and stopping condition.
+   - Example: one failing dark-mode toggle can prove a deterministic bug. A
+     reported race can justify repeated runs across its relevant timing window.
+     Repeating the same unavailable login adds no information.
+
+5. Decide the result and exit.
 
    - `REPRODUCED`: the reported bug was triggered and proven.
-   - `NOT_REPRODUCED`: the reported bug did not occur after a reasonable attempt.
+   - `NOT_REPRODUCED`: the reported bug did not occur within the stated
+     conditions and evidence budget; report that coverage without claiming the
+     bug cannot occur.
    - `BLOCKED`: required auth, data, environment, or tooling is missing.
-   - Stop when the evidence supports a trustworthy result. Repeat only when
-     another attempt could materially change that result, not merely add
-     confidence.
+   - Exit when the evidence supports a result, no discriminating probe remains,
+     a prerequisite is blocked, or further work is disproportionate to the
+     unresolved question.
 
-5. Report the result.
+6. Report the result.
 
 ## Evidence Rules
 
@@ -119,8 +139,10 @@ Use this exact structure:
 - Mode: `browser-interactive|browser-static|non-browser`
 - Bug: [short bug summary]
 - Repro target: [exact behavior tested]
+- Falsifier: [observation that distinguishes the bug from expected behavior]
 - Result: `REPRODUCED|NOT_REPRODUCED|BLOCKED`
 - Reusable smoke: [exact command or flow to rerun after a fix, or "Unavailable — [reason]"]
+- Checks run: [concise list of probes and any observation window]
 
 ### Repro Steps
 
@@ -133,6 +155,7 @@ Use this exact structure:
 ### Notes
 
 - Observed boundary: [where expected and actual behavior first diverged, or "Unknown"]
+- Why another probe was or was not warranted: [unresolved question and new signal, or "Result already decisive"]
 - [key proof point or blocker; observations only, kept separate from any cause hypothesis]
 
 ### Next Action

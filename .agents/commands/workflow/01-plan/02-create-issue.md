@@ -290,7 +290,7 @@ Once implementation is complete, obtain a fresh `code-quality-gate` decision, th
 - [ ] **ios / macos**: Apple app verification targets
 - [ ] **non-ui**: Direct command, API, log, or test proof when UI automation is not the strongest signal
 
-**NOTE**: This phase is SEPARATE from implementation and from commit. Prove the intended task behavior with a named Mechanical command first, then user-observable evidence when the platform is UI. Do not treat lint/typecheck alone as the user flow.
+**NOTE**: This phase is SEPARATE from implementation and from commit. Prove the intended task behavior with a named Mechanical command and user-observable evidence when the platform is UI. Let `verification-gate` run the cheapest decisive lane first. Do not treat lint/typecheck alone as the user flow.
 
 ---
 
@@ -303,6 +303,7 @@ Use the `verification-gate` skill to prove the task works before commit. `web` a
 **Required fields:**
 - **Platform**: `web | mobile-web | ios | macos | non-ui`
 - **Objective**: The single main outcome that must be proven
+- **Falsifier**: The observation that would prove the Objective false
 - **Primary Flow**: Shortest realistic path covering the core outcome; no fixed checkpoint count
 - **Regression Check**: 1 lightweight adjacent behavior check when relevant
 - **Mechanical**: Named command(s) plus expected exit/output asserting a relevant machine-checkable condition of the Objective. Prefer an existing check or focused content/asset assertion; together with Observable it must distinguish success, not require new end-to-end infrastructure. Lint/typecheck/format may be extra, never the only command when Platform is UI. "tests pass" is not enough.
@@ -315,10 +316,13 @@ Use the `verification-gate` skill to prove the task works before commit. `web` a
 - Use `screenshot` when a static state is enough to prove the outcome
 - Use `recording` when the user journey requires interaction or async state changes; prefer one recording for the full sequence instead of multiple short clips
 - Use `test output` or `logs` as Mechanical proof; they do not replace Observable on UI platforms
+- For UI work, Observable must show the app-owned result produced by the Primary Flow. A terminal, test runner, CI page, log viewer, or source file is Mechanical evidence, not Observable evidence.
+- Start with the cheapest faithful probe. Add another check only when it targets a named unresolved question, provides a new signal that could change the verdict, and remains proportionate to the task. Repetition is appropriate when it tests timing or intermittency and has a stated observation window and stopping condition.
 - Save browser artifacts to `_ai/task/{SLUG}/verification/videos/{step}.webm`
 - Save browser artifacts to `_ai/task/{SLUG}/verification/screenshots/{step}.png`
 
 **Example (`web`):**
+- Falsifier: Generated images do not appear after submission
 - Mechanical: `pnpm test -- generate-cancel` exits 0
 - Observable: `_ai/task/{SLUG}/verification/screenshots/cancel.png`
 1. Open `http://localhost:3000/create`
@@ -328,7 +332,7 @@ Use the `verification-gate` skill to prove the task works before commit. `web` a
 
 ---
 
-[Generate a verification target with Mechanical command(s), Observable path or `n/a`, the shortest primary flow, and a relevant regression check. Named oracle tests only; do not add a suite. Let verification-gate challenge a costly or weak proof route rather than mandate replica infrastructure.]
+[Generate a verification target with an Objective and Falsifier, Mechanical command(s), Observable path or `n/a`, the shortest primary flow, and a relevant regression check. Named oracle tests only; do not add a suite. Let verification-gate challenge a costly or weak proof route rather than mandate replica infrastructure.]
 
 #### Phase 3: Commit Changes
 

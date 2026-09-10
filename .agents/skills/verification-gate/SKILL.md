@@ -36,6 +36,7 @@ For standalone calls, accept the same Verification Target fields below directly 
 - `plan.md` Verification Target:
   - Platform: `web|mobile-web|ios|macos|non-ui`
   - Objective: single outcome to prove
+  - Falsifier: observation that would disprove the Objective
   - Primary Flow: shortest realistic proof path
   - Regression Check: one adjacent behavior to protect, or `None`
   - Mechanical: named command(s) plus expected exit code or output
@@ -80,8 +81,9 @@ Prefer the actual affected surface when safe and authorized. Before building a s
 
 ## Workflow
 
-1. Define the verification objective.
+1. Define the verification target.
    - State the single main user outcome that must work.
+   - State its falsifier: the observation that would show the outcome failed.
    - Add one lightweight regression check when adjacent behavior could easily break.
 
 2. Map the proof flow.
@@ -89,31 +91,32 @@ Prefer the actual affected surface when safe and authorized. Before building a s
    - End at the success state the user cares about.
    - Avoid padding the flow with irrelevant steps.
 
-3. Execute verification.
+3. Establish the exact candidate and prerequisites.
+   - Confirm that the runtime subject matches the candidate commit, or the base
+     commit plus exact uncommitted diff, before accepting evidence.
+   - Recover a missing prerequisite only while each recovery step changes the
+     available evidence and remains narrow and proportionate. Never repeat an
+     unchanged blocked setup. If no useful recovery remains, return `BLOCKED`
+     with the prerequisite owner and unlock condition.
 
-    - Run the declared Mechanical check, Primary Flow, and Regression Check
-      first. Once every declared claim is proven and no material risk remains
-      unresolved, stop; more passing checks are useful only when they exercise
-      a distinct failure mode.
-    - If that fast path is inconclusive, add another check only when it targets
-      a named unresolved risk and could change the verdict. Prefer the cheapest
-      next check and, when practical, change one verification variable at a
-      time. If no available check can resolve the uncertainty, return `BLOCKED`
-      with the missing signal. Example: for a chunk-ordering bug, add a boundary
-      case only when the normal live smoke never crosses that chunk boundary.
+4. Execute the tight proof loop.
 
-    - If a declared environment prerequisite is unavailable, allow at most one
-      narrow recovery attempt for that exact blocker. Do not redesign product
-      or infrastructure inside verification. If recovery fails, return
-      `BLOCKED` with the exact missing prerequisite and unlock condition. Count
-      any caller-side attempt at the same recovery; redispatch is not a reset.
-
-    - Run Mechanical first. Execute the plan-named command(s) and quote raw
-      output in the report. Do not paraphrase pass/fail. If Mechanical cannot
-      run because a prerequisite is missing, use the bounded recovery above
-      or return `BLOCKED`; if it demonstrates a failure, return `FAIL` and skip Observable.
-    - Then run Observable when it is not `n/a`. Use the platform route below.
-      `PASS` requires both lanes when both are declared.
+    - Principle: optimize for the first trustworthy signal, then stop as soon
+      as every declared claim is proven.
+    - Heuristic: run whichever declared lane can produce the cheapest decisive
+      signal first. Mechanical often rejects a broken candidate fastest; an
+      already-running actual product can make the Primary Flow faster. A failed
+      decisive lane returns `FAIL` without spending on the companion lane. A
+      passing first lane does not waive any other lane required for `PASS`.
+    - Inline rule: execute the plan-named Mechanical command and quote its raw
+      output. Do not paraphrase pass/fail or replace the command.
+    - Inline rule: UI and real-integration `PASS` requires operating the actual
+      affected product or integration through the Primary Flow on the exact
+      candidate. Tests, terminals, CI screens, logs, source inspection, and
+      screenshots of those materials are Mechanical evidence only. They never
+      satisfy Observable.
+    - Use the selected platform route for Observable. `PASS` requires both
+      Mechanical and Observable when both are declared.
     - Proof must match the reported flow for the exact candidate being
       accepted: the observed evidence comes from the primary flow on the
       candidate commit (or base commit plus exact uncommitted diff), not a
@@ -127,6 +130,22 @@ Prefer the actual affected surface when safe and authorized. Before building a s
     - When the plan's Regression Check is not `None`, run that one regression.
        Add another counterexample only when it covers a distinct named failure
        mode that remains unresolved; do not expand into unrelated QA.
+
+    - Spend more evidence only while it changes the decision. Before another
+      probe, state the unresolved question, the new signal, how it could change
+      the verdict, and its added cost or risk. Continue only when all four are
+      concrete and proportionate. If no discriminating probe remains, return
+      `BLOCKED` with the missing signal rather than accumulating activity.
+    - Repetition is valid when repetition is itself the probe, such as timing,
+      ordering, or intermittency. State its observation window and stopping
+      condition. Otherwise, do not repeat an unchanged check.
+    - Instrument with existing evidence and logs first, then existing debug
+      flags or tool-level inspectors. This skill must not edit the candidate to
+      add logging. If source instrumentation is necessary, return the need to
+      diagnosis or implementation and verify the resulting candidate afresh.
+    - Example: toggle dark mode once to prove the visible change. Reload only
+      when persistence is part of the Objective. For a chunk-ordering bug, add
+      a boundary case only when the normal smoke never crosses that boundary.
 
     - For `web` or `mobile-web`, use `agent-browser` instead of re-inventing browser steps.
    - Before browser commands, load `agent-browser` and follow its own CLI-served setup and usage guidance.
@@ -160,13 +179,17 @@ Prefer the actual affected surface when safe and authorized. Before building a s
     - For `non-ui`, Mechanical is the proof path. Observable is `n/a`.
     - Prefer assertions tied to user-visible outcomes: command success, API response shape, file creation, persisted data, or other concrete results.
 
-4. Decide the verdict.
+5. Decide the verdict and exit.
 
     - `PASS`: Mechanical passed, and Observable is proven when it is not `n/a`.
     - `FAIL`: under valid prerequisites and a clear target, Mechanical failed, the flow breaks, the result is wrong, cited files are missing, or the evidence does not prove the outcome. Distinguish code defects from evidence gaps in Notes and route to the actual owner.
     - `BLOCKED`: required auth, data, environment, tooling, or a discriminating verification target is missing. A required screenshot or artifact that was explicitly requested but cannot be captured is `BLOCKED` (missing prerequisite), not `PASS`; if the plan declares it Observable and it is absent, that is `FAIL` per the file-existence rule.
 
-5. Report the result.
+    - Exit when the required lanes prove the target, a valid lane disproves it,
+      a prerequisite is blocked, no discriminating probe remains, or further
+      work is disproportionate to the unresolved risk.
+
+6. Report the result.
     - Write `{ISSUE_DIR}/verification/result.md` first (or `result.md` in the authorized standalone evidence directory).
    - Run `test -f` on that file and every cited Observable path. Missing file = `FAIL`, not `PASS`.
    - Do not return `PASS` from chat alone.
@@ -174,6 +197,13 @@ Prefer the actual affected surface when safe and authorized. Before building a s
 ## Evidence Rules
 
 - Prove the whole flow, not just the final screen. Evidence must distinguish the claimed outcome from its likely false positive; successful commands or plausible screenshots alone may not do that. If the target itself cannot discriminate success, return `BLOCKED` for plan-owner clarification rather than inventing acceptance or editing code.
+- For UI work, Observable evidence must show the app-owned result produced by
+  the Primary Flow. A terminal, test runner, CI page, log viewer, source file,
+  or screenshot of any of them is invalid Observable evidence even when it
+  shows a passing result.
+- A screenshot proves a static visible state. Use a short recording or the
+  smallest ordered set of proof states when the claim depends on interaction,
+  transition, persistence, timing, or ordering.
 - Independently establish the candidate and assess the proof rather than accepting implementer claims. After corrections, identify affected claims and required rechecks. Reuse unaffected Observable evidence only with an explicit explanation of why changed files and conditions do not invalidate it; rerun affected proof on the current candidate. Coupled, uncertain, or consequential changes can warrant broader or full fresh verification. Mechanical is still rerun as required above.
 - Capture only the evidence needed to support the verdict.
 - Never record secrets, tokens, private user data, or unnecessary personal information.
@@ -221,10 +251,12 @@ Use this exact structure:
 
 - Platform: `web|mobile-web|ios|macos|non-ui`
 - Objective: [single outcome verified]
+- Falsifier: [observation that would disprove the Objective]
 - Primary flow: [short description]
 - Regression check: [short description or "None"]
 - Mechanical: [command] → [exit code / quoted raw excerpt]
 - Observable: [artifact path or `n/a`]
+- Checks run: [concise list, including any observation window]
 - Verdict: `PASS|FAIL|BLOCKED`
 
 ### Evidence
@@ -235,6 +267,7 @@ Use this exact structure:
 ### Notes
 
 - [key proof point, failure point, or blocker]
+- Why another probe was or was not warranted: [unresolved question and new signal, or "Result already decisive"]
 
 ### Risk
 
