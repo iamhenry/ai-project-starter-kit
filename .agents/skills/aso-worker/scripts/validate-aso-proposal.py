@@ -178,7 +178,7 @@ def parse_justified_keywords(md_text):
 # Astro MCP query
 # ---------------------------------------------------------------------------
 
-def query_astro(astro_url, keyword, app_id):
+def query_astro(astro_url, keyword, app_id, store):
     """
     Query Astro MCP for keyword popularity + difficulty via JSON-RPC 2.0.
     Returns (pop, diff) as ints, or raises on error.
@@ -192,7 +192,7 @@ def query_astro(astro_url, keyword, app_id):
             "arguments": {
                 "keyword": keyword,
                 "appId": app_id,
-                "store": "us",
+                "store": store,
             },
         },
     }
@@ -227,19 +227,29 @@ def query_astro(astro_url, keyword, app_id):
         # Try direct JSON parse
         try:
             parsed = json.loads(text)
-            if isinstance(parsed, dict):
+            rows = parsed if isinstance(parsed, list) else [parsed]
+            exact_rows = [
+                row for row in rows
+                if isinstance(row, dict)
+                and str(row.get('keyword', '')).lower() == keyword.lower()
+            ]
+            for row in exact_rows or rows:
+                if not isinstance(row, dict):
+                    continue
                 pop = (
-                    parsed.get('popularity')
-                    or parsed.get('pop')
-                    or parsed.get('Popularity')
+                    row.get('popularity')
+                    or row.get('pop')
+                    or row.get('Popularity')
                 )
                 diff = (
-                    parsed.get('difficulty')
-                    or parsed.get('diff')
-                    or parsed.get('Difficulty')
+                    row.get('difficulty')
+                    or row.get('diff')
+                    or row.get('Difficulty')
                 )
                 if pop is not None and diff is not None:
                     break
+            if pop is not None and diff is not None:
+                break
         except (json.JSONDecodeError, TypeError):
             pass
 
@@ -254,6 +264,21 @@ def query_astro(astro_url, keyword, app_id):
             break
 
     return pop, diff
+
+
+def infer_target_store(md_text, config):
+    """Infer the App Store country code to validate against."""
+    store_match = re.search(
+        r'Store/locale:\s*.*?`([a-z]{2})`\s*/\s*`[A-Za-z]{2}(?:-[A-Za-z]{2})?`',
+        md_text,
+        re.IGNORECASE,
+    )
+    if store_match:
+        return store_match.group(1).lower()
+    locale_match = re.search(r'"store"\s*:\s*"([a-z]{2})"', md_text)
+    if locale_match:
+        return locale_match.group(1).lower()
+    return str(config.get('store', 'us')).lower()
 
 
 # ---------------------------------------------------------------------------
@@ -276,6 +301,7 @@ def run_checks(proposal_file, config_file, astro_url, attempt):
     max_difficulty = config.get('golden_ratio', {}).get('max_difficulty', 50)
     subtitle = config.get('current_metadata', {}).get('subtitle', '')
     app_id = str(config.get('app_id', ''))
+    target_store = infer_target_store(md_text, config)
 
     # Derived: proposed keyword list
     proposed_keywords = []
@@ -381,7 +407,7 @@ def run_checks(proposal_file, config_file, astro_url, attempt):
         expected_diff = evidence_rows[kw]['diff']
 
         try:
-            actual_pop, actual_diff = query_astro(astro_url, kw, app_id)
+            actual_pop, actual_diff = query_astro(astro_url, kw, app_id, target_store)
 
             if actual_pop is None or actual_diff is None:
                 errors.append(f"'{kw}': Astro response did not contain Pop/Diff")

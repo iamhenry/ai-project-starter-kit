@@ -32,7 +32,7 @@
     },
     "problem_domain": {
       "type": "string",
-      "description": "Plain English description of what problem the app solves. Used to judge keyword semantic relevance. Example: 'alcohol-free living, sobriety tracking, habit tracking for quitting drinking'."
+      "description": "Plain English description of what problem the app solves. Used to judge keyword semantic relevance. Example: 'focus sessions, study timing, and distraction-free productivity'."
     },
     "current_metadata": {
       "type": "object",
@@ -129,6 +129,6 @@
       "enum": ["semi-autonomous", "fully-autonomous"],
       "default": "semi-autonomous",
       "description": "semi-autonomous: worker outputs a report, human approves before submission. fully-autonomous: worker submits directly. Start semi, move to fully after 3+ successful cycles."
-    },
+    }
   }
 }
