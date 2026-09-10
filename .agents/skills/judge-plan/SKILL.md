@@ -44,7 +44,7 @@ Required major sections:
 - Codebase Orientation, Dependencies, and relevant data flow/model/architecture notes (brief inapplicability is enough when unaffected)
 - Deliverables and Error Handling
 - Implementation Checklist with atomic tasks and concrete file paths or locations; phases when useful
-- Verification Target with `Platform` (legacy `Verification Mode`), `Objective`, `Primary Flow`, `Regression Check`, `Mechanical`, `Observable`, `Pass Criteria`, and `Blocked Conditions`
+- Verification Target with `Platform` (legacy `Verification Mode`), `Objective`, `Falsifier`, `Primary Flow`, `Regression Check`, `Mechanical`, `Observable`, `Pass Criteria`, and `Blocked Conditions`
 
 ## Review Steps
 
@@ -64,7 +64,7 @@ Score out of 100:
   - 10 required major sections exist.
   - 10 acceptance criteria and Gherkin are measurable, testable, and markdown-valid.
   - 10 implementation checklist uses action prefixes and files or locations; phases only when useful.
-  - 10 verification target includes `Platform` (legacy `Verification Mode`), `Objective`, `Primary Flow`, `Regression Check`, `Mechanical`, `Observable`, `Pass Criteria`, and `Blocked Conditions`. Mechanical must fail when a relevant machine-checkable condition is unmet; together the declared lanes must distinguish the Objective from a likely false positive. Do not require an end-to-end test framework when an existing content/asset assertion plus actual-surface evidence suffices. Observable must be a retained path, or `n/a` only when platform is `non-ui`.
+  - 10 verification target includes `Platform` (legacy `Verification Mode`), `Objective`, `Falsifier`, `Primary Flow`, `Regression Check`, `Mechanical`, `Observable`, `Pass Criteria`, and `Blocked Conditions`. Mechanical must fail when a relevant machine-checkable condition is unmet; together the declared lanes must distinguish the Objective from its Falsifier. Do not require an end-to-end test framework when an existing content/asset assertion plus actual-product evidence suffices. Observable must be a retained path, or `n/a` only when platform is `non-ui`.
 - Proposal fidelity: 35
   - 15 plan implements the selected approach.
   - 10 plan does not drift into unselected scope.
@@ -87,8 +87,10 @@ Return `REVISE_PLAN` regardless of score if any are true:
 - Implementation tasks are too vague to execute safely.
 - Markdown structure is broken enough that agents may misread it, including malformed fences around Gherkin or code examples.
 - Mechanical is missing, vague (no named command), or not machine-checkable. Missing Mechanical on an older in-flight plan is `REVISE_PLAN`, not `ASK_USER`.
+- Falsifier is missing or does not name an observation that would disprove the Objective.
 - Platform is `web`, `mobile-web`, `ios`, or `macos` and Mechanical is only lint, typecheck, format, or compile. Those may appear as extra commands, not as the sole oracle.
 - Platform is `web`, `mobile-web`, `ios`, or `macos` and Observable is missing, `n/a`, or has no retained evidence path.
+- Platform is `web`, `mobile-web`, `ios`, or `macos` and Observable can be satisfied by a terminal, test runner, CI page, logs, source inspection, or another non-product substitute rather than the app-owned result of the Primary Flow.
 
 Return `APPROVE_PLAN` when no hard fail applies and the score is 85 or higher.
 
