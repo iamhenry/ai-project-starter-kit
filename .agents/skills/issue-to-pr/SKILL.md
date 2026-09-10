@@ -24,7 +24,7 @@ Orchestrate and judge the pipeline. Do not create, edit, append, or repair task 
 
 This skill connects modular skills, checks whether each stage produced the expected artifact, and routes revisions back to the owning skill or subagent when the pipeline is off track.
 
-Use this composition for authorized delivery; focused research, planning, review, or verification calls remain valid and stop at their requested endpoint. Supply scope, authority, and optionally S/M/L/XL with a risk/uncertainty rationale. Each owner calibrates its own inputs, execution, effort, independence, evidence, recovery, and completion; size is not a stage-skip rule. A tiny delivery still passes applicable intake, selection, plan, implementation, fresh quality, and separate fresh acceptance responsibilities. Do not reproduce owners' operating procedures here or grant publication beyond user authority.
+Use this composition for authorized delivery; focused research, planning, review, or verification calls remain valid and stop at their requested endpoint. Supply scope, authority, and optionally S/M/L/XL with a risk/uncertainty rationale. Each owner calibrates its own inputs, execution, effort, independence, evidence, recovery, and completion; size is not a stage-skip rule. A tiny delivery still passes applicable intake, selection, plan, implementation, fresh quality, and fresh acceptance responsibilities, which may share one fresh session only under the SMALL combined-gate rule. Do not reproduce owners' operating procedures here or grant publication beyond user authority.
 
 ---
 

@@ -119,7 +119,7 @@ Return exactly this structure:
 - Do not edit files.
 - Do not implement fixes.
 - Do not create review artifacts or helper files.
-- Do not run Mechanical commands, tests, or broad QA. Require attached output; use `verification-gate` after approval.
+- Do not run Mechanical commands, tests, or broad QA. Require attached output; use `verification-gate` after approval — in a separate fresh subagent for MEDIUM+ tasks, or in the same fresh subagent session for SMALL combined gate passes (review then verify, both verdicts).
 - Do not duplicate the full quality docs; reference `_ai/prompts/quality/code-review.md` and `_ai/prompts/quality/code-guidelines.md`.
 - Do not commit changes.
 - Keep findings concise and evidence-based. Speculative risks must be marked low confidence or omitted.

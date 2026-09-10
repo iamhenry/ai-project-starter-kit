@@ -77,14 +77,14 @@ Research, review, planning, or verification alone stops at that endpoint; no-edi
 |---|---|---|
 | Plan: "make a plan", "how should we approach X" | gather-context for substantial planning; answer small plans inline | Produce the requested plan and stop without implementation. |
 | Design/shape: "define the shape", "architecture for X" | shaping | Define the behavior or architecture; add independent critique only when another applicable row requires it. Stop for approval. |
-| Decide: "A or B", compare, choose | Council or second-opinion for consequential uncertainty; decide small settled choices inline | Make the decision and stop without implementing it. |
+| Decide: "A or B", compare, choose | Decide inline when settled; use second-opinion (one cheap critique) when uncertain. For expensive or irreversible calls (data loss, security, architecture, public behavior), ask the user rather than convening anything costly. | Make the decision and stop without implementing it. |
 | Technical uncertainty could change the work | gather-context | Resolve the uncertainty, then recompose from the evidence; unknown is a condition, not a workflow. |
 | Focused codebase question | gather-context | Return a cited answer and stop without implementation. |
-| Reported defect or wrong behavior | reproduce-bug | Reproduce faithfully before editing; if blocked or not reproduced, report rather than guess. |
-| Root cause requested or unclear | five-whys | Establish an evidence-backed cause before a fix. |
+| Reported defect or wrong behavior | reproduce-bug | Reproduce faithfully before editing; if blocked or not reproduced, report rather than guess. An obvious defect (typo, config, one-liner) may be reproduced inline; keep the full SOP for non-obvious reports. |
+| Root cause requested or unclear | five-whys | Establish an evidence-backed cause before a fix. If the cause is evident on first read, fix it directly and say why; run the full chain only when the cause survives a quick trace. |
 | Implementation requested | Matching implementation skill, otherwise the main agent | Make the smallest in-scope change using existing patterns. |
-| Any completed implementation | code-quality-gate in a fresh reviewer subagent | Review the exact candidate proportionally. Same-agent self-review never substitutes. |
-| Code-quality-gate approved the candidate | verification-gate in a different fresh verifier subagent | Run proportional mechanical and user-observable proof of the exact outcome. |
+| Any completed implementation | code-quality-gate + verification-gate in fresh subagent(s), shaped by blast radius — SMALL: one combined gate pass (review then verify, two verdicts, one dispatch); MEDIUM+: two separate fresh subagents. Independence from the implementer is never optional; if in doubt, go separate. | Quality approval precedes acceptance. Review the exact candidate proportionally. Same-agent self-review never substitutes. |
+| Code-quality-gate approved the candidate | verification-gate in a different fresh verifier subagent (SMALL combined gate may verify in the same fresh subagent that reviewed) | Run proportional mechanical and user-observable proof of the exact outcome. |
 | Existing local code or diff needs review only | code-quality-gate | Return the review verdict; do not fix unless requested. |
 | Existing GitHub PR needs review | pr-reviewer | Review the PR read-only; do not fix unless requested. |
 | Prototype to decide: "try it", "sketch it", "which feels right" | Main agent with disposable code | Let observed results decide; do not commit the prototype. |
@@ -94,7 +94,7 @@ Research, review, planning, or verification alone stops at that endpoint; no-edi
 | Broad exploratory QA: "test this app", "QA sweep", "find bugs" | dogfood | Explore and report with reproduction evidence; do not silently turn findings into fixes. |
 | iOS or macOS build, run, test, or debug | xcodebuildmcp-cli | Own the platform commands and mechanical evidence. |
 | Long-running or explicitly autonomous work | tmux | Continue within authorized scope; ask only when intent, authority, or a required approval remains unresolved. |
-| Skill authoring: write/edit a SKILL.md | skill-creator → skill-quality-checklist | Author, then independently quality-check the skill. |
+| Skill authoring: write/edit a SKILL.md | skill-creator → skill-quality-checklist for new or substantially rewritten skills; a cosmetic edit (typo, wording) may be checked inline | Author, then independently quality-check the skill. |
 | Delegating exploration, planning, or coding | subagent-delegation | Use its handoff brief verbatim. |
 | Commit or push requested | git-commits | Run its preflight and publish only within explicit authority. |
 | GitHub issue requested | create-ticket | Draft and file the requested issue. |
@@ -131,7 +131,8 @@ Canonical order: understand → reproduce and diagnose → implement → indepen
 5. SKILLS OWN THE WORK
    Applicable skills are maintained SOPs, not optional escalation. Invoke them
    instead of reproducing their procedures ad hoc. Review and verification use
-   fresh, separate subagents at every size; only their scope and depth scale.
+   fresh subagents independent from the implementer at every size; SMALL tasks
+   may combine both gates in one session, while MEDIUM+ keeps them separate.
    HEURISTIC: DID EACH APPLICABLE RESPONSIBILITY REACH ITS INDEPENDENT OWNER?
 
 **Standing rules:**
@@ -139,10 +140,10 @@ Canonical order: understand → reproduce and diagnose → implement → indepen
 | Area | Rule | Practical implication |
 |---|---|---|
 | Default behavior | Implementation requests authorize in-scope local edits and relevant checks without repeated permission. Research, review, and planning requests remain read-only for implementation files. | Inspect before editing. Complete authorized work; ask only when unresolved intent or authority materially changes the outcome. |
-| Verification | Every completed implementation goes through `code-quality-gate` and then `verification-gate` in fresh, separate subagents. Size scales their scope, never their independence or applicability. | Quality approval precedes acceptance. Verification runs the smallest mechanical and user-observable checks that can disprove the claimed outcome, adding coverage only for distinct affected risks. Report unrelated existing failures without expanding scope to fix them. |
+| Verification | Completed implementations get independent quality review and verification by fresh subagent(s): SMALL tasks may combine both gates in one fresh subagent (two verdicts, one dispatch); MEDIUM+ uses two separate fresh subagents. Independence from the implementer is never optional. | Quality approval precedes acceptance. Verification runs the smallest mechanical and user-observable checks that can disprove the claimed outcome, adding coverage only for distinct affected risks. Report unrelated existing failures without expanding scope to fix them. |
 | Evidence | Match evidence to the claim — diff proves change, not outcome. | New behavior → run the product and show it; bug fix → reproduce the reported behavior and establish the cause before editing, then repro before, gone after; big change → tests and logs a human can open. Evidence must exercise and demonstrate the exact claimed target, and the agent must inspect any cited artifact before relying on it. Passing tests or a merged diff alone never substitute for causal evidence. |
 | Gate decisions | PASS continues; REVISE returns to the owning skill; ASK_USER asks one focused question. | When independent gates are required, use fresh subagents judging artifacts on disk — never substitute a same-agent review or patch ad hoc. |
-| Subagents | Review and verification always use fresh, separate subagents. Other delegation is proportional and must improve speed, coverage, or judgment enough to justify coordination cost. | The implementing agent never approves or accepts its own work. Avoid unrelated fan-out for trivial tasks; risk matters more than file count. |
+| Subagents | Review and verification use fresh subagents separate from the implementer (SMALL may combine both gates in one fresh subagent; MEDIUM+ keeps them separate). Other delegation is proportional and must improve speed, coverage, or judgment enough to justify coordination cost. | The implementing agent never approves or accepts its own work. Avoid unrelated fan-out for trivial tasks; risk matters more than file count. |
 | Resume | Pick up from the current worktree and last commit. | Don't restart finished work. |
 | Ambiguity | Ask one focused question when material intent, scope, safety, or authority remains unresolved after supplied context and permitted inspection. | Investigate technical uncertainty within clear authority; don't invent user intent. |
 | Simplicity | Reuse existing code; prefer the laziest working solution. | Reuse before new, stdlib before custom, delete before add. |
