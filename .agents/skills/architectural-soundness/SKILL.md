@@ -143,13 +143,10 @@ Use these principles to rank ambiguities and compare options, not as a checklist
 Before writing HTML:
 
 1. Read [references/design.md](references/design.md) for the report hierarchy, visual language, diagram choices, interaction, color, and accessibility rules.
-2. Copy [references/example-report.html](references/example-report.html) as the starting scaffold rather than inventing a new page structure.
-3. Replace every GitHub Dash-specific fact, label, decision, source, and diagram with evidence from the current project. Preserve the information order, visual system, responsive diagram behavior, and interactions.
-4. Before presenting the report, search the copy for `Pull Requests`, `GitHub`, `GitHub CLI`, and `BB`. Remove each leftover unless it is independently true and cited for the current project. Reconcile the diagrams, inventory, trade-off table, decision timeline, and handoff so they describe one architecture.
-
-Find an existing report for the same scope before creating another. Preserve the project's established location when one exists. Otherwise write:
-
-`_ai/docs/architecture/{scope-slug}.html`
+2. Find an existing report for the same project or feature. Update that report rather than creating a duplicate.
+3. When no matching report exists, create a new project report by copying [references/example-report.html](references/example-report.html) to the project's established architecture-report location, or `_ai/docs/architecture/{scope-slug}.html` when none exists. Treat the reference file as read-only: never modify it during a project architecture session.
+4. In the new project report, replace every GitHub Dash-specific fact, label, decision, source, and diagram with evidence from the current project. Preserve the information order, visual system, responsive diagram behavior, and interactions.
+5. Before presenting the report, search the project report for `Pull Requests`, `GitHub`, `GitHub CLI`, and `BB`. Remove each leftover unless it is independently true and cited for the current project. Reconcile the diagrams, inventory, trade-off table, decision timeline, and handoff so they describe one architecture.
 
 The report must support two reading speeds:
 
