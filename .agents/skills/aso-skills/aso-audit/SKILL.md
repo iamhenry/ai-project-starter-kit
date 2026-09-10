@@ -90,27 +90,7 @@ Score each factor on a 0-10 scale. Calculate an overall ASO Score (weighted aver
 | Call to action | Ends with a clear CTA? |
 | Social proof | Mentions awards, press, or user count? |
 
-### 5. Screenshots (Weight: 15%)
-
-| Check | What to look for |
-|-------|-----------------|
-| Count | All 10 slots used? |
-| First 3 | Most compelling features shown first? |
-| Text overlays | Clear, readable benefit-driven captions? |
-| Consistency | Cohesive design language? |
-| Localization | Localized for target market? |
-| Device frames | Modern device frames (or frameless)? |
-
-### 6. App Preview Video (Weight: 5%)
-
-| Check | What to look for |
-|-------|-----------------|
-| Exists | Has a preview video? |
-| First 3 seconds | Hook in the first 3 seconds? |
-| Length | 15-30 seconds optimal? |
-| Sound | Works without sound (captions)? |
-
-### 7. Ratings & Reviews (Weight: 15%)
+### 5. Ratings & Reviews (Weight: 10%)
 
 | Check | What to look for |
 |-------|-----------------|
@@ -120,32 +100,48 @@ Score each factor on a 0-10 scale. Calculate an overall ASO Score (weighted aver
 | Review responses | Developer responds to negative reviews? |
 | Rating prompts | Strategic in-app rating prompts? |
 
-### 8. Icon (Weight: 5%)
+### 6. Screenshots (Weight: 10%)
 
 | Check | What to look for |
 |-------|-----------------|
-| Distinctiveness | Stands out in search results? |
-| Simplicity | Clear at small sizes? |
-| Category fit | Matches category expectations? |
-| No text | Avoids text (unreadable at small sizes)? |
+| Count | All 10 slots used? |
+| First 3 | Most compelling features shown first? |
+| Text overlays | Clear, readable benefit-driven captions? |
+| Consistency | Cohesive design language? |
+| Device frames | Modern device frames (or frameless)? |
 
-### 9. Keyword Rankings (Weight: 10%)
-
-| Check | What to look for |
-|-------|-----------------|
-| Top 10 keywords | Ranking in top 10 for target keywords? |
-| Keyword coverage | Ranking for enough relevant keywords? |
-| Trend | Rankings improving or declining? |
-| Competitor gap | Missing keywords competitors rank for? |
-
-### 10. Conversion Signals (Weight: 5%)
+### 7. App Preview Video (Weight: 5%)
 
 | Check | What to look for |
 |-------|-----------------|
-| Promotional text | Using promotional text for timely messaging? |
-| What's New | Recent, informative update notes? |
-| In-App Events | Using in-app events for visibility? |
-| Custom Product Pages | Multiple product pages for different audiences? |
+| Exists | Has a preview video? |
+| First 3 seconds | Hook in the first 3 seconds? |
+| Length | 15-30 seconds optimal? |
+| Sound | Works without sound (captions)? |
+
+### 8. Category (Weight: 5%)
+
+| Check | What to look for |
+|-------|-----------------|
+| Primary category | Is the primary category the best fit for the app? |
+| Secondary category | Is the secondary category relevant and useful? |
+| Visibility | Does the category provide realistic visibility opportunities? |
+
+### 9. Localization (Weight: 5%)
+
+| Check | What to look for |
+|-------|-----------------|
+| Metadata | Title, subtitle, and keyword field localized naturally? |
+| Search behavior | Keywords match how users search in the target market? |
+| Creative assets | Screenshots and preview content localized where appropriate? |
+
+### 10. Ratings Momentum (Weight: 10%)
+
+| Check | What to look for |
+|-------|-----------------|
+| Trend direction | Are ratings improving, stable, or declining? |
+| Recent movement | Has the rating changed meaningfully over the last 30 days? |
+| Review velocity | Is the app receiving a healthy flow of recent ratings? |
 
 ## Output Format
 
@@ -158,12 +154,12 @@ Title:              [X]/10  ████████░░
 Subtitle:           [X]/10  ██████░░░░
 Keyword Field:      [X]/10  ████░░░░░░
 Description:        [X]/10  ████████░░
+Ratings & Reviews:  [X]/10  ███████░░░
 Screenshots:        [X]/10  ██████████
 Preview Video:      [X]/10  ██░░░░░░░░
-Ratings & Reviews:  [X]/10  ████████░░
-Icon:               [X]/10  ████████░░
-Keyword Rankings:   [X]/10  ██████░░░░
-Conversion Signals: [X]/10  ████░░░░░░
+Category:           [X]/10  ████████░░
+Localization:       [X]/10  ████░░░░░░
+Ratings Momentum:   [X]/10  ██████░░░░
 ```
 
 ### Quick Wins (implement today)
