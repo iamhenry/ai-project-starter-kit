@@ -77,13 +77,13 @@ Use this brief verbatim, populated with actual context:
 - Result: [Record PASS, FAIL, or BLOCKED only after executing the probe.]
 - Evidence: [Record fresh observed output, screenshot, link, or file reference. Include the tested revision or environment when relevant.]
 
-[Repeat this block for each additional criterion. A probe may be mechanical or user-observable; name the check, do not paste owning-skill procedure. If a falsifiable criterion cannot be written yet, this is discovery — do not invent precision. One criterion can be enough.]
+[Repeat this block for each additional criterion. A behavior change requires at least one Mechanical quality criterion and one criterion that exercises the exact candidate through the actual user or consumer entry point. An internal-only change with no changed observable behavior may mark the latter `n/a` with a reason. Name each check; do not paste owning-skill procedure. If a falsifiable criterion cannot be written yet, this is discovery — do not invent precision. One criterion can be enough only when that two-lane rule does not apply.]
 
 ### Deliverable
 [Specify exactly what the agent must create, modify, or return, including the expected format or location.]
 
 ### Exit Criteria
-[Declare the work complete only when every criterion has fresh PASS evidence produced by its declared probe. Do not infer completion from implementation, file existence, or unchecked assumptions. Stop and ask instead of guessing when intent or authority is ambiguous, access is missing, a criterion cannot be verified, or the work requires a change outside Boundaries.]
+[Declare the work complete only when every criterion has fresh PASS evidence produced by its declared probe. Mechanical success alone is not completion for a behavior change. If the actual user or consumer path cannot run safely, report `BLOCKED`. Do not infer completion from implementation, file existence, or unchecked assumptions. Stop and ask instead of guessing when intent or authority is ambiguous, access is missing, a criterion cannot be verified, or the work requires a change outside Boundaries.]
 ```
 
 ## References

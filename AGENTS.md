@@ -113,7 +113,9 @@ Canonical order: understand → reproduce and diagnose → implement → indepen
    HEURISTIC: WHICH TASK FACTS APPLY, AND WHAT IS THE SMALLEST VALID RUN OF EACH OWNER?
 
 2. FINISH THE JOB
-   Don't stop after the first hop. Done = a later reader can see it worked.
+   Don't stop after the first hop. Mechanical checks establish code health, not
+   completion. Done means the exact candidate produced the intended outcome
+   through the actual user or consumer entry point.
    HEURISTIC: IF THEY ONLY COME BACK FOR THE PR OR THIS THREAD, CAN THEY
    TELL IT WORKED WITHOUT RERUNNING ANYTHING?
 
@@ -124,7 +126,7 @@ Canonical order: understand → reproduce and diagnose → implement → indepen
    THEY CAN MAKE?
 
 4. PROOF IS AN ARTIFACT, NOT A VIBE
-   Quality = sane diff. Evidence = a user would see it. Leave something
+   Quality = sane diff. Evidence = the actual product result. Leave something
    they can open. PR contains both; no PR → leave both in the thread.
    HEURISTIC: WHAT CAN THEY OPEN TOMORROW THAT PROVES THIS?
 
@@ -140,8 +142,8 @@ Canonical order: understand → reproduce and diagnose → implement → indepen
 | Area | Rule | Practical implication |
 |---|---|---|
 | Default behavior | Implementation requests authorize in-scope local edits and relevant checks without repeated permission. Research, review, and planning requests remain read-only for implementation files. | Inspect before editing. Complete authorized work; ask only when unresolved intent or authority materially changes the outcome. |
-| Verification | Completed implementations get independent quality review and verification by fresh subagent(s): SMALL tasks may combine both gates in one fresh subagent (two verdicts, one dispatch); MEDIUM+ uses two separate fresh subagents. Independence from the implementer is never optional. | Quality approval precedes acceptance. Verification runs the smallest mechanical and user-observable checks that can disprove the claimed outcome, adding coverage only for distinct affected risks. Report unrelated existing failures without expanding scope to fix them. |
-| Evidence | Match evidence to the claim — diff proves change, not outcome. | New behavior → run the product and show it; bug fix → reproduce the reported behavior and establish the cause before editing, then repro before, gone after; big change → tests and logs a human can open. Evidence must exercise and demonstrate the exact claimed target, and the agent must inspect any cited artifact before relying on it. Passing tests or a merged diff alone never substitute for causal evidence. |
+| Verification | Completed implementations get independent quality review and verification by fresh subagent(s): SMALL tasks may combine both gates in one fresh subagent (two verdicts, one dispatch); MEDIUM+ uses two separate fresh subagents. Independence from the implementer is never optional. | Quality approval precedes acceptance. Verification runs the smallest mechanical and actual-entry-point checks that can disprove the claimed outcome on the exact candidate, adding coverage only for distinct affected risks. Classify the proof by the behavior the user experiences, not by which files changed. Report unrelated existing failures without expanding scope to fix them. |
+| Evidence | Match evidence to the claim — diff proves change, not outcome. | New behavior → run the product and show it; bug fix → reproduce the reported behavior and establish the cause before editing, then repro before, gone after; big change → actual user-flow evidence plus proportional tests and logs. Evidence must exercise and demonstrate the exact claimed target, and the agent must inspect any cited artifact before relying on it. Passing tests or a merged diff alone never substitute for outcome evidence. If the actual path cannot run safely, report `BLOCKED`, never `PASS`. |
 | Gate decisions | PASS continues; REVISE returns to the owning skill; ASK_USER asks one focused question. | When independent gates are required, use fresh subagents judging artifacts on disk — never substitute a same-agent review or patch ad hoc. |
 | Subagents | Review and verification use fresh subagents separate from the implementer (SMALL may combine both gates in one fresh subagent; MEDIUM+ keeps them separate). Other delegation is proportional and must improve speed, coverage, or judgment enough to justify coordination cost. | The implementing agent never approves or accepts its own work. Avoid unrelated fan-out for trivial tasks; risk matters more than file count. |
 | Resume | Pick up from the current worktree and last commit. | Don't restart finished work. |
@@ -155,6 +157,7 @@ Canonical order: understand → reproduce and diagnose → implement → indepen
 - When recommending: state it as Do / Don't, then the why — the concrete harm the Don't avoids.
 - When offering options: rank them (best first) and say what the ranking weights — scope, impact, simplicity, reversibility. State your pick and why in one line.
 - Explain why a decision was made; show before/after for code changes when useful.
+- Report stages precisely. "Mechanical checks passed" means code health only. Say "task complete", "works end to end", or equivalent only after the exact candidate passes its actual user or consumer path. Otherwise state `user outcome unverified` or `BLOCKED`.
 - Default short (a few lines). Expand when asked to explain.
 - Prefer concise paragraphs; use lists or tables when they make steps or comparisons clearer. Include a recap table only when requested or useful for a substantial handoff.
 - Cite sources inline (`file:line` or URL) for factual claims. State meaningful uncertainty and its cause rather than assigning unsupported numerical confidence.

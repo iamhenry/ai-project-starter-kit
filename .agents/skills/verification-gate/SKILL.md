@@ -1,6 +1,6 @@
 ---
 name: verification-gate
-description: Reusable verification gate for completed work before commit or merge. Use when implementation is done and Claude must prove the task works, verify the main user flow, route verification by platform, and return a PASS/FAIL/BLOCKED verdict with evidence. Web and mobile-web verification uses agent-browser. iOS and macOS verification uses xcodebuildmcp-cli, with argent flow replay for iOS user-flow proof.
+description: Reusable verification gate for completed work before commit or merge. Use when implementation is done and Claude must prove the task works, verify the main user flow, route verification by platform, and return a PASS/FAIL/BLOCKED verdict with evidence. Web and mobile-web verification uses agent-browser. Desktop verification uses agent-browser or cua-driver. iOS and macOS verification uses xcodebuildmcp-cli, with argent flow replay for iOS user-flow proof. Android user-flow verification uses argent.
 ---
 
 # Verification Gate
@@ -34,13 +34,13 @@ Collect the minimum context needed to verify the work:
 For standalone calls, accept the same Verification Target fields below directly with approved scope, exact candidate identity, and an authorized evidence directory; no pipeline plan is required. References to `plan.md` below mean that supplied target. Distinguish the requested endpoint explicitly: focused verification of existing behavior does not require an unassigned code-quality stage; delivery acceptance, including standalone delivery acceptance, requires `APPROVE_CODE` and both independent gates. Missing pipeline inputs never authorize switching to focused verification; route them to their owners.
 
 - `plan.md` Verification Target:
-  - Platform: `web|mobile-web|ios|macos|non-ui`
+  - Platform: `web|mobile-web|desktop|ios|android|macos|non-ui`
   - Objective: single outcome to prove
   - Falsifier: observation that would disprove the Objective
   - Primary Flow: shortest realistic proof path
   - Regression Check: one adjacent behavior to protect, or `None`
   - Mechanical: named command(s) plus expected exit code or output
-  - Observable: retained evidence path, or `n/a` for `non-ui`
+  - Observable: retained evidence path, or `n/a` only for a genuinely internal `non-ui` change with no changed user or consumer-observable behavior
   - Pass Criteria: concrete success condition
   - Blocked Conditions: known missing auth, data, environment, device, service, or tooling
 - changed behavior or files
@@ -67,15 +67,22 @@ Choose exactly one primary platform route:
    - Use `agent-browser` for desktop browser UI flows, visible states, screenshots, and recordings.
 2. `mobile-web`
    - Use `agent-browser` with a mobile viewport/device profile for responsive browser UI flows and visible states.
-3. `ios`
+3. `desktop`
+   - Use `agent-browser` for Electron apps when available; otherwise use `cua-driver` to operate the installed application's visible controls.
+4. `ios`
    - Use `xcodebuildmcp-cli` for build and mechanical proof; it equals mechanical proof for iOS.
    - For user-flow (observable) proof: replay the exact reproduction flow with `argent` when one exists, otherwise the XcodeBuildMCP UI check.
-4. `macos`
+5. `android`
+   - Run the plan-named build or test command for mechanical proof.
+   - Use `argent` on the target emulator or device for user-flow proof, replaying the exact reproduction flow when one exists.
+6. `macos`
    - Use `xcodebuildmcp-cli` for macOS app build, launch, UI, and test verification.
-5. `non-ui`
-   - Use direct tests, build commands, API calls, CLI checks, data checks, or file assertions.
+7. `non-ui`
+   - For a user-facing CLI or API, operate that real interface and observe its concrete result. Use tests, builds, data checks, and file assertions as Mechanical support, not substitutes for the consumer path.
 
 Prefer the smallest proof path that still demonstrates real user value.
+
+Choose the route from the actual user or consumer entry point, not the implementation layer or changed file types. Timing, persistence, delivery, synchronization, and background behavior can require a visible product flow even when no UI source changed. Do not classify desktop, mobile, or UI-backed behavior as `non-ui` merely because the implementation is in a bridge, service, SDK, or backend.
 
 Prefer the actual affected surface when safe and authorized. Before building a substitute, compare its setup cost and evidential value with resolving the concrete prerequisite for the real surface. A replica can omit the very integration under test; it cannot silently replace required real-flow proof. If proof infrastructure would exceed the change itself, reconsider the route before adding it: reuse existing checks or a direct preview, or return the precise blocker. Scale depth to risk and uncertainty, not ceremony. A static content/diff check can prove an instruction-only change; it cannot prove a changed UI renders correctly.
 
@@ -110,13 +117,14 @@ Prefer the actual affected surface when safe and authorized. Before building a s
       passing first lane does not waive any other lane required for `PASS`.
     - Inline rule: execute the plan-named Mechanical command and quote its raw
       output. Do not paraphrase pass/fail or replace the command.
-    - Inline rule: UI and real-integration `PASS` requires operating the actual
+    - Inline rule: changed user or consumer behavior requires operating the actual
       affected product or integration through the Primary Flow on the exact
       candidate. Tests, terminals, CI screens, logs, source inspection, and
       screenshots of those materials are Mechanical evidence only. They never
       satisfy Observable.
     - Use the selected platform route for Observable. `PASS` requires both
-      Mechanical and Observable when both are declared.
+      Mechanical and Observable whenever the task changes user or consumer
+      behavior, even if the plan omitted or misclassified the Observable lane.
     - Proof must match the reported flow for the exact candidate being
       accepted: the observed evidence comes from the primary flow on the
       candidate commit (or base commit plus exact uncommitted diff), not a
@@ -152,7 +160,7 @@ Prefer the actual affected surface when safe and authorized. Before building a s
    - Follow the `snapshot -> interact -> re-snapshot` cadence.
    - Use named sessions.
    - Use screenshots for static proof points.
-   - Use recordings only for multi-step interactions or async transitions that are hard to prove with screenshots alone.
+   - Use recordings only when motion itself is the claim and screenshots cannot prove it.
 
     - For `ios` or `macos`, use `xcodebuildmcp-cli`.
     - First verify the CLI exists.
@@ -176,8 +184,10 @@ Prefer the actual affected surface when safe and authorized. Before building a s
       reports a failed step is `FAIL`.
     - Keep the device selection and report from the replay in the result notes.
 
-    - For `non-ui`, Mechanical is the proof path. Observable is `n/a`.
-    - Prefer assertions tied to user-visible outcomes: command success, API response shape, file creation, persisted data, or other concrete results.
+    - For `android`, load `argent` and operate the exact candidate on the target emulator or device. Replay the faithful reproduction flow when one exists; otherwise run the smallest direct interaction that proves the Verification Target. Treat unavailable devices, builds, or runners as `BLOCKED`, and a flow that runs but fails its expected step as `FAIL`.
+
+    - For a genuinely internal `non-ui` change with no changed user or consumer-observable behavior, Mechanical is the proof path and Observable may be `n/a`; state why.
+    - For a user-facing CLI or API, the direct command or request and its concrete result are the consumer-observable path. Unit tests, mocked calls, builds, and source assertions remain Mechanical evidence.
 
 5. Decide the verdict and exit.
 
@@ -201,9 +211,10 @@ Prefer the actual affected surface when safe and authorized. Before building a s
   the Primary Flow. A terminal, test runner, CI page, log viewer, source file,
   or screenshot of any of them is invalid Observable evidence even when it
   shows a passing result.
-- A screenshot proves a static visible state. Use a short recording or the
-  smallest ordered set of proof states when the claim depends on interaction,
-  transition, persistence, timing, or ordering.
+- A screenshot proves a static visible state. Use the smallest ordered set of
+  proof states when only the before and after states matter. Use a short
+  recording when the claim concerns motion itself, including animation,
+  loading progression, transition continuity, gesture response, or timing.
 - Independently establish the candidate and assess the proof rather than accepting implementer claims. After corrections, identify affected claims and required rechecks. Reuse unaffected Observable evidence only with an explicit explanation of why changed files and conditions do not invalidate it; rerun affected proof on the current candidate. Coupled, uncertain, or consequential changes can warrant broader or full fresh verification. Mechanical is still rerun as required above.
 - Capture only the evidence needed to support the verdict.
 - Never record secrets, tokens, private user data, or unnecessary personal information.
@@ -249,7 +260,7 @@ Use this exact structure:
 ```md
 ## Verification Result
 
-- Platform: `web|mobile-web|ios|macos|non-ui`
+- Platform: `web|mobile-web|desktop|ios|android|macos|non-ui`
 - Objective: [single outcome verified]
 - Falsifier: [observation that would disprove the Objective]
 - Primary flow: [short description]
@@ -282,6 +293,8 @@ Use this exact structure:
 
 - `web`: Select model -> enter prompt -> submit -> generated images appear.
 - `mobile-web`: Open settings on mobile viewport -> verify new card, copy, and CTA render correctly.
+- `desktop`: Use the installed app's visible controls -> complete the changed flow -> verify the app-owned result.
 - `ios`: Build and launch app -> complete primary flow in simulator -> success state appears.
+- `android`: Install and launch app -> complete primary flow on emulator or device -> success state appears.
 - `macos`: Build and launch app -> complete primary flow -> success state appears.
-- `non-ui`: Run export command -> confirm output file exists and contains expected records.
+- `non-ui`: Run the real export command -> confirm the user-requested output file exists and contains expected records; run proportional Mechanical checks separately.

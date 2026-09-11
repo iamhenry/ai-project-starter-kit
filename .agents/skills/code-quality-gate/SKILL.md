@@ -5,7 +5,7 @@ description: Fresh-subagent code quality review gate after implementation and be
 
 # Code Quality Gate
 
-Use this skill after implementation and before final acceptance verification. This ordering does not prohibit safe, disposable previews or risk probes during implementation; those are diagnosis, not acceptance or permission for unsafe live installation or mutation.
+Use this skill after implementation and before final acceptance verification. `APPROVE_CODE` approves code quality only; it never means the task is complete or that the behavior works for users. This ordering does not prohibit safe, disposable previews or risk probes during implementation; those are diagnosis, not acceptance or permission for unsafe live installation or mutation.
 
 Run it as a fresh subagent review gate, separate from the implementer. A same-agent skill invocation is not independence. Fresh context reduces self-confirmation bias; it does not guarantee unbiased review. Small changes still receive fresh review, focused on the diff, intent, and concrete risks; expand depth for uncertainty, coupling, security, or consequential failure. It returns a decision and never edits files.
 

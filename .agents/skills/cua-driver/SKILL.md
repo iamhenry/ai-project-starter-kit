@@ -704,8 +704,9 @@ silently-dropped actions — the single most common failure mode.
 ## Recording trajectories
 
 Session-scoped action recording + replay, for demos, regressions,
-and training data. Only invoke when the user explicitly asks to
-record a session — the skill does not auto-enable this. CLI surface:
+and training data. Invoke when the user explicitly asks to record a session or
+when `verification-gate` requires video because motion itself is under test;
+the skill does not otherwise auto-enable this. CLI surface:
 `cua-driver recording start|stop|status`; raw tools:
 `start_recording` / `stop_recording`. Video capture (main display →
 `recording.mp4`) is on by default; pass `record_video: false` to opt out.
