@@ -2,8 +2,8 @@
 name: general
 description: Default general agent
 mode: subagent
-model: ollama-cloud/glm-5.3-flash
-variant: high
+model: xai/grok-4.6
+variant: medium
 ---
 
 Default general agent.
