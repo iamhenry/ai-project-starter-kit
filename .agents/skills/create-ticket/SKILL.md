@@ -1,6 +1,6 @@
 ---
 name: create-ticket
-description: Draft and file GitHub issues after categorizing them as bug, feature, or task. Use whenever the user wants to create, open, write, or file a GitHub issue, gh issue, bug report, feature request, or task ticket, or attach supplied screenshots or videos to a new or existing issue. Prefer this over freeform issue writing. Do not use for local `_ai/task` plans or the issue-to-pr pipeline.
+description: Draft and file a ticket as a GitHub issue or a local ticket.md after categorizing it as bug, feature, or task. Use whenever the user wants to create, open, write, or file a GitHub issue, gh issue, bug report, feature request, task ticket, or local ticket.md, or attach supplied screenshots or videos to a new or existing GitHub issue. Prefer this over freeform issue writing. Do not use for local `_ai/task` plans or the issue-to-pr pipeline.
 ---
 
 # Create Ticket
@@ -11,7 +11,7 @@ Do not implement the issue. Do not use this for `_ai/task/{date}/{slug}/issue.md
 
 ## 1. Categorize
 
-Pick exactly one GitHub type:
+Pick exactly one type:
 
 | Type | Use when | Not when |
 | --- | --- | --- |
@@ -19,17 +19,17 @@ Pick exactly one GitHub type:
 | `Feature` | New user-facing capability or behavior | Fixing broken behavior, or internal cleanup |
 | `Task` | Docs, refactor, chore, deps, CI, cleanup | User-facing product change or a defect |
 
-If the request is a question or discussion, do not file an issue. Say so in one line.
+If the request is a question or discussion, do not file a ticket. Say so in one line.
 
 If type is unclear, ask one question, then stop.
 
 ## 2. Draft
 
-Write a specific title, ~70 characters, no `FEAT:`/`BUG:` prefix. `--type` carries the category.
+Write a specific title, ~70 characters, no `FEAT:`/`BUG:` prefix. For GitHub, `--type` carries the category.
 
 Fill only the sections that have content. Delete empty ones. Keep the body short enough that a later agent can execute without guessing.
 
-Ask one question if a required field below is missing and would make the issue useless. Otherwise draft with what you have and mark unknowns as `unknown`.
+Ask one question if a required field below is missing and would make the ticket useless. Otherwise draft with what you have and mark unknowns as `unknown`.
 
 Ground the problem statement in first principles: who or what is affected, what they need to achieve, what observable gap prevents it, and why that gap matters. Separate facts from assumptions; do not present a requested solution or suspected root cause as the problem. Use only supplied or verified evidence and mark unknowns rather than inventing rationale.
 
@@ -81,9 +81,13 @@ Required: why, done when.
 
 ## 3. File
 
-Show the type, title, and body first.
+Show the destination, type, title, and body first.
 
-Create only after confirm, or immediately when the user already said create/file/open the issue:
+Create only after confirm, or immediately when the user already said create/file/open the ticket.
+
+**GitHub** when they asked for a GitHub/`gh` issue. **Local `ticket.md`** otherwise.
+
+### GitHub
 
 ```bash
 gh issue create --title "<title>" --body-file /tmp/gh-issue-body.md --type <Bug|Feature|Task>
@@ -91,7 +95,7 @@ gh issue create --title "<title>" --body-file /tmp/gh-issue-body.md --type <Bug|
 
 If `--type` is rejected, retry without it. Do not invent labels. Do not add assignees, projects, or milestones unless asked.
 
-### Media attachments
+#### Media attachments
 
 Only when the user supplies screenshots or videos. For an existing issue, skip categorizing and drafting: show the target issue and media, then attach only after the user asks or confirms.
 
@@ -112,8 +116,24 @@ After either command, run `gh issue view <number-or-url> --json body --jq .body`
 
 Return the issue URL.
 
+### Local
+
+Write `ticket.md` at the workspace root. If that file already exists, ask before overwriting.
+
+```md
+# <title>
+
+Type: <Bug|Feature|Task>
+
+<body>
+```
+
+Put supplied screenshot or video paths under Evidence. Do not copy media into the repo.
+
+Return the file path.
+
 ## Constraints
 
-- One issue per request. Split unrelated asks.
+- One ticket per request. Split unrelated asks.
 - No secrets, tokens, emails, or private logs in the body.
-- No local plan artifacts, commits, or code changes.
+- No commits or code changes. The only local file this skill may write is `ticket.md`.
