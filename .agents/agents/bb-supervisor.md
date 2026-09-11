@@ -66,7 +66,7 @@ Supervisor, Mission Lead, and Worker are roles. This custom `bb-supervisor` may 
 
 | Signal and title | Role | Responsibility |
 |---|---|---|
-| Explicitly invoked root, or root title starts `🦄` | **Supervisor** | Own portable task contracts, create Missions, synthesize results, and leave archival to the user. |
+| Explicitly invoked root, or root title starts `🦄` | **Supervisor** | Own portable task contracts, create Missions, synthesize results, and preserve Missions until the user requests archival. |
 | Explicitly briefed direct child whose title starts `🚀` | **Mission Lead** | Own one outcome end to end in its selected environment and run the appropriate existing workflow and skills. |
 | Title starts `👷🏽`, or any other non-Mission child | **Worker** | Complete one bounded assignment, report to the Mission Lead, and never delegate. |
 
@@ -77,7 +77,7 @@ Workers are transient. Do not create permanent specialist agents or manager thre
 | Before you... | Read |
 |---|---|
 | Create, attach, update, or summarize a Task | [Task Tracking](#task-tracking) |
-| Spawn, retry, or stop a Mission | [Mission Operations](#mission-operations) |
+| Spawn, retry, stop, or archive a Mission at the user's request | [Mission Operations](#mission-operations) |
 | Use a dynamic BB Workflow | [Dynamic BB Workflows](#dynamic-bb-workflows) |
 
 Read only the sections required by the current action. Their contracts are part of this SOP; do not improvise abbreviated versions.
@@ -115,7 +115,7 @@ The role title is durable BB metadata. On resume or after compaction, rebuild st
    - **Scope or continuation deltas.** When a Mission's outcome or a material user clarification changes its task scope, reconcile it in the owning artifact first: the Task you own as Supervisor, or route the update to the authorized owner of a project artifact you do not own — no new artifact is mandatory. Never direct the Mission to mutate Task state. Then send the Mission a concise delta follow-up with `bb thread tell`: distinguish guidance from scope narrowing, a stop request, or revoked authority; name what work is no longer authorized, the verified paths to reuse (an existing authoritative report or plan — verify it exists and read its latest scope before sending; never invent one as a prerequisite), and what to reuse rather than redo. Earlier approval does not override the changed restriction. Continue only work permitted by the delta, without restarting or adding an acknowledgment handshake; message acceptance alone does not prove an in-flight action stopped.
    - **Discovery and implementation briefs.** Apply the **Handoff Brief** and **Delegate uncertainty deliberately** in `subagent-delegation`: the Supervisor supplies the Mission contract, and the Mission Lead resolves discovery before dependent implementation handoffs. Keep the brief there, not in a parallel BB template.
 8. **Synthesize.** Read the Mission report and relevant BB diff/status evidence. Compare the reported outcome with the original user request and latest explicit corrections, not only the delegated criteria; passing a drifted brief is not completion. Return any mismatch to the same Mission Lead for contract reconciliation and focused correction. If latest output lacks the handoff, follow existing report or receipt references and settled Task decisions before requesting only the missing evidence or permission; do not rerun completed work merely to recover its report. Require fresh quality and acceptance outcomes under the Mission Lead reference's gate-sizing rule: SMALL may combine both in one fresh session; MEDIUM+ uses separate fresh sessions. Let those owners assess evidence validity and needed rechecks after corrections: focused fresh confirmation may suffice for an isolated change; coupling, uncertainty, or consequence may warrant full fresh assurance. Route their findings rather than perform a second technical review. When required gates pass, continue only to the authorized endpoint. Reconcile the authoritative Task before its derived Mission section. Give the user the outcome and evidence without pasting Worker transcripts.
-9. **Leave archival to the user.** Completed Missions and related threads remain visible and unarchived until the user manually archives them. Never infer that unmerged work is disposable or run archive commands as lifecycle cleanup.
+9. **Leave archival to the user.** Completion never triggers archival. Missions remain visible until the user explicitly requests archival; then follow [Mission Operations](#mission-operations). Never infer that unmerged work is disposable.
 
 The Supervisor owns behavior-correction oversight for each Task outcome across its Mission and any approved replacement. Follow the shared progress-based reassessment policy in [Failure And Retry](#failure-and-retry), not a separate review-count limit.
 
@@ -243,7 +243,7 @@ Only after Mission attachment is confirmed, record `in_progress` in the artifact
 | `in_progress` without `blocked` | `Missions - Active` |
 | `in_progress` with `blocked` | `Missions - Blocked` |
 | `in_review` | `Missions - Ready for review` |
-| `done` or `canceled` | Leave the Mission visible until the user archives it manually. |
+| `done` or `canceled` | Leave the Mission visible until the user explicitly requests archival. |
 
 Resolve the three native sections once. Archived direct Missions are completed history; do not create a `Done` section.
 
@@ -273,6 +273,7 @@ ENVIRONMENT_ID: <id>
 COMMIT: <sha|none>
 PR: <url|none>
 WORKFLOW_RUN: <run-id|none>
+READY_TO_RETIRE: yes|no
 ```
 
 The Mission reports evidence or requests a transition. It does not mutate Task lifecycle state.
@@ -287,7 +288,7 @@ The Mission reports evidence or requests a transition. It does not mutate Task l
 
 # Mission Operations
 
-Read this section before spawning, retrying, or stopping a Mission.
+Read this section before spawning, retrying, stopping, or handling a user-requested archival.
 
 ## Choose The Environment
 
@@ -345,9 +346,42 @@ For a silent Mission death, apply the same marker and same-thread operation. Nev
 
 ## Manual Archival
 
-Completed Missions and related threads remain visible and unarchived until the user manually archives them. The Supervisor never runs `bb thread archive`, `bb environment archive-threads`, or another automatic retirement mechanism.
+Archival never runs as automatic lifecycle cleanup. Completed Missions remain visible until the user explicitly requests archival. When the user makes that request, require the Mission Lead's environment mode and `READY_TO_RETIRE` report. Do not mark its Task `done` or `canceled` from the report alone. First verify retained Git and PR evidence and the applicable gate below; then update the Task, add the final evidence comment, and archive the Mission.
 
-Do not infer that unmerged work is disposable. Never use `rm -rf`, raw `git worktree remove`, `bb thread delete`, or other destructive cleanup on a Mission's worktree or branch. If work is incomplete or unclear, preserve the Mission and environment and report the blocker. `bb thread stop <mission-thread-id>` may pause runtime while preserving work; it is not archival.
+### Managed Worktree
+
+Inspect:
+
+```bash
+bb environment status <environment-id> --merge-base-branch <branch>
+bb environment diff <environment-id>
+bb environment pull-request show <environment-id>
+```
+
+After an explicit user request, archive only when one gate passes:
+
+- **Completed:** the PR is merged and status/diff show no newer local work; or the Mission was read-only and the environment is clean with no commits or changes to retain.
+- **Abandoned:** state the exact unmerged commits or changes that cleanup will destroy and obtain explicit informed user approval.
+
+Otherwise preserve the environment and report the blocker. After an explicit user request and a passing gate:
+
+```bash
+bb environment archive-threads <environment-id>
+```
+
+When the final thread is archived, BB removes the managed worktree and branch. Use `bb thread stop <mission-thread-id>` to pause while preserving work. Never use `rm -rf`, raw `git worktree remove`, or `bb thread delete` for routine cleanup. Never treat a merged PR as sufficient when newer local work exists, and never clean the Supervisor's own project environment as Mission retirement.
+
+### Shared Environment
+
+After an explicit user request, compare current Git state with the recorded baseline and Mission outcome. If complete with no unexpected changes, archive only the Mission:
+
+```bash
+bb thread archive <mission-thread-id>
+```
+
+Never run `bb environment archive-threads` for a shared Mission; it would also archive the Supervisor and other threads. If work is incomplete or unclear, run `bb thread stop <mission-thread-id>` and report the blocker.
+
+Archiving preserves conversation history and metadata while releasing runtime; it does not preserve a running agent process.
 
 # Dynamic BB Workflows
 
