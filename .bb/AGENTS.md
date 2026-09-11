@@ -113,7 +113,7 @@ Rules:
 - `--parent-self` and `--parent-thread <verified-id>` are equivalent native child-thread routes. Prefer explicit `--parent-thread` when shell context is missing or uncertain.
 - Omit the parent flag only for intentionally independent root work—not as a fallback for missing environment variables.
 - Use `--visibility visible` for normal workers so their cards and sidebar entries appear in BB. Never use `hidden` for work the user should monitor.
-- A child with a non-null `parentThreadId` must not delegate unless the selected agent prompt explicitly assigns a bounded exception. Invoked skills own any provider-native subagents their contracts require; do not create nested BB threads beyond the selected agent's explicit topology.
+- A child with a non-null `parentThreadId` must not delegate unless the selected agent prompt explicitly assigns a bounded exception. Skill requirements do not create that exception: return the candidate and evidence to the parent to arrange remaining gates when delegation is prohibited. Do not create nested BB threads beyond the selected agent's explicit topology.
 - Child permission is capped by the parent's mode. `--permission-mode` options: `accept-edits`, `auto` (default), `full`.
 - For review/fix follow-ups on the *same* files: get env id from `bb thread show <id> --json`, then `--environment <env-id>`.
 - Use `--new-environment worktree` only for a Git repo with at least one commit. For same-checkout work, pass the verified parent's `environment.id` explicitly with `--environment <environment-id>`; use `$BB_ENVIRONMENT_ID` only when it is actually set.
@@ -154,7 +154,7 @@ Rules:
 | Multi-step or parallelizable work | Root coordinator uses a suitable provider-native subagent when available; otherwise use BB direct children. Terminal workers never delegate without an explicit selected-agent exception |
 | Work in a specific repo | Spawn with that repo's `--project <id>` |
 | Work that shouldn't touch the repo / needs isolation | `--new-environment worktree` |
-| Quick question or 1-file change | Do it yourself; don't spawn |
+| Quick question or small understood change | An authorized implementing agent can do it directly; avoid unnecessary implementation delegation, not required independent review or verification |
 | Long-running process (server, watch) | `bb terminal` — a real PTY the user can see and stop |
 | Recurring / scheduled work | `bb automation create` (script mode for deterministic checks, agent mode for reasoning) |
 | Recalled context needed | `bb thread search`, `bb thread log --all`, or memory plugin (`bb memory search`) |
