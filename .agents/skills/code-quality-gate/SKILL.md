@@ -44,7 +44,7 @@ If the approved contract or changed code/diff is missing, return `ASK_USER` nami
 3. Trigger wider dependency review only when the change touches shared modules, public interfaces, global state, async side effects, security-sensitive paths, or common components.
 4. Compare implementation against the referenced quality docs without copying them into the report.
 5. Heavily weight simplicity: prefer the smallest code that satisfies `plan.md`; penalize speculative abstractions, extra surfaces, duplicate state, and unplanned features.
-6. Check provided Mechanical / test / build / lint / typecheck output. Distinguish demonstrated code failures from commands blocked by environment prerequisites; identify prerequisite repair in the findings, not speculative source changes. Do not invent results that were not provided. Do not run commands or edit tests.
+6. Check provided Mechanical / test / build / lint / typecheck output. Judge coverage by the distinct changed failure modes it protects, not by test quantity. Distinguish demonstrated code failures from commands blocked by environment prerequisites; identify prerequisite repair in the findings, not speculative source changes. Do not invent results that were not provided. Do not run commands or edit tests.
 7. Return a concise structured decision to the orchestrator.
 
 ## Weighted Rubric

@@ -97,10 +97,13 @@ Prefer the actual affected surface when safe and authorized. Before building a s
    - Start from the first meaningful user or system action.
    - End at the success state the user cares about.
    - Avoid padding the flow with irrelevant steps.
+   - For timing or ordering behavior, wait for observable events instead of guessed delays. Use inputs that make the old and corrected outcomes distinguishable, then verify the required event order and that each event belongs to the intended run.
+   - Start with one decisive flow through the actual user or consumer entry point. Do not begin with a lower-layer substitute that cannot disprove the same claim.
 
 3. Establish the exact candidate and prerequisites.
    - Confirm that the runtime subject matches the candidate commit, or the base
      commit plus exact uncommitted diff, before accepting evidence.
+   - If activating the candidate could interrupt the verifier or mutate shared state, use a disposable executor for that action, restore the prior state, and have the fresh verifier judge the retained evidence and candidate identity without repeating the mutation.
    - Recover a missing prerequisite only while each recovery step changes the
      available evidence and remains narrow and proportionate. Never repeat an
      unchanged blocked setup. If no useful recovery remains, return `BLOCKED`
@@ -110,11 +113,11 @@ Prefer the actual affected surface when safe and authorized. Before building a s
 
     - Principle: optimize for the first trustworthy signal, then stop as soon
       as every declared claim is proven.
-    - Heuristic: run whichever declared lane can produce the cheapest decisive
-      signal first. Mechanical often rejects a broken candidate fastest; an
-      already-running actual product can make the Primary Flow faster. A failed
-      decisive lane returns `FAIL` without spending on the companion lane. A
-      passing first lane does not waive any other lane required for `PASS`.
+    - Heuristic: for changed user or consumer behavior, run the Primary Flow
+      first when it is safely available. Otherwise run the cheapest decisive
+      lane while recovering its prerequisites. A failed decisive lane returns
+      `FAIL` without spending on the companion lane. Passing supporting checks
+      never waives required actual-path proof.
     - Inline rule: execute the plan-named Mechanical command and quote its raw
       output. Do not paraphrase pass/fail or replace the command.
     - Inline rule: changed user or consumer behavior requires operating the actual
