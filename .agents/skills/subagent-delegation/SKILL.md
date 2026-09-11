@@ -22,6 +22,8 @@ Pass every relevant file you already know. Token savings from precision outweigh
 
 ### Delegate uncertainty deliberately
 
+**Preserve intent through every handoff.** In the existing Problem or Goal field, quote the relevant user wording and latest explicit correction, or link an accessible authoritative source. Distinguish requested behavior from implementation assumptions; do not invent controls, preserve a default the user asked to change, or add flexibility without evidence of need. For example, "make the card 280px wide, width only" does not request adaptive shrinking with the old default. Workers should flag unsupported requirements or contradictory evidence to the assigning owner before dependent work, while continuing independent authorized work. Give review and verification owners the same intent source so they check the requested outcome, not merely a rewritten brief.
+
 State whether the assignment is discovery, planning, implementation, or an explicitly authorized sequence. The heuristic is **does the unknown change what we should build, or only how to carry out the settled change?**
 
 - If it can change the outcome, approach, scope, safety, or proof strategy, make resolving that question the next bounded discovery assignment. Its deliverable is evidence sufficient for the owner to choose the route, not exhaustive knowledge. Stop at the research endpoint even when implementation looks obvious.
@@ -45,7 +47,7 @@ Use this brief verbatim, populated with actual context:
 [1–3 sentences: what the user should experience when this assignment is done. Experiential context, not implementation steps.]
 
 ### Goal
-[State the smallest exact, measurable outcome that will count as complete.]
+[State the smallest exact, measurable outcome that will count as complete, preserving the intent source supplied in Problem or here.]
 
 ### Current State
 [Describe how it works today. Include baseline evidence such as observed behavior, commands, screenshots, logs, or file references. Include dependencies and blast radius.]
