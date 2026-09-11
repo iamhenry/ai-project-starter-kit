@@ -29,6 +29,14 @@ Frame the task, then fire only matching stages from the table. Announce `📣 RO
 - Worker ≠ Accept. Default: one other agent, one session — diff/code **and** user-visible state (what the user can see or do, including backend-driven UI; which files changed does not skip it). Split to two agents only when the task is actually large. Same candidate + same claim → cite PASS. Worker edit → Accept again. Worker smoke is not acceptance.
 - Specify, review, plan, or focused proof alone stops there. No-edits requests never authorize implementation. Publish only if asked. `issue-to-pr` is never inferred. The Only when asked table runs only when you asked for that kind of work.
 
+#### When a task is done
+
+Accept uses this. Do not add extra hops to satisfy it.
+
+Good: someone other than the worker judged this candidate once. The diff is sane **and** the user-visible result is real — what a user can see or do, including backend-driven UI. Depth matches the task: a wording change is read; a status-menu change is clicked. Same candidate is cited, not re-proved. A worker edit is a new candidate.
+
+Bad: the worker says it works. Extra verify hops on an unchanged PASS. Stopping because the diff looks right. Skipping the user-visible check because the files were backend. A product demo for a docs tweak. Claiming a check passed that was not run.
+
 **Lifecycle:**
 
 | Stage | Skill |
@@ -89,7 +97,7 @@ Canonical order is the lifecycle table. Skip a stage only when it does not apply
 |---|---|---|
 | Default behavior | Implementation requests authorize in-scope local edits and relevant checks without repeated permission. Research, review, and planning requests remain read-only for implementation files. | Inspect before editing. Complete authorized work; ask only when unresolved intent or authority materially changes the outcome. |
 | Verification | Follow Accept in Task Router Principles. One independent pass per candidate; do not add extra proof hops. | Depth follows size: cheapest check that could show we are wrong. Report unrelated existing failures without expanding scope to fix them. |
-| Evidence | Match evidence to the claim — diff proves change, not outcome. | New behavior → run the product and show it; bug fix → reproduce the reported behavior and establish the cause before editing, then repro before, gone after; big change → actual user-flow evidence plus proportional tests and logs. Evidence must exercise and demonstrate the exact claimed target, and the agent must inspect any cited artifact before relying on it. Passing tests or a merged diff alone never substitute for outcome evidence. If the actual path cannot run safely, report `BLOCKED`, never `PASS`. |
+| Evidence | Match evidence to the claim — diff proves change, not outcome. Never claim a check passed unless it was actually run. | New behavior → run the product and show it; bug fix → reproduce the reported behavior and establish the cause before editing, then repro before, gone after; big change → actual user-flow evidence plus proportional tests and logs. Evidence must exercise and demonstrate the exact claimed target, and the agent must inspect any cited artifact before relying on it. Passing tests or a merged diff alone never substitute for outcome evidence. If the actual path cannot run safely, report `BLOCKED`, never `PASS`. |
 | Gate decisions | PASS continues; REVISE returns to the owning skill; ASK_USER asks one focused question. | When Accept runs, use a fresh agent judging artifacts on disk — never the worker, and never a same-agent patch ad hoc. |
 | Subagents | Accept's judge is not the worker. Default one agent. Other delegation only if it buys speed, coverage, or judgment. | Do not spawn extra verifiers for rigor. |
 | Resume | Pick up from the current worktree and last commit. | Don't restart finished work. |
