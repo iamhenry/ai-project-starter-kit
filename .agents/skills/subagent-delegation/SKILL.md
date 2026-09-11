@@ -7,6 +7,8 @@ description: Structured handoff brief for delegating work to subagents. Use when
 
 When delegating to subagents, fill the handoff brief below. One contract for discovery, planning, and implementation — MODE changes how fields fill, not which fields exist.
 
+Delegate when a separate context buys coordination, specialist capability, isolation, useful parallelism, or independent judgment, not just another handoff. An authorized Mission owner may execute a small understood task directly; a root Supervisor remains coordination-only, and implementation never replaces fresh independent quality and verification. Explicitly selected workflows retain their required delegation.
+
 **Key Files format** when known:
 
 - Line ranges: `file.ts:123-145` for precise navigation
@@ -17,6 +19,8 @@ When delegating to subagents, fill the handoff brief below. One contract for dis
 Pass every relevant file you already know. Token savings from precision outweighs list cost. Discovery may write `discover`.
 
 **Reusing existing reports:** When an authoritative report or plan already exists, verify it exists and read its latest scope before sending the brief, and point the subagent at that path to reuse its facts rather than copying them into the brief; never invent a report artifact as a prerequisite. If findings materially change the task scope, reconcile the change in the owning artifact and continue with a concise delta follow-up rather than restarting or expanding silently.
+
+For durable supervised work, identify the canonical local ticket or existing issue artifact in the brief's Key Files. It holds intent and acceptance independently of the harness; in BB, also retain the required native Task key, Mission attachment, and UI lifecycle tracking under the Supervisor SOP. Other harnesses need no BB IDs. The Supervisor owns scope and lifecycle, the Mission records execution evidence at serialized handoffs, and gates judge the same candidate against that source. Share one verified path across environments, or supply a source excerpt and return findings to its owner if inaccessible; do not create independently edited copies or a second ledger. Research or status questions do not require a new ticket.
 
 **Brief proportionally, not ceremonially.** The brief is a default, not mandatory boilerplate: no fixed lengths, exhaustive checklists, or prose for its own sake. Three heuristics decide how much detail a brief needs — Can the subagent identify the next action and stopping condition without rereading the conversation? Does the stated proof distinguish success from the likely false positive? Is the detail already authoritative in a linked artifact? Add detail only where a heuristic exposes uncertainty. Keep scope, authority, safety, and owning-skill gates explicit; never drop them for brevity.
 
