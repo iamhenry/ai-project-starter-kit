@@ -21,8 +21,14 @@
     "@tarquinen/opencode-dcp@latest", // (https://github.com/Tarquinen/opencode-dynamic-context-pruning)
     "@dietrichgebert/ponytail", // (https://github.com/DietrichGebert/ponytail)
     "opencode-claude-auth@latest", // (https://github.com/griffinmartin/opencode-claude-auth)
-    "opencode-council@https://github.com/iamhenry/opencode-council/archive/40b93cdddfc582fb8bc9aafa3a6d444307578073.tar.gz",
+    // Disabled: replaced by the reviewed RoderickOxen council below.
+    // "opencode-council@https://github.com/iamhenry/opencode-council/archive/40b93cdddfc582fb8bc9aafa3a6d444307578073.tar.gz",
     "opencode-forge@https://github.com/iamhenry/opencode-forge/archive/refs/tags/v0.1.1.tar.gz",
+    "opencode-moa",
+    "@roderickoxen/opencode-council",
+    "open-conclave",
+    // Disabled: model routing is currently paused.
+    // "opencode-model-router",
     // "oc-codex-multi-auth", // (https://github.com/ndycode/oc-codex-multi-auth)
     // ["@showlotus/opencode-image-vision@latest", { "model": "ollama-cloud/minimax-m3" }], // (https://github.com/showlotus/opencode-image-vision)
   ],
@@ -45,6 +51,15 @@
   "agent": {
     "explore": {
       "disable": true
-    }
+    },
+    "council-researcher": { "model": "xai/grok-4.6" },
+    "council-logician": { "model": "openai/gpt-5.6-sol" },
+    "council-creative": { "model": "xai/grok-4.6" },
+    "council-critic": { "model": "openai/gpt-5.6-sol" },
+    "council-synthesizer": { "model": "openai/gpt-6-astra" },
+    "conclave-captain": { "model": "openai/gpt-6-astra" },
+    "conclave-harper": { "model": "xai/grok-4.6" },
+    "conclave-benjamin": { "model": "openai/gpt-5.6-sol" },
+    "conclave-lucas": { "model": "ollama-cloud/kimi-k3" }
   }
 }
