@@ -26,6 +26,14 @@ The CLI serves skill content that always matches the installed version,
 so instructions never go stale. The content in this stub cannot change
 between releases, which is why it just points at `skills get core`.
 
+## Recording guardrails
+
+- Before recording, read the CLI-served recording docs (`agent-browser skills get core --full`) and follow the current `record start` / `record stop` sequence.
+- Create the destination directory first and prefer an absolute output path for durable evidence.
+- Start recording only after the page or app is loaded enough to produce frames, then perform visible interactions with short pauses.
+- Stop the recording promptly, verify the file exists and is non-empty, and do not treat a saved-but-empty or no-frames recording as evidence.
+- If the requested proof is a user-visible video, the video must show the claimed visible result; logs or DOM text can support the finding but cannot replace the visible result.
+
 ## Specialized skills
 
 Load a specialized skill when the task falls outside browser web pages:

@@ -147,6 +147,12 @@ Prefer the actual affected surface when safe and authorized. Before building a s
       the verdict, and its added cost or risk. Continue only when all four are
       concrete and proportionate. If no discriminating probe remains, return
       `BLOCKED` with the missing signal rather than accumulating activity.
+    - For async UI flows, do not wait blindly. Use a short visible wait, then
+      inspect the product's authoritative run state, logs, network activity, or
+      backend record to decide whether the operation is still running, failed,
+      completed but stale in the UI, or blocked by missing prerequisites. If
+      backend state and UI state disagree, report both and verify only the claim
+      the evidence actually proves.
     - Repetition is valid when repetition is itself the probe, such as timing,
       ordering, or intermittency. State its observation window and stopping
       condition. Otherwise, do not repeat an unchanged check.
@@ -214,6 +220,11 @@ Prefer the actual affected surface when safe and authorized. Before building a s
   the Primary Flow. A terminal, test runner, CI page, log viewer, source file,
   or screenshot of any of them is invalid Observable evidence even when it
   shows a passing result.
+- When the requested Observable is a user-visible video or screenshot, backend
+  logs may corroborate the run but cannot substitute for the visible state. If
+  logs show success while the UI still shows loading, stale data, or no result,
+  the requested Observable is `BLOCKED` or `FAIL` unless another captured UI
+  state shows the success.
 - A screenshot proves a static visible state. Use the smallest ordered set of
   proof states when only the before and after states matter. Use a short
   recording when the claim concerns motion itself, including animation,

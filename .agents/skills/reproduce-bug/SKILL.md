@@ -81,6 +81,11 @@ Prefer the smallest repro path that still proves the bug clearly.
      inspectors. This skill must not edit application code to add logging. If
      source instrumentation is the smallest useful next probe, return that
      need to the diagnosis or implementation owner.
+   - For async flows that appear stuck, use a short observation window, then
+     inspect authoritative run state, logs, network activity, or persisted
+     records instead of extending blind waits. Report a UI/backend mismatch as
+     the observed boundary; do not collapse it into success or failure without
+     user-observable proof.
    - Reuse the smallest part of the `dogfood` workflow needed to reproduce the reported bug.
    - Capture `📸` when a single static proof state is enough.
    - Capture `🎥` when the bug requires interaction or timing proof; prefer one recording for the full sequence.
