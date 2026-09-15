@@ -9,6 +9,8 @@ When delegating to subagents, fill the handoff brief below. One contract for dis
 
 Delegate when a separate context buys coordination, specialist capability, isolation, useful parallelism, or independent judgment, not just another handoff. An authorized Mission owner may execute a small understood task directly; a root Supervisor remains coordination-only, and implementation never replaces fresh independent quality and verification. Explicitly selected workflows retain their required delegation.
 
+When OpenCode Task is the selected delegation path, invoke named primary agents by exact `subagent_type` even if Task omits them from its advertised list. Use `build` for implementation and repository writes, `plan` only for read-only planning, and keep `atlas` and `voyager` research-only. If Build cannot start, report `BLOCKED`; never substitute a research agent.
+
 **Key Files format** when known:
 
 - Line ranges: `file.ts:123-145` for precise navigation

@@ -13,7 +13,7 @@ description: Orchestrate and judge an issue-to-PR pipeline without editing artif
 | `judge-proposal`             | Independently reviews proposal quality.                   | Catches weak assumptions before plan creation.                                   |
 | `create-issue`               | Owns the selected implementation plan.                    | Keeps planning artifacts with the planning workflow.                             |
 | `judge-plan`                 | Independently reviews plan readiness.                     | Prevents implementation from starting on a weak plan.                            |
-| Implementation orchestration | Delegates implementation work to write-capable subagents. | Keeps this wrapper orchestration-only while moving the plan toward working code. |
+| Implementation orchestration | Delegates implementation and repository writes to Task with exact `subagent_type: build`. | Keeps this wrapper orchestration-only while moving the plan toward working code. |
 | `code-quality-gate`          | Fresh subagent reviews code quality after implementation. | Catches implementation issues before QA proof begins.                            |
 | `verification-gate`          | Fresh subagent proves completed work.                     | Keeps QA execution outside this wrapper.                                         |
 | `agent-browser`              | Browser proof path used by `verification-gate`.           | Supports web and mobile-web validation without defining it here.                 |
@@ -67,17 +67,18 @@ Use existing `issue.md`, `plan.md`, and stage reports rather than restarting int
 
 ### 5. Implementation Orchestration
 
-- For `bug` tasks, require the earlier `REPRODUCED` result and an evidence-backed causal explanation that distinguishes the proposed cause from competing explanations before dispatching implementation — suspicion about code alone is not enough. Pass the reproduction result and evidence paths to implementation subagent(s); do not rerun reproduction merely because the plan is approved, duplicate its SOP, or write reproduction details into `plan.md`. If the reported entry point or relevant conditions changed, route affected evidence back to the reproduction owner before proceeding.
+- For `bug` tasks, require the earlier `REPRODUCED` result and an evidence-backed causal explanation that distinguishes the proposed cause from competing explanations before dispatching Build — suspicion about code alone is not enough. Pass the reproduction result and evidence paths to Build; do not rerun reproduction merely because the plan is approved, duplicate its SOP, or write reproduction details into `plan.md`. If the reported entry point or relevant conditions changed, route affected evidence back to the reproduction owner before proceeding.
 - When the causal explanation is not obvious from the reproduction result, route one bounded diagnostic step before implementation: one hypothesis, one smallest discriminating probe that is safe to run without production edits, its observation, then the next action (proceed, or one focused question to the owner). "Obvious" means existing reproduction observations already discriminate the proposed cause from competing explanations; if they do not, run the diagnostic step. Diagnostic probes may be delegated as read/safe work even though causal evidence is still required before any production edit.
 - If the reproduction observations do not discriminate the cause and a probe needs more visibility, the implementation owner may add minimal temporary instrumentation, but only inside a safe, authorized, disposable diagnostic context (branch, sandbox, or explicitly approved run): prefer existing logs first; instrument only at the uncertain boundary, recording the relevant inputs, the decision it enables, its output, and a correlation marker only when needed; count injected inputs, retries, external calls, and side effects as real cost and weigh them before adding it; never log secrets, personal data, or full prompt bodies. This never authorizes an evidence-backed production fix before the causal gate above; instrumentation for diagnosis must be removed or handed to implementation with a removal requirement.
 - Do not implement directly from this wrapper.
-- Always delegate write operations to implementation subagents.
+- Delegate every implementation and repository write through OpenCode Task with exact `subagent_type: build`. Task may omit primary agents from its advertised list; that omission is not a blocker.
+- If Build cannot start by exact name, report `BLOCKED`. Never fall back to `atlas`, `voyager`, or another research agent.
 - Delegate relevant read or research operations when needed.
 - If `{ISSUE_DIR}/plan.md` has a clear, safe delegation structure, follow it.
 - If `{ISSUE_DIR}/plan.md` lacks safe delegation structure, create an ad hoc delegation todo list in memory/context only and delegate safely.
 - Do not save a new plan to disk or revise `{ISSUE_DIR}/plan.md` just to add delegation structure.
 - Avoid overlapping file edits; when overlap exists, sequence agents instead of parallelizing them.
-- Collect the implementation summary, changed files, commands run, known risks, and raw Mechanical command output from implementation subagents.
+- Collect the implementation summary, changed files, commands run, known risks, and raw Mechanical command output from Build.
 - For bug tasks, also pass the reproduction result and evidence paths (including the reproduction smoke steps) to verification so it can reuse the same faithful smoke for the before/after proof.
 
 ### 6. Code Quality Gate
@@ -133,7 +134,7 @@ Do not create helper docs, reference files, sidecar state, ADR files, or wrapper
 | `Judge Decision` in `{ISSUE_DIR}/issue.md`           | `judge-proposal` fresh subagent    |
 | `{ISSUE_DIR}/plan.md`                                | `create-issue` workflow            |
 | `Plan Judge` in `{ISSUE_DIR}/plan.md`                | `judge-plan` fresh subagent        |
-| Implementation code changes                          | Implementation subagents           |
+| Implementation code changes                          | Build via Task `subagent_type: build` |
 | Code quality decision                                | `code-quality-gate` fresh subagent |
 | Verification proof                                   | `verification-gate` fresh subagent |
 | `{ISSUE_DIR}/verification/`                          | `verification-gate` fresh subagent |
@@ -145,11 +146,11 @@ When an artifact is missing or malformed, ask the owner to revise it. Do not fix
 
 ## Delegation Rule
 
-Judge, implementation, code quality, and verification work is delegated:
+Judge, Build implementation, code quality, and verification work is delegated:
 
 - Use `judge-proposal` for the proposal checkpoint.
 - Use `judge-plan` for the plan checkpoint.
-- Use implementation subagents for all write operations.
+- Use Task with exact `subagent_type: build` for all implementation and repository writes. If Build cannot start, report `BLOCKED`; advertised-list omission never permits an `atlas` or `voyager` fallback.
 - Use `code-quality-gate` after implementation is complete.
 - Use `verification-gate` after `APPROVE_CODE`.
 - Do not reuse main-agent context for judge decisions, code quality decisions, or verification proof.
@@ -178,7 +179,7 @@ Before any correction, compare the failed criterion with prior findings: what ch
 
 - Keep this skill lean: orchestration only.
 - Do not create, edit, append, or repair `{ISSUE_DIR}/issue.md`, `{ISSUE_DIR}/plan.md`, or `{ISSUE_DIR}/research/*.md` directly.
-- Do not write implementation code directly; delegate write operations to implementation subagents.
+- Do not write implementation code directly; delegate implementation and repository writes through Task with exact `subagent_type: build`.
 - Do not create files or saved plans for ad hoc delegation; keep ad hoc delegation in memory/context only.
 - Do not duplicate decision logic from `gather-context`, `create-issue`, judge skills, implementation skills, verification skills, or PR workflows.
 - Do not define detailed implementation execution prompts.
