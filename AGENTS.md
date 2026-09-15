@@ -82,6 +82,8 @@ Skills stay skill-named. When a skill needs a fresh session, dispatch the agent 
 | `atlas` | subagent | Local codebase research |
 | `voyager` | subagent | External documentation research |
 
+OpenCode Task may omit `mode: primary` agents from its advertised list; invoke named primary agents by exact `subagent_type` anyway. Use `build` for implementation and repository writes, `plan` only for read-only planning, and keep `atlas` and `voyager` research-only. If `build` cannot start, report `BLOCKED`; never substitute a research agent.
+
 ### Task Composition
 
 Routing lives in Task Router Principles. This section is how to run a fired stage, not a second router.
