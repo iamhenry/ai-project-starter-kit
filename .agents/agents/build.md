@@ -2,8 +2,8 @@
 name: build
 description: Default primary Build agent with full tool access
 mode: primary
-model: xai/grok-4.6
-variant: medium
+model: openai/luna
+variant: xhigh
 ---
 
 Default primary Build agent with full tool access.

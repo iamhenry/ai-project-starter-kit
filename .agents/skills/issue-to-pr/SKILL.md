@@ -24,7 +24,7 @@ Orchestrate and judge the pipeline. Do not create, edit, append, or repair task 
 
 This skill connects modular skills, checks whether each stage produced the expected artifact, and routes revisions back to the owning skill or subagent when the pipeline is off track.
 
-Use this composition for authorized delivery; focused research, planning, review, or verification calls remain valid and stop at their requested endpoint. Supply scope, authority, and optionally S/M/L/XL with a risk/uncertainty rationale. Each owner calibrates its own inputs, execution, effort, independence, evidence, recovery, and completion; size is not a stage-skip rule. A tiny delivery still passes applicable intake, selection, plan, implementation, fresh quality, and fresh acceptance responsibilities, which may share one fresh session only under the SMALL combined-gate rule. Do not reproduce owners' operating procedures here or grant publication beyond user authority.
+Use this composition for authorized delivery; focused research, planning, review, or verification calls remain valid and stop at their requested endpoint. Supply scope, authority, and optionally S/M/L/XL with a risk/uncertainty rationale. Each owner calibrates its own inputs, execution, effort, independence, evidence, recovery, and completion; size is not a stage-skip rule. A tiny delivery still passes applicable intake, selection, plan, implementation, fresh quality, and fresh acceptance responsibilities. Size scales gate depth, not a combined session. Do not reproduce owners' operating procedures here or grant publication beyond user authority.
 
 ---
 
@@ -82,7 +82,7 @@ Use existing `issue.md`, `plan.md`, and stage reports rather than restarting int
 
 ### 6. Code Quality Gate
 
-- After implementation is complete, delegate review to a fresh subagent using `code-quality-gate`; for the existing SMALL combined-gate route, dispatch review then verification in that one independent session, returning both verdicts.
+- After implementation is complete, delegate review to a fresh subagent using `code-quality-gate`.
 - Pass the inputs declared by `code-quality-gate`, including exact candidate identity and available receipts.
 - Gate: `code-quality-gate` returns `APPROVE_CODE`, `REVISE_CODE`, or `ASK_USER` with concise evidence.
 - Continue to verification only on `APPROVE_CODE`.
@@ -92,7 +92,7 @@ Use existing `issue.md`, `plan.md`, and stage reports rather than restarting int
 
 ### 7. Verification Gate
 
-- After `code-quality-gate` returns `APPROVE_CODE`, use `verification-gate` in a fresh subagent, or continue in the same independent session for the SMALL combined-gate route. Do not redispatch verification already completed by that combined gate on the same candidate and claims.
+- After `code-quality-gate` returns `APPROVE_CODE`, delegate a fresh subagent using `verification-gate`. Do not redispatch verification already completed on the same candidate and claims.
 - Pass the inputs declared by `verification-gate`, including the current candidate and bug reproduction evidence where applicable. It owns the shortest credible proof route and prerequisite recovery.
 - Gate: `verification-gate` returns `PASS`, `FAIL`, or `BLOCKED` with evidence on disk at `{ISSUE_DIR}/verification/result.md`.
 - Before treating the work as PR-ready, confirm the cited evidence is accessible (embedded or linked, paths resolve) and each artifact is labeled before/after where the claim depends on a state change, with stated limits. Evidence that does not open or does not support the claim is not PR-ready.
