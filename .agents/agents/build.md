@@ -2,7 +2,7 @@
 name: build
 description: Default primary Build agent with full tool access
 mode: primary
-model: openai/luna
+model: openai/gpt-5.6-luna
 variant: xhigh
 ---
 
