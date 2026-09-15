@@ -26,7 +26,7 @@ Frame the task, then fire only matching stages from the table. Announce `📣 RO
 - Fire only stages the task needs; skip the rest. Chain in table order. Do not add hops for rigor.
 - Size scales how hard a fired stage runs, not how many stages you add. SMALL: narrow on the changed surface. MEDIUM: affected paths and distinct risks. LARGE: deeper discovery, still no inferred `issue-to-pr`.
 - Skills own their SOPs; scale the SOP to the task. `gather-context` is a full campaign only when uncertainty or blast radius needs it — inspect a known local path yourself. Small plans and settled decisions stay inline; use `shaping` when the user asked to shape. Skip `five-whys` when the cause is evident. Implement with the matching skill, else the main agent.
-- Acceptance routes to independent `reviewer` then `qa` sessions. Each gate owns its operation, evidence validity, stopping conditions, and verdict.
+- Delivery acceptance normally routes through fresh `reviewer` then `qa` sessions. Scale each gate to the changed risk and reuse valid evidence. The owning skill decides what to check, what an edit invalidates, and when evidence is sufficient. Focused review or proof requests run only the requested gate and stop there.
 - Specify, review, plan, or focused proof alone stops there. No-edits requests never authorize implementation. Publish only if asked. `issue-to-pr` is never inferred. The Only when asked table runs only when you asked for that kind of work.
 
 **Lifecycle:**
