@@ -192,7 +192,7 @@ Use these as hard filters before presenting options:
 
 Rank by: **minimal diff + style alignment first** -> more involved last.
 
-Each option must include a relevant regression probe, or explain why no adjacent behavior is affected. Include duplicate trigger/clobber checks when that risk exists.
+Before recommending an approach, resolve any unverified dependency behavior that could invalidate the requested outcome. Reuse sufficient cited evidence; otherwise use the smallest safe, authorized probe that distinguishes support from its likely false positive. An available API is not proof of the behavior required from it. If unresolved, name the gap and block only work that depends on it; do not silently reduce the requirement. Stop investigating once the decision is supported. Each option must include a relevant regression probe, or explain why no adjacent behavior is affected. Include duplicate trigger/clobber checks when that risk exists.
 
 For each option ask: *"Would a maintainer approve this PR without asking for changes?"*
 

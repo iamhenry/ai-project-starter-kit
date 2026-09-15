@@ -37,7 +37,7 @@ If required inputs or approaches are missing, return `ASK_USER` identifying the 
 
 Reject an approach before scoring if it:
 
-- Fails explicit acceptance criteria.
+- Fails explicit acceptance criteria or substitutes an intermediate technical result for the requested outcome. A reduced requirement or exception needs explicit scope authority; changing the verification criteria does not grant it.
 - Conflicts with stated constraints or research evidence.
 - Adds implementation scope not required by the issue.
 - Creates duplicated state/source of truth without a clear need.

@@ -101,6 +101,7 @@ Prefer the actual affected surface when safe and authorized. Before building a s
    - Start with one decisive flow through the actual user or consumer entry point. Do not begin with a lower-layer substitute that cannot disprove the same claim.
 
 3. Establish the exact candidate and prerequisites.
+   - Reuse known setup and confirm the executor can safely operate the candidate. When capture failure would force a costly or state-changing flow to be repeated, check the required screenshot or recording mechanism first with the smallest disposable capture. This checks tooling, not the product outcome; retain no extra proof or harness solely for preflight.
    - Confirm that the runtime subject matches the candidate commit, or the base
      commit plus exact uncommitted diff, before accepting evidence.
    - If activating the candidate could interrupt the verifier or mutate shared state, use a disposable executor for that action, restore the prior state, and have the fresh verifier judge the retained evidence and candidate identity without repeating the mutation.
