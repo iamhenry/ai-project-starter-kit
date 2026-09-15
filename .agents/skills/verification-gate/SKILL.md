@@ -9,6 +9,16 @@ Use this skill for delivery acceptance after implementation and `code-quality-ga
 
 Run acceptance in a fresh verifier session, separate from implementation and from code-quality review. Invoking this skill in the implementer's or reviewer's session does not supply independence. If the required separation is unavailable, return `BLOCKED`; fresh context reduces self-confirmation bias, not all bias. A focused verification request stops at its verdict and does not authorize fixes, commits, or publication.
 
+## Acceptance Scope and Stopping
+
+- Verify declared claims, not the whole candidate. Map each claim to one terminal observation before probing.
+- An edit invalidates only claims it could affect. Reuse still-valid evidence for unaffected claims when candidate identity, runtime conditions, and the reason it remains valid are explicit.
+- Stop a claim as soon as its terminal observation appears. Do not investigate unrelated stale states or continue polling after success.
+- If the terminal observation is absent or contradicted, use at most one fallback source that can answer the named unresolved question. If it cannot, return `FAIL` or `BLOCKED` instead of widening the investigation.
+- A missing receipt or artifact is an evidence gap, not a new candidate. Reacquire only that evidence and preserve proven claims unless the candidate or relevant conditions changed.
+
+These rules apply to issue mode, ISA mode, and standalone verification. Mode-specific contracts may add claims but do not replace these stopping rules.
+
 ## Mode Dispatch
 
 - The default, when `mode` is omitted, is the existing issue mode below. Any mode other than the explicit `mode: isa` request uses the existing issue-mode contract; do not auto-detect ISA inputs.
@@ -91,6 +101,7 @@ Prefer the actual affected surface when safe and authorized. Before building a s
 1. Define the verification target.
    - State the single main user outcome that must work.
    - State its falsifier: the observation that would show the outcome failed.
+   - State the terminal observation for each declared claim, including the regression check when present.
    - Add one lightweight regression check when adjacent behavior could easily break.
 
 2. Map the proof flow.
@@ -149,12 +160,7 @@ Prefer the actual affected surface when safe and authorized. Before building a s
       the verdict, and its added cost or risk. Continue only when all four are
       concrete and proportionate. If no discriminating probe remains, return
       `BLOCKED` with the missing signal rather than accumulating activity.
-    - For async UI flows, do not wait blindly. Use a short visible wait, then
-      inspect the product's authoritative run state, logs, network activity, or
-      backend record to decide whether the operation is still running, failed,
-      completed but stale in the UI, or blocked by missing prerequisites. If
-      backend state and UI state disagree, report both and verify only the claim
-      the evidence actually proves.
+    - For async UI flows, stop immediately when the terminal observation appears, even if unrelated status UI remains stale. If it does not appear after a short visible wait, choose one authoritative fallback such as run state, logs, network activity, or a backend record. Use that fallback only to decide the named unresolved question. If backend and UI state disagree, report both and verify only the claim the evidence actually proves.
     - Repetition is valid when repetition is itself the probe, such as timing,
       ordering, or intermittency. State its observation window and stopping
       condition. Otherwise, do not repeat an unchanged check.
@@ -231,7 +237,7 @@ Prefer the actual affected surface when safe and authorized. Before building a s
   proof states when only the before and after states matter. Use a short
   recording when the claim concerns motion itself, including animation,
   loading progression, transition continuity, gesture response, or timing.
-- Independently establish the candidate and assess the proof rather than accepting implementer claims. After corrections, identify affected claims and required rechecks. Reuse unaffected Observable evidence only with an explicit explanation of why changed files and conditions do not invalidate it; rerun affected proof on the current candidate. Coupled, uncertain, or consequential changes can warrant broader or full fresh verification. Mechanical is still rerun as required above.
+- Independently establish the candidate and assess the proof rather than accepting implementer claims. After corrections, apply the claim-scoped invalidation rules above. Coupled, uncertain, or consequential changes can affect more claims, but do not assume every correction invalidates every claim.
 - Capture only the evidence needed to support the verdict.
 - Never record secrets, tokens, private user data, or unnecessary personal information.
 - If any temporary diagnostic instrumentation was added during reproduction or
@@ -270,7 +276,7 @@ Prefer the actual affected surface when safe and authorized. Before building a s
 
 ## Output
 
-Return failed criteria, evidence/prerequisite owner, and required rechecks in Notes. For delivery, the caller routes defects through implementation and fresh code-quality review before acceptance; proof gaps return here without unrelated edits. Focused verification reports findings and stops, without assigning fixes or implying delivery approval. After 2 `FAIL` verdicts, including evidence-only failures, stop with `EXHAUSTED`; carry prior verdicts across dispatches. `BLOCKED` does not redispatch itself against an unchanged prerequisite. Never use exhaustion to waive acceptance.
+Return failed criteria, evidence/prerequisite owner, and required rechecks in Notes. For delivery, the caller routes defects through implementation and fresh code-quality review before acceptance; proof gaps return here without unrelated edits. Focused verification reports findings and stops, without assigning fixes or implying delivery approval. After 2 `FAIL` verdicts for the same affected claim, stop with `EXHAUSTED`; evidence-only gaps do not invalidate other proven claims or create a new candidate. Carry prior verdicts across dispatches. `BLOCKED` does not redispatch itself against an unchanged prerequisite. Never use exhaustion to waive acceptance.
 
 Use this exact structure:
 

@@ -23,7 +23,7 @@ Read the minimum available context:
 - Required: changed files and/or git diff
 - Optional but useful: `{ISSUE_DIR}/issue.md`
 - Optional but useful: implementation summary from the implementation agent
-- Required when `plan.md` names Mechanical command(s): raw output for those commands. Missing that output is `REVISE_CODE`. This gate does not run the commands or edit tests.
+- Required when `plan.md` names Mechanical command(s): raw output for those commands. Missing output is an evidence gap, not a code defect. This gate does not run the commands or edit tests.
 - Optional but useful: `_ai/prompts/quality/code-review.md` as the review standard
 - Optional but useful: `_ai/prompts/quality/code-guidelines.md` as the quality standard
 
@@ -34,7 +34,7 @@ If the approved contract or changed code/diff is missing, return `ASK_USER` nami
 - `ISSUE_DIR` is the artifact directory created by `gather-context` for the current pipeline run.
 - Required: the approved contract above, plus changed files and/or git diff and exact candidate identity (commit or base plus uncommitted diff).
 - Optional but useful: `issue.md`, implementation summary, and quality docs.
-- If `plan.md` names Mechanical command(s) and their raw output is missing, return `REVISE_CODE` identifying an evidence gap, not a code defect. Request the receipt from the implementation owner without source changes. Do not run the commands.
+- If `plan.md` names Mechanical command(s) and their raw output is missing, return `ASK_USER` identifying the missing receipt and its owner. For pipeline calls, the caller repairs that owned input without asking the human. Resume this review against the same candidate after the receipt arrives; do not request source changes, create a new candidate, or invalidate prior review conclusions. Do not run the commands.
 - If command output is missing because the plan has no Mechanical field (legacy plan), do not invent a requirement here.
 
 ## Review Process
@@ -55,7 +55,7 @@ Score out of 100:
 | --- | ---: | --- |
 | Correctness against `plan.md` | 30 | Implements required behavior; respects scope/out-of-scope; has no obvious regressions against plan acceptance criteria. |
 | Simplicity / KISS / YAGNI | 25 | Uses the smallest solution that satisfies the plan; avoids speculative abstractions/features; avoids duplicate state or sources of truth. |
-| Tests / build / typecheck | 15 | Plan-named Mechanical output is present and passing; coverage matches changed risk; missing named output is a hard fail. |
+| Tests / build / typecheck | 15 | Plan-named Mechanical output is present and passing; coverage matches changed risk. |
 | Architecture / repo style | 15 | Follows existing patterns; respects boundaries/interfaces; avoids unnecessary dependencies. |
 | Security / error handling | 10 | Has no privacy/security regression; handles failure paths safely. |
 | Readability / maintainability | 5 | Names and structure are understandable; code is easy to review/change. |
@@ -71,7 +71,7 @@ Scoring anchors:
 Return `REVISE_CODE` regardless of score if any are true:
 
 - Relevant test, build, lint, or typecheck output fails.
-- Plan-named Mechanical command output is missing or failing.
+- Plan-named Mechanical command output is failing.
 - New or changed Mechanical test that asserts no relevant condition of the Objective (compile/lint/typecheck-only oracle). Mechanical and Observable may cover different parts of the outcome; do not demand a new end-to-end harness when focused assertions plus actual-surface proof suffice.
 - High severity bug with direct code evidence.
 - Security or privacy issue.
@@ -79,15 +79,15 @@ Return `REVISE_CODE` regardless of score if any are true:
 - Unplanned scope drift.
 - Overengineered solution where a simpler approach satisfies `plan.md`.
 
-Return `ASK_USER` instead when the blocker is missing context, ambiguous product intent, unclear plan scope, or conflicting artifacts. Missing Mechanical output is `REVISE_CODE`, not `ASK_USER`.
+Return `ASK_USER` instead when the blocker is missing context or evidence, ambiguous product intent, unclear plan scope, or conflicting artifacts. Name the missing input and its owner.
 
 ## Decision Rules
 
 - `APPROVE_CODE`: no hard fail, score is 85 or higher, and remaining issues are low-risk or clearly optional.
 - `REVISE_CODE`: hard fail applies, or score is below 85 with actionable implementation changes.
-- `ASK_USER`: required inputs are missing, product behavior is ambiguous, or deciding would require guessing beyond the artifacts.
+- `ASK_USER`: required inputs or receipts are missing, product behavior is ambiguous, or deciding would require guessing beyond the artifacts.
 
-If `REVISE_CODE`, the caller routes the actual gap to its owner: missing receipts to implementation, failed prerequisites to setup, and demonstrated defects to implementation. Then obtain fresh review of the resulting candidate. Identify which prior findings and evidence remain valid and which need rechecking; a narrow correction need not repeat unrelated review, while coupled, uncertain, or consequential changes may warrant full fresh assurance. Compare repeated findings before proposing another edit; an unchanged failure calls for reconsideration. After 2 `REVISE_CODE` verdicts the caller stops with `EXHAUSTED`, including evidence-only rejections; carry prior verdicts across dispatches. If fresh delegation is unavailable, report the limitation, not APPROVE_CODE from self-review.
+If `REVISE_CODE`, the caller routes demonstrated defects to implementation and failed prerequisites to setup, then obtains fresh review of the resulting candidate. Identify which prior findings and evidence remain valid and which need rechecking; a narrow correction need not repeat unrelated review, while coupled, uncertain, or consequential changes may warrant full fresh assurance. If `ASK_USER` identifies a pipeline-owned evidence gap, repair that input and resume the same review against the unchanged candidate; this is not a revision attempt and does not restart acceptance. Compare repeated findings before proposing another edit; an unchanged failure calls for reconsideration. After 2 `REVISE_CODE` verdicts the caller stops with `EXHAUSTED`; carry prior verdicts across dispatches. If fresh delegation is unavailable, report the limitation, not APPROVE_CODE from self-review.
 
 ## Output Format
 

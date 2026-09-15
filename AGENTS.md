@@ -26,16 +26,8 @@ Frame the task, then fire only matching stages from the table. Announce `📣 RO
 - Fire only stages the task needs; skip the rest. Chain in table order. Do not add hops for rigor.
 - Size scales how hard a fired stage runs, not how many stages you add. SMALL: narrow on the changed surface. MEDIUM: affected paths and distinct risks. LARGE: deeper discovery, still no inferred `issue-to-pr`.
 - Skills own their SOPs; scale the SOP to the task. `gather-context` is a full campaign only when uncertainty or blast radius needs it — inspect a known local path yourself. Small plans and settled decisions stay inline; use `shaping` when the user asked to shape. Skip `five-whys` when the cause is evident. Implement with the matching skill, else the main agent.
-- Worker ≠ Accept. Default: independent `reviewer` then `qa` sessions — diff/code **and** user-visible state (what the user can see or do, including backend-driven UI; which files changed does not skip it). SMALL scales how hard each gate runs, not a combined session. SMALL dispatch overhead is deferred for later refinement; keep separate sessions for now. Same candidate + same claim → cite PASS. Worker edit → Accept again. Worker smoke is not acceptance.
+- Delivery acceptance normally routes through fresh `reviewer` then `qa` sessions. Scale each gate to the changed risk and reuse valid evidence. The owning skill decides what to check, what an edit invalidates, and when evidence is sufficient. Focused review or proof requests run only the requested gate and stop there.
 - Specify, review, plan, or focused proof alone stops there. No-edits requests never authorize implementation. Publish only if asked. `issue-to-pr` is never inferred. The Only when asked table runs only when you asked for that kind of work.
-
-#### When a task is done
-
-Accept uses this. Do not add extra hops to satisfy it.
-
-Good: someone other than the worker judged this candidate once. The diff is sane **and** the user-visible result is real — what a user can see or do, including backend-driven UI. Depth matches the task: a wording change is read; a status-menu change is clicked. Same candidate is cited, not re-proved. A worker edit is a new candidate.
-
-Bad: the worker says it works. Extra verify hops on an unchanged PASS. Stopping because the diff looks right. Skipping the user-visible check because the files were backend. A product demo for a docs tweak. Claiming a check passed that was not run.
 
 **Lifecycle:**
 
@@ -92,33 +84,11 @@ Before acting, state the selected skills in dependency order and briefly justify
 
 Canonical order is the lifecycle table. Skip a stage only when it does not apply; never reorder.
 
-1. FINISH THE JOB
-   Don't stop after the first hop. Mechanical checks establish code health, not
-   completion. Done means the exact candidate produced the intended outcome
-   through the actual user or consumer entry point.
-   HEURISTIC: IF THEY ONLY COME BACK FOR THE PR OR THIS THREAD, CAN THEY
-   TELL IT WORKED WITHOUT RERUNNING ANYTHING?
-
-2. STAY OUT OF THE WAY
-   Avoid making the human a routine workflow step. Ask when intent, authority,
-   or a required approval remains unresolved; continue any unblocked work.
-   HEURISTIC: AM I ASKING THEM TO CLICK THE APP, OR TO MAKE A CALL ONLY
-   THEY CAN MAKE?
-
-3. PROOF IS AN ARTIFACT, NOT A VIBE
-   Quality = sane diff. Evidence = the actual product result. Leave something
-   they can open. PR contains both; no PR → leave both in the thread.
-   HEURISTIC: WHAT CAN THEY OPEN TOMORROW THAT PROVES THIS?
-
 **Standing rules:**
 
 | Area | Rule | Practical implication |
 |---|---|---|
 | Default behavior | Implementation requests authorize in-scope local edits and relevant checks without repeated permission. Research, review, and planning requests remain read-only for implementation files. | Inspect before editing. Complete authorized work; ask only when unresolved intent or authority materially changes the outcome. |
-| Verification | Follow Accept in Task Router Principles. One independent pass per candidate; do not add extra proof hops. | Depth follows size: cheapest check that could show we are wrong. Report unrelated existing failures without expanding scope to fix them. |
-| Evidence | Match evidence to the claim — diff proves change, not outcome. Never claim a check passed unless it was actually run. | New behavior → run the product and show it; bug fix → reproduce the reported behavior and establish the cause before editing, then repro before, gone after; big change → actual user-flow evidence plus proportional tests and logs. Evidence must exercise and demonstrate the exact claimed target, and the agent must inspect any cited artifact before relying on it. Passing tests or a merged diff alone never substitute for outcome evidence. If the actual path cannot run safely, report `BLOCKED`, never `PASS`. |
-| Gate decisions | PASS continues; REVISE returns to the owning skill; ASK_USER asks one focused question. | When Accept runs, use a fresh agent judging artifacts on disk — never the worker, and never a same-agent patch ad hoc. |
-| Subagents | Accept's judge is not the worker. Default one agent. Other delegation only if it buys speed, coverage, or judgment. | Do not spawn extra verifiers for rigor. |
 | Resume | Pick up from the current worktree and last commit. | Don't restart finished work. |
 | Ambiguity | Ask one focused question when material intent, scope, safety, or authority remains unresolved after supplied context and permitted inspection. | Investigate technical uncertainty within clear authority; don't invent user intent. |
 | Simplicity | Reuse existing code; prefer the laziest working solution. | Reuse before new, stdlib before custom, delete before add. |
