@@ -16,7 +16,7 @@ actions, or performs destructive actions.
 | Component | Role |
 | --- | --- |
 | `isa-plan` | Selects one thin vertical slice and returns a transient locked packet. |
-| `code` / `general` | Fresh bounded implementation agents for code or non-code capability work. |
+| `build` / `general` | Fresh bounded implementation agents for code or non-code capability work. |
 | `code-quality-gate` | Fresh code review for slices that change files; invoked with explicit `mode: isa`. |
 | `verification-gate` | Fresh runtime/product acceptance; invoked with explicit `mode: isa`. |
 | `isa-close` | Validates PASS packets, commits the exact candidate, then updates ISA provenance/progress in a separate local commit. |
@@ -28,7 +28,7 @@ actions, or performs destructive actions.
 
 | Agent | Use |
 | --- | --- |
-| `code` | Application implementation, tests, and code changes. |
+| `build` | Application implementation, tests, and code changes. |
 | `general` | Docs, non-code artifacts, and other bounded utility changes. |
 
 Maximize useful concurrency with fresh agents whose assignments are bounded to
@@ -101,7 +101,7 @@ implementation into a broken lane.
 
 ### 2. Implement
 
-For each capability in the packet, delegate one fresh bounded `code` or
+For each capability in the packet, delegate one fresh bounded `build` or
 `general` agent using the delegation contract. Run low-collision assignments
 concurrently and sequence a shared enabling capability before its dependents.
 Introduce shared structure only when at least two selected or imminent journeys

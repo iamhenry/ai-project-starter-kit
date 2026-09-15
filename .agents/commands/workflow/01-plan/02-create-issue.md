@@ -284,7 +284,7 @@ Start every checklist item with an **ALL CAPS** Action Verb followed by a colon.
 
 #### Phase 2: Verification Gate
 
-Once implementation is complete, obtain `code-quality-gate` approval, then `verification-gate` acceptance before any authorized commit. Follow the owning skills' independence rules, including the existing SMALL combined-session exception with separate verdicts; neither gate is performed by the implementer. These skills own review depth, proof-route selection, recovery, and completion. Define what must be proven:
+Once implementation is complete, obtain `code-quality-gate` approval, then `verification-gate` acceptance before any authorized commit. Dispatch them as separate sessions; neither gate is performed by the implementer. These skills own review depth, proof-route selection, recovery, and completion. Define what must be proven:
 
 - [ ] **web / mobile-web**: Browser verification targets for desktop or responsive/mobile browser UI
 - [ ] **desktop / ios / android / macos**: App verification targets

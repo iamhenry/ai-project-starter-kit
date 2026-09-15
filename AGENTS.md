@@ -26,7 +26,7 @@ Frame the task, then fire only matching stages from the table. Announce `📣 RO
 - Fire only stages the task needs; skip the rest. Chain in table order. Do not add hops for rigor.
 - Size scales how hard a fired stage runs, not how many stages you add. SMALL: narrow on the changed surface. MEDIUM: affected paths and distinct risks. LARGE: deeper discovery, still no inferred `issue-to-pr`.
 - Skills own their SOPs; scale the SOP to the task. `gather-context` is a full campaign only when uncertainty or blast radius needs it — inspect a known local path yourself. Small plans and settled decisions stay inline; use `shaping` when the user asked to shape. Skip `five-whys` when the cause is evident. Implement with the matching skill, else the main agent.
-- Worker ≠ Accept. Default: one other agent, one session — diff/code **and** user-visible state (what the user can see or do, including backend-driven UI; which files changed does not skip it). Split to two agents only when the task is actually large. Same candidate + same claim → cite PASS. Worker edit → Accept again. Worker smoke is not acceptance.
+- Worker ≠ Accept. Default: independent `reviewer` then `qa` sessions — diff/code **and** user-visible state (what the user can see or do, including backend-driven UI; which files changed does not skip it). SMALL scales how hard each gate runs, not a combined session. SMALL dispatch overhead is deferred for later refinement; keep separate sessions for now. Same candidate + same claim → cite PASS. Worker edit → Accept again. Worker smoke is not acceptance.
 - Specify, review, plan, or focused proof alone stops there. No-edits requests never authorize implementation. Publish only if asked. `issue-to-pr` is never inferred. The Only when asked table runs only when you asked for that kind of work.
 
 #### When a task is done
@@ -64,6 +64,23 @@ Bad: the worker says it works. Extra verify hops on an unchanged PASS. Stopping 
 | Long-running or autonomous work | tmux |
 | Write or substantially rewrite a SKILL.md | skill-creator → skill-quality-checklist |
 | GitHub issue | create-ticket |
+
+### Agents
+
+Skills stay skill-named. When a skill needs a fresh session, dispatch the agent from this table.
+
+| Agent | Mode | Role |
+|---|---|---|
+| `build` | primary | Default implementer |
+| `plan` | primary | Read-only analysis, planning, and judging |
+| `orchestrator` | primary | Pipeline orchestration |
+| `bb-supervisor` | primary | BB task and mission host |
+| `general` | subagent | Bounded docs, config, or misc |
+| `reviewer` | subagent | Runs `code-quality-gate` |
+| `qa` | subagent | Runs `verification-gate` |
+| `pr-reviewer` | subagent | Existing GitHub PR review |
+| `atlas` | subagent | Local codebase research |
+| `voyager` | subagent | External documentation research |
 
 ### Task Composition
 
