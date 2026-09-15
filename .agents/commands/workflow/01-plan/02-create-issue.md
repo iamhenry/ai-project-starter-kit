@@ -32,7 +32,7 @@ Owns the local implementation plan, not implementation or publication. Accept ap
 
 ## Implementation
 
-You create a proportionate local plan from approved user input. This command does not file GitHub issues, implement, commit, or publish.
+Translate the selected approach into proportionate executable steps, reusing supplied research. Inspect only missing details needed for an actionable plan; do not automatically restart research or shaping. If a gap changes the approach or promised outcome, return that specific gap to its owner before planning dependent work. This command does not file GitHub issues, implement, commit, or publish.
 
 ### Input Processing
 
