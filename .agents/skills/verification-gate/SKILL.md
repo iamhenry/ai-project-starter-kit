@@ -122,9 +122,10 @@ Prefer the actual affected surface when safe and authorized. Before building a s
       output. Do not paraphrase pass/fail or replace the command.
     - Inline rule: changed user or consumer behavior requires operating the actual
       affected product or integration through the Primary Flow on the exact
-      candidate. Tests, terminals, CI screens, logs, source inspection, and
-      screenshots of those materials are Mechanical evidence only. They never
-      satisfy Observable.
+       candidate. Tests, CI screens, diagnostic logs, source inspection, and
+       screenshots of those materials are Mechanical evidence only. A real
+       CLI command or API request and its concrete result can be Observable
+       for that consumer interface, never a substitute for required UI proof.
     - Use the selected platform route for Observable. `PASS` requires both
       Mechanical and Observable whenever the task changes user or consumer
       behavior, even if the plan omitted or misclassified the Observable lane.
@@ -179,8 +180,8 @@ Prefer the actual affected surface when safe and authorized. Before building a s
 
     - `macos` observable proof is always the XcodeBuildMCP UI check.
     - `ios` without a reproduction flow: observable proof is the smallest XcodeBuildMCP UI check that proves the Verification Target. Do not author a flow during verification.
-    - `ios` with a reproduction flow from `reproduce-bug` (stored at
-      `_ai/task/{SLUG}/reproduction/flows/<safe-name>.yaml`): load `argent`
+     - `ios` with a reproduction flow from `reproduce-bug` (use the supplied
+       evidence path, normally `{ISSUE_DIR}/reproduction/flows/<safe-name>.yaml`): load `argent`
       and replay that exact file on the exact candidate with `argent flow run
       <path.yaml> --device <id> --platform ios --json`, selecting a device per
       the `argent` skill. Establish candidate provenance for the installed app
@@ -242,6 +243,7 @@ Prefer the actual affected surface when safe and authorized. Before building a s
   requires them. If `ISSUE_DIR` exists, store only
   retained evidence under `{ISSUE_DIR}/verification/` with `screenshots/` and
   `videos/` subfolders.
+- For standalone delivery evidence, keep the final report and retained media in an authorized durable task or thread directory, not OS temp. If the supplied directory is temporary, resolve a durable destination with its owner before claiming a retained handoff; do not create pipeline intake or a plan for this.
 - Retain the minimum user-observable evidence needed by the claim: screenshots
   by default; a short video only when motion or lifecycle cannot be shown
   otherwise. Do not create evidence theater or retain artifacts that add no

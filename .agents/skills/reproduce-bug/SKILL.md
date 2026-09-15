@@ -33,6 +33,7 @@ Collect only the context needed to attempt reproduction:
 - starting URL, screen, command, or environment
 - known repro steps, if any
 - account, auth, test data, or feature flag prerequisites
+- caller-supplied `ISSUE_DIR` for pipeline calls, or an authorized evidence directory for standalone calls; standalone reproduction does not require pipeline intake or a plan
 
 If the bug report is vague, reduce it to one testable repro target before proceeding.
 
@@ -48,7 +49,7 @@ Choose exactly one primary mode:
    - Use when the bug is visible on load and a screenshot is enough to prove it.
 3. `non-browser`
    - Use when the bug is reproduced more directly through a command, API call, file output, log, or data check.
-   - iOS user journeys count here: load the `argent` skill and replay the reported entry point as a flow on a simulator or connected iPhone. Save the flow ONLY at `_ai/task/{SLUG}/reproduction/flows/<safe-name>.yaml` (safe name: letters, numbers, `_`, `-`) so `verification-gate` can replay the exact file on the candidate.
+   - iOS user journeys count here: load the `argent` skill and replay the reported entry point as a flow on a simulator or connected iPhone. Save the flow at `flows/<safe-name>.yaml` under the evidence directory defined below (safe name: letters, numbers, `_`, `-`) so `verification-gate` can replay the exact file on the candidate.
    - The flow must assert the initial screen state and the expected behavior (not just that the actions ran) — the reproduction contract in the `argent` skill. Establish that the installed app matches the exact candidate before replay; missing/stale app means build/install via `xcodebuildmcp-cli` first, or `BLOCKED` if provenance cannot be established.
    - The flow result plus `--json` report is the observable proof; mechanical proof (build, logs) stays with `xcodebuildmcp-cli`.
 
@@ -130,8 +131,8 @@ Prefer the smallest repro path that still proves the bug clearly.
 - Use screenshots for static visible issues.
 - Use a single full-sequence video for interaction-heavy repros.
 - Never capture secrets, tokens, private user data, or unnecessary personal information.
-- If a task directory exists, store artifacts under `_ai/task/{SLUG}/reproduction/` with `screenshots/` and `videos/` subfolders.
-- For iOS flow reproduction, the replayable flow itself is durable evidence: keep it at `_ai/task/{SLUG}/reproduction/flows/<safe-name>.yaml` alongside the other artifacts.
+- Use `{ISSUE_DIR}/reproduction/` for pipeline evidence, preserving the supplied task directory including its date; for standalone calls, use the authorized evidence directory directly. Keep media in `screenshots/` and `videos/` subfolders.
+- For iOS flow reproduction, retain `flows/<safe-name>.yaml` in that same directory as durable evidence and return its exact path for replay.
 - Always include artifact paths when evidence exists.
 
 ## Output

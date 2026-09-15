@@ -53,7 +53,7 @@ Use existing `issue.md`, `plan.md`, and stage reports rather than restarting int
 
 ### 3. Create Issue Plan
 
-- Invoke the tracked `create-issue` owner at `.agents/commands/workflow/01-plan/02-create-issue.md` after selection, passing the existing `ISSUE_DIR` and approved artifacts. It owns plan structure and proportional detail.
+- Delegate planning after selection using the tracked command `.agents/commands/workflow/01-plan/02-create-issue.md`, passing the existing `ISSUE_DIR` and approved artifacts. `create-issue` below names this command owner, not a required registered skill. It owns plan structure and proportional detail.
 - Gate: its declared output `{ISSUE_DIR}/plan.md` exists.
 - If the plan artifact appears elsewhere or `{ISSUE_DIR}/plan.md` is missing, stop and route as a `create-issue` output mismatch; do not create `{ISSUE_DIR}/plan.md` here.
 
@@ -82,7 +82,7 @@ Use existing `issue.md`, `plan.md`, and stage reports rather than restarting int
 
 ### 6. Code Quality Gate
 
-- After implementation is complete, delegate review to a fresh subagent using `code-quality-gate`.
+- After implementation is complete, delegate review to a fresh subagent using `code-quality-gate`; for the existing SMALL combined-gate route, dispatch review then verification in that one independent session, returning both verdicts.
 - Pass the inputs declared by `code-quality-gate`, including exact candidate identity and available receipts.
 - Gate: `code-quality-gate` returns `APPROVE_CODE`, `REVISE_CODE`, or `ASK_USER` with concise evidence.
 - Continue to verification only on `APPROVE_CODE`.
@@ -92,7 +92,7 @@ Use existing `issue.md`, `plan.md`, and stage reports rather than restarting int
 
 ### 7. Verification Gate
 
-- After `code-quality-gate` returns `APPROVE_CODE`, delegate verification to a fresh subagent using `verification-gate`.
+- After `code-quality-gate` returns `APPROVE_CODE`, use `verification-gate` in a fresh subagent, or continue in the same independent session for the SMALL combined-gate route. Do not redispatch verification already completed by that combined gate on the same candidate and claims.
 - Pass the inputs declared by `verification-gate`, including the current candidate and bug reproduction evidence where applicable. It owns the shortest credible proof route and prerequisite recovery.
 - Gate: `verification-gate` returns `PASS`, `FAIL`, or `BLOCKED` with evidence on disk at `{ISSUE_DIR}/verification/result.md`.
 - Before treating the work as PR-ready, confirm the cited evidence is accessible (embedded or linked, paths resolve) and each artifact is labeled before/after where the claim depends on a state change, with stated limits. Evidence that does not open or does not support the claim is not PR-ready.
@@ -116,6 +116,7 @@ Allowed task artifacts:
 - `{ISSUE_DIR}/issue.md`
 - `{ISSUE_DIR}/plan.md`
 - `{ISSUE_DIR}/research/*.md`
+- `{ISSUE_DIR}/reproduction/` (retained proof and `flows/`) owned by `reproduce-bug`
 - `{ISSUE_DIR}/verification/` (`result.md`, `screenshots/`, `videos/`) owned by `verification-gate`
 
 Do not create helper docs, reference files, sidecar state, ADR files, or wrapper-specific metadata. The wrapper must not write `{ISSUE_DIR}/verification/`; it only checks cited paths exist.
@@ -128,6 +129,7 @@ Do not create helper docs, reference files, sidecar state, ADR files, or wrapper
 | ---------------------------------------------------- | ---------------------------------- |
 | `{ISSUE_DIR}/issue.md` intake, scenarios, approaches | `gather-context`                   |
 | `{ISSUE_DIR}/research/*.md` evidence reports         | `gather-context` research agents   |
+| `{ISSUE_DIR}/reproduction/` evidence and flows       | `reproduce-bug`                    |
 | `Judge Decision` in `{ISSUE_DIR}/issue.md`           | `judge-proposal` fresh subagent    |
 | `{ISSUE_DIR}/plan.md`                                | `create-issue` workflow            |
 | `Plan Judge` in `{ISSUE_DIR}/plan.md`                | `judge-plan` fresh subagent        |

@@ -116,7 +116,7 @@ Use this expanded local template as reference; keep only the required contract a
 
 ### Acceptance Criteria
 
-[Generate acceptance criteria that are **measurable** and **testable**. Each criterion must include verifiable conditions, not just desired states. Format as checkboxes.]
+[Carry forward the approved acceptance criteria and their identifiers unchanged, with a reference to the original request or issue.md. If none are supplied, derive measurable, testable criteria from approved intent without inventing behavior; surface unresolved product decisions. Keep implementation choices separate. Format as checkboxes.]
 
 **MEASURABLE Format Examples:**
 - ✅ `API endpoint returns 200 status code with valid response schema` (testable via automated test)
@@ -131,11 +131,11 @@ Each AC must answer: "How would I verify this passes?"
 
 ### User Story
 
-[Generate one high-impact user story in the format: "As a [user type], I want [functionality] so that [benefit/value]". Include 1-2 acceptance criteria following the measurable/testable format above, focusing on the most critical user-facing behaviors or outcomes.]
+[Reuse the approved user story, or express the same intent as: "As a [user type], I want [functionality] so that [benefit/value]". Reference the relevant acceptance criteria above rather than creating another set.]
 
 ### Gherkin BDD Scenarios
 
-[Generate primary (happy path) and secondary (edge case) scenarios in Given-When-Then format. Each scenario must include testable acceptance criteria with expected outputs/states:]
+[Reuse approved happy-path and edge-path scenarios. If absent, derive them from the acceptance criteria above, with expected outputs/states and references to those criteria:]
 
 ```md
 ### Scenario: [User action and outcome]
@@ -144,9 +144,9 @@ Given [user state/precondition]
 When [user action]
 Then [user-visible outcome with verifiable condition]
 
-Acceptance Criteria:
+Acceptance Criteria References:
 
-- [Measurable outcome: specific value/threshold/state]
+- [Relevant criterion identifier or exact text from Acceptance Criteria above]
 ```
 ````
 
@@ -284,13 +284,13 @@ Start every checklist item with an **ALL CAPS** Action Verb followed by a colon.
 
 #### Phase 2: Verification Gate
 
-Once implementation is complete, obtain a fresh `code-quality-gate` decision, then a separate fresh `verification-gate` acceptance decision before any authorized commit. These skills own review depth, proof-route selection, recovery, and completion; small work narrows their effort, not their independence. Define what must be proven:
+Once implementation is complete, obtain `code-quality-gate` approval, then `verification-gate` acceptance before any authorized commit. Follow the owning skills' independence rules, including the existing SMALL combined-session exception with separate verdicts; neither gate is performed by the implementer. These skills own review depth, proof-route selection, recovery, and completion. Define what must be proven:
 
 - [ ] **web / mobile-web**: Browser verification targets for desktop or responsive/mobile browser UI
-- [ ] **ios / macos**: Apple app verification targets
-- [ ] **non-ui**: Direct command, API, log, or test proof when UI automation is not the strongest signal
+- [ ] **desktop / ios / android / macos**: App verification targets
+- [ ] **non-ui**: Real CLI/API consumer flow, or internal-only checks when no user or consumer behavior changes
 
-**NOTE**: This phase is SEPARATE from implementation and from commit. Prove the intended task behavior with a named Mechanical command and user-observable evidence when the platform is UI. Let `verification-gate` run the cheapest decisive lane first. Do not treat lint/typecheck alone as the user flow.
+**NOTE**: This phase is SEPARATE from implementation and from commit. Prove the intended task behavior with a named Mechanical command and Observable evidence whenever user or consumer behavior changes. Let `verification-gate` run the cheapest decisive lane first. Do not treat lint/typecheck alone as the user flow.
 
 ---
 
@@ -298,35 +298,35 @@ Once implementation is complete, obtain a fresh `code-quality-gate` decision, th
 
 <!-- Include when the task needs explicit post-implementation validation. State what to prove; verification-gate owns how to prove it. Pick the smallest target and evidence that can prove the task works. -->
 
-Use the `verification-gate` skill to prove the task works before commit. `web` and `mobile-web` route to browser verification; `ios` and `macos` route to Apple app verification; `non-ui` routes to direct command, API, log, or test proof.
+Use the `verification-gate` skill's platform routes and evidence rules to prove the task works before any authorized commit.
 
 **Required fields:**
-- **Platform**: `web | mobile-web | ios | macos | non-ui`
+- **Platform**: `web | mobile-web | desktop | ios | android | macos | non-ui`
 - **Objective**: The single main outcome that must be proven
 - **Falsifier**: The observation that would prove the Objective false
-- **Primary Flow**: Shortest realistic path covering the core outcome; no fixed checkpoint count
+- **Primary Flow**: Shortest realistic path covering the core outcome; identify the target runtime and how the exact candidate will be loaded and identified. State required activation permission and restoration, if applicable; planning grants no shared-runtime mutation authority.
 - **Regression Check**: 1 lightweight adjacent behavior check when relevant
 - **Mechanical**: Named command(s) plus expected exit/output asserting a relevant machine-checkable condition of the Objective. Prefer an existing check or focused content/asset assertion; together with Observable it must distinguish success, not require new end-to-end infrastructure. Lint/typecheck/format may be extra, never the only command when Platform is UI. "tests pass" is not enough.
-- **Observable**: Retained evidence path under `{ISSUE_DIR}/verification/screenshots/` or `videos/`, or `n/a` when Platform is `non-ui`. UI platforms must name a path. Screenshot vs recording lives here, not in a separate evidence field.
+- **Observable**: Retained evidence path under `{ISSUE_DIR}/verification/`, using `screenshots/` or `videos/` for UI media and the real consumer result for CLI/API work. Use `n/a` only for genuinely internal `non-ui` changes with no changed user or consumer-observable behavior.
 - **Pass Criteria**: Exact condition that counts as success. Must be checkable from Mechanical output and, when not `n/a`, the Observable artifact.
-- **Blocked Conditions**: Missing auth, data, environment, or tooling that would prevent reliable verification
+- **Blocked Conditions**: Missing auth, data, runtime access, activation permission, or tooling that would prevent reliable verification; name the prerequisite owner and unlock condition.
 
 **Evidence rules:**
 - Mechanical is a command the verifier re-runs and quotes. It is not a paragraph.
 - Use `screenshot` when a static state is enough to prove the outcome
-- Use `recording` when the user journey requires interaction or async state changes; prefer one recording for the full sequence instead of multiple short clips
+- Use `recording` only when motion or lifecycle cannot be proven by screenshots; prefer one recording for the sequence instead of multiple short clips
 - Use `test output` or `logs` as Mechanical proof; they do not replace Observable on UI platforms
 - For UI work, Observable must show the app-owned result produced by the Primary Flow. A terminal, test runner, CI page, log viewer, or source file is Mechanical evidence, not Observable evidence.
 - Start with the cheapest faithful probe. Add another check only when it targets a named unresolved question, provides a new signal that could change the verdict, and remains proportionate to the task. Repetition is appropriate when it tests timing or intermittency and has a stated observation window and stopping condition.
-- Save browser artifacts to `_ai/task/{SLUG}/verification/videos/{step}.webm`
-- Save browser artifacts to `_ai/task/{SLUG}/verification/screenshots/{step}.png`
+- Save browser artifacts to `{ISSUE_DIR}/verification/videos/{step}.webm`
+- Save browser artifacts to `{ISSUE_DIR}/verification/screenshots/{step}.png`
 
 **Example (`web`):**
 - Falsifier: Generated images do not appear after submission
 - Mechanical: `pnpm test -- generate-cancel` exits 0
-- Observable: `_ai/task/{SLUG}/verification/screenshots/cancel.png`
+- Observable: `{ISSUE_DIR}/verification/screenshots/cancel.png`
 1. Open `http://localhost:3000/create`
-2. Decide the lightest proof: use `screenshot` if a static state is enough, or `recording` if the flow needs interaction proof
+2. Decide the lightest proof: use screenshots for static proof states, or a recording when motion or lifecycle cannot be shown otherwise
 3. If using `recording`, record one full sequence: select model -> enter prompt -> submit -> wait for completion -> verify generated images render
 4. If using `screenshot`, capture the one or two proof states that clearly show success
 
