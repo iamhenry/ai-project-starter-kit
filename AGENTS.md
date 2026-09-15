@@ -125,6 +125,7 @@ Canonical order is the lifecycle table. Skip a stage only when it does not apply
 ### Security & Safety
 - When writing docs and reading from logs, NEVER document personal identification or private keys. you MUST prioritize security and safety!
 - Never SSH/SCP/rsync (or `tailscale ssh`) to remote hosts without the user's explicit approval first.
+- For read-only access to external GitHub repositories, use the `gh` CLI. Do not use repository ingestion tools.
 
 ### System Commands
 - IMPORTANT: Use `date` in terminal for accurate date and time when applicable.

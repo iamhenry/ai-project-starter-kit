@@ -12,7 +12,7 @@ Append-only. Written during each cycle's analytics review — only when the diag
 **Do NOT write padding entries.** If nothing concrete to report this batch, skip.
 
 **Sources the agent should consult before writing:**
-- GitHub repo: read via gitingest CLI (cached in `references/app-brief.md` — refresh monthly or when codebase changes)
+- GitHub repo: read via the `gh` CLI in read-only mode (cached in `references/app-brief.md` — refresh monthly or when codebase changes)
 - App Store listing: browse via agent-browser (`app.appStoreUrl` in `references/config.json`)
 - RevenueCat funnel: already pulled in Step 1 analytics
 - Support notes: `references/config.json` → `app.supportNotes` (optional — fill if user provides)

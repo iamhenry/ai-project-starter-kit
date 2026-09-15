@@ -105,7 +105,7 @@ DEFAULT BEHAVIOR: Abstain unless you can prove the claim with a citation.
 - Look for "getting started" and "advanced" sections separately
 - Check changelogs for recent updates that might affect implementation
 
-## GitHub Codebase Analysis (gitingest)
+## GitHub Codebase Analysis (`gh` CLI)
 
 **WHEN TO USE**
 
@@ -115,24 +115,22 @@ DEFAULT BEHAVIOR: Abstain unless you can prove the claim with a citation.
 - Understanding integration patterns for complex third-party tools
 - Building plugins or extensions that need to match existing implementation patterns
 
-**USAGE PATTERNS**
+Use `gh api` for read-only repository access. Do not clone, write, fork, or open PRs.
 
 ```bash
-# Start broad, then narrow - search by file type first
-gitingest https://github.com/user/repo -i "*.ts" -o -        # TypeScript files
-gitingest https://github.com/user/repo -i "*.py" -o -        # Python files
+# Repository metadata
+gh api repos/OWNER/REPO
 
-# Find specific implementations
-gitingest https://github.com/user/repo -i "*filename*" -o -  # By filename
-gitingest https://github.com/user/repo -i "pattern" -o -     # By content pattern
+# File contents
+gh api repos/OWNER/REPO/contents/path/to/file --jq .content | base64 --decode
 
-# Exclude noise
-gitingest https://github.com/user/repo -i "*.ts" -e "node_modules/*" -o -
+# Repository tree
+gh api "repos/OWNER/REPO/git/trees/BRANCH?recursive=1"
 ```
 
 **INTEGRATION WITH RESEARCH**
 
-- Use gitingest AFTER checking official docs to find implementation details
+- Use `gh` AFTER checking official docs to find implementation details
 - Include code snippets from source repos in your "CODE EXAMPLES" section
 - Cite GitHub file paths alongside documentation links
 - Cross-reference source implementation with documented behavior
