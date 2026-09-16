@@ -59,7 +59,7 @@ Use this discovery path instead of memorizing static tool lists.
 
 ## Release Handoff
 
-For archive, export, upload, TestFlight, or App Store intent, load `ship-app`. This skill owns native discovery and build mechanics; `ship-app` owns identity, signing, provider state, authority boundaries, and distribution.
+For archive, export, upload, or TestFlight intent, load `ship-app`. This skill owns native discovery and build mechanics; `ship-app` owns identity, signing, App Store Connect state, and distribution boundaries.
 
 Use help-first discovery to check whether the installed CLI exposes the required archive or export workflow. If it does not, return to `ship-app` and use the project's established release CLI. Do not fall back to memorized raw `xcodebuild` commands, infer upload authority, or treat a successful Release build as a distributable artifact.
 
