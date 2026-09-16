@@ -306,13 +306,13 @@ Use the `verification-gate` skill's platform routes and evidence rules to prove 
 - **Falsifier**: The observation that would prove the Objective false
 - **Primary Flow**: Shortest realistic path covering the core outcome; identify the target runtime and how the exact candidate will be loaded and identified. State required activation permission and restoration, if applicable; planning grants no shared-runtime mutation authority.
 - **Regression Check**: 1 lightweight adjacent behavior check when relevant
-- **Mechanical**: Named command(s) plus expected exit/output asserting a relevant machine-checkable condition of the Objective. Prefer an existing check or focused content/asset assertion; together with Observable it must distinguish success, not require new end-to-end infrastructure. Lint/typecheck/format may be extra, never the only command when Platform is UI. "tests pass" is not enough.
+- **Mechanical**: Named command(s), execution owner, and expected exit/output covering relevant mechanical health or a machine-checkable condition of the Objective. Existing build/lint/typecheck plus independent actual-path Observable proof can suffice for a simple UI change; require additional assertions when they protect a distinct changed failure mode. Together the lanes must distinguish success from the Falsifier. "tests pass" is not enough; do not invent test infrastructure just to fill this field.
 - **Observable**: Retained evidence path under `{ISSUE_DIR}/verification/`, using `screenshots/` or `videos/` for UI media and the real consumer result for CLI/API work. Use `n/a` only for genuinely internal `non-ui` changes with no changed user or consumer-observable behavior.
 - **Pass Criteria**: Exact condition that counts as success. Must be checkable from Mechanical output and, when not `n/a`, the Observable artifact.
 - **Blocked Conditions**: Missing auth, data, runtime access, activation permission, or tooling that would prevent reliable verification; name the prerequisite owner and unlock condition.
 
 **Evidence rules:**
-- Mechanical is a command the verifier re-runs and quotes. It is not a paragraph.
+- Mechanical names a command, not a paragraph. Build supplies its initial receipt; verification-gate owns independent receipt validation, reuse, and necessary reruns. For standalone plans, name the available execution owner without requiring pipeline dispatches.
 - Use `screenshot` when a static state is enough to prove the outcome
 - Use `recording` only when motion or lifecycle cannot be proven by screenshots; prefer one recording for the sequence instead of multiple short clips
 - Use `test output` or `logs` as Mechanical proof; they do not replace Observable on UI platforms

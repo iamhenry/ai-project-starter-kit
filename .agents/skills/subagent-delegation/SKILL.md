@@ -5,7 +5,7 @@ description: Structured handoff brief for delegating work to subagents. Use when
 
 # Subagent Delegation
 
-When delegating to subagents, fill the handoff brief below. One contract for discovery, planning, and implementation — MODE changes how fields fill, not which fields exist.
+When delegating to subagents, use the handoff contract below for the assigned responsibility. Include relevant fields directly or by an accessible authoritative reference; omit redundant headings, not scope, authority, safety, success criteria, or the stopping condition.
 
 Delegate when a separate context buys coordination, specialist capability, isolation, useful parallelism, or independent judgment, not just another handoff. An authorized Mission owner may execute a small understood task directly; a root Supervisor remains coordination-only, and implementation never replaces fresh independent quality and verification. Explicitly selected workflows retain their required delegation.
 
@@ -38,11 +38,11 @@ State whether the assignment is discovery, planning, implementation, or an expli
 - If it is a local detail within the agreed route, let the worker read relevant code, check assumptions, and investigate within the brief's bounds. Prevent repeated discovery, not necessary understanding. Material contradictory evidence stops dependent implementation and returns a concise delta to the owner; independent authorized work may continue.
 - For an authorized discovery-to-implementation sequence, the accountable orchestrator resolves findings into the existing brief or plan before handing off dependent implementation. No extra thread, artifact, or human approval is needed for settled, reversible decisions within authority; unresolved intent or permission still goes to the user.
 
-The delegating owner fills every field except Success Criteria Result / Evidence. Downstream workers receive the settled decision, relevant findings and exact paths/symbols, the remaining gap, and a stopping condition, not an invitation to reconstruct completed discovery. Resolve referenced workflow locations in the recipient's environment; supply an authoritative excerpt if unavailable rather than making the worker hunt for it. For proof work, include known runtime, capture setup, permissions, and restoration requirements. Workers may inspect gaps needed to execute safely; unknown paths are valid discovery inputs, not reasons to fabricate precision. Existing gates own their procedures; name the check, do not paste `verification-gate`.
+The delegating owner supplies applicable context and criteria; the worker returns Result / Evidence for its assignment. Downstream workers receive the settled decision, relevant findings and exact paths/symbols, the remaining gap, and a stopping condition, not an invitation to reconstruct completed discovery. Resolve referenced workflow locations in the recipient's environment; supply an authoritative excerpt if unavailable rather than making the worker hunt for it. For proof work, include known runtime, capture setup, permissions, and restoration requirements. Workers may inspect gaps needed to execute safely; unknown paths are valid discovery inputs, not reasons to fabricate precision. Existing gates own their procedures; name the check, do not paste `verification-gate`.
 
 ## Handoff Brief
 
-Use this brief verbatim, populated with actual context:
+Use these fields as a guide, populated with actual context or references. Assignment completion is not delivery acceptance: Build implements and runs assigned checks, review judges code quality, and verification proves the outcome. Do not assign every worker the final acceptance responsibilities; preserve the owning skill's required independence and output format.
 
 ```
 ### Mode
@@ -81,13 +81,13 @@ Use this brief verbatim, populated with actual context:
 - Result: [Record PASS, FAIL, or BLOCKED only after executing the probe.]
 - Evidence: [Record fresh observed output, screenshot, link, or file reference. Include the tested revision or environment when relevant.]
 
-[Repeat this block for each additional criterion. A behavior change requires at least one Mechanical quality criterion and one criterion that exercises the exact candidate through the actual user or consumer entry point. An internal-only change with no changed observable behavior may mark the latter `n/a` with a reason. Name each check; do not paste owning-skill procedure. If a falsifiable criterion cannot be written yet, this is discovery — do not invent precision. One criterion can be enough only when that two-lane rule does not apply.]
+[Repeat for distinct criteria owned by this assignment. Name each check and its execution owner; link existing receipts rather than assigning duplicate execution. Delivery acceptance for a behavior change still requires Mechanical quality evidence and actual user or consumer-path proof under verification-gate. An implementation or review assignment need not execute final acceptance. If a falsifiable criterion cannot be written yet, assign discovery rather than inventing precision.]
 
 ### Deliverable
 [Specify exactly what the agent must create, modify, or return, including the expected format or location.]
 
 ### Exit Criteria
-[Declare the work complete only when every criterion has fresh PASS evidence produced by its declared probe. Mechanical success alone is not completion for a behavior change. If the actual user or consumer path cannot run safely, report `BLOCKED`. Do not infer completion from implementation, file existence, or unchecked assumptions. Stop and ask instead of guessing when intent or authority is ambiguous, access is missing, a criterion cannot be verified, or the work requires a change outside Boundaries.]
+[Report assignment completion only with evidence satisfying its criteria; identify downstream acceptance still pending. Reuse valid evidence under the owning skill's rules, never unchecked claims. Mechanical success alone is not delivery acceptance for a behavior change. Return an unavailable prerequisite to its owner; ask the user only for unresolved intent or permission. Do not cross Boundaries to make a criterion pass.]
 ```
 
 ## References

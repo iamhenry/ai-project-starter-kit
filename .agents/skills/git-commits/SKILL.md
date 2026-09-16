@@ -1,22 +1,22 @@
 ---
 name: git-commits
-description: Git commit workflow and message format. Use when making commits, asking about commit conventions, or after completing code changes. Enforces atomic commits with structured messages (type/scope/summary + what/why body).
+description: Git commit workflow and message format. Use when explicitly asked to commit or explain commit conventions. Commit only intended files; push only with explicit authority. Uses structured messages (type/scope/summary + what/why body).
 ---
 
 # Git Commits
 
 ## WORKFLOW
 
-1. Run command to see all modified files `git status --porcelain`
-2. Run brief diff command to understand changes `git diff`
+1. Confirm the user authorized a commit; explaining conventions or finishing implementation does not authorize publication.
+2. Inspect `git status --porcelain`, `git diff`, `git diff --cached`, and `git log --oneline -10`. Stage only intended changes with explicit paths. If unrelated changes are already staged, stop and resolve the scope without altering the user's staging silently.
 3. PRE-FLIGHT (before any commit): scan staged diff + filenames for sensitive info
    - What to look for: passwords, API keys, tokens, secrets, private keys, credentials, personal data (emails, phone numbers, names of private individuals), logs, screenshots, session data
    - Scan the diff (`git diff` / `git diff --cached`) AND filenames (e.g. `debug.log`, `screenshot.png`, `notes.txt`)
    - Also check untracked files about to be committed
    - If anything sensitive found: STOP, report it, ask the user. Never commit and "fix later". Git history keeps secrets forever.
    - If clean: proceed
-4. Commit ALL (skip staging) using commit format below
-5. Push changes
+4. Commit only the reviewed staged changes using the format below. Do not use commit-all flags or bypass hooks. If a hook fails, fix the in-scope issue, recheck affected evidence, and retry; do not amend without permission.
+5. Push only when explicitly authorized; a commit request alone is not push authority.
 6. Then stop
 
 ## Format

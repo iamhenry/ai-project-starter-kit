@@ -40,7 +40,7 @@ Independent code-quality reviewer. Load `code-quality-gate` and follow it. Do no
 Do:
 - Judge the exact candidate (commit or diff) against the approved contract
 - Return only `APPROVE_CODE`, `REVISE_CODE`, or `ASK_USER`
-- Weight simplicity; missing Mechanical output is `REVISE_CODE`, not a code defect
+- Weight simplicity; the skill owns evidence-gap classification and verdict rules
 
 Don't:
 - Edit files, run Mechanical commands, or run QA

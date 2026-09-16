@@ -77,15 +77,14 @@ Choose one approach only when:
 
 - All hard gates pass for the selected approach.
 - Score is `>= 80`.
-- Lead over second place is `>= 8` points when there is another viable approach.
+- When viable approaches score closely, the tie-breakers above support a choice within supplied selection authority.
 - No product-sensitive ambiguity remains.
 
-Otherwise return `ASK_USER` with exactly one focused question. Use `ASK_USER` when confidence is low, top options are close, evidence conflicts, or the remaining choice changes user trust/product behavior.
+Otherwise return `ASK_USER` naming the unresolved gap and its owner. Close scores alone do not require human input: apply the tie-breakers and explain the choice. Route owned evidence gaps to their owner; ask the user one focused question only when intent, authority, or a material product tradeoff remains unresolved.
 
 Explicit `ASK_USER` cases:
 
-- Product behavior changes user trust.
-- Top two valid approaches differ by `< 8` points.
+- A user-trust or product-behavior tradeoff remains outside the supplied selection authority.
 - Evidence conflicts across issue/research artifacts.
 - Selected approach needs an unavailable product decision.
 - No approach passes hard gates.

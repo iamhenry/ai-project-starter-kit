@@ -67,7 +67,7 @@ For delivery acceptance, if the code-quality-gate result is missing, `REVISE_COD
 
 `plan.md` owns what to prove. This skill owns how to prove it by choosing the platform route and smallest proof path.
 
-This skill must not edit application code, tests, or scorers. Re-run the named Mechanical command; do not rewrite it.
+This skill must not edit application code, tests, or scorers. Independently validate supplied Mechanical receipts before reuse: the named command and exit status/raw output must be available, tied to the exact candidate and relevant runtime conditions, and sufficient for the declared check. An implementer's summary alone is not a receipt. Run the named command when evidence is missing, stale, unverifiable, or a distinct risk requires fresh execution; state the reason. Do not rewrite the command. This reuse rule does not waive independent actual-path Observable proof or explicit fresh-run requirements.
 
 ## Platform Routes
 
@@ -130,8 +130,9 @@ Prefer the actual affected surface when safe and authorized. Before building a s
       lane while recovering its prerequisites. A failed decisive lane returns
       `FAIL` without spending on the companion lane. Passing supporting checks
       never waives required actual-path proof.
-    - Inline rule: execute the plan-named Mechanical command and quote its raw
-      output. Do not paraphrase pass/fail or replace the command.
+    - Inline rule: validate and reuse the plan-named Mechanical receipt under
+      the rules above, or execute the command. Quote raw output and identify
+      whether it was reused or freshly run, with provenance and the reuse rationale.
     - Inline rule: changed user or consumer behavior requires operating the actual
       affected product or integration through the Primary Flow on the exact
        candidate. Tests, CI screens, diagnostic logs, source inspection, and
@@ -288,7 +289,7 @@ Use this exact structure:
 - Falsifier: [observation that would disprove the Objective]
 - Primary flow: [short description]
 - Regression check: [short description or "None"]
-- Mechanical: [command] → [exit code / quoted raw excerpt]
+- Mechanical: [command] → [exit code / quoted raw excerpt; fresh or reused, receipt source, candidate/conditions and reuse rationale]
 - Observable: [artifact path or `n/a`]
 - Checks run: [concise list, including any observation window]
 - Verdict: `PASS|FAIL|BLOCKED`

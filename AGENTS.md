@@ -110,6 +110,6 @@ Canonical order is the lifecycle table. Skip a stage only when it does not apply
 ---
 
 ### Subagent Delegation
-When delegating tasks, follow the `subagent-delegation` skill (`.agents/skills/subagent-delegation/SKILL.md`) — use its handoff brief verbatim, populated with actual context.
+When delegating tasks, follow the `subagent-delegation` skill (`.agents/skills/subagent-delegation/SKILL.md`). It owns the proportional handoff contract.
 
 ---
