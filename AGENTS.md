@@ -30,9 +30,9 @@ Match every true row in Concerns unless that stop rule already applied. Match ag
 | Behavior is wrong or must be seen | `reproduce-bug` | this session. `qa` when it is a user-flow proof |
 | Cause unclear | `five-whys` | this session |
 | Don't know the code or the options | `gather-context` | `atlas` for unknown local code. `voyager` for external docs. This session for a known path |
-| Changing the repo | matching skill, else this session | `build` |
+| Changing the repo | matching skill; `ponytail` for code or implementation-design changes | `build` |
 | Need to know it works | `verification-gate` | `qa` |
-| Need to know the diff is sound | `code-quality-gate` | `reviewer` |
+| Need to know the diff is sound | `code-quality-gate` (optionally uses `ponytail-review` for a diff-focused complexity review) | `reviewer` |
 | User asked to ship | `git-commits`, `issue-to-pr` | this session. Never infer this row |
 
 Prefer this order on first entry: ticket → see it → why → context → change → prove → review. Going back a stage is expected. Do not skip a missing ticket when work may continue. Do not skip a missing repro when the job is a fix. After a delivery change, do not skip prove or review unless the user asked to stop earlier. Run `judge-proposal` only when approaches compete.

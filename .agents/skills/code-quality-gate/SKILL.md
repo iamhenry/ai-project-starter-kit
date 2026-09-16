@@ -41,11 +41,12 @@ If the approved contract or changed code/diff is missing, return `ASK_USER` nami
 
 1. Reconstruct the intended scope from `plan.md`; use `issue.md` only to resolve ambiguity.
 2. Review the diff and directly affected code first.
-3. Trigger wider dependency review only when the change touches shared modules, public interfaces, global state, async side effects, security-sensitive paths, or common components.
-4. Compare implementation against the referenced quality docs without copying them into the report.
-5. Heavily weight simplicity: prefer the smallest code that satisfies `plan.md`; penalize speculative abstractions, extra surfaces, duplicate state, and unplanned features.
-6. Check provided Mechanical / test / build / lint / typecheck output. Judge coverage by the distinct changed failure modes it protects, not by test quantity. Distinguish demonstrated code failures from commands blocked by environment prerequisites; identify prerequisite repair in the findings, not speculative source changes. Do not invent results that were not provided. Do not run commands or edit tests.
-7. Return a concise structured decision to the orchestrator.
+3. Use the local `ponytail-review` skill only as an optional, read-only, diff-focused lens when over-engineering is material or the review request explicitly calls for complexity review. Use its complexity-only findings to inform the simplicity/YAGNI judgment; it does not apply fixes, and this gate retains responsibility for correctness, security, performance, error handling, and maintainability. Do not run `ponytail-audit` or `ponytail-debt` automatically; they remain standalone reports only when explicitly requested. `ponytail-gain` and `ponytail-help` are informational, not gate steps.
+4. Trigger wider dependency review only when the change touches shared modules, public interfaces, global state, async side effects, security-sensitive paths, or common components.
+5. Compare implementation against the referenced quality docs without copying them into the report.
+6. Heavily weight simplicity: prefer the smallest code that satisfies `plan.md`; penalize speculative abstractions, extra surfaces, duplicate state, and unplanned features.
+7. Check provided Mechanical / test / build / lint / typecheck output. Judge coverage by the distinct changed failure modes it protects, not by test quantity. Distinguish demonstrated code failures from commands blocked by environment prerequisites; identify prerequisite repair in the findings, not speculative source changes. Do not invent results that were not provided. Do not run commands or edit tests.
+8. Return a concise structured decision to the orchestrator.
 
 ## Weighted Rubric
 
