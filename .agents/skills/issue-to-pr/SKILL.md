@@ -3,6 +3,15 @@ name: issue-to-pr
 description: Orchestrate and judge an issue-to-PR pipeline without editing artifacts directly. Use when the user wants an issue-to-PR workflow, task-to-PR pipeline, or structured path from request to PR readiness. Routes each stage to the owning skill or subagent, checks gate outputs, asks for revisions when the pipeline drifts, and keeps PR as a placeholder.
 ---
 
+<!--
+Purpose: Compose independently useful skills into an autonomous path from a task to verified PR readiness, involving the user only for decisions or blockers that require them.
+Principles:
+- Match effort to task size and risk.
+- Reuse settled context and valid evidence.
+- Preserve independent review and real outcome proof.
+- Avoid expensive ceremony, duplicate work, and over-verification.
+-->
+
 # Issue To PR
 
 ## Pipeline Components
