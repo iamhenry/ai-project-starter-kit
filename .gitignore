@@ -11,6 +11,9 @@ node_modules/
 __pycache__/
 build/
 dist/
+/.asc/config.json
+/.asc/artifacts/
+/.asc/web/
 
 # Ignore OSgrep
 .osgrep/
