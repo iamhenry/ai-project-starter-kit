@@ -3,6 +3,13 @@ name: gather-context
 description: Research existing code before changes, or answer a focused codebase question. Calibrates local and external investigation to uncertainty, then presents supported approaches, minimal diff first, without implementing them.
 ---
 
+<!--
+Done-definition principles:
+- Done is defined up front, not discovered after. The acceptance criteria, Gherkin scenarios, and verification target written here are the done contract for everything downstream.
+- Write claims as user-observable outcomes — "user does Y, sees X" — never "the API was called" or "the handler runs."
+- Every claim must be falsifiable (state the observation that would disprove it) and reachable through the real user entry point.
+-->
+
 # Gather Context
 
 Research a codebase before touching it. Inspect -> synthesize -> present supported approaches -> stop at the authorized endpoint.

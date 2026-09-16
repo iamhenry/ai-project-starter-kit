@@ -3,6 +3,13 @@ name: five-whys
 description: Root cause analysis for software bugs using the 5 Whys technique. Use when the user wants to find the underlying cause of a bug, error, or technical issue. Triggers include phrases like "why is this happening", "root cause", "debug this", or when investigating software problems.
 ---
 
+<!--
+Cause-analysis principles:
+- Fix from evidence, not guesses: one causal hypothesis per round, tested with the smallest discriminating probe.
+- Cite specific files, lines, or logs as evidence at every step; observations stay separate from hypotheses.
+- Never fabricate a cause. If evidence runs out, report uncertainty and name the unlock condition instead of papering over it.
+-->
+
 # 5 Whys Debugging
 
 Ask successive evidence-backed "why" questions to find the root cause of a bug. Five is a reminder to look beneath symptoms, not a required round count.
