@@ -24,6 +24,8 @@ Orchestrate and judge the pipeline. Do not create, edit, append, or repair task 
 
 This skill connects modular skills, checks whether each stage produced the expected artifact, and routes revisions back to the owning skill or subagent when the pipeline is off track.
 
+An explicit request to execute this pipeline authorizes in-scope intake, research, technical approach selection, planning, implementation, and independent acceptance, subject to user limits and host permissions. Pass that authority and the existing handoff contract to each owner; do not ask for implementation approval again. Research-only or planning-only requests retain their endpoint. Commit, push, PR creation, and merge require explicit publication authority; this pipeline still ends at PR readiness. Repair owned gaps autonomously within the bounds below; ask the user only for unresolved intent, permission, or a blocker requiring their action.
+
 Use this composition for authorized delivery; focused research, planning, review, or verification calls remain valid and stop at their requested endpoint. Supply scope, authority, and optionally S/M/L/XL with a risk/uncertainty rationale. Each owner calibrates its own inputs, execution, effort, independence, evidence, recovery, and completion; size is not a stage-skip rule. A tiny delivery still passes applicable intake, selection, plan, implementation, fresh quality, and fresh acceptance responsibilities. Size scales gate depth, not a combined session. Do not reproduce owners' operating procedures here or grant publication beyond user authority.
 
 ---
@@ -47,7 +49,7 @@ Use existing `issue.md`, `plan.md`, and stage reports rather than restarting int
 
 - Delegate review to a fresh subagent using `judge-proposal`.
 - The subagent must receive only the task artifacts it needs, not accumulated conversation context.
-- Pass selection authority explicitly; the proposal owner must not infer permission to choose for the user.
+- Pass the execution request's technical selection authority explicitly, along with any decisions reserved to the user. Pass narrow writeback authority for the Judge Decision section to a write-capable judge; a read-only judge may return its decision for Build to record verbatim without re-judging it.
 - Gate: `{ISSUE_DIR}/issue.md` contains `Judge Decision` with `Status: SELECTED` or `Status: ASK_USER`.
 - If `ASK_USER`, use Revision Routing to distinguish an owned artifact gap from a user decision.
 
@@ -59,7 +61,7 @@ Use existing `issue.md`, `plan.md`, and stage reports rather than restarting int
 
 ### 4. Plan Judge Checkpoint
 
-- Delegate review to a fresh subagent using `judge-plan`.
+- Delegate review to a fresh subagent using `judge-plan`. Supply narrow Plan Judge writeback authority to a write-capable judge, or have Build record a read-only judge's returned decision verbatim without re-judging it.
 - The subagent must receive only `{ISSUE_DIR}/issue.md`, `{ISSUE_DIR}/plan.md`, and relevant `{ISSUE_DIR}/research/*.md` artifacts.
 - The review must be independent from the proposal judge and main-agent working context.
 - Gate: `{ISSUE_DIR}/plan.md` contains `Plan Judge` with `APPROVE_PLAN`, `REVISE_PLAN`, or `ASK_USER`.
@@ -79,6 +81,7 @@ Use existing `issue.md`, `plan.md`, and stage reports rather than restarting int
 - Do not save a new plan to disk or revise `{ISSUE_DIR}/plan.md` just to add delegation structure.
 - Avoid overlapping file edits; when overlap exists, sequence agents instead of parallelizing them.
 - Collect the implementation summary, changed files, commands run, known risks, and raw Mechanical command output from Build.
+- Build owns initial execution of plan-named Mechanical checks and supplies receipts with command, exit status, exact candidate, and relevant conditions. Review assesses those receipts without rerunning them; verification independently validates reuse under its evidence rules and executes missing or invalidated checks. Build completion does not imply acceptance or require it to duplicate final QA.
 - For bug tasks, also pass the reproduction result and evidence paths (including the reproduction smoke steps) to verification so it can reuse the same faithful smoke for the before/after proof.
 
 ### 6. Code Quality Gate
