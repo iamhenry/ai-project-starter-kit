@@ -3,6 +3,13 @@ name: code-quality-gate
 description: Fresh-subagent code quality review gate after implementation and before verification. Use when code changes are complete and the orchestrator needs APPROVE_CODE, REVISE_CODE, or ASK_USER based on plan fidelity, simplicity, tests, repo style, security, and maintainability. Does not implement or write files.
 ---
 
+<!--
+Quality principles:
+- Quality approval is not done. Green tests, builds, and typechecks are mechanical signals — they support done, they are not done.
+- Judge whether the user-observable outcome surface has been exercised, not just whether the implementation layer is sound; flag the gap when it hasn't.
+- Smallest code that satisfies the plan wins; speculative abstractions and unplanned features are defects, not bonus work.
+-->
+
 # Code Quality Gate
 
 Use this skill after implementation and before final acceptance verification. For an explicitly selected `assurance: combined-low-risk` run that satisfies `verification-gate`'s combined low-risk assurance contract, this standalone gate may be skipped; `verification-gate` performs the quality precheck and decisive verification together. `APPROVE_CODE` approves code quality only; it never means the task is complete or that the behavior works for users. This ordering does not prohibit safe, disposable previews or risk probes during implementation; those are diagnosis, not acceptance or permission for unsafe live installation or mutation.

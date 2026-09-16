@@ -3,6 +3,14 @@ name: reproduce-bug
 description: Lightweight SOP for reproducing bugs and proving whether a reported issue can be triggered. Use when Claude needs to reproduce a bug, validate a bug report, capture a repro video or screenshot, and return a clear REPRODUCED/NOT_REPRODUCED/BLOCKED result. When browser-based reproduction is needed, rely on the dogfood skill for browser setup, navigation, and evidence capture.
 ---
 
+<!--
+Repro principles:
+- The repro flow IS the user journey: go through the real reported entry point. A passing unit test or mocked path never confirms a live user-flow bug by itself.
+- Keep the repro rerunnable as the faithful before/after smoke; after a fix, the same entry point should flip expected/actual without rework.
+- Capture the receipt — what the user actually sees going wrong (or right), preserved as a screenshot, recording, or output file.
+- Report honestly: REPRODUCED, NOT_REPRODUCED, or BLOCKED. Observations and hypotheses stay separate; never dress a hypothesis up as a finding.
+-->
+
 # Reproduce Bug
 
 Use this skill when the goal is to reproduce a reported bug quickly and with low friction.

@@ -3,6 +3,14 @@ name: verification-gate
 description: Reusable verification gate for completed work before commit or merge. Use when implementation is done and Claude must prove the task works, verify the main user flow, route verification by platform, and return a PASS/FAIL/BLOCKED verdict with evidence. Supports the explicitly selected low-risk combined assurance route. Web and mobile-web verification uses agent-browser. Desktop verification uses agent-browser or cua-driver. iOS and macOS verification uses xcodebuildmcp-cli, with argent flow replay for iOS user-flow proof. Android user-flow verification uses argent.
 ---
 
+<!--
+Verification principles:
+- Done is the user-observable outcome proven working on the exact candidate through the shortest real user journey. Tests, builds, and logs are mechanical signals that support done, never certify it.
+- PASS requires the receipt: the evidence a real user or consumer would see (screenshot, recording, resulting output). A claim without its receipt is unverified.
+- When the observable does not appear, the verdict is FAIL or BLOCKED — never "tests pass, so likely fine." State exactly what remains unverified.
+- Stop when the terminal observation appears: one narrow recovery attempt for a failed prerequisite, then report — no re-runs past proof, no widening past the claim.
+-->
+
 # Verification Gate
 
 Use this skill for delivery acceptance after implementation and `code-quality-gate` approval, for an explicitly selected `assurance: combined-low-risk` change that satisfies the eligibility contract below, or for an explicitly focused request to verify existing behavior. Focused proof is not delivery approval.
