@@ -1,13 +1,13 @@
 ---
 name: create-ticket
-description: Draft and file a ticket as a GitHub issue or a local ticket.md after categorizing it as bug, feature, or task. Use whenever the user wants to create, open, write, or file a GitHub issue, gh issue, bug report, feature request, task ticket, or local ticket.md, or attach supplied screenshots or videos to a new or existing GitHub issue. Prefer this over freeform issue writing. Do not use for local `_ai/task` plans or the issue-to-pr pipeline.
+description: Draft and file a ticket as a GitHub issue or a local `_ai/task/{YYYY-MM-DD}/{slug}/ticket.md` after categorizing it as bug, feature, or task. Use whenever the user wants to create, open, write, or file a GitHub issue, gh issue, bug report, feature request, task ticket, or local ticket.md, or attach supplied screenshots or videos to a new or existing GitHub issue. Prefer this over freeform issue writing. Do not use for the issue-to-pr pipeline.
 ---
 
 # Create Ticket
 
-Categorize first. Draft the matching template. File only after the user confirms, unless they already said to create/file it.
+Categorize first. Draft the matching template. File only after the user confirms, unless they already said to create/file it, or AGENTS.md already requires a ticket because work may continue.
 
-Do not implement the issue. Do not use this for `_ai/task/{date}/{slug}/issue.md` or `issue-to-pr`.
+Do not implement the issue. Do not use this for `issue-to-pr`. Local tickets belong at `_ai/task/{YYYY-MM-DD}/{slug}/ticket.md`.
 
 ## 1. Categorize
 
@@ -85,7 +85,7 @@ Show the destination, type, title, and body first.
 
 Create only after confirm, or immediately when the user already said create/file/open the ticket.
 
-**GitHub** when they asked for a GitHub/`gh` issue. **Local `ticket.md`** otherwise.
+**GitHub** when they asked for a GitHub/`gh` issue. **Local `_ai/task/{YYYY-MM-DD}/{slug}/ticket.md`** otherwise. If work may continue after a GitHub issue, write the local ticket too and put the issue URL in it.
 
 ### GitHub
 
@@ -118,7 +118,7 @@ Return the issue URL.
 
 ### Local
 
-Write `ticket.md` at the workspace root. If that file already exists, ask before overwriting.
+Write `_ai/task/{YYYY-MM-DD}/{slug}/ticket.md`. Use `date +%Y-%m-%d` for the date. Slug is 3-5 words from the title. Resume that directory if it already exists. Update the existing `ticket.md` instead of creating a second one.
 
 ```md
 # <title>
@@ -136,4 +136,4 @@ Return the file path.
 
 - One ticket per request. Split unrelated asks.
 - No secrets, tokens, emails, or private logs in the body.
-- No commits or code changes. The only local file this skill may write is `ticket.md`.
+- No commits or code changes. The only local file this skill may write is `_ai/task/{YYYY-MM-DD}/{slug}/ticket.md`.
