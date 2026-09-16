@@ -30,7 +30,10 @@ Match every true row in Concerns unless that stop rule already applied. Match ag
 | Behavior is wrong or must be seen | `reproduce-bug` | this session. `qa` when it is a user-flow proof |
 | Cause unclear | `five-whys` | this session |
 | Don't know the code or the options | `gather-context` | `atlas` for unknown local code. `voyager` for external docs. This session for a known path |
-| Changing the repo | matching skill, else this session | `build` |
+| Changing the repo | matching skill; `ponytail` for code or implementation-design changes | `build` |
+| Reviewing a diff for over-engineering | `ponytail-review` | `reviewer` |
+| Auditing the repo for over-engineering | `ponytail-audit` | `reviewer` |
+| Tracking deliberate `ponytail:` shortcuts | `ponytail-debt` | this session |
 | Need to know it works | `verification-gate` | `qa` |
 | Need to know the diff is sound | `code-quality-gate` | `reviewer` |
 | User asked to ship | `git-commits`, `issue-to-pr` | this session. Never infer this row |
