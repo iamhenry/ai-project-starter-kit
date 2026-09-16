@@ -5,15 +5,16 @@ description: Fresh-subagent code quality review gate after implementation and be
 
 # Code Quality Gate
 
-Use this skill after implementation and before final acceptance verification. `APPROVE_CODE` approves code quality only; it never means the task is complete or that the behavior works for users. This ordering does not prohibit safe, disposable previews or risk probes during implementation; those are diagnosis, not acceptance or permission for unsafe live installation or mutation.
+Use this skill after implementation and before final acceptance verification. For an explicitly selected `assurance: combined-low-risk` run that satisfies `verification-gate`'s combined low-risk assurance contract, this standalone gate may be skipped; `verification-gate` performs the quality precheck and decisive verification together. `APPROVE_CODE` approves code quality only; it never means the task is complete or that the behavior works for users. This ordering does not prohibit safe, disposable previews or risk probes during implementation; those are diagnosis, not acceptance or permission for unsafe live installation or mutation.
 
-Run it as a fresh subagent review gate, separate from the implementer. A same-agent skill invocation is not independence. Fresh context reduces self-confirmation bias; it does not guarantee unbiased review. Small changes still receive fresh review, focused on the diff, intent, and concrete risks; expand depth for uncertainty, coupling, security, or consequential failure. It returns a decision and never edits files.
+For the standard route, run it as a fresh subagent review gate, separate from the implementer and followed by a fresh verification session. A same-agent skill invocation is not independence. Fresh context reduces self-confirmation bias; it does not guarantee unbiased review. Small changes still receive fresh review, focused on the diff, intent, and concrete risks; expand depth for uncertainty, coupling, security, or consequential failure. It returns a decision and never edits files. The combined route is the sole exception and does not waive this quality review: one fresh `qa` agent performs the documented precheck before verification. This gate does not classify eligibility or infer the combined route.
 
 ## Mode Dispatch
 
 - The default, when `mode` is omitted, is the existing issue mode below. Any mode other than the explicit `mode: isa` request uses the existing issue-mode contract; do not auto-detect ISA inputs.
 - When the caller explicitly supplies `mode: isa`, use the alternate contract in `references/isa-mode.md`. Do not require, read, create, or infer `{ISSUE_DIR}/plan.md` for that invocation.
 - The two modes have separate inputs and output contracts. Do not mix issue artifacts into ISA review or ISA inputs into issue review.
+- `assurance` is independent of `mode`; `assurance: combined-low-risk` only selects the explicitly documented exception and does not change issue/ISA dispatch.
 
 ## Inputs
 
@@ -120,7 +121,7 @@ Return exactly this structure:
 - Do not edit files.
 - Do not implement fixes.
 - Do not create review artifacts or helper files.
-- Do not run Mechanical commands, tests, or broad QA. Require attached output; use `verification-gate` after approval in a separate fresh session.
+- Do not run Mechanical commands, tests, or broad QA. Require attached output; use `verification-gate` after approval in a separate fresh session for the standard route. For the explicitly selected combined route, do not invoke this gate; `verification-gate` owns and evaluates the combined low-risk assurance contract and the fresh quality precheck.
 - Do not duplicate the full quality docs; reference `_ai/prompts/quality/code-review.md` and `_ai/prompts/quality/code-guidelines.md`.
 - Do not commit changes.
 - Keep findings concise and evidence-based. Speculative risks must be marked low confidence or omitted.

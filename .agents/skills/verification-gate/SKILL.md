@@ -1,13 +1,24 @@
 ---
 name: verification-gate
-description: Reusable verification gate for completed work before commit or merge. Use when implementation is done and Claude must prove the task works, verify the main user flow, route verification by platform, and return a PASS/FAIL/BLOCKED verdict with evidence. Web and mobile-web verification uses agent-browser. Desktop verification uses agent-browser or cua-driver. iOS and macOS verification uses xcodebuildmcp-cli, with argent flow replay for iOS user-flow proof. Android user-flow verification uses argent.
+description: Reusable verification gate for completed work before commit or merge. Use when implementation is done and Claude must prove the task works, verify the main user flow, route verification by platform, and return a PASS/FAIL/BLOCKED verdict with evidence. Supports the explicitly selected low-risk combined assurance route. Web and mobile-web verification uses agent-browser. Desktop verification uses agent-browser or cua-driver. iOS and macOS verification uses xcodebuildmcp-cli, with argent flow replay for iOS user-flow proof. Android user-flow verification uses argent.
 ---
 
 # Verification Gate
 
-Use this skill for delivery acceptance after implementation and `code-quality-gate` approval, or for an explicitly focused request to verify existing behavior. Focused proof is not delivery approval.
+Use this skill for delivery acceptance after implementation and `code-quality-gate` approval, for an explicitly selected `assurance: combined-low-risk` change that satisfies the eligibility contract below, or for an explicitly focused request to verify existing behavior. Focused proof is not delivery approval.
 
-Run acceptance in a fresh verifier session, separate from implementation and from code-quality review. Invoking this skill in the implementer's or reviewer's session does not supply independence. If the required separation is unavailable, return `BLOCKED`; fresh context reduces self-confirmation bias, not all bias. A focused verification request stops at its verdict and does not authorize fixes, commits, or publication.
+For standard delivery, run acceptance in a fresh verifier session, separate from implementation and from code-quality review. Invoking this skill in the implementer's or reviewer's session does not supply independence. For `assurance: combined-low-risk`, one fresh `qa` agent, separate from implementation, performs the quality precheck first and then decisive verification; no prior `APPROVE_CODE` or separate reviewer is required, and it emits one result. If fresh separation from implementation is unavailable, return `BLOCKED`; fresh context reduces self-confirmation bias, not all bias. A focused verification request stops at its verdict and does not authorize fixes, commits, or publication.
+
+## Combined low-risk assurance
+
+This skill owns the eligibility contract for `assurance: combined-low-risk`. Use the combined route only when every condition holds:
+
+- The change is narrow and limited to docs or instructions, comments or copy, non-executable metadata, or a truly mechanical edit with no new behavior.
+- A decisive existing check can establish the requested outcome.
+- Generic configuration is not treated as low risk automatically.
+- The change does not involve auth, security, privacy, data or schema changes, migrations, dependencies, public interfaces, new or changed runtime behavior, build/release/deploy infrastructure, destructive operations, or broad/coupled changes.
+
+The fresh `qa` agent's quality precheck covers scope, correctness, simplicity, style and maintainability, sensitive content and security, and continued eligibility. A concrete defect returns `FAIL`; uncertainty or a need for deeper judgment returns `BLOCKED` before proof. If any eligibility condition is uncertain or unmet, return `BLOCKED` and use the standard separate `code-quality-gate` then `verification-gate` route.
 
 ## Acceptance Scope and Stopping
 
@@ -25,6 +36,7 @@ These rules apply to issue mode, ISA mode, and standalone verification. Mode-spe
 - When the caller explicitly supplies `mode: isa`, use the alternate contract in `references/isa-mode.md`. Do not require, read, create, or infer `{ISSUE_DIR}/plan.md` for that invocation.
 - The two modes have separate inputs and output contracts. Do not mix issue artifacts into ISA verification or ISA inputs into issue verification.
 - Mechanical and Observable lanes below apply to issue mode only. ISA mode keeps declared leaf probes in `references/isa-mode.md`.
+- `assurance` is independent of `mode`; the existing issue/ISA dispatch and their contracts remain unchanged in meaning. `assurance: combined-low-risk` is the only combined route.
 
 Keep the scope narrow:
 
@@ -41,7 +53,7 @@ Collect the minimum context needed to verify the work:
 
 `ISSUE_DIR` is the artifact directory created by `gather-context` for the current pipeline run.
 
-For standalone calls, accept the same Verification Target fields below directly with approved scope, exact candidate identity, and an authorized evidence directory; no pipeline plan is required. References to `plan.md` below mean that supplied target. Distinguish the requested endpoint explicitly: focused verification of existing behavior does not require an unassigned code-quality stage; delivery acceptance, including standalone delivery acceptance, requires `APPROVE_CODE` and both independent gates. Missing pipeline inputs never authorize switching to focused verification; route them to their owners.
+For standalone calls, accept the same Verification Target fields below directly with approved scope, exact candidate identity, and an authorized evidence directory; no pipeline plan is required. References to `plan.md` below mean that supplied target. Distinguish the requested endpoint explicitly: focused verification of existing behavior does not require an unassigned code-quality stage; standard delivery acceptance, including standalone delivery acceptance, requires `APPROVE_CODE` and both independent gates. An explicitly selected combined run requires a change satisfying the combined low-risk assurance contract above and one fresh QA session doing both checks; it does not require prior `APPROVE_CODE` or a separate reviewer. Missing pipeline inputs never authorize switching to focused verification; route them to their owners.
 
 - `plan.md` Verification Target:
   - Platform: `web|mobile-web|desktop|ios|android|macos|non-ui`
@@ -57,13 +69,13 @@ For standalone calls, accept the same Verification Target fields below directly 
 - target URL, command, or environment
 - auth, seed data, or other prerequisites
 - for bug tasks: the reproduction result and evidence paths from `reproduce-bug`, supplying the faithful smoke to reuse
-- for delivery acceptance: code-quality-gate result `APPROVE_CODE`
+- for standard delivery acceptance: code-quality-gate result `APPROVE_CODE`; for combined assurance, the explicit selection and eligible scope
 
 If key prerequisites are missing, use only the bounded recovery below when safe and authorized; otherwise return `BLOCKED` naming the prerequisite owner and unlock condition, not a code defect or a demand that the user perform routine setup.
 
 If Mechanical is missing from the target, return `BLOCKED` naming the missing command and target owner (plan owner for pipeline calls, supplied-target owner for standalone calls). Do not invent a command or require a standalone caller to create a plan.
 
-For delivery acceptance, if the code-quality-gate result is missing, `REVISE_CODE`, or `ASK_USER`, return `BLOCKED` and do not run final acceptance QA. For explicitly focused verification, proceed without that stage only within the supplied target and authority, retaining fresh verifier independence; state in Notes that the verdict proves only the requested behavior and does not imply delivery approval. Neither route authorizes unsafe live installation or mutation.
+For standard delivery acceptance, if the code-quality-gate result is missing, `REVISE_CODE`, or `ASK_USER`, return `BLOCKED` and do not run final acceptance QA. For combined assurance, run the quality precheck in this gate before proof and do not require a standalone quality result. For explicitly focused verification, proceed without that stage only within the supplied target and authority, retaining fresh verifier independence; state in Notes that the verdict proves only the requested behavior and does not imply delivery approval. Neither route authorizes unsafe live installation or mutation.
 
 `plan.md` owns what to prove. This skill owns how to prove it by choosing the platform route and smallest proof path.
 
@@ -99,6 +111,7 @@ Prefer the actual affected surface when safe and authorized. Before building a s
 ## Workflow
 
 1. Define the verification target.
+   - For `assurance: combined-low-risk`, before proof the fresh `qa` agent inspects the exact diff for scope, correctness, simplicity, style/maintainability, sensitive content/security, and continued eligibility. A concrete defect returns `FAIL`; uncertainty or a need for deeper judgment returns `BLOCKED` without running proof. Record this precheck in the single result and continue only when it passes.
    - State the single main user outcome that must work.
    - State its falsifier: the observation that would show the outcome failed.
    - State the terminal observation for each declared claim, including the regression check when present.
@@ -218,9 +231,10 @@ Prefer the actual affected surface when safe and authorized. Before building a s
       work is disproportionate to the unresolved risk.
 
 6. Report the result.
-    - Write `{ISSUE_DIR}/verification/result.md` first (or `result.md` in the authorized standalone evidence directory).
-   - Run `test -f` on that file and every cited Observable path. Missing file = `FAIL`, not `PASS`.
-   - Do not return `PASS` from chat alone.
+     - Write `{ISSUE_DIR}/verification/result.md` first (or `result.md` in the authorized standalone evidence directory).
+     - Run `test -f` on that file and every cited Observable path. Missing file = `FAIL`, not `PASS`.
+     - Do not return `PASS` from chat alone.
+     - In combined assurance, include the quality precheck and verification evidence in this one result; do not create a separate code-quality result.
 
 ## Evidence Rules
 
@@ -277,7 +291,7 @@ Prefer the actual affected surface when safe and authorized. Before building a s
 
 ## Output
 
-Return failed criteria, evidence/prerequisite owner, and required rechecks in Notes. For delivery, the caller routes defects through implementation and fresh code-quality review before acceptance; proof gaps return here without unrelated edits. Focused verification reports findings and stops, without assigning fixes or implying delivery approval. After 2 `FAIL` verdicts for the same affected claim, stop with `EXHAUSTED`; evidence-only gaps do not invalidate other proven claims or create a new candidate. Carry prior verdicts across dispatches. `BLOCKED` does not redispatch itself against an unchanged prerequisite. Never use exhaustion to waive acceptance.
+Return failed criteria, evidence/prerequisite owner, and required rechecks in Notes. For standard delivery, the caller routes defects through implementation and fresh code-quality review before acceptance; combined assurance includes the quality precheck in this gate, routes concrete defects to implementation, and routes uncertainty or deeper judgment to the standard reviewer then QA path. Proof gaps return here without unrelated edits. Focused verification reports findings and stops, without assigning fixes or implying delivery approval. After 2 `FAIL` verdicts for the same affected claim, stop with `EXHAUSTED`; evidence-only gaps do not invalidate other proven claims or create a new candidate. Carry prior verdicts across dispatches. `BLOCKED` does not redispatch itself against an unchanged prerequisite. Never use exhaustion to waive acceptance.
 
 Use this exact structure:
 
@@ -285,10 +299,12 @@ Use this exact structure:
 ## Verification Result
 
 - Platform: `web|mobile-web|desktop|ios|android|macos|non-ui`
+- Assurance: `standard|combined-low-risk`
 - Objective: [single outcome verified]
 - Falsifier: [observation that would disprove the Objective]
 - Primary flow: [short description]
 - Regression check: [short description or "None"]
+- Quality: [standard `APPROVE_CODE` receipt, or combined quality precheck result and evidence]
 - Mechanical: [command] → [exit code / quoted raw excerpt; fresh or reused, receipt source, candidate/conditions and reuse rationale]
 - Observable: [artifact path or `n/a`]
 - Checks run: [concise list, including any observation window]
