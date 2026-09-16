@@ -1,0 +1,26 @@
+{
+  "activePreset": "approved",
+  "activeMode": "normal",
+  "defaultTier": "medium",
+  "presets": {
+    "approved": {
+      "fast": {
+        "model": "xai/grok-4.6",
+        "costRatio": 1,
+        "description": "Grok 4.6 for exploration and simple tasks"
+      },
+      "medium": {
+        "model": "openai/gpt-5.6-sol",
+        "reasoning": { "effort": "medium" },
+        "costRatio": 5,
+        "description": "GPT-5.6 Sol at medium reasoning for implementation"
+      },
+      "heavy": {
+        "model": "openai/gpt-5.6-sol",
+        "reasoning": { "effort": "high" },
+        "costRatio": 20,
+        "description": "GPT-5.6 Sol at high reasoning for architecture and judgment"
+      }
+    }
+  }
+}
