@@ -33,7 +33,8 @@ Match every true row in Concerns unless that stop rule already applied. Match ag
 | Changing the repo | matching skill; `ponytail` for code or implementation-design changes | `build` |
 | Need to know it works | `verification-gate` | `qa` |
 | Need to know the diff is sound | `code-quality-gate` (optionally uses `ponytail-review` for a diff-focused complexity review) | `reviewer` |
-| User asked to ship | `git-commits`, `issue-to-pr` | this session. Never infer this row |
+| User asked to publish repository changes or open a PR | `git-commits`, `issue-to-pr` | this session. Never infer this row |
+| User asked to ship an application build to TestFlight or an app store | `ship-app`, `xcodebuildmcp-cli` | this session. Each remote stage requires explicit authority |
 
 Prefer this order on first entry: ticket → see it → why → context → change → prove → review. Going back a stage is expected. Do not skip a missing ticket when work may continue. Do not skip a missing repro when the job is a fix. After a delivery change, use the standard `code-quality-gate` then `verification-gate` route unless the caller explicitly selects `assurance: combined-low-risk` and the `verification-gate` eligibility contract is satisfied. Combined assurance is one fresh `qa` pass, separate from implementation: quality precheck first, then decisive verification, with one result. If eligibility is uncertain or quality needs deeper judgment, return `BLOCKED` and use the standard reviewer then QA route. Run `judge-proposal` only when approaches compete.
 
