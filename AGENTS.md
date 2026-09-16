@@ -16,7 +16,9 @@
 
 Frame once. Restate the request as the desired outcome, the current gap, and the constraints. No implementation assumptions. If intent, scope, safety, or authority is still unclear after a look, ask one focused question.
 
-Match every true row in Concerns. Match again when new evidence lands. Skills own their loops. The ticket is the source of truth, not the table.
+If they named one job, do that job and stop. Do not also fire delivery concerns. Review, proof, ticket, shape, prototype, dogfood, ponytail, xcode, tmux, skill rewrite, commit. Prototype does not commit. Publish is never inferred.
+
+Match every true row in Concerns unless that stop rule already applied. Match again when new evidence lands. Skills own their loops. The ticket is the source of truth, not the table.
 
 **Contract.** If work may continue past this turn, write or update `_ai/task/{YYYY-MM-DD}/{slug}/ticket.md` before changing code. Resume that directory if it exists. Use `date` for the date. Slug is 3-5 words from the problem. SMALL writes the framed problem into that file. Use `create-ticket` when filing a GitHub issue, or when the contract needs a bug, feature, or task template.
 
@@ -45,24 +47,6 @@ Prefer this order on first entry: ticket → see it → why → context → chan
 - Skip `five-whys` when the cause is obvious.
 - Small plans stay inline. Use `shaping` when the user asked to shape.
 - Reuse valid evidence. An edit invalidates only what it actually touches.
-
-**Stop there.** These requests do not start a delivery pipeline.
-
-| They asked | Skill | Suggested agent |
-|---|---|---|
-| Review this diff | `code-quality-gate` | `reviewer` |
-| Review this GitHub PR | `pr-reviewer` | `pr-reviewer` |
-| Prove this claim or QA this flow | `verification-gate` | `qa` |
-| File a ticket or GitHub issue | `create-ticket` | this session |
-| Shape or specify only | `shaping` | `plan` |
-| Prototype or sketch | this session. Do not commit | — |
-| Exploratory bug hunt | `dogfood` | this session |
-| Over-engineering review | `ponytail-review` or `ponytail-audit` | this session |
-| Ponytail debt ledger | `ponytail-debt` | this session |
-| iOS or macOS build, run, test, or debug | `xcodebuildmcp-cli` | this session |
-| Long-running or autonomous work | `tmux` | this session |
-| Write or rewrite a SKILL.md | `skill-creator` then `skill-quality-checklist` | this session |
-| Commit, push, or PR | `git-commits`, `issue-to-pr` | this session. Only if asked |
 
 **Agents.** The skill name is the contract. Spawn the suggested agent when a fresh session helps. Use `build` for implementation writes. Use `plan` only for read-only planning or judging. Keep `atlas` and `voyager` research-only. OpenCode Task may omit primary agents from its advertised list. Invoke them by exact `subagent_type` anyway. If `build` cannot start, report `BLOCKED`. Never substitute a research agent.
 
