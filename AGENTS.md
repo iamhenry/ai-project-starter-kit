@@ -35,7 +35,9 @@ Match every true row in Concerns unless that stop rule already applied. Match ag
 | Need to know the diff is sound | `code-quality-gate` (optionally uses `ponytail-review` for a diff-focused complexity review) | `reviewer` |
 | User asked to ship | `git-commits`, `issue-to-pr` | this session. Never infer this row |
 
-Prefer this order on first entry: ticket → see it → why → context → change → prove → review. Going back a stage is expected. Do not skip a missing ticket when work may continue. Do not skip a missing repro when the job is a fix. After a delivery change, do not skip prove or review unless the user asked to stop earlier. Run `judge-proposal` only when approaches compete.
+Prefer this order on first entry: ticket → see it → why → context → change → prove → review. Going back a stage is expected. Do not skip a missing ticket when work may continue. Do not skip a missing repro when the job is a fix. After a delivery change, use the standard `code-quality-gate` then `verification-gate` route unless the caller explicitly selects `assurance: combined-low-risk` and the `verification-gate` eligibility contract is satisfied. Combined assurance is one fresh `qa` pass, separate from implementation: quality precheck first, then decisive verification, with one result. If eligibility is uncertain or quality needs deeper judgment, return `BLOCKED` and use the standard reviewer then QA route. Run `judge-proposal` only when approaches compete.
+
+**Combined low-risk assurance.** `verification-gate` owns the eligibility contract. Route only explicitly selected combined runs that satisfy it; otherwise use the standard reviewer then QA route. The contract covers narrow non-executable or mechanical changes with a decisive existing check and excludes consequential or broad/coupled risk.
 
 **Scale.** Size how hard a fired skill runs. Do not add hops.
 
