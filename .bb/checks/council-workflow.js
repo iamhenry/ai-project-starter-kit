@@ -14,9 +14,25 @@ assert(source.includes("round <= maxRounds"), "configured maxRounds must control
 assert(!/\bMAX_ROUNDS\b/.test(source), "the workflow must not use a fixed MAX_ROUNDS constant");
 assert(source.includes('const DEFAULT_CONSENSUS_MODE = "majority";'), "omitted consensus mode must default to majority");
 assert(!/\bmodels\b/.test(source), "model selection must not be a workflow input");
-assert.equal((source.match(/^\s*provider: "opencode",$/gm) || []).length, 1, "provider must be one direct literal");
-assert.equal((source.match(/^\s*model: "openai\/gpt-5\.6-luna",$/gm) || []).length, 1, "model must be one direct literal");
-assert.equal((source.match(/^\s*reasoningLevel: "low",$/gm) || []).length, 1, "reasoning level must be one direct literal");
+const roleModels = {
+  synthesizer: ["openai/gpt-6-astra", "low"],
+  logician: ["ollama-cloud/kimi-k3", "high"],
+  critic: ["openai/gpt-5.6-sol", "medium"],
+  researcher: ["ollama-cloud/glm-5.3-flash", "high"],
+  creative: ["ollama-cloud/glm-5.3", "high"],
+};
+for (const [role, [model, reasoningLevel]] of Object.entries(roleModels)) {
+  const start = source.indexOf(`case "${role}":`);
+  assert(start >= 0, `${role} must have a direct model selection`);
+  const end = source.indexOf("\n      case ", start + 1);
+  const selection = source.slice(start, end === -1 ? source.length : end);
+  assert(selection.includes('provider: "opencode",'), `${role} provider must be a direct literal`);
+  assert(selection.includes(`model: "${model}",`), `${role} model must be the requested direct literal`);
+  assert(selection.includes(`reasoningLevel: "${reasoningLevel}",`), `${role} reasoning level must be the requested direct literal`);
+}
+assert.equal((source.match(/^\s*provider: "opencode",$/gm) || []).length, 5, "each role must select the provider with a direct literal");
+assert.equal((source.match(/^\s*model: "[^"]+",$/gm) || []).length, 5, "each role must select a model with a direct literal");
+assert.equal((source.match(/^\s*reasoningLevel: "(?:low|medium|high)",$/gm) || []).length, 5, "each role must select a reasoning level with a direct literal");
 assert(source.includes("if (debug) {\n  result.transcript = transcript;\n}"), "transcript must be debug-only in the result");
 
 const start = source.indexOf("// BEGIN deterministic protocol helpers");
