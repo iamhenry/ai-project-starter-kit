@@ -21,6 +21,12 @@ Done means the user-observable outcome is proven working on the exact candidate 
 
 Never declare done from green tests while the user-visible surface was never exercised, and never verify through logs what the user experiences in the UI. Define done up front, not after: `/tc` fills the Verification and E2E smoke contract before implementation. This section owns what done means; `verification-gate` owns how to prove it.
 
+### Tests preserve proven behavior
+
+Do not write tests before the implementation produces the desired behavior for the user. First make the behavior work and prove it through the real user path. Only then add the smallest regression test that preserves that confirmed behavior. Tests freeze a working solution; they do not substitute for finding one. If the user explicitly says not to write tests yet, do not create or modify tests.
+
+Test the behavior, not the implementation. Assert what the user can observe or what a public contract guarantees, such as an output, visible state, or externally meaningful side effect. Do not test private functions, internal state, call order, or code structure unless that detail is itself part of the required behavior. A useful test fails when the proven behavior regresses and continues to pass through a harmless refactor.
+
 ### Tight Feedback Loop
 
 Default to the shortest evidence loop for coding tasks: reproduce → instrument minimally → smallest fix → prove → report. Optimize for time-to-trustworthy-signal, not completeness. This is the *cadence* for getting there; Definition of Done is the *bar* it must reach.
@@ -30,7 +36,7 @@ Skip the loop only when there is no live surface to observe: docs, skill, or con
 1. **Reproduce now**, in the smallest realistic flow. Stop once the evidence tests a concrete hypothesis.
 2. **Instrument minimally** — only the logs/traces needed to see event order, IDs, inputs, outputs. Remove it when done unless it has lasting value.
 3. **Fix from evidence, not guesses.** Smallest reversible fix; one variable at a time; no unrelated refactors.
-4. **Prove immediately:** targeted regression test (fails before, passes after) + fresh live smoke on the real flow. The live smoke is the primary acceptance signal — unit tests alone never clear a bug that appeared in a live integration.
+4. **Prove immediately:** first run a fresh live smoke on the real flow. After the desired behavior works, add the smallest targeted regression test that preserves it. The live smoke is the primary acceptance signal — unit tests alone never clear a bug that appeared in a live integration.
 5. **Escalate only if the signal is untrustworthy:** end-to-end for the full cross-system path, stress/edge cases for chunking/ordering/timing, soak for intermittent failures.
 
 Keep the report to five lines: Observed / Cause / Change / Proof / Risk. `reproduce-bug` owns the repro SOP; `verification-gate` owns the final verdict; this section owns the loop cadence between them.
