@@ -93,7 +93,9 @@ Create only after confirm, or immediately when the user already said create/file
 gh issue create --title "<title>" --body-file /tmp/gh-issue-body.md --type <Bug|Feature|Task>
 ```
 
-If `--type` is rejected, retry without it. Do not invent labels. Do not add assignees, projects, or milestones unless asked.
+If `--type` is rejected, the issue may still have been created — a non-zero exit does not mean the create failed. Before retrying, check whether the issue already exists (`gh issue list -R <owner>/<repo> --state open --search "<title>" --json number,title` or any URL in the error output). If it exists, use it (add the missing metadata with `gh issue edit` if needed); only re-run create if no issue was created. Do not invent labels. Do not add assignees, projects, or milestones unless asked.
+
+After any `gh issue create` failure or retry, verify what landed (`gh issue view <number-or-url>`) before declaring success — a create can partially succeed despite a non-zero exit, and retrying blindly creates a duplicate.
 
 #### Media attachments
 
