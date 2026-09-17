@@ -296,15 +296,61 @@ function buildSynthesisPrompt(topic, outcome, rounds, transcript) {
 
 async function callWorker(prompt, role, label, phaseName, schema, fallback) {
   try {
-    const result = await agent(prompt, {
-      label,
-      phase: phaseName,
-      schema,
-      // Edit these three literals together when changing the council model.
-      provider: "opencode",
-      model: "openai/gpt-5.6-luna",
-      reasoningLevel: "low",
-    });
+    let result;
+    switch (role) {
+      case "synthesizer":
+        result = await agent(prompt, {
+          label,
+          phase: phaseName,
+          schema,
+          provider: "opencode",
+          model: "openai/gpt-6-astra",
+          reasoningLevel: "low",
+        });
+        break;
+      case "logician":
+        result = await agent(prompt, {
+          label,
+          phase: phaseName,
+          schema,
+          provider: "opencode",
+          model: "ollama-cloud/kimi-k3",
+          reasoningLevel: "high",
+        });
+        break;
+      case "critic":
+        result = await agent(prompt, {
+          label,
+          phase: phaseName,
+          schema,
+          provider: "opencode",
+          model: "openai/gpt-5.6-sol",
+          reasoningLevel: "medium",
+        });
+        break;
+      case "researcher":
+        result = await agent(prompt, {
+          label,
+          phase: phaseName,
+          schema,
+          provider: "opencode",
+          model: "ollama-cloud/glm-5.3-flash",
+          reasoningLevel: "high",
+        });
+        break;
+      case "creative":
+        result = await agent(prompt, {
+          label,
+          phase: phaseName,
+          schema,
+          provider: "opencode",
+          model: "ollama-cloud/glm-5.3",
+          reasoningLevel: "high",
+        });
+        break;
+      default:
+        return fallback;
+    }
     return result || fallback;
   } catch (_) {
     return fallback;
