@@ -12,6 +12,7 @@ assert(source.includes("const voteResults = await parallel("), "votes must fan o
 assert(source.includes("const responseResults = await parallel("), "revisions must fan out in parallel");
 assert(source.includes("round <= maxRounds"), "configured maxRounds must control termination");
 assert(!/\bMAX_ROUNDS\b/.test(source), "the workflow must not use a fixed MAX_ROUNDS constant");
+assert(source.includes('const DEFAULT_CONSENSUS_MODE = "majority";'), "omitted consensus mode must default to majority");
 assert(!/\bmodels\b/.test(source), "model selection must not be a workflow input");
 assert.equal((source.match(/^\s*provider: "opencode",$/gm) || []).length, 1, "provider must be one direct literal");
 assert.equal((source.match(/^\s*model: "openai\/gpt-5\.6-luna",$/gm) || []).length, 1, "model must be one direct literal");

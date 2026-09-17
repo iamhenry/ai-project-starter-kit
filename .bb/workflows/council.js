@@ -143,7 +143,7 @@ function summarizeVotes(votes, consensusMode) {
 // END deterministic protocol helpers
 
 const DEFAULT_MAX_ROUNDS = 3;
-const DEFAULT_CONSENSUS_MODE = "unanimous";
+const DEFAULT_CONSENSUS_MODE = "majority";
 
 const ROLE_CONFIG = {
   researcher: {
@@ -226,7 +226,7 @@ function normaliseArgs(input) {
   return {
     topic: typeof value.query === "string" ? value.query : "[no question]",
     maxRounds,
-    consensusMode: value.consensusMode === "majority" ? "majority" : DEFAULT_CONSENSUS_MODE,
+    consensusMode: value.consensusMode === "unanimous" ? "unanimous" : DEFAULT_CONSENSUS_MODE,
     debug: value.debug === true,
   };
 }
