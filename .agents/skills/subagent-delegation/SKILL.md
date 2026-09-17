@@ -87,7 +87,7 @@ Use these fields as a guide, populated with actual context or references. Assign
 [Specify exactly what the agent must create, modify, or return, including the expected format or location.]
 
 ### Exit Criteria
-[Report assignment completion only with evidence satisfying its criteria; identify downstream acceptance still pending. Reuse valid evidence under the owning skill's rules, never unchecked claims. Mechanical success alone is not delivery acceptance for a behavior change. Return an unavailable prerequisite to its owner; ask the user only for unresolved intent or permission. Do not cross Boundaries to make a criterion pass.]
+[Report assignment completion only with evidence satisfying its criteria; identify downstream acceptance still pending. Once an exit criterion is met, return the required deliverable before optional enrichment or cleanup; run another probe only when a named unresolved criterion could change the result. Reuse valid evidence under the owning skill's rules, never unchecked claims. Mechanical success alone is not delivery acceptance for a behavior change. Return an unavailable prerequisite to its owner; ask the user only for unresolved intent or permission. Do not cross Boundaries to make a criterion pass.]
 ```
 
 ## References

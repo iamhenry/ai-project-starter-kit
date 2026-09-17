@@ -1,6 +1,6 @@
 ---
 name: reproduce-bug
-description: Lightweight SOP for reproducing bugs and proving whether a reported issue can be triggered. Use when Claude needs to reproduce a bug, validate a bug report, capture a repro video or screenshot, and return a clear REPRODUCED/NOT_REPRODUCED/BLOCKED result. When browser-based reproduction is needed, rely on the dogfood skill for browser setup, navigation, and evidence capture.
+description: Lightweight SOP for reproducing bugs and proving whether a reported issue can be triggered. Use when Claude needs to reproduce a bug, validate a bug report, capture a repro video or screenshot, and return a clear REPRODUCED/NOT_REPRODUCED/BLOCKED result. Use agent-browser directly for browser-based reproduction.
 ---
 
 <!--
@@ -27,8 +27,8 @@ Do not use this skill for broad QA, new bug discovery, or root-cause analysis.
 
 Before starting any browser-based reproduction:
 
-- Confirm the `dogfood` skill is available and read it first for browser setup and evidence capture.
-- If browser reproduction is needed but `dogfood` is not ready, do not loop on failing browser steps. Return `BLOCKED` with the missing setup or prerequisite.
+- Load `agent-browser` and use only the commands needed for the reported path. Do not load the broad `dogfood` workflow for a focused reproduction.
+- If browser reproduction is needed but `agent-browser` is not ready, do not loop on failing browser steps. Return `BLOCKED` with the missing setup or prerequisite.
 
 ## Inputs
 
@@ -80,7 +80,7 @@ Prefer the smallest repro path that still proves the bug clearly.
 3. Run the smallest faithful reproduction.
 
    - Reproduce through the reported entry point: the screen, command, or flow the reporter actually used. A unit test, a different code path, or a mocked dependency can support a finding but never confirms a real user-flow bug by itself.
-   - Prefer user-visible proof first: show what the user actually sees going wrong, then add mechanical proof (logs, command output, file state) to pin the failure. Observable alone can be ambiguous; mechanical alone can miss the user's actual experience.
+   - Require user-visible proof for a user-visible report. Add mechanical proof only when the visible state is ambiguous or the mechanical observation is part of the report.
    - When the requester explicitly asks for a screenshot (or other specific artifact), capture it or return `BLOCKED` naming the missing prerequisite; do not substitute a different artifact silently.
    - Check for existing faithful evidence (logs, screenshots, reports from the actual flow) before spending on a new reproduction; valid existing evidence that matches the reported entry point can avoid a new expensive repro run.
    - Clearly mark controlled evidence (staging data, seeded fixtures, scripted runs); it supports diagnosis but never proves live user behavior on its own.
@@ -95,17 +95,27 @@ Prefer the smallest repro path that still proves the bug clearly.
      records instead of extending blind waits. Report a UI/backend mismatch as
      the observed boundary; do not collapse it into success or failure without
      user-observable proof.
-   - Reuse the smallest part of the `dogfood` workflow needed to reproduce the reported bug.
+   - Use `agent-browser` directly for browser setup, navigation, and evidence capture.
    - Capture `📸` when a single static proof state is enough.
-   - Capture `🎥` when the bug requires interaction or timing proof; prefer one recording for the full sequence.
+   - Capture `🎥` only when timing or the action sequence is part of the symptom; an interaction used to reach a static broken state does not by itself require video.
 
    - For `non-browser`, run the shortest direct repro path available.
    - Prefer concrete proof: failing output, wrong response, missing file, broken state, or other observable result.
 
 4. Spend evidence only while it changes the decision.
 
-   - Principle: optimize for the first trustworthy result, not a fixed number
-     of attempts.
+   - For a deterministic report, default to one faithful attempt and, only if
+     its result is ambiguous, one smallest discriminating probe. If the result
+     still cannot be distinguished, return `BLOCKED` with the exact evidence
+     limitation instead of inventing more probes.
+   - After every attempt or probe, evaluate the result before capturing
+     anything else. Once evidence supports a result, return the structured
+     report immediately, before optional evidence, alternate captures, or
+     cleanup.
+   - Principle: optimize for the first trustworthy result. Exceed the default
+     budget only when repetition is itself the named probe, such as an
+     intermittent or timing-dependent report, with a stopping condition set
+     before repeating.
    - Heuristic: continue only when a specific question remains and the next
      probe adds a new signal that could change the result at proportionate cost
      and risk.
@@ -125,7 +135,9 @@ Prefer the smallest repro path that still proves the bug clearly.
    - `NOT_REPRODUCED`: the reported bug did not occur within the stated
      conditions and evidence budget; report that coverage without claiming the
      bug cannot occur.
-   - `BLOCKED`: required auth, data, environment, or tooling is missing.
+   - `BLOCKED`: required auth, data, environment, or tooling is missing, or the
+     available evidence cannot distinguish the reported failure from expected
+     behavior within the declared budget.
    - Exit when the evidence supports a result, no discriminating probe remains,
      a prerequisite is blocked, or further work is disproportionate to the
      unresolved question.
@@ -135,9 +147,9 @@ Prefer the smallest repro path that still proves the bug clearly.
 ## Evidence Rules
 
 - Match the evidence to the bug.
-- Prefer cheap user-observable proof (what the user sees) plus mechanical proof (logs, command output, file state) together; observable alone can be ambiguous, mechanical alone can miss the user's actual experience.
+- Require cheap user-observable proof for a user-visible report. Add mechanical proof only to resolve ambiguity or when it is part of the reported failure.
 - Use screenshots for static visible issues.
-- Use a single full-sequence video for interaction-heavy repros.
+- Use a single full-sequence video only when timing or the action sequence is part of the symptom.
 - Never capture secrets, tokens, private user data, or unnecessary personal information.
 - Use `{ISSUE_DIR}/reproduction/` for pipeline evidence, preserving the supplied task directory including its date; for standalone calls, use the authorized evidence directory directly. Keep media in `screenshots/` and `videos/` subfolders.
 - For iOS flow reproduction, retain `flows/<safe-name>.yaml` in that same directory as durable evidence and return its exact path for replay.
