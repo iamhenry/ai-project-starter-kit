@@ -29,7 +29,7 @@ Principles:
 | `xcodebuildmcp-cli`          | Apple-platform proof path used by `verification-gate`.    | Supports iOS and macOS validation without defining it here.                      |
 | PR placeholder               | Future owner handles PR handoff.                          | Keeps review and merge policy outside this wrapper.                              |
 
-Orchestrate and judge the pipeline. Do not create, edit, append, or repair task artifacts directly.
+Orchestrate and judge the pipeline. Do not create, edit, append, or repair task artifacts outside the artifact and coordination boundaries below.
 
 This skill connects modular skills, checks whether each stage produced the expected artifact, and routes revisions back to the owning skill or subagent when the pipeline is off track.
 
@@ -41,9 +41,9 @@ Use this composition for authorized delivery; focused research, planning, review
 
 ## Pipeline
 
-`ISSUE_DIR` is created by `gather-context` using `_ai/task/{YYYY-MM-DD}/{slug}`. All pipeline artifacts are relative to `ISSUE_DIR`.
+The caller must supply the accessible existing `{ISSUE_DIR}/ticket.md` path before any dispatch. Derive `ISSUE_DIR` from that ticket's parent; do not create a replacement. `gather-context` must reuse this `ISSUE_DIR` rather than creating another directory. A missing or inaccessible ticket path is `BLOCKED`. All pipeline artifacts are relative to `ISSUE_DIR`.
 
-Use existing `issue.md`, `plan.md`, and stage reports rather than restarting intake. Explicit user changes take precedence: route reconciliation to the artifact owner and request the owners' assessment of affected evidence and required rechecks. Preserve sound unrelated evidence; coupled, uncertain, or consequential changes may justify broader fresh assurance, not an automatic whole-pipeline restart. Before dispatch, check the owner's declared inputs and write scope. A missing owner-declared prerequisite is `BLOCKED`; preserve that result, name the unlock condition, and do not repair another owner's work. Repair pipeline-owned gaps through their owners, not by asking the user to author documents. Ask only for missing intent or permission. Allow one narrow repair per underlying prerequisite or receipt gap, within existing stricter limits; if it remains unresolved, stop with the owner and unlock condition. Renaming a gap or redispatching never resets a budget.
+Use existing `issue.md`, `plan.md`, and stage reports rather than restarting intake. Before resuming, load the supplied ticket state. Explicit user changes take precedence: route reconciliation to the artifact owner and request the owners' assessment of affected evidence and required rechecks. Preserve sound unrelated evidence; coupled, uncertain, or consequential changes may justify broader fresh assurance, not an automatic whole-pipeline restart. Before dispatch, check the owner's declared inputs and write scope. A missing owner-declared prerequisite is `BLOCKED`; preserve that result, name the unlock condition, and do not repair another owner's work. Repair pipeline-owned gaps through their owners, not by asking the user to author documents. Ask only for missing intent or permission. Allow one narrow repair per underlying prerequisite or receipt gap, within existing stricter limits; if it remains unresolved, stop with the owner and unlock condition. Renaming a gap or redispatching never resets a budget.
 
 ### 1. Gather Context And Intake
 
@@ -126,6 +126,7 @@ Use existing `issue.md`, `plan.md`, and stage reports rather than restarting int
 
 Allowed task artifacts:
 
+- `{ISSUE_DIR}/ticket.md` coordination sections `Pipeline State` and `Checkpoint Timeline`, maintained only by `issue-to-pr`
 - `{ISSUE_DIR}/issue.md`
 - `{ISSUE_DIR}/plan.md`
 - `{ISSUE_DIR}/research/*.md`
@@ -133,6 +134,16 @@ Allowed task artifacts:
 - `{ISSUE_DIR}/verification/` (`result.md`, `screenshots/`, `videos/`) owned by `verification-gate`
 
 Do not create helper docs, reference files, sidecar state, ADR files, or wrapper-specific metadata. The wrapper must not write `{ISSUE_DIR}/verification/`; it only checks cited paths exist.
+
+## Durable coordination state
+
+Use the existing `{ISSUE_DIR}/ticket.md` as the durable coordination source of truth, not as a source of domain conclusions. The wrapper may add or update only the `## Pipeline State` and `## Checkpoint Timeline` sections. It must not edit any other ticket content or grant itself general artifact-write authority.
+
+For every dispatch, including repairs, follow this exact sequence: update pre-dispatch `## Pipeline State`; capture the repository-path baseline; dispatch; compute the owner delta; enforce the declared allowed scope; update post-dispatch `## Pipeline State` and `## Checkpoint Timeline`. The state snapshot contains only these fields: stage, exact candidate, latest checkpoint/receipt, next owner/action, allowed writes, retries consumed, and blocker/unlock condition. The owner delta excludes changes confined to the two mutable ticket coordination sections.
+
+Identify each candidate by a commit SHA, or by a base SHA plus a stable diff identifier over delivery paths. Changes to the two mutable ticket coordination sections do not alter candidate identity or count toward the dispatched owner delta. After each completed or blocked checkpoint or attempt, append one concise, candidate-bound entry to `## Checkpoint Timeline`. For an owner artifact, include the stage or checkpoint, exact candidate, outcome, owner evidence link, and next owner/action or unlock condition. When no owner artifact exists, the timeline entry is the durable receipt and includes only the stage and exact candidate needed to bind it plus the returned result's exact native outcome: for gates, failed criterion IDs when supplied, otherwise the exact concise findings or required rechecks and evidence path/line references; for Build/task results, the completed or blocked outcome, exact blocker or remaining work, and evidence path/line references. Never invent verdicts or IDs or paraphrase domain reasoning.
+
+If the ticket state conflicts with an owner artifact, the owner artifact controls. `issue-to-pr` stops progression, refreshes only the two bounded ticket sections from the authoritative owner verdict or reference, mechanically confirms agreement, and resumes. Never edit the owner artifact. Fresh judges receive only their currently declared inputs. Do not pass the ticket timeline unless the judge's own skill explicitly requires it.
 
 ---
 
@@ -150,6 +161,7 @@ Do not create helper docs, reference files, sidecar state, ADR files, or wrapper
 | Code quality decision                                | `code-quality-gate` fresh subagent |
 | Verification proof                                   | `verification-gate` fresh subagent |
 | `{ISSUE_DIR}/verification/`                          | `verification-gate` fresh subagent |
+| `Pipeline State` and `Checkpoint Timeline` in `{ISSUE_DIR}/ticket.md` | `issue-to-pr` |
 | Pipeline order, gates, revision routing              | `issue-to-pr`                      |
 
 When an artifact is missing or malformed, ask the owner to revise it. Do not fix it inside this wrapper.
@@ -166,8 +178,9 @@ Judge, Build implementation, code quality, and verification work is delegated:
 - Use `code-quality-gate` after implementation is complete.
 - Use `verification-gate` after `APPROVE_CODE`.
 - Do not reuse main-agent context for judge decisions, code quality decisions, or verification proof.
+- Apply Durable coordination state when resuming the pipeline and for every dispatch.
 - For an initial handoff, pass authoritative artifact paths plus only the concise framing needed for the next action and its stopping condition. For a repair, resume the original owner with only the failed criterion, relevant evidence, and the delta since its prior attempt. Do not duplicate an owner's procedure or accumulated conversation context.
-- Before each dispatch, establish a mechanical pre-change repository-path baseline and confirm the owner's declared write scope. After it returns, compare changed repository paths with that scope. An unexplained path outside the scope blocks continuation and returns to that owner.
+- An unexplained owner-delta path outside the declared scope blocks continuation and returns to that owner.
 - Treat judge, code quality, and verification feedback as gates before continuing to the next phase.
 
 ---
