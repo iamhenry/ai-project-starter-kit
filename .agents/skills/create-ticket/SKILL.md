@@ -87,6 +87,8 @@ Create only after confirm, or immediately when the user already said create/file
 
 **GitHub** when they asked for a GitHub/`gh` issue. **Local `_ai/task/{YYYY-MM-DD}/{slug}/ticket.md`** otherwise. If work may continue after a GitHub issue, write the local ticket too and put the issue URL in it.
 
+When supplied screenshots or videos are included in a GitHub issue or local ticket, retain the attachment, link, or path in the existing body or Evidence/media section. Add concise factual prose for a later session without media access: relevant visible state, important visible text or annotations, dimensions or sequence when material, and what the media demonstrates. Omit irrelevant visual details, personal data, and speculation. If the media cannot be inspected, state that rather than guessing.
+
 ### GitHub
 
 ```bash
