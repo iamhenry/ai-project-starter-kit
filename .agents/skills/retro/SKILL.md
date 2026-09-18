@@ -36,7 +36,11 @@ or failed run involving a skill, command, prompt, agent, or workflow.
 5. Choose the smallest useful response, in this order: delete bloat, clarify
    an ambiguous instruction, move content to the correct artifact or owner,
    then add a rule only when the pattern is repeatable and the target owns it.
-6. Return exactly one verdict: `NO_CHANGE`, `PROPOSE_CHANGE`, or `BLOCKED`.
+6. When proposing changes, summarize them in a prioritized file-by-file change
+   map. Rank by impact and recurrence, keep each row to the smallest owning
+   change, and describe the intended improvement rather than promising an
+   unverified result.
+7. Return exactly one verdict: `NO_CHANGE`, `PROPOSE_CHANGE`, or `BLOCKED`.
    Use `NO_CHANGE` when evidence does not support changing the reviewed
    artifact, including execution-only, one-off, or wrong-layer findings; still
    report useful observations and route to the owner when relevant. Use
@@ -65,6 +69,13 @@ applicable. Do not invent a failure.>
 
 <List evidence-backed improvements only. Distinguish a proposed target change
 from a change that cannot be made.>
+
+<When proposing changes, include this table. Otherwise write "No change
+proposed.">
+
+| Priority | File | Before | After | Intended improvement |
+| --- | --- | --- | --- | --- |
+| <rank> | <owning artifact path> | <current behavior> | <smallest proposed change> | <expected benefit> |
 
 ## Diagnosis
 
