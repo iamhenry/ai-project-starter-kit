@@ -11,6 +11,7 @@ Create a lean `retro` skill that the user explicitly invokes to learn from a com
 - `.agents/skills/retro/SKILL.md` is fewer than 150 lines total.
 - The skill triggers only when the user explicitly requests a retro or names `retro`; agents do not invoke it automatically.
 - Every result includes what went right, what went wrong, and what could be improved.
+- The required final response is shown as one reusable fenced Markdown template.
 - It compares intended and observed behavior, classifies the cause, and returns `NO_CHANGE`, `PROPOSE_CHANGE`, or `BLOCKED`.
 - It prefers deletion or clarification over adding rules and rejects one-off, wrong-layer, or unsupported changes.
 - It works across skills, commands, prompts, agents, and workflows without adding a shared protocol or ledger.

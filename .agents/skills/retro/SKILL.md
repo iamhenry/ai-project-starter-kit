@@ -46,36 +46,40 @@ or failed run involving a skill, command, prompt, agent, or workflow.
 
 ## Required report
 
-Always include these headings, even when a section is empty:
+After analysis, return this reusable final-response template:
+
+```md
+# Retro: <target>
 
 ## What Went Right
 
-State what met the intent, reduced risk, or produced useful evidence. Write
-"None observed" when applicable.
+<What met the intent, reduced risk, or produced useful evidence. Write
+"None observed" when applicable.>
 
 ## What Went Wrong
 
-State the gap between intent and observation. Write "None observed" when
-applicable; do not invent a failure.
+<State the gap between intent and observation. Write "None observed" when
+applicable. Do not invent a failure.>
 
 ## What Could Be Improved
 
-List only evidence-backed improvements. Distinguish a proposed target change
-from a change that cannot be made.
+<List evidence-backed improvements only. Distinguish a proposed target change
+from a change that cannot be made.>
 
 ## Diagnosis
 
-- Target and artifact type: skill, command, prompt, agent, or workflow.
-- Expected:
-- Observed:
-- Evidence:
-- Cause class:
-- Counterfactual/generalization check:
+- Target and artifact type: <skill, command, prompt, agent, or workflow>
+- Expected: <intended outcome>
+- Observed: <actual outcome>
+- Evidence: <facts supporting the diagnosis>
+- Cause class: <artifact_gap, execution_drift, input, environment, wrong_owner, one_off, or bloat>
+- Counterfactual/generalization check: <would this help another realistic case?>
 
 ## Decision
 
 - Verdict: `NO_CHANGE`, `PROPOSE_CHANGE`, or `BLOCKED`
-- Rationale:
-- Target owner and artifact:
-- Proposed change, if any:
+- Rationale: <why this verdict applies>
+- Target owner and artifact: <owner and reviewed artifact>
+- Proposed change, if any: <smallest supported change>
 - Approval status: read-only unless the user explicitly authorized an edit.
+```
