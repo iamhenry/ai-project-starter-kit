@@ -43,7 +43,7 @@ Use this composition for authorized delivery; focused research, planning, review
 
 `ISSUE_DIR` is created by `gather-context` using `_ai/task/{YYYY-MM-DD}/{slug}`. All pipeline artifacts are relative to `ISSUE_DIR`.
 
-Use existing `issue.md`, `plan.md`, and stage reports rather than restarting intake. Explicit user changes take precedence: route reconciliation to the artifact owner and request the owners' assessment of affected evidence and required rechecks. Preserve sound unrelated evidence; coupled, uncertain, or consequential changes may justify broader fresh assurance, not an automatic whole-pipeline restart. Before dispatch, check the owner's declared inputs; repair pipeline-owned gaps through their owners, not by asking the user to author documents. Ask only for missing intent or permission. Allow one narrow repair per underlying prerequisite or receipt gap, within existing stricter limits; if it remains unresolved, stop with the owner and unlock condition. Renaming a gap or redispatching never resets a budget.
+Use existing `issue.md`, `plan.md`, and stage reports rather than restarting intake. Explicit user changes take precedence: route reconciliation to the artifact owner and request the owners' assessment of affected evidence and required rechecks. Preserve sound unrelated evidence; coupled, uncertain, or consequential changes may justify broader fresh assurance, not an automatic whole-pipeline restart. Before dispatch, check the owner's declared inputs and write scope. A missing owner-declared prerequisite is `BLOCKED`; preserve that result, name the unlock condition, and do not repair another owner's work. Repair pipeline-owned gaps through their owners, not by asking the user to author documents. Ask only for missing intent or permission. Allow one narrow repair per underlying prerequisite or receipt gap, within existing stricter limits; if it remains unresolved, stop with the owner and unlock condition. Renaming a gap or redispatching never resets a budget.
 
 ### 1. Gather Context And Intake
 
@@ -166,7 +166,8 @@ Judge, Build implementation, code quality, and verification work is delegated:
 - Use `code-quality-gate` after implementation is complete.
 - Use `verification-gate` after `APPROVE_CODE`.
 - Do not reuse main-agent context for judge decisions, code quality decisions, or verification proof.
-- Pass artifact paths and concise task framing only.
+- For an initial handoff, pass authoritative artifact paths plus only the concise framing needed for the next action and its stopping condition. For a repair, resume the original owner with only the failed criterion, relevant evidence, and the delta since its prior attempt. Do not duplicate an owner's procedure or accumulated conversation context.
+- Before each dispatch, establish a mechanical pre-change repository-path baseline and confirm the owner's declared write scope. After it returns, compare changed repository paths with that scope. An unexplained path outside the scope blocks continuation and returns to that owner.
 - Treat judge, code quality, and verification feedback as gates before continuing to the next phase.
 
 ---
