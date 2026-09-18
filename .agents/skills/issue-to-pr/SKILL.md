@@ -23,8 +23,8 @@ Principles:
 | `create-issue`               | Owns the selected implementation plan.                    | Keeps planning artifacts with the planning workflow.                             |
 | `judge-plan`                 | Independently reviews plan readiness.                     | Prevents implementation from starting on a weak plan.                            |
 | Implementation orchestration | Delegates implementation and repository writes to Task with exact `subagent_type: build`. | Keeps this wrapper orchestration-only while moving the plan toward working code. |
-| `code-quality-gate`          | Fresh subagent reviews code quality after implementation. | Catches implementation issues before QA proof begins.                            |
-| `verification-gate`          | Fresh subagent proves completed work.                     | Keeps QA execution outside this wrapper.                                         |
+| `code-quality-gate`          | Exact `reviewer` subagent reviews code quality after implementation. | Catches implementation issues before QA proof begins.                   |
+| `verification-gate`          | Exact `qa` subagent proves completed work.                | Keeps QA execution outside this wrapper.                                         |
 | `agent-browser`              | Browser proof path used by `verification-gate`.           | Supports web and mobile-web validation without defining it here.                 |
 | `xcodebuildmcp-cli`          | Apple-platform proof path used by `verification-gate`.    | Supports iOS and macOS validation without defining it here.                      |
 | PR placeholder               | Future owner handles PR handoff.                          | Keeps review and merge policy outside this wrapper.                              |
@@ -41,14 +41,14 @@ Use this composition for authorized delivery; focused research, planning, review
 
 ## Pipeline
 
-The caller must supply the accessible existing `{ISSUE_DIR}/ticket.md` path before any dispatch. Derive `ISSUE_DIR` from that ticket's parent; do not create a replacement. `gather-context` must reuse this `ISSUE_DIR` rather than creating another directory. A missing or inaccessible ticket path is `BLOCKED`. All pipeline artifacts are relative to `ISSUE_DIR`.
+The caller must supply either an accessible existing `{ISSUE_DIR}/ticket.md` path or a GitHub issue reference before any dispatch. For a GitHub issue reference, delegate ticket materialization to `create-ticket`, then derive `ISSUE_DIR` from the returned path; this wrapper does not create or import the ticket itself. `gather-context` must reuse this `ISSUE_DIR` rather than creating another directory. If neither input resolves to an accessible ticket path, return `BLOCKED`. All pipeline artifacts are relative to `ISSUE_DIR`.
 
 Use existing `issue.md`, `plan.md`, and stage reports rather than restarting intake. Before resuming, load the supplied ticket state. Explicit user changes take precedence: route reconciliation to the artifact owner and request the owners' assessment of affected evidence and required rechecks. Preserve sound unrelated evidence; coupled, uncertain, or consequential changes may justify broader fresh assurance, not an automatic whole-pipeline restart. Before dispatch, check the owner's declared inputs and write scope. A missing owner-declared prerequisite is `BLOCKED`; preserve that result, name the unlock condition, and do not repair another owner's work. Repair pipeline-owned gaps through their owners, not by asking the user to author documents. Ask only for missing intent or permission. Allow one narrow repair per underlying prerequisite or receipt gap, within existing stricter limits; if it remains unresolved, stop with the owner and unlock condition. Renaming a gap or redispatching never resets a budget.
 
 ### 1. Gather Context And Intake
 
 - Run `gather-context` with the raw user issue/request in **intake-only** mode. Before research, require `{ISSUE_DIR}/issue.md` with the task classification and a sufficiently clear reported behavior or requested outcome; unresolved intake questions return to their owner under Revision Routing.
-- For `bug` tasks, invoke `reproduce-bug` at this boundary, before research, proposal selection, or planning. Continue only on `REPRODUCED` with evidence matching the reported entry point; a mocked or different-path reproduction does not satisfy this gate. On `NOT_REPRODUCED` or `BLOCKED`, stop and report its structured result and next action. Safe, bounded prerequisite investigation may resolve a blocker, but does not authorize production edits or bypass reproduction. Reuse valid existing faithful evidence through the reproduction owner rather than requiring another run. If the reproduction owner retained evidence but omitted the structured result, send one conclude-only instruction to use existing evidence, run no new probes, and return the required result. If it still does not return, stop with an output-contract blocker; do not rerun or independently judge the reproduction.
+- For `bug` tasks, delegate `reproduce-bug` through Task with exact `subagent_type: qa` at this boundary, before research, proposal selection, or planning. The `qa` agent configuration owns its model; do not override it here or silently substitute another agent. If `qa` cannot start by exact name, return `BLOCKED`. Continue only on `REPRODUCED` with evidence matching the reported entry point; a mocked or different-path reproduction does not satisfy this gate. On `NOT_REPRODUCED` or `BLOCKED`, stop and report its structured result and next action. Safe, bounded prerequisite investigation may resolve a blocker, but does not authorize production edits or bypass reproduction. Reuse valid existing faithful evidence through the reproduction owner rather than requiring another run. If the reproduction owner retained evidence but omitted the structured result, send one conclude-only instruction to use existing evidence, run no new probes, and return the required result. If it still does not return, stop with an output-contract blocker; do not rerun or independently judge the reproduction.
 - For non-bug tasks, skip reproduction. Resume `gather-context` at Phase 1 in the same `ISSUE_DIR`, passing the reproduction result and evidence paths for bugs so research and proposals are grounded in observations. Reproduction establishes the symptom, not the cause; research investigates the cause, and the causal gate before implementation still applies.
 - Let `gather-context` choose investigation depth and applicable evidence locations under its own contract; do not prescribe a research fan-out or option count.
 - Gate: its declared intake, evidence, and supported approaches are present in the existing `ISSUE_DIR`.
@@ -84,6 +84,7 @@ Use existing `issue.md`, `plan.md`, and stage reports rather than restarting int
 - Do not implement directly from this wrapper.
 - Delegate every implementation and repository write through OpenCode Task with exact `subagent_type: build`. Task may omit primary agents from its advertised list; that omission is not a blocker.
 - If Build cannot start by exact name, report `BLOCKED`. Never fall back to `atlas`, `voyager`, or another research agent.
+- For changed user or consumer behavior, Build must get one safe observation through the actual affected path before adding regression tests. If that path is unavailable, return the blocker instead of treating tests as proof. This implementation feedback does not replace the later independent gates.
 - Delegate relevant read or research operations when needed.
 - If `{ISSUE_DIR}/plan.md` has a clear, safe delegation structure, follow it.
 - If `{ISSUE_DIR}/plan.md` lacks safe delegation structure, create an ad hoc delegation todo list in memory/context only and delegate safely.
@@ -95,7 +96,8 @@ Use existing `issue.md`, `plan.md`, and stage reports rather than restarting int
 
 ### 6. Code Quality Gate
 
-- After implementation is complete, delegate review to a fresh subagent using `code-quality-gate`.
+- After implementation is complete, delegate `code-quality-gate` through Task with exact `subagent_type: reviewer`.
+- If `reviewer` cannot start by exact name, return `BLOCKED`; do not substitute another agent.
 - Pass the inputs declared by `code-quality-gate`, including exact candidate identity and available receipts.
 - Gate: `code-quality-gate` returns `APPROVE_CODE`, `REVISE_CODE`, or `ASK_USER` with concise evidence.
 - Continue to verification only on `APPROVE_CODE`.
@@ -105,7 +107,7 @@ Use existing `issue.md`, `plan.md`, and stage reports rather than restarting int
 
 ### 7. Verification Gate
 
-- After `code-quality-gate` returns `APPROVE_CODE`, delegate a fresh subagent using `verification-gate`. Do not redispatch verification already completed on the same candidate and claims.
+- After `code-quality-gate` returns `APPROVE_CODE`, delegate `verification-gate` through Task with exact `subagent_type: qa`. The `qa` agent configuration owns its model; do not override it here or silently substitute another agent. If `qa` cannot start by exact name, return `BLOCKED`. Do not redispatch verification already completed on the same candidate and claims.
 - Pass the inputs declared by `verification-gate`, including the current candidate and bug reproduction evidence where applicable. It owns the shortest credible proof route and prerequisite recovery.
 - Gate: `verification-gate` returns `PASS`, `FAIL`, or `BLOCKED` with evidence on disk at `{ISSUE_DIR}/verification/result.md`.
 - Before treating the work as PR-ready, confirm the cited evidence is accessible (embedded or linked, paths resolve) and each artifact is labeled before/after where the claim depends on a state change, with stated limits. Evidence that does not open or does not support the claim is not PR-ready.
@@ -153,14 +155,14 @@ If the ticket state conflicts with an owner artifact, the owner artifact control
 | ---------------------------------------------------- | ---------------------------------- |
 | `{ISSUE_DIR}/issue.md` intake, scenarios, approaches | `gather-context`                   |
 | `{ISSUE_DIR}/research/*.md` evidence reports         | `gather-context` research agents   |
-| `{ISSUE_DIR}/reproduction/` evidence and flows       | `reproduce-bug`                    |
+| `{ISSUE_DIR}/reproduction/` evidence and flows       | `reproduce-bug` via exact `qa` subagent |
 | `Judge Decision` in `{ISSUE_DIR}/issue.md`           | `judge-proposal` fresh subagent    |
 | `{ISSUE_DIR}/plan.md`                                | `create-issue` workflow            |
 | `Plan Judge` in `{ISSUE_DIR}/plan.md`                | `judge-plan` fresh subagent        |
 | Implementation code changes                          | Build via Task `subagent_type: build` |
-| Code quality decision                                | `code-quality-gate` fresh subagent |
-| Verification proof                                   | `verification-gate` fresh subagent |
-| `{ISSUE_DIR}/verification/`                          | `verification-gate` fresh subagent |
+| Code quality decision                                | `code-quality-gate` via exact `reviewer` subagent |
+| Verification proof                                   | `verification-gate` via exact `qa` subagent |
+| `{ISSUE_DIR}/verification/`                          | `verification-gate` via exact `qa` subagent |
 | `Pipeline State` and `Checkpoint Timeline` in `{ISSUE_DIR}/ticket.md` | `issue-to-pr` |
 | Pipeline order, gates, revision routing              | `issue-to-pr`                      |
 
@@ -175,8 +177,8 @@ Judge, Build implementation, code quality, and verification work is delegated:
 - Use `judge-proposal` for the proposal checkpoint.
 - Use `judge-plan` for the plan checkpoint.
 - Use Task with exact `subagent_type: build` for all implementation and repository writes. If Build cannot start, report `BLOCKED`; advertised-list omission never permits an `atlas` or `voyager` fallback.
-- Use `code-quality-gate` after implementation is complete.
-- Use `verification-gate` after `APPROVE_CODE`.
+- Use Task with exact `subagent_type: reviewer` for `code-quality-gate` after implementation is complete.
+- Use Task with exact `subagent_type: qa` for `reproduce-bug` and for `verification-gate` after `APPROVE_CODE`; the agent configuration owns model selection.
 - Do not reuse main-agent context for judge decisions, code quality decisions, or verification proof.
 - Apply Durable coordination state when resuming the pipeline and for every dispatch.
 - For an initial handoff, pass authoritative artifact paths plus only the concise framing needed for the next action and its stopping condition. For a repair, resume the original owner with only the failed criterion, relevant evidence, and the delta since its prior attempt. Do not duplicate an owner's procedure or accumulated conversation context.

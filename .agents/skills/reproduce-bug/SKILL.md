@@ -79,11 +79,20 @@ Prefer the smallest repro path that still proves the bug clearly.
 
 3. Run the smallest faithful reproduction.
 
+   - When a caller delegates reproduction, use exact `subagent_type: qa`; the
+     caller owns dispatch and the `qa` agent configuration owns its model. This
+     skill does not choose a cheaper model or silently substitute another
+     agent.
    - Reproduce through the reported entry point: the screen, command, or flow the reporter actually used. A unit test, a different code path, or a mocked dependency can support a finding but never confirms a real user-flow bug by itself.
    - Require user-visible proof for a user-visible report. Add mechanical proof only when the visible state is ambiguous or the mechanical observation is part of the report.
    - When the requester explicitly asks for a screenshot (or other specific artifact), capture it or return `BLOCKED` naming the missing prerequisite; do not substitute a different artifact silently.
    - Check for existing faithful evidence (logs, screenshots, reports from the actual flow) before spending on a new reproduction; valid existing evidence that matches the reported entry point can avoid a new expensive repro run.
    - Clearly mark controlled evidence (staging data, seeded fixtures, scripted runs); it supports diagnosis but never proves live user behavior on its own.
+   - If the product flow itself performs model-backed work, preserve the model
+     selected by the task, target, or user rather than optimizing it here.
+     Record the visible provider/model, reasoning level when available, and
+     number of submitted product turns; use `unknown` for details the product
+     does not expose.
    - Record observations separately from hypotheses. "The save button produced no network call" is an observation; "the handler is not wired" is a hypothesis. Report only what was observed; leave cause claims to the fix stage.
    - Instrument only enough to locate the first observed divergence. Prefer
      existing evidence and logs, then existing debug flags or tool-level
@@ -169,6 +178,7 @@ Use this exact structure:
 - Result: `REPRODUCED|NOT_REPRODUCED|BLOCKED`
 - Reusable smoke: [exact command or flow to rerun after a fix, or "Unavailable — [reason]"]
 - Checks run: [concise list of probes and any observation window]
+- Model-backed product operations: [provider/model, reasoning level, and submitted turn count when applicable; `n/a` when none; `unknown` for unexposed details]
 
 ### Repro Steps
 

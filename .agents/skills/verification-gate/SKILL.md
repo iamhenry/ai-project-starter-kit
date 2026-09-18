@@ -15,7 +15,7 @@ Verification principles:
 
 Use this skill for delivery acceptance after implementation and `code-quality-gate` approval, for an explicitly selected `assurance: combined-low-risk` change that satisfies the eligibility contract below, or for an explicitly focused request to verify existing behavior. Focused proof is not delivery approval.
 
-For standard delivery, run acceptance in a fresh verifier session, separate from implementation and from code-quality review. Invoking this skill in the implementer's or reviewer's session does not supply independence. For `assurance: combined-low-risk`, one fresh `qa` agent, separate from implementation, performs the quality precheck first and then decisive verification; no prior `APPROVE_CODE` or separate reviewer is required, and it emits one result. If fresh separation from implementation is unavailable, return `BLOCKED`; fresh context reduces self-confirmation bias, not all bias. A focused verification request stops at its verdict and does not authorize fixes, commits, or publication.
+For standard delivery, run acceptance in a fresh `qa` agent, separate from implementation and from code-quality review. The caller must use exact `subagent_type: qa`; the `qa` agent configuration owns its model, so this skill does not override it or silently substitute another agent. Invoking this skill in the implementer's or reviewer's session does not supply independence. For `assurance: combined-low-risk`, one fresh `qa` agent, separate from implementation, performs the quality precheck first and then decisive verification; no prior `APPROVE_CODE` or separate reviewer is required, and it emits one result. If fresh separation from implementation is unavailable, return `BLOCKED`; fresh context reduces self-confirmation bias, not all bias. A focused verification request stops at its verdict and does not authorize fixes, commits, or publication.
 
 ## Combined low-risk assurance
 
@@ -141,6 +141,11 @@ Prefer the actual affected surface when safe and authorized. Before building a s
      available evidence and remains narrow and proportionate. Never repeat an
      unchanged blocked setup. If no useful recovery remains, return `BLOCKED`
      with the prerequisite owner and unlock condition.
+   - If the proof flow itself performs model-backed work, preserve the model
+     selected by the Verification Target, product, or user rather than
+     optimizing it here. Record the visible provider/model, reasoning level
+     when available, and number of submitted product turns; use `unknown` for
+     details the product does not expose.
 
 4. Execute the tight proof loop.
 
@@ -316,6 +321,7 @@ Use this exact structure:
 - Mechanical: [command] → [exit code / quoted raw excerpt; fresh or reused, receipt source, candidate/conditions and reuse rationale]
 - Observable: [artifact path or `n/a`]
 - Checks run: [concise list, including any observation window]
+- Model-backed product operations: [provider/model, reasoning level, and submitted turn count when applicable; `n/a` when none; `unknown` for unexposed details]
 - Verdict: `PASS|FAIL|BLOCKED`
 
 ### Evidence
