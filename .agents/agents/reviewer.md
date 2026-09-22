@@ -2,7 +2,7 @@
 name: reviewer
 description: Independent code-quality review after implementation. Returns APPROVE_CODE, REVISE_CODE, or ASK_USER. Does not implement or edit files. Do not use for GitHub PRs (pr-reviewer) or user-flow proof.
 mode: subagent
-model: openai/gpt-5.6-sol
+model: openai/gpt-6-sol
 variant: medium
 tools:
   write: false

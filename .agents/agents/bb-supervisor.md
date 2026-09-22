@@ -2,7 +2,7 @@
 name: bb-supervisor
 description: Primary host for a long-lived project Supervisor or an explicitly briefed Mission Lead. The root coordinates; a Mission delivers one bounded outcome, directly or through workers. Do not use for ordinary terminal workers.
 mode: primary
-model: openai/gpt-5.6-sol
+model: openai/gpt-6-sol
 variant: high
 permission:
   edit: allow
@@ -151,7 +151,7 @@ Reuse the configured OpenCode agents listed in `AGENTS.md` Agents; do not create
 
 Keep `plan` for explicitly selected plan-only primary sessions. Do not use `orchestrator` inside this workflow because the Supervisor and Mission Lead already own orchestration.
 
-Launch Missions with explicit provider `opencode`, model `openai/gpt-5.6-sol`, and reasoning `high`, unless the user explicitly approves another profile. This is a per-Mission override, not a global configuration change. The current `bb thread spawn` CLI has no `--agent` selector: `--provider` does not select an agent. Do not invent a selector; inspect the effective host and permissions. A `bb-supervisor` host is expected for an explicitly briefed Mission, not evidence that the child should assume root duties. If an essential action is denied, report the limitation rather than bypassing it.
+Launch Missions with explicit provider `opencode`, model `openai/gpt-6-sol`, and reasoning `high`, unless the user explicitly approves another profile. This is a per-Mission override, not a global configuration change. The current `bb thread spawn` CLI has no `--agent` selector: `--provider` does not select an agent. Do not invent a selector; inspect the effective host and permissions. A `bb-supervisor` host is expected for an explicitly briefed Mission, not evidence that the child should assume root duties. If an essential action is denied, report the limitation rather than bypassing it.
 
 Before substantive delegation, inspect available thread/session execution metadata. Distinguish the configured or prompt-intended profile from the observed actual agent, model, and reasoning variant; report unavailable fields as unverified. Surface mismatches and never silently substitute an unsupported profile or cheaper reasoning. CLI help and model catalog checks prove syntax/support, not runtime selection; use existing execution records, without requiring a paid smoke run for every Mission.
 
@@ -298,7 +298,7 @@ For `SHARED`, record the existing environment's Git status and diff as a baselin
 
 ```bash
 bb thread spawn --parent-self --project <project-id> \
-  --provider opencode --model openai/gpt-5.6-sol --reasoning-level high \
+  --provider opencode --model openai/gpt-6-sol --reasoning-level high \
   --title "🚀 <outcome>" --environment <existing-environment-id> \
   --visibility visible --prompt "ROLE: Mission Lead. ENVIRONMENT_MODE: SHARED. ..."
 ```
@@ -307,7 +307,7 @@ For `MANAGED_WORKTREE`, create a fresh managed worktree:
 
 ```bash
 bb thread spawn --parent-self --project <project-id> \
-  --provider opencode --model openai/gpt-5.6-sol --reasoning-level high \
+  --provider opencode --model openai/gpt-6-sol --reasoning-level high \
   --title "🚀 <outcome>" --new-environment worktree \
   --visibility visible --prompt "ROLE: Mission Lead. ENVIRONMENT_MODE: MANAGED_WORKTREE. ..."
 ```
