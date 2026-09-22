@@ -2,7 +2,7 @@
 name: general
 description: Default general agent
 mode: subagent
-model: openai/gpt-5.6-luna
+model: openai/gpt-6-luna
 variant: xhigh
 ---
 

@@ -15,7 +15,7 @@ Prepare the complete nested prompt below as one positional argument. Build that 
 
 ## Decide
 
-Select exactly one nested OpenCode process using `opencode run --model openai/gpt-5.6-luna --variant medium --format json`. In the same Bash call, enable `pipefail` and pipe the nested process JSONL directly to `jq -sj`. Use this exact jq filter: `[.[] | select(.type == "text" and (.part.text | type == "string"))] as $texts | if ($texts | length) == 0 then error("no assistant text") else ($texts | last | .part.messageID) as $id | [$texts[] | select(.part.messageID == $id) | .part.text] | join("") end`. The `-j` flag must emit the extracted text without adding a newline.
+Select exactly one nested OpenCode process using `opencode run --model openai/gpt-6-luna --variant medium --format json`. In the same Bash call, enable `pipefail` and pipe the nested process JSONL directly to `jq -sj`. Use this exact jq filter: `[.[] | select(.type == "text" and (.part.text | type == "string"))] as $texts | if ($texts | length) == 0 then error("no assistant text") else ($texts | last | .part.messageID) as $id | [$texts[] | select(.part.messageID == $id) | .part.text] | join("") end`. The `-j` flag must emit the extracted text without adding a newline.
 
 ## Act
 

@@ -2,7 +2,7 @@
 name: qa
 description: Independent verification of the claimed user or consumer outcome. Returns PASS, FAIL, or BLOCKED with evidence on disk. Does not implement. Do not use for code-quality review or GitHub PRs.
 mode: subagent
-model: openai/gpt-5.6-luna
+model: openai/gpt-6-luna
 variant: xhigh
 tools:
   write: true
