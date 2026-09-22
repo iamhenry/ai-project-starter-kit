@@ -6,7 +6,9 @@ using target-native device geometry.
 
 ## Core rule
 
-Borrow the wrapper, never the app. The real app screen remains the product truth.
+Borrow the wrapper, never the app. Current code and release evidence govern
+product claims. Supplied UI references govern visual content; a supplied mock is
+not proof of shipped UI.
 Do not copy another product's brand, text, content, controls, theme, or UI.
 
 ## Stable base composition
@@ -25,6 +27,9 @@ Do not copy another product's brand, text, content, controls, theme, or UI.
   geometry for each screen.
 - Use a shared font family, weight, line-break approach, and comfortable tracking
   across every headline.
+- Approve one screenshot before generating the rest. Include it as the visual
+  standard in every subsequent generation, with typography, colors, frame, and
+  proportions locked.
 
 ## Brand variables
 
@@ -51,7 +56,9 @@ product's UI or claims to the final asset.
 
 ## Review boundary
 
-For exact-composite output, the screen inside the device or window must remain an
-unchanged real capture. For generated-bitmap output, the user must explicitly accept the
-possibility of UI redraw; inspect every result and label any fidelity risk. Move
-rejected or exploratory outputs to `image-gen-direction`, never the approved set.
+For exact-composite output, a supplied real capture inside the device or window
+must remain unchanged. For generated-bitmap output, the user must explicitly
+accept the possibility of UI redraw; inspect every result and label any fidelity
+risk. Generate or revise the complete raster instead of patching frames, icons,
+or text over a rejected generated raster. Move rejected or exploratory outputs to
+`image-gen-direction`, never the approved set.
