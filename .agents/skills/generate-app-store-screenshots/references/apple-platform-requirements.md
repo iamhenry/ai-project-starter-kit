@@ -15,16 +15,16 @@ Official source:
 
 - Use portrait iPhone App Store screenshots unless the user selects another
   supported orientation.
-- Capture the actual iPhone UI from the running app or an authoritative source
-  image.
+- Use a supplied real iPhone capture for exact-upload fidelity. A supplied mock
+  can guide generated-bitmap composition but is not proof of shipped UI.
 - Store sources under `store/ios/screenshots/`.
 - Use the stable upright-phone composition as the starting profile.
 
 ### iPad — deliberate extension
 
 - Select iPad explicitly during preflight.
-- Capture the actual iPad layout when the app supports one; do not upscale or
-  stretch an iPhone capture into an iPad listing asset.
+- Use a supplied iPad layout, not a resized iPhone layout. Exact-upload fidelity
+  requires a supplied real capture; mocks may guide generated-bitmap composition.
 - Confirm the required orientation and dimensions for the selected iPad class.
 - Store sources under `store/ipad/screenshots/`.
 - Preserve the campaign hierarchy while adapting device proportions and layout.
@@ -32,7 +32,9 @@ Official source:
 ### Mac — deliberate extension
 
 - Select Mac explicitly during preflight.
-- Capture the native macOS app or window; do not place Mac UI in a phone frame.
+- Use a supplied real macOS app or window capture for exact-upload fidelity; do
+  not place Mac UI in a phone frame. A supplied mock can guide generated-bitmap
+  composition but is not proof of shipped UI.
 - Confirm the current Mac screenshot dimensions and orientation requirements.
 - Store sources under `store/macos/screenshots/`.
 - Use native window or desktop framing while preserving the campaign's headline,
@@ -41,8 +43,10 @@ Official source:
 ## Rules for every target
 
 - Record the selected target, current requirements source, dimensions, orientation,
-  capture source, output path, and validation result in the campaign receipt.
-- Use target-specific real UI as the authoritative product surface.
+  source asset, output path, and validation result in the campaign receipt.
+- Current code and release evidence govern product claims. Supplied real captures
+  are the authoritative product surface for exact-upload fidelity; supplied UI
+  mocks guide visual content but do not prove shipped UI.
 - Treat a generated redraw as a fidelity tradeoff, not as proof of exact UI.
-- If a target's current requirements or capture source are unclear, stop and ask
+- If a target's current requirements or source asset are unclear, stop and ask
   rather than guessing.

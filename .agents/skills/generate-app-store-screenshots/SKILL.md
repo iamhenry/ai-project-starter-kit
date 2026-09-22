@@ -34,7 +34,7 @@ Required:
 
 - Which Apple target is this campaign for: iPhone, iPad, or Mac? Default to iPhone portrait when unspecified.
 - What current App Store Connect screenshot dimensions and orientation are required for that target?
-- Which target-specific UI images are authoritative inputs, and where are they located?
+- Where are the supplied target UI images, relevant brand assets, and any already-approved campaign image?
 - Which shipped release or Git range should the feature audit cover?
 - Is the production mode `exact-composite` or `generated-bitmap`?
 - What is the desired screenshot count, if it is not obvious from the inputs?
@@ -46,28 +46,31 @@ Optional:
 - Are there screen-specific cleanup notes or privacy constraints?
 
 Sensible defaults are iPhone portrait, current App Store Connect requirements,
-the supplied target UI images as source material, one screen per generation, the
-locked base composition, and no image generation until the campaign brief is
-explicitly approved.
+the supplied target UI images as source material, generated-bitmap when the user
+accepts its fidelity tradeoff, one screen per generation, the locked base
+composition, and no image generation until the campaign brief is explicitly
+approved.
 
 ## Source-of-truth order
 
 Use evidence in this order, resolving conflicts toward the currently shipped
 release:
 
-1. The running app and real simulator/device captures.
-2. Current implementation and user-facing routes in the codebase.
-3. Recent Git history, especially commits touching the relevant screens. Read
+1. Current implementation and user-facing routes in the codebase.
+2. Recent Git history, especially commits touching the relevant screens. Read
    `git log --oneline --decorate`, then use path-specific history when needed.
    Commit history helps distinguish implemented behavior from user stories,
    plans, mocks, and abandoned work.
-4. Product documents such as user stories, changelog, store metadata, and release
+3. Product documents such as user stories, changelog, store metadata, and release
    notes.
+4. Supplied target UI images, approved campaign image, and brand assets, which
+   govern visual content but not product claims.
 5. User-provided visual references, which describe the wrapper and campaign mood,
    never product truth.
 
-If evidence is missing, state the gap. Do not fill it with plausible UI, claims,
-or roadmap functionality.
+If a required asset or reference is missing, ask the user to provide it. Do not
+launch the app, set up a simulator, build the app, or fill the gap with plausible
+UI, claims, or roadmap functionality.
 
 ## End-to-end workflow
 
@@ -95,21 +98,22 @@ Read `../generate-app-store-screenshot-captions/SKILL.md` and use it to:
 2. identify compelling production-ready features;
 3. choose the benefits-first screenshot sequence;
 4. write one short headline per selected screen; and
-5. describe the real screen, user outcome, and visual composition for each one.
+5. describe the supplied source screen, user outcome, and visual composition for each one.
 
-Do not begin image generation until every selected screen has a named real source
-or an explicit reason why the source is not available. Keep claims grounded in
-what the current app actually supports.
+Do not begin image generation until every selected screen has a named supplied
+source. If a source is unavailable, ask the user to provide it. Keep claims
+grounded in what the current app actually supports.
 
 Present the feature audit, sequence, headlines, and visual notes as a draft and
 wait for explicit user approval. Do not invoke an image-generation or composition
 command before that approval.
 
-### 3. Capture and preserve source screens
+### 3. Organize supplied source assets
 
-Prefer native simulator or device captures from the running app. If the user
-provides design mocks or existing captures, preserve them as source references and
-label them honestly; do not silently treat a Figma mock as shipped UI.
+Use the supplied target UI images, role-labeled UI mocks, approved campaign image,
+and brand assets as source references. If any required reference is missing, ask
+the user to provide it. Do not launch the app, set up a simulator, build the app,
+or capture new screens.
 
 Store sources separately by selected Apple target:
 
@@ -135,10 +139,9 @@ store/
         image-gen-direction/
 ```
 
-Verify source dimensions immediately. Use synthetic demo data only when it is
-clearly non-sensitive and represents a real product path. Capture the actual
-target UI: do not upscale an iPhone capture into an iPad asset or put a Mac
-window inside a phone frame.
+Verify supplied source dimensions immediately and label each source honestly.
+A mock, even if approved, is not proof of shipped UI. Use target-native UI:
+do not substitute an iPhone layout for iPad or put a Mac window inside a phone frame.
 
 ### 4. Lock one campaign system
 
@@ -166,23 +169,28 @@ target-native proportions and framing rather than reusing phone geometry. Treat
 these as starting geometry, not hard-coded pixels. Adapt colors, type, logo, copy,
 and accents to each app while keeping the campaign system stable.
 
-Do one composition dry run, measure what works, then lock it. Do not redesign the
-composition independently for every screen.
+Start with one representative dry run using the supplied UI mock and relevant
+brand assets when available. There is no approved campaign image yet. Obtain
+explicit approval, then include that approved campaign image as the visual
+standard in every subsequent generation. Lock its typography, colors, frame, and
+proportions. Do not redesign the composition independently for every screen.
 
 ### 5. Choose the production mode explicitly
 
 Select one mode for the campaign and record it in the brief:
 
-#### Exact compositing — upload-safe default
+#### Exact compositing — explicit opt-in
 
-- Use the real screenshot as an unchanged image layer.
+- Use a supplied real capture as an unchanged image layer. A supplied mock is not
+  proof of shipped UI or exact-upload fidelity.
 - Add only the frame, background, headline, and truthful surrounding treatment.
 - Keep this mode when exact UI text, controls, and pixel fidelity matter.
 
-#### Generated bitmap — explicit creative tradeoff
+#### Generated bitmap — default with explicit creative tradeoff
 
-- Use this only when the user accepts that the image model may redraw details.
-- Pass the relevant source screen and the locked campaign prompt for each image.
+- Use this by default when the user accepts that the image model may redraw
+  details.
+- Pass the role-labeled reference bundle described in step 6 for each image.
 - Generate one screen at a time, not a loose batch with drifting art direction.
 - Repeat the same typography and geometry specification across the whole set.
 - Treat every output as a candidate until visual review confirms it is acceptable.
@@ -198,8 +206,8 @@ required dependency of this skill. Keep this section high-level so the adapter c
 change without rewriting the workflow:
 
 1. Check the current Codex CLI help or tool contract before invoking it.
-2. Send one approved screen source, one shared campaign prompt, and one output
-   path per generation.
+2. Send the screen-specific reference bundle from step 6, shared campaign prompt, and one output path per
+   generation.
 3. Reuse the locked headline, typography, geometry, palette, and cleanup rules for
    every screen.
 4. Inspect the returned image before accepting it; a successful command is not
@@ -211,7 +219,17 @@ adapter instead of silently changing the production mode.
 
 ### 6. Generate or compose one screen at a time
 
-Use stable source filenames and a shared prompt/template with per-screen values:
+Use stable source filenames and a shared prompt/template with per-screen values.
+For generated-bitmap mode, pass the role-labeled UI mock, approved campaign
+image, and relevant brand assets together as reference inputs. The UI mock
+controls product content, the approved campaign image controls wrapper
+typography, colors, frame, and proportions, and brand assets control identity.
+For the first dry run, omit the approved campaign image because it does not exist
+yet. Do not render the references as a collage. Generate or revise one complete
+raster at a time. Never patch a rejected generated raster by overlaying a frame,
+icon, or text. Regenerate or revise the complete raster instead.
+
+For each screen, provide:
 
 - headline;
 - screen source;
@@ -234,32 +252,39 @@ Inspect each output individually and as a contact sheet. Check:
 - brand colors and contrast;
 - UI fidelity, legibility, and truthful visible features;
 - stray labels, duplicate elements, malformed UI glyphs, and gibberish;
-- private data, unsupported claims, and accidental reference-brand content; and
-- whether the set reads as one campaign rather than four unrelated images.
+- private data, unsupported claims, and accidental reference-brand content;
+- whether the set reads as one campaign rather than four unrelated images;
+- typography, colors, complete UI, and legibility of each export against the
+  approved example.
 
-Reject a candidate when the problem is easier to fix by regenerating than by
-editing around it. Keep rejected explorations out of the approved folder.
+For generated-bitmap mode, reject candidates with these problems and regenerate
+or revise the complete raster. Do not edit around a rejected generated raster.
+Keep rejected explorations out of the approved folder.
 
 ### 8. Clean and name the approved set
 
 After approval:
 
 - keep only the final candidate for each screen in the approved folder;
-- preserve raw source captures and reference assets separately;
+- preserve supplied source assets and reference assets separately;
 - move or delete rejected experiments so they cannot be mistaken for deliverables;
 - use stable screen names such as `screen1-home-v1.png`; and
 - avoid keeping exploratory version clutter once a final is selected.
 
 ### 9. Normalize and validate for the store
 
-Only after visual approval, convert each final to the exact dimensions and format
-for the selected Apple target. Validate:
+Only after visual approval, export each final at the target dimensions and format.
+Resize proportionally when needed. If the aspect ratio is incompatible, regenerate
+the complete raster or adjust the opt-in exact-composite canvas rather than stretch
+or distort it. Inspect the final export against the approved example before
+presenting it. Correct dimensions alone do not prove visual quality. Validate:
 
 - pixel dimensions and orientation;
 - PNG/JPEG format and color mode;
 - alpha behavior where the store requires it;
 - filename and ordering;
-- readable text after store resizing;
+- typography, colors, complete UI, and legibility against the approved example;
+- readable text at the exported dimensions;
 - no private data or unsupported claims; and
 - real app UI where the selected mode promises exact fidelity.
 
