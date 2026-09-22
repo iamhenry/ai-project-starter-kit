@@ -39,7 +39,7 @@ The plan must be a create-issue style artifact for `{ISSUE_DIR}/plan.md` and inc
 Required major sections:
 
 - Acceptance Criteria with measurable checkbox criteria
-- User Story and Gherkin BDD Scenarios in valid markdown fences
+- User Story and readable Gherkin BDD Scenarios, preferably in valid markdown fences
 - Scope and Boundaries
 - Codebase Orientation, Dependencies, and relevant data flow/model/architecture notes (brief inapplicability is enough when unaffected)
 - Deliverables and Error Handling
@@ -85,7 +85,7 @@ Return `REVISE_PLAN` regardless of score if any are true:
 - A major required section is missing.
 - The plan contradicts or drops the chosen proposal.
 - Implementation tasks are too vague to execute safely.
-- Markdown structure is broken enough that agents may misread it, including malformed fences around Gherkin or code examples.
+- Markdown structure obscures meaning, makes execution ambiguous, or violates an explicitly required consumer format. Missing or imperfect fences alone are not a hard fail when the content remains unambiguous and no consumer requires them.
 - Mechanical is missing, vague (no named command), or not machine-checkable. Missing Mechanical on an older in-flight plan is `REVISE_PLAN`, not `ASK_USER`.
 - Falsifier is missing or does not name an observation that would disprove the Objective.
 - The combined Mechanical and Observable checks cannot distinguish the Objective from its Falsifier, or omit a distinct consequential failure mode of the change. Do not reject a simple UI plan solely because its Mechanical command is build/lint/typecheck when independent actual-path proof covers the behavior.
@@ -95,6 +95,8 @@ Return `REVISE_PLAN` regardless of score if any are true:
 - The task changes user or consumer-observable behavior but the plan permits completion from Mechanical evidence alone.
 
 Return `APPROVE_PLAN` when no hard fail applies and the score is 85 or higher.
+
+Report harmless presentation defects as nonblocking notes, not required revisions. They alone must not lower an otherwise executable plan below the approval threshold.
 
 Return `REVISE_PLAN` when a hard fail applies, or when artifacts are sufficient to revise but the score is below 85.
 
