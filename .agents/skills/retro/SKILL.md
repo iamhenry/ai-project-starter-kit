@@ -8,6 +8,10 @@ description: "Use only when the user explicitly asks for a retro or retrospectiv
 Use this skill only after the user explicitly requests it. It reviews one completed
 or failed run involving a skill, command, prompt, agent, or workflow.
 
+When the user requests the issue-to-PR rubric, read
+[the issue-to-PR reference](references/issue-to-pr.md). It adds pipeline-specific
+judgment and a PR-only change boundary; the workflow and report below still apply.
+
 ## Guardrails
 
 - Treat the target artifact as the source of truth. Do not create a universal
