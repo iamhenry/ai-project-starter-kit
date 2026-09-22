@@ -32,6 +32,7 @@ The fresh `qa` agent's quality precheck covers scope, correctness, simplicity, s
 
 - Verify declared claims, not the whole candidate. Map each claim to one terminal observation before probing.
 - An edit invalidates only claims it could affect. Reuse still-valid evidence for unaffected claims when candidate identity, runtime conditions, and the reason it remains valid are explicit.
+- Preserve receipts still relied upon rather than overwriting them during focused rechecks. In the existing result report, distinguish claims proven by this check, prior evidence that remains valid for the current candidate, and anything still unverified. A focused `PASS` does not establish overall acceptance beyond those supported claims; keep the evidence in the existing authorized directory.
 - Stop a claim as soon as its terminal observation appears. Do not investigate unrelated stale states or continue polling after success.
 - If the terminal observation is absent or contradicted, use at most one fallback source that can answer the named unresolved question. If it cannot, return `FAIL` or `BLOCKED` instead of widening the investigation.
 - A missing receipt or artifact is an evidence gap, not a new candidate. Reacquire only that evidence and preserve proven claims unless the candidate or relevant conditions changed.
