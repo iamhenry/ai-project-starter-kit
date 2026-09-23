@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-validate-aso-proposal.py — Validate an ASO proposal markdown file against config + Astro data.
+validate-aso-proposal.py — Validate an ASO proposal markdown file against config.
 
 Usage:
-    python validate-aso-proposal.py <proposal_file> <config_file> \
-        --astro-url <url> [--attempt N]
+    python validate-aso-proposal.py <proposal_file> <config_file> [--attempt N]
+
+The main worker gathers live Astro metrics; the plan reviewer checks its captured evidence and product fit without rerunning research.
 
 Exit codes:
     0 — all checks pass
@@ -13,11 +14,8 @@ Exit codes:
 
 import argparse
 import json
-import random
 import re
 import sys
-import urllib.error
-import urllib.request
 
 
 # ---------------------------------------------------------------------------
@@ -25,40 +23,34 @@ import urllib.request
 # ---------------------------------------------------------------------------
 
 def parse_proposed_keyword_string(md_text):
-    """
-    Extract the proposed keywords field value from the proposal.
-    Looks for a code block immediately following an "**After" bold line.
-    Returns the raw string or None.
-    """
-    # Match: **After (...):
-    # ```
-    # keyword,list,...
-    # ```
-    pattern = re.compile(
-        r'\*\*After[^*]*\*\*:?\s*\n?```[^\n]*\n([^\n`]+)\n```',
-        re.IGNORECASE,
-    )
-    m = pattern.search(md_text)
-    if m:
-        return m.group(1).strip()
-    return None
+    """Return the exact Keywords value from the approval table, if present."""
+    return parse_approval_fields(md_text).get('keywords', (None, None))[0]
+
+
+def parse_approval_fields(md_text):
+    fields = {}
+    for match in re.finditer(r'^\|\s*(Title|Subtitle|Keywords)\s*\|[^\n]*$', md_text, re.IGNORECASE | re.MULTILINE):
+        cells = [cell.strip().strip('`') for cell in match.group().strip('|').split('|')]
+        if len(cells) >= 4:
+            fields[cells[0].lower()] = (cells[2], cells[3])
+    return fields
 
 
 def parse_evidence_table(md_text):
     """
-    Parse all markdown tables that have Keyword (or Phrase) + Pop + Diff columns.
-    Returns dict: lowercase_keyword -> {"pop": int, "diff": int}
-    Handles multiple tables in the document.
+    Parse keyword decision tables with Keyword + Pop + Diff columns.
+    Returns dict: lowercase_keyword -> {"pop": int, "diff": int, "decision": str}
+    Handles multiple decision tables in the document.
     """
     rows = {}
     lines = md_text.split('\n')
-    col_kw = col_pop = col_diff = -1
+    col_kw = col_pop = col_diff = col_decision = -1
     in_table = False
 
     for line in lines:
         if '|' not in line:
             in_table = False
-            col_kw = col_pop = col_diff = -1
+            col_kw = col_pop = col_diff = col_decision = -1
             continue
 
         # Split and strip cells, removing empty outer cells from leading/trailing |
@@ -80,14 +72,15 @@ def parse_evidence_table(md_text):
         lower = [c.lower() for c in cells]
 
         # Check for header row with our expected columns
-        is_header_kw = any(h in lower for h in ('keyword', 'phrase'))
-        is_header_pop = 'pop' in lower
-        is_header_diff = 'diff' in lower
+        is_header_kw = any(h in lower for h in ('keyword', 'phrase', 'keyword or phrase'))
+        is_header_pop = any(h in lower for h in ('pop', 'popularity'))
+        is_header_diff = any(h in lower for h in ('diff', 'difficulty'))
 
-        if is_header_kw and is_header_pop and is_header_diff:
-            col_kw = next(i for i, h in enumerate(lower) if h in ('keyword', 'phrase'))
-            col_pop = next(i for i, h in enumerate(lower) if h == 'pop')
-            col_diff = next(i for i, h in enumerate(lower) if h == 'diff')
+        if is_header_kw and is_header_pop and is_header_diff and 'decision' in lower and 'rationale' in lower:
+            col_kw = next(i for i, h in enumerate(lower) if h in ('keyword', 'phrase', 'keyword or phrase'))
+            col_pop = next(i for i, h in enumerate(lower) if h in ('pop', 'popularity'))
+            col_diff = next(i for i, h in enumerate(lower) if h in ('diff', 'difficulty'))
+            col_decision = lower.index('decision')
             in_table = True
             continue
 
@@ -95,7 +88,7 @@ def parse_evidence_table(md_text):
             continue
 
         # Data row
-        if max(col_kw, col_pop, col_diff) >= len(cells):
+        if max(col_kw, col_pop, col_diff, col_decision) >= len(cells):
             continue
 
         raw_kw = cells[col_kw]
@@ -109,13 +102,14 @@ def parse_evidence_table(md_text):
         pop_str = cells[col_pop]
         diff_str = cells[col_diff]
 
-        pop_m = re.search(r'\d+', pop_str)
-        diff_m = re.search(r'\d+', diff_str)
+        pop_m = re.fullmatch(r'\d+', pop_str)
+        diff_m = re.fullmatch(r'\d+', diff_str)
 
         if kw and pop_m and diff_m:
             rows[kw] = {
                 'pop': int(pop_m.group()),
                 'diff': int(diff_m.group()),
+                'decision': cells[col_decision].lower(),
             }
 
     return rows
@@ -175,117 +169,10 @@ def parse_justified_keywords(md_text):
 
 
 # ---------------------------------------------------------------------------
-# Astro MCP query
-# ---------------------------------------------------------------------------
-
-def query_astro(astro_url, keyword, app_id, store):
-    """
-    Query Astro MCP for keyword popularity + difficulty via JSON-RPC 2.0.
-    Returns (pop, diff) as ints, or raises on error.
-    """
-    payload = {
-        "jsonrpc": "2.0",
-        "id": 1,
-        "method": "tools/call",
-        "params": {
-            "name": "search_rankings",
-            "arguments": {
-                "keyword": keyword,
-                "appId": app_id,
-                "store": store,
-            },
-        },
-    }
-
-    data = json.dumps(payload).encode('utf-8')
-    req = urllib.request.Request(
-        astro_url,
-        data=data,
-        headers={'Content-Type': 'application/json'},
-        method='POST',
-    )
-
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        raw = resp.read().decode('utf-8')
-
-    response = json.loads(raw)
-    result = response.get('result', {})
-    content = result.get('content', [])
-
-    pop = diff = None
-
-    # Fallback for simpler Astro-compatible responders that return metrics directly
-    if isinstance(result, dict):
-        direct_pop = result.get('popularity') or result.get('pop') or result.get('Popularity')
-        direct_diff = result.get('difficulty') or result.get('diff') or result.get('Difficulty')
-        if direct_pop is not None and direct_diff is not None:
-            return int(direct_pop), int(direct_diff)
-
-    for item in content:
-        text = item.get('text', '') if isinstance(item, dict) else str(item)
-
-        # Try direct JSON parse
-        try:
-            parsed = json.loads(text)
-            rows = parsed if isinstance(parsed, list) else [parsed]
-            exact_rows = [
-                row for row in rows
-                if isinstance(row, dict)
-                and str(row.get('keyword', '')).lower() == keyword.lower()
-            ]
-            for row in exact_rows or rows:
-                if not isinstance(row, dict):
-                    continue
-                pop = (
-                    row.get('popularity')
-                    or row.get('pop')
-                    or row.get('Popularity')
-                )
-                diff = (
-                    row.get('difficulty')
-                    or row.get('diff')
-                    or row.get('Difficulty')
-                )
-                if pop is not None and diff is not None:
-                    break
-            if pop is not None and diff is not None:
-                break
-        except (json.JSONDecodeError, TypeError):
-            pass
-
-        # Fallback: regex scan for key: value patterns
-        pop_m = re.search(r'(?i)popularity[:\s]+(\d+)', text)
-        diff_m = re.search(r'(?i)difficulty[:\s]+(\d+)', text)
-        if pop_m:
-            pop = int(pop_m.group(1))
-        if diff_m:
-            diff = int(diff_m.group(1))
-        if pop is not None and diff is not None:
-            break
-
-    return pop, diff
-
-
-def infer_target_store(md_text, config):
-    """Infer the App Store country code to validate against."""
-    store_match = re.search(
-        r'Store/locale:\s*.*?`([a-z]{2})`\s*/\s*`[A-Za-z]{2}(?:-[A-Za-z]{2})?`',
-        md_text,
-        re.IGNORECASE,
-    )
-    if store_match:
-        return store_match.group(1).lower()
-    locale_match = re.search(r'"store"\s*:\s*"([a-z]{2})"', md_text)
-    if locale_match:
-        return locale_match.group(1).lower()
-    return str(config.get('store', 'us')).lower()
-
-
-# ---------------------------------------------------------------------------
 # Validation checks
 # ---------------------------------------------------------------------------
 
-def run_checks(proposal_file, config_file, astro_url, attempt):
+def run_checks(proposal_file, config_file, attempt):
     with open(proposal_file, 'r', encoding='utf-8') as fh:
         md_text = fh.read()
 
@@ -294,14 +181,18 @@ def run_checks(proposal_file, config_file, astro_url, attempt):
 
     # Parse proposal
     kw_string = parse_proposed_keyword_string(md_text)
+    fields = parse_approval_fields(md_text)
     evidence_rows = parse_evidence_table(md_text)
     justified_keywords = parse_justified_keywords(md_text)
 
     # Config values
     max_difficulty = config.get('golden_ratio', {}).get('max_difficulty', 50)
-    subtitle = config.get('current_metadata', {}).get('subtitle', '')
-    app_id = str(config.get('app_id', ''))
-    target_store = infer_target_store(md_text, config)
+    visible = {
+        word.lower()
+        for field in ('title', 'subtitle')
+        for word in re.split(r'\W+', fields.get(field, ('', ''))[0])
+        if word
+    }
 
     # Derived: proposed keyword list
     proposed_keywords = []
@@ -311,58 +202,76 @@ def run_checks(proposal_file, config_file, astro_url, attempt):
     checks = []
 
     # ------------------------------------------------------------------
-    # Check 1: Proposed keyword string char count <= 100
+    # Check 1: Exact proposed fields fit and displayed lengths agree
     # ------------------------------------------------------------------
     if kw_string is None:
         checks.append({
-            "name": "keyword_string_length",
+            "name": "metadata_lengths",
             "pass": False,
-            "detail": "Could not find proposed keyword string (expected a code block after '**After')",
+            "detail": "Could not find proposed Keywords row in approval table",
         })
     else:
         char_count = len(kw_string)
-        ok = char_count <= 100
+        wrong = []
+        for name, limit in (('title', 30), ('subtitle', 30), ('keywords', 100)):
+            if name not in fields:
+                wrong.append(f"{name} row missing")
+                continue
+            value, stated = fields[name]
+            if len(value) > limit or stated != f"{len(value)}/{limit}":
+                wrong.append(f"{name}: expected {len(value)}/{limit}, found {stated}")
+        if ' ' in kw_string or not kw_string:
+            wrong.append("hidden keywords must be nonempty and space-free")
+        ok = not wrong and char_count <= 100
         checks.append({
-            "name": "keyword_string_length",
+            "name": "metadata_lengths",
             "pass": ok,
             "detail": (
-                f"Keyword string is {char_count}/100 chars — ok"
+                f"Title, subtitle, keywords and displayed lengths valid ({char_count}/100 hidden chars)"
                 if ok
-                else f"Keyword string is {char_count} chars — EXCEEDS 100 char limit"
+                else '; '.join(wrong) or f"Keyword string is {char_count} chars — EXCEEDS 100 char limit"
             ),
         })
 
     # ------------------------------------------------------------------
-    # Check 2: No subtitle words duplicated in keywords field
+    # Check 2: No proposed title/subtitle words duplicated in keywords field
     # ------------------------------------------------------------------
-    subtitle_words = {w.lower() for w in re.split(r'\W+', subtitle) if w}
     duplicates = []
     for kw in proposed_keywords:
         for token in re.split(r'\W+', kw):
-            if token and token in subtitle_words:
-                duplicates.append(f"'{kw}' contains subtitle word '{token}'")
+            if token and token in visible:
+                duplicates.append(f"'{kw}' repeats visible word '{token}'")
 
     ok = len(duplicates) == 0
     checks.append({
-        "name": "no_subtitle_duplicates",
+        "name": "no_visible_duplicates",
         "pass": ok,
         "detail": (
-            f"No subtitle word duplicates found (subtitle: '{subtitle}')"
+            "No proposed title/subtitle word duplicates found"
             if ok
-            else f"Subtitle duplicates detected — {'; '.join(duplicates)}"
+            else f"Visible word duplicates detected — {'; '.join(duplicates)}"
         ),
     })
 
     # ------------------------------------------------------------------
-    # Check 3: Every proposed keyword has a Pop/Diff row in evidence table
+    # Check 3: Every selected hidden token and visible phrase has Pop/Diff
     # ------------------------------------------------------------------
     missing_evidence = [kw for kw in proposed_keywords if kw not in evidence_rows]
+    for field in ('title', 'subtitle'):
+        value = fields.get(field, ('', ''))[0]
+        visible_text = re.sub(r'[^\w]+', ' ', value.lower()).strip()
+        if not any(
+            row['decision'] == field
+            and f" {re.sub(r'[^\w]+', ' ', phrase).strip()} " in f" {visible_text} "
+            for phrase, row in evidence_rows.items()
+        ):
+            missing_evidence.append(f"{field} phrase")
     ok = len(missing_evidence) == 0
     checks.append({
         "name": "evidence_coverage",
         "pass": ok,
         "detail": (
-            f"All {len(proposed_keywords)} proposed keywords have evidence rows"
+            "Selected title/subtitle phrases and hidden keywords have numeric evidence"
             if ok
             else f"Missing evidence for {len(missing_evidence)} keyword(s): {', '.join(missing_evidence)}"
         ),
@@ -392,64 +301,17 @@ def run_checks(proposal_file, config_file, astro_url, attempt):
     })
 
     # ------------------------------------------------------------------
-    # Check 5: Spot-check 5 random keywords against Astro (±3 tolerance)
+    # Check 5: Approval table and candidate decision table are present
     # ------------------------------------------------------------------
-    all_kws = list(proposed_keywords)
-    sample_size = min(5, len(all_kws))
-    rng = random.Random(0)
-    sample = rng.sample(all_kws, sample_size) if all_kws else []
-
-    mismatches = []
-    errors = []
-
-    for kw in sample:
-        expected_pop = evidence_rows[kw]['pop']
-        expected_diff = evidence_rows[kw]['diff']
-
-        try:
-            actual_pop, actual_diff = query_astro(astro_url, kw, app_id, target_store)
-
-            if actual_pop is None or actual_diff is None:
-                errors.append(f"'{kw}': Astro response did not contain Pop/Diff")
-                continue
-
-            actual_pop = int(actual_pop)
-            actual_diff = int(actual_diff)
-            pop_ok = abs(actual_pop - expected_pop) <= 3
-            diff_ok = abs(actual_diff - expected_diff) <= 3
-
-            if not pop_ok or not diff_ok:
-                mismatches.append(
-                    f"'{kw}': proposal Pop={expected_pop}/Diff={expected_diff}, "
-                    f"Astro Pop={actual_pop}/Diff={actual_diff}"
-                )
-        except urllib.error.URLError as exc:
-            errors.append(f"'{kw}': Astro request failed ({exc})")
-        except Exception as exc:  # noqa: BLE001
-            errors.append(f"'{kw}': {type(exc).__name__}: {exc}")
-
-    if not sample:
-        ok = False
-        detail = "No evidence rows found to spot-check"
-    elif mismatches:
-        ok = False
-        checked_ok = sample_size - len(mismatches) - len(errors)
-        detail = (
-            f"Spot-checked {sample_size} keywords — "
-            f"{checked_ok} ok, {len(mismatches)} mismatch(es) (tolerance ±3): "
-            + '; '.join(mismatches)
-        )
-        if errors:
-            detail += f"; errors: {'; '.join(errors)}"
-    elif errors:
-        ok = False
-        detail = f"Astro verification failed for {len(errors)}/{sample_size} keyword(s): {'; '.join(errors)}"
-    else:
-        ok = True
-        detail = f"Spot-checked {sample_size} keywords — all within ±3 tolerance"
+    decisions = re.search(
+        r'^\|\s*Keyword or phrase\s*\|\s*Pop\s*\|\s*Diff\s*\|\s*Decision\s*\|\s*Rationale\s*\|\s*Evidence\s*\|',
+        md_text, re.IGNORECASE | re.MULTILINE,
+    )
+    ok = bool(decisions and '## Approval view' in md_text and evidence_rows)
+    detail = "Approval and keyword-decision tables present" if ok else "Missing approval or keyword-decision table"
 
     checks.append({
-        "name": "astro_spot_check",
+        "name": "decision_table",
         "pass": ok,
         "detail": detail,
     })
@@ -471,15 +333,10 @@ def run_checks(proposal_file, config_file, astro_url, attempt):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Validate an ASO proposal markdown file against config and Astro data.',
+        description='Validate ASO proposal structure and numeric evidence against config.',
     )
     parser.add_argument('proposal_file', help='Path to the proposal markdown file')
     parser.add_argument('config_file', help='Path to the config JSON file')
-    parser.add_argument(
-        '--astro-url',
-        required=True,
-        help='Astro MCP endpoint URL (e.g. http://127.0.0.1:8089/mcp)',
-    )
     parser.add_argument(
         '--attempt',
         type=int,
@@ -492,7 +349,6 @@ def main():
     result = run_checks(
         args.proposal_file,
         args.config_file,
-        args.astro_url,
         args.attempt,
     )
 

@@ -54,7 +54,7 @@
           "description": "Current keywords field content. Comma-separated, NO spaces after commas. Max 100 chars total. Empty string if not yet set."
         }
       },
-      "description": "Snapshot of currently live metadata. The worker updates this after each successful submission."
+      "description": "Snapshot of publicly live metadata. Update after public propagation, not merely after ASC staging or submission."
     },
     "golden_ratio": {
       "type": "object",
@@ -112,7 +112,7 @@
           "type": "array",
           "items": { "type": "string", "enum": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"] },
           "default": ["tuesday", "wednesday"],
-          "description": "Best days to submit for fastest App Review (~10h vs ~24h on Fri/Sat)."
+          "description": "Optional scheduling preference; not a promise of faster App Review."
         }
       },
       "default": {
@@ -128,7 +128,7 @@
       "type": "string",
       "enum": ["semi-autonomous", "fully-autonomous"],
       "default": "semi-autonomous",
-      "description": "semi-autonomous: worker outputs a report, human approves before submission. fully-autonomous: worker submits directly. Start semi, move to fully after 3+ successful cycles."
+      "description": "Legacy autonomy setting. Either value allows autonomous research and proposals only; ASC staging and submission each require explicit human authorization for the exact action. Past cycles never confer remote-write authority."
     }
   }
 }
