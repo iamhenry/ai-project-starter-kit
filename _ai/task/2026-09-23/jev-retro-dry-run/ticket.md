@@ -1,5 +1,12 @@
 # Jev-assisted retro and baseline dashboard
 
+## Single module guide and sync reminder
+Consolidate README into `references/issue-to-pr/issue-to-pr.md` and point generic
+discovery at `references/<skill-name>/<skill-name>.md`. At retro start, compare
+relevant target rules with the guide/questions and ask before syncing differences.
+No background watcher, auto-rewrites, new tests or paid calls. The rubric is a
+normal file, not a symlink. This supersedes earlier README entry-point decisions.
+
 ## Final consolidation (supersedes compatibility decisions below)
 User approved removing all old issue-to-PR entry points. The generic SKILL.md
 loads a matching `references/<skill-name>/README.md` without target-specific

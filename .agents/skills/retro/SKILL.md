@@ -1,7 +1,7 @@
 ---
 name: retro
 description: "Use only when the user explicitly asks for a retro or retrospective, or explicitly invokes or names `retro`, to learn from a completed or failed run. Never invoke automatically after work, failures, reviews, or other agent activity."
-version: 1.0.4
+version: 1.0.5
 ---
 
 # Retro
@@ -10,7 +10,7 @@ Use this skill only after the user explicitly requests it. It reviews one comple
 or failed run involving a skill, command, prompt, agent, or workflow.
 
 Identify the skill or workflow being reviewed. If a matching
-`references/<skill-name>/README.md` exists, read it and follow its specific
+`references/<skill-name>/<skill-name>.md` exists, read it and follow its specific
 guidance alongside the workflow below. Otherwise use this skill on its own.
 Keep target-specific rules, tools and data inside that reference directory.
 Helper outputs are evidence, not verdicts; inspect the underlying sources when
