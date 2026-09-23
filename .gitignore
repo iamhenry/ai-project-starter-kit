@@ -15,6 +15,11 @@ dist/
 /.asc/artifacts/
 /.asc/web/
 
+# Local secrets
+.env
+.env.*
+!.env.example
+
 # Ignore OSgrep
 .osgrep/
 .osgrep

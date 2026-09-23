@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Retro · Issue to PR</title>
+<style>
+:root{color:#242424;background:#fff;font-family:Inter,system-ui,sans-serif;font-size:15px;line-height:1.5}
+*{box-sizing:border-box}body{margin:0}main{max-width:1200px;margin:auto;padding:64px 32px}header{margin-bottom:48px}.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#666}h1,h2{font-family:"Cal Sans",Inter,system-ui,sans-serif;font-weight:600;line-height:1.1}h1{font-size:48px;margin:16px 0}h2{font-size:24px;margin:0 0 12px}p{color:#646464;max-width:760px}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}.card,.panel{background:#fff;border-radius:12px;padding:24px;box-shadow:0 1px 5px -4px rgba(19,19,22,.7),0 0 0 1px rgba(34,42,53,.08),0 4px 8px rgba(34,42,53,.05)}.label{font-size:13px;color:#646464}.value{font-size:30px;font-weight:600;margin-top:8px}.panel{margin-top:80px}select{font:inherit;padding:10px;border-radius:8px;max-width:100%;background:#fff;color:#242424}select:focus-visible{outline:3px solid #3b82f6;outline-offset:3px}.chart{width:100%;height:auto;display:block;margin-top:24px}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:14px;text-align:left}th,td{padding:16px 12px;vertical-align:top;box-shadow:0 1px rgba(34,42,53,.08)}th{color:#646464;font-weight:500}code{font-size:12px}.note{font-size:13px}.row{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}footer{margin-top:48px;color:#646464;font-size:13px}@media(max-width:640px){main{padding:32px 20px}h1{font-size:36px}.cards{grid-template-columns:1fr;gap:16px}.panel{margin-top:48px;padding:20px}.value{font-size:26px}}
+</style>
+<main>
+<header><div class="eyebrow">Retro / Issue to PR</div><h1>A clearer view of progress.</h1><p>Agreement with expected findings on a saved tuning case. This checks the checker—not whether your pipeline is getting better.</p><label for="case">Saved case</label><br><select id="case"></select></header>
+<div class="cards"><section class="card"><div class="label">Latest agreement</div><div id="score" class="value">—</div></section><section class="card"><div class="label">Comparable trend</div><div id="trend" class="value">No baseline yet</div></section><section class="card"><div class="label">Recorded API cost</div><div id="cost" class="value">$0</div></section></div>
+<section class="panel"><h2>Trend</h2><p id="explanation" class="note"></p><svg id="chart" class="chart" viewBox="0 0 1000 250" role="img" aria-label="Agreement trend"></svg></section>
+<section class="panel"><h2>Run history</h2><p class="note">Old runs stay visible. Missing fingerprints mean they cannot establish an improvement trend.</p><div class="table-wrap"><table><thead><tr><th>Run</th><th>Skill</th><th>Agreement</th><th>Unmatched findings</th><th>Cost</th></tr></thead><tbody id="history"></tbody></table></div></section>
+<footer>Source: evals/results.jsonl · Generated offline; no network requests · Jev is probabilistic; the LLM judge owns the verdict.</footer>
+</main>
+<script>
+const rows = /* RESULTS_JSON */[];
+const $ = id => document.getElementById(id);
+const money = n => '$'+n.toFixed(6);
+const percent = n => Number.isFinite(n) ? Math.round(n*100)+'%' : 'Not scored';
+const options = [...new Set(rows.map(r=>r.thread))];
+for(const id of options){const o=document.createElement('option');o.value=id;o.textContent=id;$('case').append(o)}
+if(!options.length){const o=document.createElement('option');o.textContent='No saved runs';$('case').append(o);$('case').disabled=true}
+function svg(tag,attrs,text){const n=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);if(text)n.textContent=text;return n}
+function draw(){
+ const runs=rows.filter(r=>r.thread===$('case').value),latest=runs.at(-1);
+ $('score').textContent=percent(latest?.score);$('cost').textContent=money(runs.reduce((s,r)=>s+(r.cost||0),0));
+ const comparable=latest?.case_hash&&latest?.input_hash ? runs.filter(r=>r.case_hash===latest.case_hash&&r.input_hash===latest.input_hash&&r.model===latest.model&&r.helper_model===latest.helper_model&&Number.isFinite(r.score)) : [];
+ const delta=comparable.length>1 ? comparable.at(-1).score-comparable.at(-2).score : null;
+ $('trend').textContent=delta===null?'Baseline only':delta===0?'Flat':(delta>0?'Up ':'Down ')+Math.abs(delta*100).toFixed(0)+' points';
+ $('explanation').textContent=comparable.length>1?'Connected points share the same input, expected findings and models. This is same-case tuning, not independent validation.':'Not enough comparable runs to show improvement. Historical dots are shown, but are not connected.';
+ const chart=$('chart');chart.replaceChildren();const width=Math.max(280,chart.clientWidth);chart.setAttribute('viewBox',`0 0 ${width} 250`);
+ for(const p of [0,.5,1]){const y=210-p*180;chart.append(svg('line',{x1:50,x2:width-15,y1:y,y2:y,stroke:'#ddd','stroke-dasharray':'4 5'}),svg('text',{x:0,y:y+5,fill:'#666','font-size':13},percent(p)))}
+ const point=(r,i)=>[runs.length===1?(width+40)/2:60+i*(width-80)/Math.max(1,runs.length-1),210-r.score*180];
+ const eligible=comparable.map(r=>point(r,runs.indexOf(r)));
+ if(eligible.length>1)chart.append(svg('polyline',{points:eligible.map(p=>p.join(',')).join(' '),fill:'none',stroke:'#242424','stroke-width':2}));
+ runs.forEach((r,i)=>{if(!Number.isFinite(r.score))return;const [x,y]=point(r,i);const circle=svg('circle',{cx:x,cy:y,r:5,fill:comparable.includes(r)?'#242424':'#aaa'});circle.append(svg('title',{},`Run ${i+1}: ${percent(r.score)}, skill ${r.skill_version}`));chart.append(circle,svg('text',{x,y:242,'text-anchor':'middle',fill:'#666','font-size':12},String(i+1)))});
+ if(!runs.length)chart.append(svg('text',{x:width/2,y:120,'text-anchor':'middle',fill:'#666'},'No runs yet'));
+ chart.setAttribute('aria-label',runs.length?`${runs.length} runs; latest agreement ${percent(latest.score)}; ${$('trend').textContent}`:'No runs yet');
+ $('history').replaceChildren();
+ [...runs].reverse().forEach((r,i)=>{const tr=document.createElement('tr');for(const text of [`${runs.length-i} · ${new Date(r.date).toLocaleString()}`,`${r.skill_version} · ${r.definition_hash?.slice(0,8)||r.skill_commit||'unrecorded'}`,percent(r.score),(r.misses||[]).join(', ')||'None',money(r.cost||0)]){const td=document.createElement('td');td.textContent=text;tr.append(td)}$('history').append(tr)});
+}
+$('case').addEventListener('change',draw);window.addEventListener('resize',draw);draw();
+</script>
+</html>

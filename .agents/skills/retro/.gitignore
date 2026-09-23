@@ -1,0 +1,7 @@
+evals/last-request.json
+.env
+.env.*
+!.env.example
+issue-to-pr/evals/last-request.json
+issue-to-pr/evals/receipts/
+issue-to-pr/dashboard.html

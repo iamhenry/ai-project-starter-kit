@@ -1,0 +1,17 @@
+{
+  "_about": "Expected findings for the single tuning case, interpreted from the user's account and prior inspection. Not an independent benchmark. Expected values never enter Jev requests. Scores measure agreement, not accuracy or pipeline improvement.",
+  "thr_nv6qzvpt85": {
+    "note": "Aborted issue-to-pr run (BB Assisted Review plugin). User: left the pipeline, custom agents misused, helpers left dangling, wasted tokens.",
+    "expected": {
+      "helpers_misrouted": "yes",
+      "review_or_qa_missing": "yes",
+      "unfinished_helpers": "yes",
+      "orchestrator_did_domain_work": "yes",
+      "user_frustrated_by_progress": "yes",
+      "user_asked_for_status": "yes",
+      "final_handoff_complete": "no",
+      "requirements_changed_later": "yes",
+      "decision_3_violated": "yes"
+    }
+  }
+}
