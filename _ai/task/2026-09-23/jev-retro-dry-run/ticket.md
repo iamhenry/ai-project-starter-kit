@@ -1,5 +1,16 @@
 # Jev-assisted retro and baseline dashboard
 
+## Follow-up: canonical layout and verbatim design
+Move the module to `retro/references/issue-to-pr/`, flatten its rubric/questions,
+and replace the summarized design with the user's exact supplied Markdown.
+The user subsequently requested removing the test, a top-level version field,
+and one `dashboard.html` file instead of a template/output pair. No further tests
+or verification runs; only regenerate the dashboard's data after the rename.
+Keep small old-path entry points where needed rather than duplicate implementations.
+Keep root and skill ignore rules: repository-wide secrets versus portable skill
+outputs/keys. Verify new and old CLI paths, local rendering, links, and exact design
+text without another API call; update the existing PR. No delegation/global edits.
+
 ## Follow-up: default behavior and cleanup
 User requested Jev by default for issue-to-PR retros and an update to PR #122.
 Version 1.0.2 routes those retros to the existing helper, retains preview approval,
@@ -21,7 +32,7 @@ recorded hints flow. An LLM judge retains judgment. Its offline dashboard shows
 saved-case agreement and honest comparison limits, not invented pipeline progress.
 
 ## Files
-Canonical module: `.agents/skills/retro/issue-to-pr/`.
+Canonical module: `.agents/skills/retro/references/issue-to-pr/`.
 The old rubric link and command path remain compatibility entry points.
 Human version: retro `metadata.version`; exact uncommitted definitions: content hash.
 `evals/results.jsonl` preserves history; raw requests/receipts and keys stay ignored.
@@ -47,6 +58,6 @@ Human version: retro `metadata.version`; exact uncommitted definitions: content 
 - PR prepared as a draft for human review; publication URL belongs in the final
   handoff. No merge or installation authorized.
 
-Detailed receipts and limits: `.agents/skills/retro/issue-to-pr/evals/verification.md`.
+Detailed receipts and limits: `.agents/skills/retro/references/issue-to-pr/evals/verification.md`.
 Old scratch scripts, reports and raw receipts in this task directory are historical,
 not the supported entry point and not part of the PR.

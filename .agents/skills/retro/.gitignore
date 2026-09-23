@@ -1,7 +1,9 @@
-evals/last-request.json
+# Local secrets (also protected when this skill is copied without the repo root).
 .env
 .env.*
 !.env.example
-issue-to-pr/evals/last-request.json
-issue-to-pr/evals/receipts/
-issue-to-pr/dashboard.html
+# Generated/private artifacts, including outputs from older layouts.
+**/last-request.json
+**/receipts/
+# Legacy generated dashboard; the canonical dashboard is now a tracked single file.
+/issue-to-pr/dashboard.html

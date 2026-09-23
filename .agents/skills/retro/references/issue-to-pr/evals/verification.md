@@ -1,5 +1,9 @@
 # Local verification — 2026-09-23
 
+Historical record: the user subsequently requested removal of the test file and
+renaming the dashboard source to `dashboard.html`. Checks below describe the
+earlier candidate, not a fresh verification of that cleanup.
+
 ## Actual run
 - Thread: `thr_nv6qzvpt85`, no second thread, no delegation.
 - OpenRouter returned 41 answers from `typesafe/jev-1.13-20260917`.
@@ -25,7 +29,7 @@
   saved result rows remain available for a fresh visual check.
 - Accessibility scan: zero automatic violations; manual contrast review requested
   for five SVG text nodes. These use #666 text on white.
-- Offline regression: `node --test .agents/skills/retro/issue-to-pr/scripts/dashboard.test.mjs`
+- Offline regression: `node --test .agents/skills/retro/references/issue-to-pr/scripts/dashboard.test.mjs`
   passes, covering empty data, history preservation, transcript exclusion and safe embedding.
 - `git diff --check` passes.
 - After the metadata corrections, an attempted send of the older preview was

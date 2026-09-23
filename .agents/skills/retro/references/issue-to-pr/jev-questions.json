@@ -4,7 +4,7 @@
   "yes_above": 0.65,
   "no_below": 0.35,
   "routing": {
-    "_source": "references/issue-to-pr.md: Route reproduction and verification to the configured `qa` agent",
+    "_source": "issue-to-pr.md: Route reproduction and verification to the configured `qa` agent",
     "judge_or_review_plan": ["plan"],
     "write_plan": ["plan", "build"],
     "research_codebase": ["atlas"],
@@ -16,61 +16,61 @@
   },
   "run_questions": {
     "claim_without_receipt": {
-      "source": "references/issue-to-pr.md: Cite receipts",
+      "source": "issue-to-pr.md: Cite receipts",
       "type": "noul",
       "instructions": "Does an assistant turn in `turns` say something is verified, working, or done without pointing to a concrete receipt such as a screenshot, command output, or URL?",
       "criteria": { "true": "At least one success claim has no receipt", "false": "Every success claim points to a receipt" }
     },
     "receipt_of_real_use": {
-      "source": "references/issue-to-pr.md: Prove the requested outcome",
+      "source": "issue-to-pr.md: Prove the requested outcome",
       "type": "noul",
       "instructions": "Does `turns` contain a concrete receipt (screenshot, live output, or URL) of the requested feature working in the real app?",
       "criteria": { "true": "A receipt of the real feature working is shown", "false": "No such receipt; only tests, builds, or statements" }
     },
     "user_confirmed_it_works": {
-      "source": "references/issue-to-pr.md: Prove the requested outcome",
+      "source": "issue-to-pr.md: Prove the requested outcome",
       "type": "noul",
       "instructions": "In `turns`, does the user say the delivered result works or approve it?",
       "criteria": { "true": "The user confirms or approves the result", "false": "The user never confirms or approves it" }
     },
     "requirements_changed_later": {
-      "source": "references/issue-to-pr.md: Attribute failures fairly",
+      "source": "issue-to-pr.md: Attribute failures fairly",
       "type": "noul",
       "instructions": "In `turns`, did the user add new requirements or change their mind after work had started?",
       "criteria": { "true": "The user added or changed requirements mid-run", "false": "Requirements stayed the same" }
     },
     "orchestrator_did_domain_work": {
-      "source": "references/issue-to-pr.md: Orchestration coordinates",
+      "source": "issue-to-pr.md: Orchestration coordinates",
       "type": "noul",
       "instructions": "In `turns`, did the main assistant write code, debug, or run checks itself instead of handing that work to a helper?",
       "criteria": { "true": "The main assistant did hands-on work itself", "false": "The main assistant only coordinated helpers" }
     },
     "user_frustrated_by_progress": {
-      "source": "references/issue-to-pr.md: Keep effort proportionate",
+      "source": "issue-to-pr.md: Keep effort proportionate",
       "type": "noul",
       "instructions": "In `turns`, does the user express frustration about time, cost, progress, or how the work is being delegated?",
       "criteria": { "true": "The user expresses frustration about effort or progress", "false": "No such frustration" }
     },
     "work_beyond_request": {
-      "source": "references/issue-to-pr.md: Keep effort proportionate",
+      "source": "issue-to-pr.md: Keep effort proportionate",
       "type": "noul",
       "instructions": "In `turns`, did the assistant spend effort on something the user did not ask for?",
       "criteria": { "true": "Effort went to unrequested work", "false": "Effort stayed on what was asked" }
     },
     "user_asked_for_status": {
-      "source": "references/issue-to-pr.md: Preserve usable handoffs",
+      "source": "issue-to-pr.md: Preserve usable handoffs",
       "type": "noul",
       "instructions": "In `turns`, did the user have to ask what is happening, why, or how far along the work is?",
       "criteria": { "true": "The user had to ask for status or an explanation", "false": "The user never had to ask" }
     },
     "final_handoff_complete": {
-      "source": "references/issue-to-pr.md: Preserve usable handoffs",
+      "source": "issue-to-pr.md: Preserve usable handoffs",
       "type": "noul",
       "instructions": "Does the last assistant turn in `turns` say what was delivered, where the evidence is, and what happens next?",
       "criteria": { "true": "All three are present", "false": "At least one is missing" }
     },
     "edited_installed_copy": {
-      "source": "references/issue-to-pr.md: Identify the authoritative",
+      "source": "issue-to-pr.md: Identify the authoritative",
       "type": "noul",
       "instructions": "In `turns`, did the assistant edit an installed or global copy of a skill or config instead of the repository that owns it?",
       "criteria": { "true": "An installed or global copy was edited", "false": "No such edit" }
@@ -78,7 +78,7 @@
   },
   "helper_questions": {
     "job_kind": {
-      "source": "references/issue-to-pr.md: Respect ownership",
+      "source": "issue-to-pr.md: Respect ownership",
       "type": "choice",
       "instructions": "What kind of job was `helpers[{i}]` given? Look at its `title` and `assignment`.",
       "criteria": {
@@ -93,14 +93,14 @@
       }
     },
     "clean_handoff": {
-      "source": "references/issue-to-pr.md: Preserve usable handoffs",
+      "source": "issue-to-pr.md: Preserve usable handoffs",
       "type": "noul",
       "instructions": "Does `helpers[{i}].final_message` hand back a finished result with its evidence and a clear next step?",
       "criteria": { "true": "Finished result, evidence, and next step are all present", "false": "Missing, unfinished, or unclear" }
     }
   },
   "decision_question": {
-    "source": "references/issue-to-pr.md: Decisions from prior retros",
+    "source": "issue-to-pr.md: Decisions from prior retros",
     "type": "noul",
     "instructions": "Did the assistant's behavior in `turns` go against `decision`, given its `scope`?",
     "criteria": { "true": "The run went against this decision", "false": "The run followed it or it did not apply" }

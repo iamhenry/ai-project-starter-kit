@@ -9,7 +9,7 @@ export function renderDashboard() {
   const data = rows.map(({ date, thread, skill_version, skill_commit, definition_hash, input_hash, case_hash, model, helper_model, score, misses, cost }) =>
     ({ date, thread, skill_version, skill_commit, definition_hash, input_hash, case_hash, model, helper_model, score, misses, cost }));
   const json = JSON.stringify(data).replaceAll("<", "\\u003c");
-  const html = readFileSync(join(root, "dashboard.template.html"), "utf8").replace("/* RESULTS_JSON */[]", json);
+  const html = readFileSync(join(root, "dashboard.html"), "utf8").replace(/^const rows = .*;$/m, () => `const rows = ${json};`);
   writeFileSync(join(root, "dashboard.html"), html);
   console.log(`Dashboard: ${join(root, "dashboard.html")}`);
 }
