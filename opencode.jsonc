@@ -21,6 +21,7 @@
     "@tarquinen/opencode-dcp@latest", // (https://github.com/Tarquinen/opencode-dynamic-context-pruning)
     // "opencode-council@https://github.com/iamhenry/opencode-council/archive/40b93cdddfc582fb8bc9aafa3a6d444307578073.tar.gz",
     "opencode-forge@https://github.com/iamhenry/opencode-forge/archive/refs/tags/v0.1.1.tar.gz",
+    "@ex-machina/opencode-anthropic-auth@1.8.5", // (https://github.com/ex-machina-co/opencode-anthropic-auth) — Claude Pro/Max OAuth for opencode v1
     // "oc-codex-multi-auth", // (https://github.com/ndycode/oc-codex-multi-auth)
     // ["@showlotus/opencode-image-vision@latest", { "model": "ollama-cloud/minimax-m3" }], // (https://github.com/showlotus/opencode-image-vision)
   ],
