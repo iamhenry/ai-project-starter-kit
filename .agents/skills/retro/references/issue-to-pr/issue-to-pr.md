@@ -13,12 +13,12 @@ verdicts, minimal-change ordering, redaction, and the report format.
 
 At the start of a retro, read the current issue-to-PR skill being reviewed and
 compare its relevant rules with this guide and `jev-questions.json`. If they
-differ in a way that could affect a finding, briefly explain the gap and ask:
-**“Do you want to sync these changes into the Jev workflow?”** Do not ask for
-cosmetic changes or rewrite anything automatically. Approved changes follow the
-PR boundary below. If sync is declined or unresolved, skip the outdated Jev check
-and continue the LLM-led retro, disclosing why; do not present a stale score as
-current. If the source is unavailable, report that alignment is unknown.
+differ in a way that could affect a finding, include the gap and a suggested sync
+in the final proposal, asking: **“Do you want to sync these changes into the Jev
+workflow?”** Do not interrupt analysis for this decision or rewrite anything
+automatically. Approved changes follow the PR boundary below. If the checker is
+outdated, skip it and continue the LLM-led retro, disclosing why; do not present a
+stale score as current. If the source is unavailable, report that alignment is unknown.
 
 This is an agent instruction, not a background monitor. The script's source
 anchors detect missing phrases, not changed meaning. Judge the historical run
@@ -28,19 +28,22 @@ against instructions in force at the time; today's rules guide checker maintenan
 
 1. **Gather the run.** Collect the conversation and helper reports; code counts
    observable events. Missing records remain unknown, not assumed failures.
-2. **Approve the preview.** You review what would leave your machine before
-   anything is sent to OpenRouter. Automatic redaction is only a first pass.
-3. **Ask Jev.** Get cheap, narrow classifications with uncertainty—not a verdict.
-4. **Save the results.** Record answers, versions and cost; refresh the dashboard.
+2. **Run the helper checks automatically.** The agent removes sensitive information
+   before sending evidence to Jev through OpenRouter, without a user approval pause.
+   Code supplies exact observations; Jev supplies probabilistic hints, not a verdict.
+3. **Save the results.** Record answers, versions and cost; refresh the dashboard.
    A score appears only when the run has saved expected findings. It measures
    agreement with those expectations, not whether the pipeline got better.
-5. **Let the LLM judge.** It weighs the hints against the actual evidence, checks
+4. **Let the LLM judge.** It weighs the hints against the actual evidence, checks
    questionable claims, and writes the retro with one verdict: `NO_CHANGE`,
-   `PROPOSE_CHANGE`, or `BLOCKED`. Any proposed changes still need authorization.
+   `PROPOSE_CHANGE`, or `BLOCKED`.
+5. **Preview improvements and wait.** Show the proposed file changes, including any
+   checker-sync suggestions. Wait for user approval before applying changes; the
+   PR-only boundary below still applies.
 
-The retro agent starts this check without a separate Jev request, but must still
-obtain approval of the preview before sending data. If approval is declined, a
-prerequisite is unavailable, or the call fails, report `Jev check not run` with
+Requesting this retro includes the helper analysis; no separate Jev or data-preview
+approval is required. If sensitive data cannot be safely removed, a prerequisite
+is unavailable, or the call fails, report `Jev check not run` with
 the reason and continue the LLM-led retro. Never claim a successful Jev check or
 write a successful result for a skipped or failed call.
 
@@ -50,12 +53,14 @@ Node 22.16+ and BB CLI are needed to collect a thread; an OpenRouter key is
 needed to send it. No package installation. Other kinds of retros are unaffected.
 
 1. Put `OPENROUTER_API_KEY=...` in this module's `.env` (ignored).
-2. From the repository root, generate the preview:
+2. The agent generates the local request from the repository root:
    `node .agents/skills/retro/references/issue-to-pr/scripts/jev-check.mjs THREAD_ID`
-3. Review this module's `evals/last-request.json`. Redaction is best-effort,
-   not a privacy guarantee. `requests` is exactly what will leave the machine.
-4. Authorize transmission with the same command plus `--send`. It sends the saved
-   preview, not a newly collected thread. Changed checker files invalidate it.
+3. The agent inspects this module's `evals/last-request.json` and removes remaining
+   sensitive information. Automatic redaction is best-effort, not a privacy guarantee.
+   `requests` is exactly what will leave the machine; this is not a user approval step.
+4. The agent runs the same command plus `--send` without pausing for approval.
+   It sends the saved request, not a newly collected thread. Changed checker files
+   invalidate it.
 5. Open this module's `dashboard.html`. Each successful run regenerates it from
    `evals/results.jsonl`; rebuild without an API call using `--dashboard`.
 
