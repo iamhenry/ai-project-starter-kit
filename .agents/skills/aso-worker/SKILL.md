@@ -121,6 +121,7 @@ aso-worker/
   SKILL.md                        # instructions (human-owned)
   soul.md                         # judgment principles (human-owned)
   references/                     # schemas and examples (human-owned)
+    approval-template.md           # read only when drafting a proposal
     config.schema.json
     results.jsonl                  # example entries
     playbook.json                  # example structure
@@ -470,35 +471,7 @@ The saved proposal is the source of truth. Put exact proposed metadata at the ve
 
 After the bounded plan review, copy `## Approval view` through (but not including) `## Research notes` verbatim into chat with the artifact path and plan verdict. If Markdown tables render poorly, fence this exact excerpt. Do not regenerate or summarize its metadata or candidate decisions. A change to an approved metadata field, keyword rationale, or evidence invalidates prior approval and requires another human decision.
 
-## Proposal template
-
-```markdown
-# ASO proposal — [App] / [Store] / ASC version [VERSION]
-Store/locale: `[store]` / `[locale]` · ASC app: `[ID]` · Status: proposal only; ASC mutation: none
-
-## Approval view
-| Field | Current ASC value | Proposed if approved | Length |
-|---|---|---|---:|
-| Title | `[verified value or unknown]` | `[exact title]` | `[N]/30` |
-| Subtitle | `[verified value or unknown]` | `[exact subtitle]` | `[N]/30` |
-| Keywords | `[verified value or unknown]` | `[exact comma-separated keywords]` | `[N]/100` |
-| Description | `[unchanged or verified value]` | `[unchanged, or exact copy if separately authorized]` | `[if changed]` |
-
-Hypothesis: [one sentence: why this should produce qualified installs and what will be measured].
-Main risk: [concrete tradeoff; growth_confidence, risk_posture, attribution_cleanliness].
-Plan review: [ready for human review / unresolved concerns / pending; never human approval].
-
-## Keyword decisions
-| Keyword or phrase | Pop | Diff | Decision | Rationale | Evidence |
-|---|---:|---:|---|---|---|
-| `[serious candidate]` | `[Astro score or unavailable]` | `[Astro score or unavailable]` | `[title / subtitle / keywords / defer / reject]` | `[why the app and SERP fit, or why excluded]` | `[direct Astro / compound / competitor lead / SERP; store and date]` |
-
-## Research notes
-- Previous cycle: [what was kept, watched, or dropped, if history exists].
-- Competitor seeds and comparable apps: [what the research added or rejected].
-- Visible placement: [why the title/subtitle beat alternatives, including authority].
-- Intended compounds and measurement: [signals, unknowns, and high-Diff exceptions].
-```
+When creating or revising a proposal, read `references/approval-template.md` (relative to this skill directory) and use it as the proposal template. Do not load it for observation-only or already-approved staging tasks.
 
 Write only applicable research notes, not empty template bullets. For any unavailable Pop/Diff, write `unavailable` with the reason and do not describe it as direct Astro evidence. Rank, trend, and competitor authority belong in notes where they change the decision.
 
