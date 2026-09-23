@@ -1,0 +1,5 @@
+.env
+.env.*
+!.env.example
+evals/last-request.json
+evals/receipts/

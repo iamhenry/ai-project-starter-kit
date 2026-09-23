@@ -1,6 +1,7 @@
 ---
 name: retro
 description: "Use only when the user explicitly asks for a retro or retrospective, or explicitly invokes or names `retro`, to learn from a completed or failed run. Never invoke automatically after work, failures, reviews, or other agent activity."
+version: 1.0.5
 ---
 
 # Retro
@@ -8,9 +9,13 @@ description: "Use only when the user explicitly asks for a retro or retrospectiv
 Use this skill only after the user explicitly requests it. It reviews one completed
 or failed run involving a skill, command, prompt, agent, or workflow.
 
-When the user requests the issue-to-PR rubric, read
-[the issue-to-PR reference](references/issue-to-pr.md). It adds pipeline-specific
-judgment and a PR-only change boundary; the workflow and report below still apply.
+Identify the skill or workflow being reviewed. If a matching
+`references/<skill-name>/<skill-name>.md` exists, read it and follow its specific
+guidance alongside the workflow below. Otherwise use this skill on its own.
+Keep target-specific rules, tools and data inside that reference directory.
+Helper outputs are evidence, not verdicts; inspect the underlying sources when
+claims are uncertain or consequential. Disclose missing checks rather than
+inventing results. The retro judge retains the final judgment.
 
 ## Guardrails
 
