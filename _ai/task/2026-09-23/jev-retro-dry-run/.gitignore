@@ -1,0 +1,6 @@
+out/
+# Superseded experiment and historical reports; supported code lives in the skill.
+jev-retro.mjs
+pr-body.md
+pr-draft.md
+retro.md

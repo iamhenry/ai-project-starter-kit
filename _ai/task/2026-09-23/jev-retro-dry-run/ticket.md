@@ -1,5 +1,14 @@
 # Jev-assisted retro and baseline dashboard
 
+## Follow-up: default behavior and cleanup
+User requested Jev by default for issue-to-PR retros and an update to PR #122.
+Version 1.0.2 routes those retros to the existing helper, retains preview approval,
+and makes unavailable/declined/failed checks explicit before LLM-only continuation.
+Other retros are unaffected. No new API call is needed for this instruction change.
+Remove requested PNGs and environment template; keep the scratch ignore file to
+protect historical raw output. The old script is superseded by the committed module;
+old reports remain local historical evidence, not fresh findings to publish.
+
 ## Current scope
 User authorized a final rerun on **one thread**, `thr_nv6qzvpt85`, then a minimal
 dashboard and PR. Work stays in this repository; no global config edits and no
@@ -32,7 +41,8 @@ Human version: retro `metadata.version`; exact uncommitted definitions: content 
   remains a reason for LLM review, not another automatic tuning loop.
 - [x] Added Cal.com-inspired design contract and offline dashboard.
 - [x] Browser smoke: 89%, two rows, $0.001439 total, “Baseline only.”
-- [x] 390px/1280px screenshots saved locally; no mobile page overflow.
+- [x] 390px/1280px screenshots inspected; no mobile page overflow. Screenshots
+  subsequently removed at the user's request.
 - [x] Offline regression and `git diff --check` passed.
 - PR prepared as a draft for human review; publication URL belongs in the final
   handoff. No merge or installation authorized.

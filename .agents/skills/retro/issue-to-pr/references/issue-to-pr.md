@@ -2,8 +2,9 @@
 
 This rubric belongs to the self-contained issue-to-PR retro module.
 
-Use when the user explicitly requests this rubric for a thread that ran
-`issue-to-pr`. Confirm the invocation from the BB thread log, not its title.
+Use by default for an explicitly requested retro of a thread that ran
+`issue-to-pr`; a separate request for this rubric or Jev is not required.
+Confirm the invocation from the BB thread log, not its title.
 This is a provisional interpretation guide based on prior retros, not a new
 pipeline or numerical scorecard. The parent retro skill owns cause classification,
 verdicts, minimal-change ordering, redaction, and the report format.

@@ -20,7 +20,9 @@
 - Checked desktop at 1280px and mobile at 390px. Mobile page width stayed 390px;
   the history table scrolls within its own container. Adjusted SVG labels to stay
   readable at mobile width, then captured fresh screenshots.
-- Receipts: task folder `dashboard-desktop.png` and `dashboard-mobile.png` (local).
+- Desktop/mobile screenshots were inspected locally, then removed at the user's
+  cleanup request. They are no longer retained receipts; the generated HTML and
+  saved result rows remain available for a fresh visual check.
 - Accessibility scan: zero automatic violations; manual contrast review requested
   for five SVG text nodes. These use #666 text on white.
 - Offline regression: `node --test .agents/skills/retro/issue-to-pr/scripts/dashboard.test.mjs`

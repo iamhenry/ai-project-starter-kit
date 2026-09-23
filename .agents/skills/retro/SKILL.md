@@ -2,7 +2,7 @@
 name: retro
 description: "Use only when the user explicitly asks for a retro or retrospective, or explicitly invokes or names `retro`, to learn from a completed or failed run. Never invoke automatically after work, failures, reviews, or other agent activity."
 metadata:
-  version: 1.0.1
+  version: 1.0.2
 ---
 
 # Retro
@@ -10,12 +10,19 @@ metadata:
 Use this skill only after the user explicitly requests it. It reviews one completed
 or failed run involving a skill, command, prompt, agent, or workflow.
 
-When the user requests the issue-to-PR rubric, read
+When reviewing an issue-to-PR run, read
 [the issue-to-PR reference](issue-to-pr/references/issue-to-pr.md). It adds pipeline-specific
 judgment and a PR-only change boundary; the workflow and report below still apply.
 
-For an explicitly requested Jev-assisted check, use the self-contained
-[issue-to-PR module](issue-to-pr/README.md). Code observations and Jev's
+Use the self-contained [issue-to-PR module](issue-to-pr/README.md) by default
+for these retros; do not require the user to ask for Jev separately. Prepare its
+preview and obtain approval before sending run data. If approval is declined,
+the key or tools are unavailable, or the API fails, clearly report
+`Jev check not run` with the reason and continue the LLM-led retro using available
+evidence. Do not invent Jev results or a successful dashboard entry. Other types
+of retros do not run this module.
+
+Code observations and Jev's
 probabilistic answers are evidence hints, not verdicts. Inspect source evidence
 when answers are uncertain, incomplete, or consequential. Never treat missing
 thread-list entries as proof that a stage did not run. The normal retro workflow

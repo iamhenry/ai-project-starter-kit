@@ -1,8 +1,14 @@
 # Issue-to-PR retro check
 
-Optional, self-contained helper for the [retro skill](../SKILL.md).
+Default, self-contained helper for issue-to-PR runs reviewed by the [retro skill](../SKILL.md).
 Node 22.16+ and BB CLI are needed to collect a thread; an OpenRouter key is
-needed to send it. No package installation. Normal retros still work without it.
+needed to send it. No package installation. Other kinds of retros are unaffected.
+
+The retro agent starts this check without a separate Jev request, but must still
+obtain approval of the preview before sending data. If approval is declined, a
+prerequisite is unavailable, or the call fails, report `Jev check not run` with
+the reason and continue the LLM-led retro. Never claim a successful Jev check or
+write a successful result for a skipped or failed call.
 
 1. Put `OPENROUTER_API_KEY=...` in `retro/.env` or `issue-to-pr/.env` (ignored).
 2. From the repository root, generate the preview:
