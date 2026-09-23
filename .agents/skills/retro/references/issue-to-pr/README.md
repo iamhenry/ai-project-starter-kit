@@ -5,11 +5,27 @@ Read [issue-to-pr.md](issue-to-pr.md) for the rubric and PR-only change boundary
 Node 22.16+ and BB CLI are needed to collect a thread; an OpenRouter key is
 needed to send it. No package installation. Other kinds of retros are unaffected.
 
+## Workflow at a glance
+
+1. **Gather the run.** Collect the conversation and helper reports; code counts
+   observable events. Missing records remain unknown, not assumed failures.
+2. **Approve the preview.** You review what would leave your machine before
+   anything is sent to OpenRouter. Automatic redaction is only a first pass.
+3. **Ask Jev.** Get cheap, narrow classifications with uncertainty—not a verdict.
+4. **Save the results.** Record answers, versions and cost; refresh the dashboard.
+   A score appears only when the run has saved expected findings. It measures
+   agreement with those expectations, not whether the pipeline got better.
+5. **Let the LLM judge.** It weighs the hints against the actual evidence, checks
+   questionable claims, and writes the retro with one verdict: `NO_CHANGE`,
+   `PROPOSE_CHANGE`, or `BLOCKED`. Any proposed changes still need authorization.
+
 The retro agent starts this check without a separate Jev request, but must still
 obtain approval of the preview before sending data. If approval is declined, a
 prerequisite is unavailable, or the call fails, report `Jev check not run` with
 the reason and continue the LLM-led retro. Never claim a successful Jev check or
 write a successful result for a skipped or failed call.
+
+## Running the check
 
 1. Put `OPENROUTER_API_KEY=...` in this module's `.env` (ignored).
 2. From the repository root, generate the preview:
