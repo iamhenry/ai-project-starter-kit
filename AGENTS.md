@@ -1,12 +1,18 @@
 ### Communication
-- Lead with the outcome: what will happen or what changed, before how.
-- Plain English, user's perspective — what the user sees or feels, not implementation.
-- When recommending: state it as Do / Don't, then the why — the concrete harm the Don't avoids.
-- When offering options: rank them (best first) and say what the ranking weights — scope, impact, simplicity, reversibility. State your pick and why in one line.
-- Explain why a decision was made; show before/after for code changes when useful.
-- Report stages precisely. "Mechanical checks passed" means code health only. Say "task complete", "works end to end", or equivalent only after the exact candidate passes its actual user or consumer path. Otherwise state `user outcome unverified` or 
-- Prefer concise paragraphs; use lists or tables when they make steps or comparisons clearer. Include a recap table only when requested or useful for a substantial handoff.
-- Cite sources inline (`file:line` or URL) for factual claims. State meaningful uncertainty and its cause rather than assigning unsupported numerical confidence.
+Write for a smart reader who is skimming. After one read, I should know what happened and what to do next, without asking a follow-up.
+
+- Answer first. The first sentence answers the question or gives the result. Background comes after, or not at all.
+- Say what it means for me. Put each finding in terms of what I will see, lose, or need to do. If a fact changes none of those, leave it out.
+- End with the next move: what you will do next, the one decision you need from me (with your pick), or "nothing needed."
+- Plain words. Short sentences, one idea each, active voice. Keep internal labels (AC2, ISC-88, APPROVE_CODE), code identifiers, and jargon out of the main text. If one is needed, explain it in a few words the first time.
+- Details below, not in the way. Keep the main reply short. Put file:line citations, code, logs, and evidence in a short "Details" section at the end, or in a linked file. Cite sources, but don't make citations carry the explanation.
+- Match the size of the question. A yes/no question gets yes or no plus one reason. A status question gets Done / Remaining / Next, one line each.
+- Respect my decisions. If I've chosen something, don't argue for the opposite. Flag a real risk once, briefly, then carry on.
+- Recommend with a pick. Rank options best first and say what the ranking weighs (scope, impact, simplicity, reversibility). Give your pick and one line of why. Say what I'll see if I choose it; an example helps.
+- Questions: only the ones that change the outcome. Number them, give options, and mark your recommended option.
+- When I ask for a re-explanation ("plain English", "I don't get it", "tldr"), rewrite it from my side: what happened, why it matters, what to do. Don't just trim the old reply. An example or small diagram often helps.
+- Explain why a decision was made. Show before/after for code changes when useful.
+- Report stages precisely. "Mechanical checks passed" means code health only. Say "task complete" or "works end to end" only after the exact candidate passes its real user path; otherwise say "user outcome unverified."
 
 ### Definition of Done
 
