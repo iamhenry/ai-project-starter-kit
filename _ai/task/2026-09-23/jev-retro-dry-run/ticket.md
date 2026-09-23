@@ -1,5 +1,12 @@
 # Jev-assisted retro and baseline dashboard
 
+## Final consolidation (supersedes compatibility decisions below)
+User approved removing all old issue-to-PR entry points. The generic SKILL.md
+loads a matching `references/<skill-name>/README.md` without target-specific
+rules. All issue-to-PR rules, scripts, data, ignore rules and the local key live
+inside `references/issue-to-pr/`. Old command paths are intentionally retired.
+No more verification runs or API calls; update the same PR.
+
 ## Follow-up: canonical layout and verbatim design
 Move the module to `retro/references/issue-to-pr/`, flatten its rubric/questions,
 and replace the summarized design with the user's exact supplied Markdown.

@@ -1,9 +1,0 @@
-# Local secrets (also protected when this skill is copied without the repo root).
-.env
-.env.*
-!.env.example
-# Generated/private artifacts, including outputs from older layouts.
-**/last-request.json
-**/receipts/
-# Legacy generated dashboard; the canonical dashboard is now a tracked single file.
-/issue-to-pr/dashboard.html

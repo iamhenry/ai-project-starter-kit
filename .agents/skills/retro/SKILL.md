@@ -1,7 +1,7 @@
 ---
 name: retro
 description: "Use only when the user explicitly asks for a retro or retrospective, or explicitly invokes or names `retro`, to learn from a completed or failed run. Never invoke automatically after work, failures, reviews, or other agent activity."
-version: 1.0.3
+version: 1.0.4
 ---
 
 # Retro
@@ -9,23 +9,13 @@ version: 1.0.3
 Use this skill only after the user explicitly requests it. It reviews one completed
 or failed run involving a skill, command, prompt, agent, or workflow.
 
-When reviewing an issue-to-PR run, read
-[the issue-to-PR reference](references/issue-to-pr/issue-to-pr.md). It adds pipeline-specific
-judgment and a PR-only change boundary; the workflow and report below still apply.
-
-Use the self-contained [issue-to-PR module](references/issue-to-pr/README.md) by default
-for these retros; do not require the user to ask for Jev separately. Prepare its
-preview and obtain approval before sending run data. If approval is declined,
-the key or tools are unavailable, or the API fails, clearly report
-`Jev check not run` with the reason and continue the LLM-led retro using available
-evidence. Do not invent Jev results or a successful dashboard entry. Other types
-of retros do not run this module.
-
-Code observations and Jev's
-probabilistic answers are evidence hints, not verdicts. Inspect source evidence
-when answers are uncertain, incomplete, or consequential. Never treat missing
-thread-list entries as proof that a stage did not run. The normal retro workflow
-remains usable without Jev, an API key, or BB.
+Identify the skill or workflow being reviewed. If a matching
+`references/<skill-name>/README.md` exists, read it and follow its specific
+guidance alongside the workflow below. Otherwise use this skill on its own.
+Keep target-specific rules, tools and data inside that reference directory.
+Helper outputs are evidence, not verdicts; inspect the underlying sources when
+claims are uncertain or consequential. Disclose missing checks rather than
+inventing results. The retro judge retains the final judgment.
 
 ## Guardrails
 

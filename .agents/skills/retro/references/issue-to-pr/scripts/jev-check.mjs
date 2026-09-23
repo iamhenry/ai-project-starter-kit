@@ -95,7 +95,7 @@ console.log(`preview: ${previewPath} · run state ~${tok(requests.run)} tok · h
 if (flag !== "--send") process.exit(0);
 
 // ---- 3. ask Jev (two calls in parallel) ----
-for (const f of [join(SKILL, ".env"), join(SKILL, "../../.env"), join(SKILL, "../../issue-to-pr/.env")]) if (!process.env.OPENROUTER_API_KEY && existsSync(f)) process.loadEnvFile(f);
+if (!process.env.OPENROUTER_API_KEY && existsSync(join(SKILL, ".env"))) process.loadEnvFile(join(SKILL, ".env"));
 if (!process.env.OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY not set (env or .env in the skill folder)");
 const ask = async (body) => {
   const res = await fetch("https://openrouter.ai/api/v1/systemone", {

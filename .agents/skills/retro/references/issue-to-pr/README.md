@@ -1,6 +1,7 @@
 # Issue-to-PR retro check
 
 Default, self-contained helper for issue-to-PR runs reviewed by the [retro skill](../../SKILL.md).
+Read [issue-to-pr.md](issue-to-pr.md) for the rubric and PR-only change boundary.
 Node 22.16+ and BB CLI are needed to collect a thread; an OpenRouter key is
 needed to send it. No package installation. Other kinds of retros are unaffected.
 
@@ -10,7 +11,7 @@ prerequisite is unavailable, or the call fails, report `Jev check not run` with
 the reason and continue the LLM-led retro. Never claim a successful Jev check or
 write a successful result for a skipped or failed call.
 
-1. Put `OPENROUTER_API_KEY=...` in `retro/.env` or this module's `.env` (ignored).
+1. Put `OPENROUTER_API_KEY=...` in this module's `.env` (ignored).
 2. From the repository root, generate the preview:
    `node .agents/skills/retro/references/issue-to-pr/scripts/jev-check.mjs THREAD_ID`
 3. Review this module's `evals/last-request.json`. Redaction is best-effort,
@@ -44,14 +45,8 @@ content fingerprints identify the exact uncommitted definitions used in a run.
 Historical instruction compliance needs the instructions in force at the time,
 not just today's routing policy.
 
-## Compatibility and ignore rules
-The older `retro/scripts/jev-check.mjs` and `retro/issue-to-pr/scripts/jev-check.mjs`
-commands forward here; they contain no duplicate logic. The older
-`retro/references/issue-to-pr.md` link forwards to this module's rubric.
-Canonical documentation and outputs live here only. The previous module-local
-`.env` is still accepted as a fallback so existing keys do not need moving.
-
-The repository `.gitignore` protects secrets across the entire repository. The
-retro `.gitignore` protects generated output and secrets when the skill is copied
-elsewhere. Keep both: they have different scopes. The scratch-task ignore file
-protects historical experiment output, which is not part of the supported module.
+## Location and ignore rules
+All module files live here. Old command paths and forwarding references have
+been retired; use the command above. This module's `.gitignore` protects its local
+key, preview and receipts even when copied elsewhere. The repository `.gitignore`
+protects secrets elsewhere in the repository.
