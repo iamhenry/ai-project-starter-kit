@@ -176,5 +176,5 @@ mkdirSync(join(SKILL, "evals/receipts"), { recursive: true });
 line.receipt = `evals/receipts/${line.date.replaceAll(":", "-")}.json`;
 writeFileSync(join(SKILL, line.receipt), JSON.stringify({ requests, responses: { run: ra, helpers: ha } }, null, 2));
 appendFileSync(join(SKILL, "evals/results.jsonl"), JSON.stringify(line) + "\n");
-renderDashboard();
+// Save the measurement now; refresh the dashboard only after approved changes.
 console.log(`\nscore ${line.score ?? "n/a (no saved case)"}${misses.length ? ` · missed: ${misses.join(", ")}` : ""} · cost $${line.cost} · skill ${line.skill_version} (${line.skill_commit})`);

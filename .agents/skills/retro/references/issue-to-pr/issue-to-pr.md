@@ -31,7 +31,7 @@ against instructions in force at the time; today's rules guide checker maintenan
 2. **Run the helper checks automatically.** The agent removes sensitive information
    before sending evidence to Jev through OpenRouter, without a user approval pause.
    Code supplies exact observations; Jev supplies probabilistic hints, not a verdict.
-3. **Save the results.** Record answers, versions and cost; refresh the dashboard.
+3. **Save the results.** Record answers, versions and cost without updating the dashboard.
    A score appears only when the run has saved expected findings. It measures
    agreement with those expectations, not whether the pipeline got better.
 4. **Let the LLM judge.** It weighs the hints against the actual evidence, checks
@@ -40,6 +40,10 @@ against instructions in force at the time; today's rules guide checker maintenan
 5. **Preview improvements and wait.** Show the proposed file changes, including any
    checker-sync suggestions. Wait for user approval before applying changes; the
    PR-only boundary below still applies.
+6. **Update the dashboard only after approval.** If the user approves at least one
+   proposed change, refresh the dashboard as part of that authorized update.
+   If nothing is approved, leave it untouched. Approval is not proof of improvement;
+   only a later run can provide evidence about the effect of the changes.
 
 Requesting this retro includes the helper analysis; no separate Jev or data-preview
 approval is required. If sensitive data cannot be safely removed, a prerequisite
@@ -61,8 +65,9 @@ needed to send it. No package installation. Other kinds of retros are unaffected
 4. The agent runs the same command plus `--send` without pausing for approval.
    It sends the saved request, not a newly collected thread. Changed checker files
    invalidate it.
-5. Open this module's `dashboard.html`. Each successful run regenerates it from
-   `evals/results.jsonl`; rebuild without an API call using `--dashboard`.
+5. After the user approves proposed changes, run the same script with `--dashboard`
+   to refresh `dashboard.html` from `evals/results.jsonl` without an API call.
+   Do not run this command merely because a retro finished or when nothing is approved.
 
 ## Files and interpretation
 
@@ -71,7 +76,7 @@ needed to send it. No package installation. Other kinds of retros are unaffected
 - `evals/cases.json`: expected findings, read only after inference for scoring.
 - `evals/results.jsonl`: append-only results, probabilities, versions, fingerprints and cost.
 - `evals/receipts/`: local, ignored API request/response evidence.
-- `design.md`: styling contract; `dashboard.html`: offline dashboard refreshed from the JSONL.
+- `design.md`: styling contract; `dashboard.html`: offline dashboard refreshed from the JSONL only after approved changes.
 
 Code observations are exact only for the records collected. Jev answers are
 probabilistic. The LLM judge owns the verdict and must inspect material or uncertain
