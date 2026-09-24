@@ -131,13 +131,14 @@ When resolving referenced skills, agents, or commands, check the project's locat
 Allowed task artifacts:
 
 - `{ISSUE_DIR}/ticket.md` coordination sections `Pipeline State` and `Checkpoint Timeline`, maintained only by `issue-to-pr`
+- `{ISSUE_DIR}/lessons.md` workflow lessons timeline, maintained only by `issue-to-pr`
 - `{ISSUE_DIR}/issue.md`
 - `{ISSUE_DIR}/plan.md`
 - `{ISSUE_DIR}/research/*.md`
 - `{ISSUE_DIR}/reproduction/` (retained proof and `flows/`) owned by `reproduce-bug`
 - `{ISSUE_DIR}/verification/` (`result.md`, `screenshots/`, `videos/`) owned by `verification-gate`
 
-Do not create helper docs, reference files, sidecar state, ADR files, or wrapper-specific metadata. The wrapper must not write `{ISSUE_DIR}/verification/`; it only checks cited paths exist.
+Other than `lessons.md`, do not create helper docs, reference files, sidecar state, ADR files, or wrapper-specific metadata. The wrapper must not write `{ISSUE_DIR}/verification/`; it only checks cited paths exist.
 
 ## Durable coordination state
 
@@ -148,6 +149,8 @@ For every dispatch, including repairs, follow this exact sequence: update pre-di
 Identify each candidate by a commit SHA, or by a base SHA plus a stable diff identifier over delivery paths. Changes to the two mutable ticket coordination sections do not alter candidate identity or count toward the dispatched owner delta. After each completed or blocked checkpoint or attempt, append one concise, candidate-bound entry to `## Checkpoint Timeline`. For an owner artifact, include the stage or checkpoint, exact candidate, outcome, owner evidence link, and next owner/action or unlock condition. When no owner artifact exists, the timeline entry is the durable receipt and includes only the stage and exact candidate needed to bind it plus the returned result's exact native outcome: for gates, failed criterion IDs when supplied, otherwise the exact concise findings or required rechecks and evidence path/line references; for Build/task results, the completed or blocked outcome, exact blocker or remaining work, and evidence path/line references. Never invent verdicts or IDs or paraphrase domain reasoning.
 
 If the ticket state conflicts with an owner artifact, the owner artifact controls. `issue-to-pr` stops progression, refreshes only the two bounded ticket sections from the authoritative owner verdict or reference, mechanically confirms agreement, and resumes. Never edit the owner artifact. Fresh judges receive only their currently declared inputs. Do not pass the ticket timeline unless the judge's own skill explicitly requires it.
+
+Keep `{ISSUE_DIR}/lessons.md` as an append-only timeline: create it with a `# Lessons` heading when `ISSUE_DIR` resolves, or resume the existing file. As the run progresses, append brief dated entries for mistakes you make, missing context or tools you wish you had, and things learned about the environment, including useful blockers and user corrections. Use `- YYYY-MM-DD HH:mm TZ | stage | observation | response or next-run improvement`. Keep entries factual and practical; skip routine checkpoints, duplicates, guesses, secrets, and personal data. Do not create `MISTAKES.md`, `DESIRES.md`, or `LEARNINGS.md`. Lessons are advisory, not gate evidence or pipeline state; do not pass them to fresh judges.
 
 ---
 
@@ -166,6 +169,7 @@ If the ticket state conflicts with an owner artifact, the owner artifact control
 | Verification proof                                   | `verification-gate` via exact `qa` subagent |
 | `{ISSUE_DIR}/verification/`                          | `verification-gate` via exact `qa` subagent |
 | `Pipeline State` and `Checkpoint Timeline` in `{ISSUE_DIR}/ticket.md` | `issue-to-pr` |
+| `{ISSUE_DIR}/lessons.md`                            | `issue-to-pr`                      |
 | Pipeline order, gates, revision routing              | `issue-to-pr`                      |
 
 When an artifact is missing or malformed, ask the owner to revise it. Do not fix it inside this wrapper.
