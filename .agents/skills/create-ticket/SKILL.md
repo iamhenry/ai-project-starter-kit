@@ -33,6 +33,21 @@ Ask one question if a required field below is missing and would make the ticket 
 
 Ground the problem statement in first principles: who or what is affected, what they need to achieve, what observable gap prevents it, and why that gap matters. Separate facts from assumptions; do not present a requested solution or suspected root cause as the problem. Use only supplied or verified evidence and mark unknowns rather than inventing rationale.
 
+Make done provable. Definition of done lists observable results: `- [ ] <user does Y, sees X>`. Verification says how each one is proven: where it runs, the proof step, and the receipt kept as evidence. Name any real side effects the agent must never trigger (for example, sending email). Prefer the real entry point over mocks. If an item cannot be checked, say so and mark it `unverified`. Never let a skipped or substitute check count as passing.
+
+Exit criteria are heuristics, not counters. Do not set time or iteration budgets. Add ticket-specific escalations (for example, a dependency that will not install) only when known. Default text, adapted to the ticket:
+
+```md
+## Exit criteria
+
+- Stop when every Definition of done item passes its proof. No extra polish.
+- Keep going while attempts produce new information.
+- Stop and report BLOCKED when stuck: the same error recurs, attempts change nothing, or the next attempt has no testable hypothesis. Record the error, what was tried, and what each attempt showed.
+- Never weaken Definition of done or leave scope to force a pass.
+```
+
+Scope: In names what this ticket changes. Out lists nearby work an agent would be tempted to do; omit Out when nothing is tempting.
+
 ### Bug
 
 Required: what happened, what should happen, how to repro.
@@ -47,36 +62,77 @@ Required: what happened, what should happen, how to repro.
 1.
 
 ## Evidence
+
+## Definition of done
+
+- [ ] Repro no longer triggers
+
+## Verification
+
+- Verify on: <where it runs>
+- Never: <real side effects to avoid>
+- <done item> — proof: <repro steps> — receipt: <screenshot, output, or file>
+
+## Scope
+
+- In:
+- Out:
+
+## Exit criteria
 ```
 
 ### Feature
 
-Required: problem, observable outcome.
+Required: problem, observable outcome, definition of done.
 
 ```md
 ## Problem
 
 ## Outcome
 
-## Acceptance
+## Definition of done
 
-- [ ]
+- [ ] <user does Y, sees X>
 
-## Out of scope
+## Verification
+
+- Verify on: <where it runs>
+- Never: <real side effects to avoid>
+- <done item> — proof: <real step or command> — receipt: <screenshot, output, or file>
+
+## Scope
+
+- In:
+- Out:
+
+## Exit criteria
 ```
 
 ### Task
 
-Required: why, done when.
+Required: why, definition of done.
 
 ```md
 ## Why
 
 ## Change
 
-## Done when
+## Definition of done
 
-- [ ]
+- [ ] <user does Y, sees X>
+
+## Verification
+
+- Verify on: <where it runs>
+- Never: <real side effects to avoid>
+- <done item> — proof: <real step or command> — receipt: <screenshot, output, or file>
+
+## Scope
+
+- In:
+- Out:
+
+## Exit criteria
 ```
 
 ## 3. File
