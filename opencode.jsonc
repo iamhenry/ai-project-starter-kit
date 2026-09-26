@@ -17,6 +17,11 @@
   "instructions": [
     "_ai/docs/ETHOS.md"
   ],
+  "permission": {
+    "skill": {
+      "bb-swarm": "deny" // OpenCode v1: hide automatic skill discovery; /bb-swarm supplies it explicitly.
+    }
+  },
   "plugin": [
     "@tarquinen/opencode-dcp@latest", // (https://github.com/Tarquinen/opencode-dynamic-context-pruning)
     // "opencode-council@https://github.com/iamhenry/opencode-council/archive/40b93cdddfc582fb8bc9aafa3a6d444307578073.tar.gz",
