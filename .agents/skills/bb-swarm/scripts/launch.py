@@ -75,6 +75,8 @@ def parse_peers(specs, default_model, count):
             die(f"--count must be between 1 and {len(DEFAULT_NAMES)}")
         for name in DEFAULT_NAMES[:count]:
             peers[name] = default_model
+    if len(peers) != count:
+        die(f"Expected {count} named peers; got {len(peers)}")
     out = {}
     for name, m in peers.items():
         model, _, reasoning = m.partition(":")
@@ -109,9 +111,15 @@ def cmd_start(a):
     output = (root / a.output_dir).resolve()
     if output == root or not output.is_relative_to(root):
         die("--output-dir must name a subdirectory inside the run")
-    problem = Path(a.problem).read_text().strip()
-    done = Path(a.done).read_text().strip()
-    boundaries = Path(a.boundaries).read_text().strip() if a.boundaries else "No extra boundaries given."
+    if not a.dry_run and not a.approved:
+        die("Live start requires an approved user contract (--approved). Offer to draft missing fields and wait for approval.")
+    fields = {name: Path(getattr(a, name)).read_text().strip()
+              for name in ("problem", "scope", "done", "exit", "budget", "boundaries")}
+    for name, text in fields.items():
+        if not text:
+            die(f"{name} is blank. Offer to draft it, then get the user's approval before launch.")
+    problem, scope, done, exit_criteria, budget, boundaries = (fields[name] for name in
+        ("problem", "scope", "done", "exit", "budget", "boundaries"))
     peers = parse_peers(a.peer, a.model, a.count)
 
     me = {} if a.dry_run else self_thread()
@@ -131,7 +139,10 @@ def cmd_start(a):
     root.mkdir(parents=True, exist_ok=True)
     output.mkdir(parents=True, exist_ok=True)
     (root / "problem.md").write_text(problem + "\n")
+    (root / "scope.md").write_text(scope + "\n")
     (root / "done.md").write_text(done + "\n")
+    (root / "exit.md").write_text(exit_criteria + "\n")
+    (root / "budget.md").write_text(budget + "\n")
     (root / "boundaries.md").write_text(boundaries + "\n")
     (root / "board.md").write_text("# Team board\n")
 
@@ -139,6 +150,7 @@ def cmd_start(a):
     deadline = start + dt.timedelta(minutes=a.minutes)
     cfg = {
         "started": stamp(start), "deadline": stamp(deadline), "minutes": a.minutes,
+        "user_approved": a.approved,
         "warn_before": a.warn_before, "idle_minutes": a.idle_minutes, "output_dir": a.output_dir,
         "provider": a.provider, "parent": parent, "project": project, "environment": environment,
         "peers": peers, "automations": {},
@@ -151,7 +163,8 @@ def cmd_start(a):
     for name in names:
         brief = template.safe_substitute(
             name=name, peers=", ".join(n for n in names if n != name), run=str(root),
-            coord=f"python3 {COORD} --run {root}", problem=problem, done=done, boundaries=boundaries,
+            coord=f"python3 {COORD} --run {root}", problem=problem, scope=scope, done=done,
+            exit_criteria=exit_criteria, budget=budget, boundaries=boundaries,
             minutes=a.minutes, deadline=f"{deadline:%H:%M %Z}", warn_before=a.warn_before,
             output=str(output), how=str(SKILL / "references" / "how-we-work.md"))
         (root / "briefs" / f"{name}.md").write_text(brief)
@@ -270,18 +283,22 @@ def main():
     s = sub.add_parser("start", help="set up the run dir, start peers, schedule warn + stop")
     s.add_argument("--run", required=True, help="fresh run directory")
     s.add_argument("--problem", required=True, help="file with the user's problem, word for word")
+    s.add_argument("--scope", required=True, help="file with approved in/out scope")
     s.add_argument("--done", required=True, help="file with the user's definition of done, word for word")
-    s.add_argument("--boundaries", help="file with limits and permissions")
+    s.add_argument("--exit", required=True, help="file with approved DONE/PARTIAL/BLOCKED criteria")
+    s.add_argument("--budget", required=True, help="file with approved spend cap or explicit no-cap choice")
+    s.add_argument("--boundaries", required=True, help="file with approved limits and permissions")
     s.add_argument("--model", help="provider/model[:reasoning] for every peer")
     s.add_argument("--peer", action="append", help="NAME=provider/model[:reasoning]; repeat per peer")
-    s.add_argument("--count", type=int, default=5)
-    s.add_argument("--minutes", type=int, default=90)
+    s.add_argument("--count", type=int, required=True)
+    s.add_argument("--minutes", type=int, required=True)
     s.add_argument("--warn-before", type=int, default=5)
     s.add_argument("--idle-minutes", type=int, default=10)
     s.add_argument("--output-dir", default="output")
     s.add_argument("--provider", default="opencode")
     s.add_argument("--parent"); s.add_argument("--project"); s.add_argument("--environment")
     s.add_argument("--dry-run", action="store_true")
+    s.add_argument("--approved", action="store_true", help="assert explicit user approval of every supplied field")
     for name in ("status", "confirm-stop"):
         s = sub.add_parser(name); s.add_argument("--run", required=True)
     s = sub.add_parser("tell", help="send a logged human message to one peer")

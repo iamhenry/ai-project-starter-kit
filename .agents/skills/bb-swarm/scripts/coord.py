@@ -116,6 +116,10 @@ class Run:
         p = self.root / "done.md"
         return p.read_text().strip() if p.exists() else "(no done.md)"
 
+    def exit_text(self):
+        p = self.root / "exit.md"
+        return p.read_text().strip() if p.exists() else "(no exit.md)"
+
 
 def item_line(i):
     who = i.get("owner") or "nobody"
@@ -281,7 +285,7 @@ def cmd_verdict(run, a):
         i["touched"] = stamp()
         owner = i.get("owner")
     pos = run.append(a.name, f"VERDICT #{a.id} {a.verdict} ({kind}, {support}): {saw or '-'}")
-    print("Done text this is judged against:\n" + run.done_text() + "\n")
+    print("Done text:\n" + run.done_text() + "\nExit criteria:\n" + run.exit_text() + "\n")
     print(f"Recorded {a.verdict} as {kind}, {support}. #{a.id} is now {i['status']}.")
     if a.verdict == "FAIL" and owner and owner != a.name:
         run.notify(owner, a.name, pos)
@@ -364,7 +368,8 @@ def cmd_close(run, a):
         notes = list(data["notes"])
     lines = [f"# Results", "", f"Outcome: **{outcome}** (team decision; closed by {a.name} at {stamp()})",
              f"Reason: {reason or 'Not recorded'}",
-             f"Output: `{out_dir}`", "", "## Done text", "", run.done_text(), "", "## Work items", "",
+             f"Output: `{out_dir}`", "", "## Done text", "", run.done_text(),
+             "", "## Exit criteria", "", run.exit_text(), "", "## Work items", "",
              "| # | Item | Status | Owner | Verdicts (who, kind, what they saw) |", "|---|---|---|---|---|"]
     for i in items:
         v = "<br>".join(f"{x['verdict']} by {x['by']} ({x['kind']}): {x['saw'] or 'nothing recorded'}" for x in i["verdicts"]) or "-"
