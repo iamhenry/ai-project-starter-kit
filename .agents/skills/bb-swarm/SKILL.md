@@ -1,6 +1,7 @@
 ---
 name: bb-swarm
 description: Launch equal peer agents as BB child threads on a user-approved task contract. Invoke manually with /bb-swarm; never start from an agent's suggestion alone.
+slash: true
 metadata:
   opencode/autoinvoke: false
 ---
