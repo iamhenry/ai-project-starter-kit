@@ -1,7 +1,14 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "small_model": "opencode/big-pickle",
-  "provider": {
+  "agents": {
+    "title": {
+      "model": "opencode/big-pickle"
+    },
+    "explore": {
+      "disabled": true
+    }
+  },
+  "providers": {
     "ollama-cloud": {
       "models": {
         "kimi-k3": {
@@ -27,23 +34,5 @@
   ],
   "compaction": {
     "auto": false
-  },
-  "experimental": {
-    "batch_tool": true, // Enables batch tool for parallel operations
-    "disable_paste_summary": true // Disables automatic paste summary feature
-  },
-  "tui": {
-    "scroll_acceleration": {
-      "enabled": true
-    }
-  },
-  "keybinds": {
-    "model_cycle_favorite": "ctrl+k",
-    "model_cycle_favorite_reverse": "ctrl+l",
-  },
-  "agent": {
-    "explore": {
-      "disable": true
-    }
   }
 }
