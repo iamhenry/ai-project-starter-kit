@@ -26,7 +26,7 @@ Principles:
 | `code-quality-gate`          | Exact `reviewer` subagent reviews code quality after implementation. | Catches implementation issues before QA proof begins.                   |
 | `verification-gate`          | Exact `qa` subagent proves completed work.                | Keeps QA execution outside this wrapper.                                         |
 | `agent-browser`              | Browser proof path used by `verification-gate`.           | Supports web and mobile-web validation without defining it here.                 |
-| `xcodebuildmcp-cli`          | Apple-platform proof path used by `verification-gate`.    | Supports iOS and macOS validation without defining it here.                      |
+| `xcodebuildmcp-cli`          | Apple-platform proof path used by `verification-gate` (Expo projects prove via Metro dev server first; xcodebuildmcp for native changes and builds). | Supports iOS and macOS validation without defining it here.                      |
 | PR placeholder               | Future owner handles PR handoff.                          | Keeps review and merge policy outside this wrapper.                              |
 
 Orchestrate and judge the pipeline. Do not create, edit, append, or repair task artifacts outside the artifact and coordination boundaries below.

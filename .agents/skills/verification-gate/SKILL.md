@@ -1,6 +1,6 @@
 ---
 name: verification-gate
-description: Reusable verification gate for completed work before commit or merge. Use when implementation is done and Claude must prove the task works, verify the main user flow, route verification by platform, and return a PASS/FAIL/BLOCKED verdict with evidence. Supports the explicitly selected low-risk combined assurance route. Web and mobile-web verification uses agent-browser. Desktop verification uses agent-browser or cua-driver. iOS and macOS verification uses xcodebuildmcp-cli, with argent flow replay for iOS user-flow proof. Android user-flow verification uses argent.
+description: Reusable verification gate for completed work before commit or merge. Use when implementation is done and Claude must prove the task works, verify the main user flow, route verification by platform, and return a PASS/FAIL/BLOCKED verdict with evidence. Supports the explicitly selected low-risk combined assurance route. Web and mobile-web verification uses agent-browser. Desktop verification uses agent-browser or cua-driver. iOS verification prefers the Metro/Expo dev server on the simulator for Expo projects and uses xcodebuildmcp-cli for native changes and builds. iOS and macOS verification uses xcodebuildmcp-cli, with argent flow replay for iOS user-flow proof. Android user-flow verification uses argent.
 ---
 
 <!--
@@ -101,8 +101,9 @@ Choose exactly one primary platform route:
 3. `desktop`
    - Use `agent-browser` for Electron apps when available; otherwise use `cua-driver` to operate the installed application's visible controls.
 4. `ios`
-   - Use `xcodebuildmcp-cli` for build and mechanical proof; it equals mechanical proof for iOS.
-   - For user-flow (observable) proof: replay the exact reproduction flow with `argent` when one exists, otherwise the XcodeBuildMCP UI check.
+   - Expo project (expo in dependencies) with a usable dev build: prove through the Metro/Expo dev server on the simulator — `npx expo start`, no native rebuild for JS/TS-only changes. Example: a button label or logic change in an Expo app proves in seconds against the running dev server; a change to native modules, `app.json`, or the SDK version forces a native rebuild instead.
+   - Otherwise — bare/native project, native or app-config change, missing or stale dev build, physical-device or release-grade proof — use `xcodebuildmcp-cli` for build and mechanical proof; it equals mechanical proof for iOS.
+   - For user-flow (observable) proof: replay the exact reproduction flow with `argent` when one exists; otherwise the smallest UI check — direct interaction against the Metro-served app on the Expo route, or the XcodeBuildMCP UI check on the build route.
 5. `android`
    - Run the plan-named build or test command for mechanical proof.
    - Use `argent` on the target emulator or device for user-flow proof, replaying the exact reproduction flow when one exists.
@@ -207,6 +208,7 @@ Prefer the actual affected surface when safe and authorized. Before building a s
    - Use screenshots for static proof points.
    - Use recordings only when motion itself is the claim and screenshots cannot prove it.
 
+    - For `ios`, prefer the Metro/Expo dev server on the simulator when the project is Expo-managed with a usable dev build and no native change forces a rebuild; otherwise use `xcodebuildmcp-cli`.
     - For `ios` or `macos`, use `xcodebuildmcp-cli`.
     - First verify the CLI exists.
     - Use help-first discovery before commands: inspect available commands/options instead of relying on stale recipes.
@@ -349,7 +351,7 @@ Use this exact structure:
 - `web`: Select model -> enter prompt -> submit -> generated images appear.
 - `mobile-web`: Open settings on mobile viewport -> verify new card, copy, and CTA render correctly.
 - `desktop`: Use the installed app's visible controls -> complete the changed flow -> verify the app-owned result.
-- `ios`: Build and launch app -> complete primary flow in simulator -> success state appears.
+- `ios`: Launch app (dev build via Metro, or built app) -> complete primary flow in simulator -> success state appears.
 - `android`: Install and launch app -> complete primary flow on emulator or device -> success state appears.
 - `macos`: Build and launch app -> complete primary flow -> success state appears.
 - `non-ui`: Run the real export command -> confirm the user-requested output file exists and contains expected records; run proportional Mechanical checks separately.
