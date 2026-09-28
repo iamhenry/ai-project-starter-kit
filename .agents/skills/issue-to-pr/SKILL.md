@@ -19,9 +19,9 @@ Principles:
 | Component                    | Role                                                      | Why                                                                              |
 | ---------------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------- |
 | `gather-context`             | Owns intake, research, and proposal options.              | Grounds the pipeline before judging or planning.                                 |
-| `judge-proposal`             | Independently reviews proposal quality.                   | Catches weak assumptions before plan creation.                                   |
+| `judge-proposal`             | Exact `reviewer` subagent reviews proposal quality.        | Catches weak assumptions before plan creation.                                   |
 | `create-issue`               | Owns the selected implementation plan.                    | Keeps planning artifacts with the planning workflow.                             |
-| `judge-plan`                 | Independently reviews plan readiness.                     | Prevents implementation from starting on a weak plan.                            |
+| `judge-plan`                 | Exact `reviewer` subagent reviews plan readiness.          | Prevents implementation from starting on a weak plan.                            |
 | Implementation orchestration | Delegates implementation and repository writes to Task with exact `subagent_type: build`. | Keeps this wrapper orchestration-only while moving the plan toward working code. |
 | `code-quality-gate`          | Exact `reviewer` subagent reviews code quality after implementation. | Catches implementation issues before QA proof begins.                   |
 | `verification-gate`          | Exact `qa` subagent proves completed work.                | Keeps QA execution outside this wrapper.                                         |
@@ -58,9 +58,9 @@ When resolving referenced skills, agents, or commands, check the project's locat
 
 ### 2. Proposal Judge Checkpoint
 
-- Delegate review to a fresh subagent using `judge-proposal`.
+- Delegate review to a fresh subagent through Task with exact `subagent_type: reviewer` using `judge-proposal`. If `reviewer` cannot start by exact name, return `BLOCKED`; do not substitute another agent.
 - The subagent must receive only the task artifacts it needs, not accumulated conversation context.
-- Pass the execution request's technical selection authority explicitly, along with any decisions reserved to the user. Pass narrow writeback authority for the Judge Decision section to a write-capable judge; a read-only judge may return its decision for Build to record verbatim without re-judging it.
+- Pass the execution request's technical selection authority explicitly, along with any decisions reserved to the user. Grant the judge narrow writeback authority to edit only the `Judge Decision` section of `{ISSUE_DIR}/issue.md`, as required by `judge-proposal`'s writeback contract; read-only judging without writeback never satisfies the step gate.
 - Gate: `{ISSUE_DIR}/issue.md` contains `Judge Decision` with `Status: SELECTED` or `Status: ASK_USER`.
 - If `ASK_USER`, use Revision Routing to distinguish an owned artifact gap from a user decision.
 
@@ -72,7 +72,7 @@ When resolving referenced skills, agents, or commands, check the project's locat
 
 ### 4. Plan Judge Checkpoint
 
-- Delegate review to a fresh subagent using `judge-plan`. Supply narrow Plan Judge writeback authority to a write-capable judge, or have Build record a read-only judge's returned decision verbatim without re-judging it.
+- Delegate review to a fresh subagent through Task with exact `subagent_type: reviewer` using `judge-plan`. If `reviewer` cannot start by exact name, return `BLOCKED`; do not substitute another agent. Grant the judge narrow writeback authority to edit only the `Plan Judge` section of `{ISSUE_DIR}/plan.md`, as required by `judge-plan`'s writeback contract; read-only judging without writeback never satisfies the step gate.
 - The subagent must receive only `{ISSUE_DIR}/issue.md`, `{ISSUE_DIR}/plan.md`, and relevant `{ISSUE_DIR}/research/*.md` artifacts.
 - The review must be independent from the proposal judge and main-agent working context.
 - Gate: `{ISSUE_DIR}/plan.md` contains `Plan Judge` with `APPROVE_PLAN`, `REVISE_PLAN`, or `ASK_USER`.
@@ -161,9 +161,9 @@ Keep `{ISSUE_DIR}/lessons.md` as an append-only timeline: create it with a `# Le
 | `{ISSUE_DIR}/issue.md` intake, scenarios, approaches | `gather-context`                   |
 | `{ISSUE_DIR}/research/*.md` evidence reports         | `gather-context` research agents   |
 | `{ISSUE_DIR}/reproduction/` evidence and flows       | `reproduce-bug` via exact `qa` subagent |
-| `Judge Decision` in `{ISSUE_DIR}/issue.md`           | `judge-proposal` fresh subagent    |
+| `Judge Decision` in `{ISSUE_DIR}/issue.md`           | `judge-proposal` via exact `reviewer` subagent |
 | `{ISSUE_DIR}/plan.md`                                | `create-issue` workflow            |
-| `Plan Judge` in `{ISSUE_DIR}/plan.md`                | `judge-plan` fresh subagent        |
+| `Plan Judge` in `{ISSUE_DIR}/plan.md`                | `judge-plan` via exact `reviewer` subagent        |
 | Implementation code changes                          | Build via Task `subagent_type: build` |
 | Code quality decision                                | `code-quality-gate` via exact `reviewer` subagent |
 | Verification proof                                   | `verification-gate` via exact `qa` subagent |
@@ -180,8 +180,7 @@ When an artifact is missing or malformed, ask the owner to revise it. Do not fix
 
 Judge, Build implementation, code quality, and verification work is delegated:
 
-- Use `judge-proposal` for the proposal checkpoint.
-- Use `judge-plan` for the plan checkpoint.
+- Use Task with exact `subagent_type: reviewer` for `judge-proposal` and `judge-plan` in fresh subagent sessions.
 - Use Task with exact `subagent_type: build` for all implementation and repository writes. If Build cannot start, report `BLOCKED`; advertised-list omission never permits an `atlas` or `voyager` fallback.
 - Use Task with exact `subagent_type: reviewer` for `code-quality-gate` after implementation is complete.
 - Use Task with exact `subagent_type: qa` for `reproduce-bug` and for `verification-gate` after `APPROVE_CODE`; the agent configuration owns model selection.
