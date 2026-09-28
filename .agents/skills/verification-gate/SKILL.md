@@ -289,6 +289,17 @@ Prefer the actual affected surface when safe and authorized. Before building a s
 - Always include artifact paths in the final report when evidence exists.
 - `"No artifacts"` is allowed only when Observable is `n/a`. If Observable names a path, that file must exist or the verdict is `FAIL`.
 
+### Visual convergence loop (UI comparison tasks)
+
+When the task changes visible UI against a reference design or ideal-state screenshot:
+
+1. Capture a baseline of the target screen at or before the current state.
+2. Run the platform pixel diff against the ideal state: `agent-browser diff screenshot --baseline <before.png> -o diff.png` (web/desktop), argent `screenshot-diff` (iOS/Android).
+3. If the changed-pixel ratio exceeds the declared tolerance, the diff image names where to fix next. Route that back to implementation and re-diff after the fix — a cheap closed loop, no dependency installs.
+4. Stop when the ratio is within tolerance or the remaining diffs are declared acceptable (e.g. font-version rendering). Record the final ratio and diff image as Observable evidence.
+
+Tolerance is set by the Verification Target, not invented here. The diff image supports the verdict; it never replaces the Primary Flow proof.
+
 ### Screenshot Hygiene
 
 - Capture the smallest app-owned proof area that supports the verdict, not the full desktop.
