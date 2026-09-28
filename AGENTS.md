@@ -41,7 +41,7 @@ Skip the loop only when there is no live surface to observe: docs, skill, or con
 1. **Reproduce now**, in the smallest realistic flow. Stop once the evidence tests a concrete hypothesis.
 2. **Instrument minimally** — only the logs/traces needed to see event order, IDs, inputs, outputs. Remove it when done unless it has lasting value.
 3. **Fix from evidence, not guesses.** Smallest reversible fix; one variable at a time; no unrelated refactors.
-4. **Prove immediately:** first run a fresh live smoke on the real flow. After the desired behavior works, add the smallest targeted regression test that preserves it. The live smoke is the primary acceptance signal — unit tests alone never clear a bug that appeared in a live integration.
+4. **Prove immediately:** first run a fresh live smoke on the real flow. After the desired behavior works, add the smallest targeted regression test that preserves it. The live smoke is the primary acceptance signal — unit tests alone never clear a bug that appeared in a live integration. When the change is visual, diff against a baseline — screenshot before, apply the change, pixel diff — and iterate until the diff converges rather than re-prompting blind.
 5. **Escalate only if the signal is untrustworthy:** end-to-end for the full cross-system path, stress/edge cases for chunking/ordering/timing, soak for intermittent failures.
 
 Keep the report to five lines: Observed / Cause / Change / Proof / Risk. `reproduce-bug` owns the repro SOP; `verification-gate` owns the final verdict; this section owns the loop cadence between them.
