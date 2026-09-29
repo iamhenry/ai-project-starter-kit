@@ -1,7 +1,7 @@
 ---
 name: plan
 description: Read-only analysis and planning agent with safe bash commands and web search.
-mode: primary
+mode: all
 model: openai/gpt-6-sol
 variant: medium
 tools:
