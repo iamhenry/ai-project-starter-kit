@@ -89,7 +89,7 @@ Prefer this order on first entry: ticket → see it → why → context → chan
 - Small plans stay inline. Use `shaping` when the user asked to shape.
 - Reuse valid evidence. An edit invalidates only what it actually touches.
 
-**Agents.** The skill name is the contract. Spawn the suggested agent when a fresh session helps. Use `build` for implementation writes. Use `plan` only for read-only planning or judging. Keep `atlas` and `voyager` research-only. OpenCode Task may omit primary agents from its advertised list. Invoke them by exact `subagent_type` anyway. If `build` cannot start, report `BLOCKED`. Never substitute a research agent.
+**Agents.** The skill name is the contract. Spawn the suggested agent when a fresh session helps. Use `build` for implementation writes. Use `plan` only for read-only planning or judging. Keep `atlas` and `voyager` research-only. For OpenCode V2, use `subagent` with the configured `agent` ID and `background: true`; the agent must support subagent use. Acknowledge the launch and end the interactive turn without waiting or polling; continue when completion notifications arrive. If `build` cannot start, report `BLOCKED`. Never substitute a research agent.
 
 | Agent | Use for |
 |---|---|
