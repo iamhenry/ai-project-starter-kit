@@ -88,10 +88,11 @@ When resolving referenced skills, agents, or commands, check the project's locat
 - If Build cannot start by exact name, report `BLOCKED`. Never fall back to `atlas`, `voyager`, or another research agent.
 - For changed user or consumer behavior, Build must get one safe observation through the actual affected path before adding regression tests. If that path is unavailable, return the blocker instead of treating tests as proof. This implementation feedback does not replace the later independent gates.
 - Delegate relevant read or research operations when needed.
-- If `{ISSUE_DIR}/plan.md` has a clear, safe delegation structure, follow it.
-- If `{ISSUE_DIR}/plan.md` lacks safe delegation structure, create an ad hoc delegation todo list in memory/context only and delegate safely.
-- Do not save a new plan to disk or revise `{ISSUE_DIR}/plan.md` just to add delegation structure.
-- Avoid overlapping file edits; when overlap exists, sequence agents instead of parallelizing them.
+- Prefer parallel Build dispatch (at most three slices) when the work splits into independent, substantial slices; sequence slices that share files or depend on each other's output. Use the plan's delegation structure when safe; otherwise split ad hoc in context only, without saving or revising `plan.md`.
+- Give each slice an exclusive file list as its allowed writes. Concurrent slices share one pre-dispatch baseline; attribute the owner delta by each slice's list. Assign shared files (styles, test fakes, generated output) to the integration pass. A slice needing another slice's file reports it instead of editing.
+- Fix any shared interface before dispatch and pass the same definition to every slice. If it is types only, land it first in one short Build dispatch.
+- Slices run only focused checks; no git, installs, full builds, or other shared-state writes.
+- After all slices return, resume the interface-owning slice as the integration pass: run the plan's full Mechanical checks on the combined candidate and fix only cross-slice seams. That candidate goes to `code-quality-gate`.
 - Collect the implementation summary, changed files, commands run, known risks, and raw Mechanical command output from Build.
 - Build owns initial execution of plan-named Mechanical checks and supplies receipts with command, exit status, exact candidate, and relevant conditions. Review assesses those receipts without rerunning them; verification independently validates reuse under its evidence rules and executes missing or invalidated checks. Build completion does not imply acceptance or require it to duplicate final QA.
 - For bug tasks, also pass the reproduction result and evidence paths (including the reproduction smoke steps) to verification so it can reuse the same faithful smoke for the before/after proof.
