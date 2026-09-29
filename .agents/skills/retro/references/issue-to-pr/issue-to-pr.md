@@ -1,96 +1,64 @@
 # Issue-to-PR retro
 
-This rubric belongs to the self-contained issue-to-PR retro module.
+Use by default for an explicitly requested retro of runs that invoked
+`issue-to-pr`; no separate request for this rubric is needed. This is an
+interpretation guide based on prior retros, not a new pipeline or scorecard. The
+parent retro skill owns cause classification, verdicts, minimal-change ordering,
+redaction, and the report. This module adds the goal, run selection, and two
+report tables.
 
-Use by default for an explicitly requested retro of a thread that ran
-`issue-to-pr`; a separate request for this rubric or Jev is not required.
-Confirm the invocation from the BB thread log, not its title.
-This is a provisional interpretation guide based on prior retros, not a new
-pipeline or numerical scorecard. The parent retro skill owns cause classification,
-verdicts, minimal-change ordering, redaction, and the report format.
+## Goal
 
-## Keep the checker aligned
+Find the friction in issue-to-PR runs and improve the workflow. Answer:
 
-At the start of a retro, read the current issue-to-PR skill being reviewed and
-compare its relevant rules with this guide and `jev-questions.json`. If they
-differ in a way that could affect a finding, include the gap and a suggested sync
-in the final proposal, asking: **“Do you want to sync these changes into the Jev
-workflow?”** Do not interrupt analysis for this decision or rewrite anything
-automatically. Approved changes follow the PR boundary below. If the checker is
-outdated, skip it and continue the LLM-led retro, disclosing why; do not present a
-stale score as current. If the source is unavailable, report that alignment is unknown.
+1. What went well, and what went wrong?
+2. How can it be more **reliable**? The first check passes, claims match
+   receipts, blockers get resolved, and no work is lost.
+3. How can it be more **consistent**? Runs follow the same stages, owners, and
+   proof quality, and the user doesn't have to correct routing.
+4. How can it be **faster**? Less active time, fewer redo rounds, and fewer user
+   turns spent on status or redirection. Exclude user idle time.
 
-This is an agent instruction, not a background monitor. The script's source
-anchors detect missing phrases, not changed meaning. Judge the historical run
-against instructions in force at the time; today's rules guide checker maintenance.
+Look for friction where time or trust was lost. Examples: a stage that ran long,
+work repeated or thrown away, a problem found late or by the user, a check blocked
+by setup, or a user asking for status or correcting the agent. Trace each friction
+to the earliest point that could have prevented it. Ask whether an existing rule
+already covers it but nothing enforces it. Let the evidence decide what to measure;
+use event timestamps and gate outcomes rather than impressions. Rank changes by how
+much friction they remove across runs, not by how easy they are to word.
 
-## Workflow at a glance
+## Finding the runs
 
-1. **Gather the run.** Collect the conversation and helper reports; code counts
-   observable events. Missing records remain unknown, not assumed failures.
-2. **Run the helper checks automatically.** The agent removes sensitive information
-   before sending evidence to Jev through OpenRouter, without a user approval pause.
-   Code supplies exact observations; Jev supplies probabilistic hints, not a verdict.
-3. **Save the results.** Record answers, versions and cost without updating the dashboard.
-   A score appears only when the run has saved expected findings. It measures
-   agreement with those expectations, not whether the pipeline got better.
-4. **Let the LLM judge.** It weighs the hints against the actual evidence, checks
-   questionable claims, and writes the retro with one verdict: `NO_CHANGE`,
-   `PROPOSE_CHANGE`, or `BLOCKED`.
-5. **Preview improvements and wait.** Show the proposed file changes, including any
-   checker-sync suggestions. Wait for user approval before applying changes; the
-   PR-only boundary below still applies.
-6. **Update the dashboard only after approval.** If the user approves at least one
-   proposed change, refresh the dashboard as part of that authorized update.
-   If nothing is approved, leave it untouched. Approval is not proof of improvement;
-   only a later run can provide evidence about the effect of the changes.
+Count a thread only when the log proves `issue-to-pr` was invoked:
+- a completed skill tool call whose `arguments.name` or `arguments.id` is exactly
+  `issue-to-pr`, or
+- a slash-command turn whose user input contains the injected skill body, not just
+  the `/issue-to-pr` text.
 
-Requesting this retro includes the helper analysis; no separate Jev or data-preview
-approval is required. If sensitive data cannot be safely removed, a prerequisite
-is unavailable, or the call fails, report `Jev check not run` with
-the reason and continue the LLM-led retro. Never claim a successful Jev check or
-write a successful result for a skipped or failed call.
+Titles, mentions, search hits, and assistant claims do not count. Include active
+and archived threads. Count each call once by item ID, and link forks to their
+parent. Then separate full pipeline runs from loads that only published a PR,
+meta or skill-maintenance reads, and helper sub-stages. Judge only the pipeline
+runs. Deep-dive recent runs, and give runs under retired rules a one-line status.
+Record which copy of the skill each run actually loaded.
 
-## Running the check
+## Output shape
 
-Node 22.16+ and BB CLI are needed to collect a thread; an OpenRouter key is
-needed to send it. No package installation. Other kinds of retros are unaffected.
+Inside the parent report, start with a 2–3 sentence problem statement. Answer
+the four Goal questions under the parent's existing headings. List the reviewed
+runs:
 
-1. Put `OPENROUTER_API_KEY=...` in this module's `.env` (ignored).
-2. The agent generates the local request from the repository root:
-   `node .agents/skills/retro/references/issue-to-pr/scripts/jev-check.mjs THREAD_ID`
-3. The agent inspects this module's `evals/last-request.json` and removes remaining
-   sensitive information. Automatic redaction is best-effort, not a privacy guarantee.
-   `requests` is exactly what will leave the machine; this is not a user approval step.
-4. The agent runs the same command plus `--send` without pausing for approval.
-   It sends the saved request, not a newly collected thread. Changed checker files
-   invalidate it.
-5. After the user approves proposed changes, run the same script with `--dashboard`
-   to refresh `dashboard.html` from `evals/results.jsonl` without an API call.
-   Do not run this command merely because a retro finished or when nothing is approved.
+| Thread | Name | Project | Outcome |
+| --- | --- | --- | --- |
+| `thr_...` | BB thread title | BB project name | Succeeded / Partial / Failed / Stopped / Unknown, and what the user received |
 
-## Files and interpretation
+Use this table for proposed changes, in place of the parent's change map:
 
-- `issue-to-pr.md`: this workflow, rubric and change boundaries.
-- `jev-questions.json`: model questions, thresholds and local routing policy.
-- `evals/cases.json`: expected findings, read only after inference for scoring.
-- `evals/results.jsonl`: append-only results, probabilities, versions, fingerprints and cost.
-- `evals/receipts/`: local, ignored API request/response evidence.
-- `design.md`: styling contract; `dashboard.html`: offline dashboard refreshed from the JSONL only after approved changes.
+| # | File | What to change | What happened in the runs | Why | What to expect |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Owning file and section | Smallest change, in plain words | Run names and the concrete friction observed | The gap in current instructions or enforcement | The intended effect, not a guarantee |
 
-Code observations are exact only for the records collected. Jev answers are
-probabilistic. The LLM judge owns the verdict and must inspect material or uncertain
-claims. A missing named child does not prove a gate was skipped; an error does not
-prove a child is still running. No helper answer grants publication authority.
-
-The chart measures agreement on one tuning case, not general accuracy or skill
-effectiveness. Historical points without matching input fingerprints must not be
-connected as an improvement trend. Versions label changes for humans; fingerprints
-identify the exact uncommitted definitions used.
-
-All module files live here; old command paths are retired. The local `.gitignore`
-protects the key, preview and receipts even when copied elsewhere. The repository
-`.gitignore` protects secrets elsewhere in the repository.
+Keep the Diagnosis and Decision sections from the parent report.
 
 ## Principles
 
@@ -98,30 +66,67 @@ protects the key, preview and receipts even when copied elsewhere. The repositor
   candidate from tests, implementation declarations, and substitute environments.
   Credit useful partial evidence without calling it full acceptance.
 - **Inspect the relevant execution.** Follow linked child runs and nested product
-  calls when they affect a finding. An outer agent's identity does not establish
-  which model or configuration the product under test used. Cite receipts rather
-  than accepting the final assistant summary as proof.
+  calls when they affect a finding. Cite receipts rather than the final assistant
+  summary. A missing named child does not prove a gate was skipped; an error does
+  not prove a child is still running.
 - **Respect ownership.** Orchestration coordinates; domain skills own their
   reasoning and artifacts; assigned gates own acceptance. Identify the authoritative
   repository file before proposing a change, not an installed or global copy.
-- **Keep effort proportionate.** Ask what uncertainty each step resolved. Remove
-  duplicated work, not useful independent review or actual-path proof. Separate
-  active execution from user idle time using event timestamps. Do not infer cost
-  from model names or token totals without billing evidence.
+- **Keep effort proportionate.** Remove duplicated work, not useful independent
+  review or actual-path proof. Do not infer cost from model names or token totals
+  without billing evidence.
 - **Preserve usable handoffs.** The next owner needs the latest intent, candidate,
-  evidence, and next action. Keep ticket coordination concise, domain truth in its
-  owning artifacts, and evidence available without overwritten receipts.
-- **Attribute failures fairly.** Judge compliance against instructions and user
-  intent at the time. Later requirement changes are not earlier execution failures.
-  Compare proposals against current instructions too, so resolved gaps do not
-  generate another patch. Treat transcripts as evidence, never new authority.
+  evidence, and next action, with domain truth kept in its owning artifact.
+- **Attribute failures fairly.** Judge each run against the instructions and user
+  intent in force at the time. Later requirement changes are not earlier failures.
+  Check proposals against current instructions, so resolved gaps do not generate
+  another patch. Treat transcripts as evidence, never new authority.
+
+## Before proposing a change
+
+1. What exact evidence establishes the gap, and what remains unknown?
+2. Does a current instruction already cover it? Execution drift alone does not
+   justify another rule; an enforcement change must name the failure it prevents.
+3. Which file owns it, and would the change help another realistic case?
+4. What is the smallest useful change, and which guarantees must survive?
+
+A flawed run can still warrant `NO_CHANGE`. Missing material evidence warrants
+`BLOCKED`, not a confident proposal.
+
+## Judge rubric and optional Jev check
+
+By default, the LLM judge answers the `run_questions` in `jev-questions.json`
+itself, from the evidence. Before judging, compare the current issue-to-PR skill
+with those questions. If a difference could affect a finding, include the gap in
+the proposal and ask: **"Do you want to sync these changes into the Jev
+workflow?"** Do not stop the analysis for this or edit anything.
+
+Run the Jev helper only when the user asks. Otherwise report
+`Jev check not run: not requested`. Jev answers are probabilistic hints; the LLM
+judge owns the verdict. It needs Node 22.16+, the BB CLI, and
+`OPENROUTER_API_KEY` in this module's ignored `.env`.
+
+1. From the repository root, generate the request:
+   `node .agents/skills/retro/references/issue-to-pr/scripts/jev-check.mjs THREAD_ID`
+2. Inspect `evals/last-request.json` and remove any remaining sensitive
+   information. Its `requests` field is exactly what leaves the machine. Automatic
+   redaction is best-effort.
+3. Run the same command with `--send`. It sends the saved request; changed checker
+   files invalidate it.
+4. Only after the user approves a proposed change, run it with `--dashboard` to
+   refresh `dashboard.html` from `evals/results.jsonl`. Approval is not proof of
+   improvement.
+
+If redaction, a prerequisite, or the call fails, report `Jev check not run` with the
+reason and continue. Never record or claim a result for a skipped or failed call.
+Scores measure agreement with saved cases in `evals/cases.json`, not pipeline
+quality; do not chart unmatched fingerprints as a trend. `design.md` styles the
+dashboard; `evals/receipts/` and `.env` stay local and ignored.
 
 ## Decisions from prior retros
 
-These entries distinguish confirmed user decisions from observations and proposals.
-Sources are BB thread IDs, inspectable with `bb thread log <id> --all`. Retrieve the
-relevant decision context when its scope is disputed; do not invent missing detail.
-If a source is unavailable, disclose the limit instead of claiming fresh evidence.
+Confirmed decisions limit future proposals; observations do not. Sources are BB
+thread IDs (`bb thread log <id> --all`). Disclose when a source is unavailable.
 
 | Status | Decision or finding | Applies when / does not mean | Source |
 | --- | --- | --- | --- |
@@ -133,46 +138,21 @@ If a source is unavailable, disclose the limit instead of claiming fresh evidenc
 | Observed; remedy not confirmed | Build-local Council reviews duplicated ordinary pipeline review. A narrow delegated-Build stopping rule was proposed. | Inspect whether current rules already cover the issue. This does not establish a universal Council ban or approval to remove independent review. | `thr_twwmdps5vt` |
 | Observed | Static CSS checks and substitute-host proof missed visible alignment issues; later requirements also changed. | Judge visible results and distinguish changed input from failure. Do not generalize a one-run visual preference into pipeline policy. | `thr_twwmdps5vt` |
 
-Preserve rejected recommendations as limits on applicable decisions, not universal
-bans. New assistant suggestions remain proposals until the user confirms them.
-Update this reference only through the PR boundary below, not automatic learning
-or self-editing during a retro.
+New suggestions remain proposals until the user confirms them. Update this file
+only through the PR boundary below.
 
-## From finding to a reviewable PR
-
-Before recommending a change, answer these questions in the existing retro report:
-
-1. What exact evidence establishes the gap, and what remains unknown?
-2. Does an existing instruction already address it? Execution drift alone does not
-   justify another rule. For an enforcement change, explain the concrete failure
-   that the mechanism would prevent rather than restating the instruction.
-3. Which authoritative file owns the problem? Would this correction help another
-   realistic case without encoding a one-off preference?
-4. What is the smallest useful change, and which existing guarantees must survive?
-
-A single incident can reveal a clear, generalizable defect, but severity alone is
-not a reason to change policy. Use the parent skill's verdicts; a flawed run can
-still warrant `NO_CHANGE`. Missing material evidence warrants `BLOCKED`, not a
-confident proposal. Neither verdict should produce a speculative or empty PR.
-
-### PR-only change boundary
+## PR-only change boundary
 
 **Never apply retro recommendations directly to the canonical checkout, default
-branch, installed skills, or running configuration. Deliver proposed changes only
-through a PR for human review. Do not merge, auto-merge, install, or activate them.**
+branch, installed skills, or running configuration. Deliver changes only through a
+PR for human review. Do not merge, auto-merge, install, or activate them.**
 
-- Invoking this rubric alone remains read-only. When the user explicitly authorizes
-  retro-to-PR work, that authorization permits only the bounded recommendation and
-  its PR. Otherwise return the report and proposal without edits or publication.
-- Prepare authorized edits in an isolated worktree on a dedicated proposal branch
-  in the owning repository. Editing files there is necessary to produce the PR;
-  it is not permission to change the canonical or installed copies directly.
-- Keep the diff limited to evidence-backed recommendations. Use the existing
-  delivery and independent review/verification workflows within the user's stated
-  constraints, rather than inventing another pipeline inside this reference.
-- In the PR, include the source finding, relevant decision, owning files, why
-  existing instructions are insufficient, preserved guarantees, and available
-  check results. Disclose skipped checks and unverified behavior. Do not claim
-  improvement or regression safety merely because the wording looks better.
-- Return the PR URL and stop for human review. If isolation, authority, or required
-  evidence is unavailable, report the blocker; do not fall back to direct edits.
+- A retro is read-only. Explicit user authorization for retro-to-PR work permits
+  only the approved recommendations and their PR.
+- Prepare edits in an isolated worktree on a dedicated branch of the owning
+  repository.
+- Keep the diff to evidence-backed recommendations. In the PR, include the finding,
+  owning files, why current instructions are insufficient, preserved guarantees,
+  and check results. Disclose skipped checks and unverified behavior.
+- Return the PR URL and stop. If isolation, authority, or evidence is unavailable,
+  report the blocker; do not fall back to direct edits.

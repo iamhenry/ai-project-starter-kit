@@ -56,7 +56,7 @@ When no title/description provided:
 
 ### Task Template
 
-Use this expanded local template as reference; keep only the required contract above and applicable detail. An optional size estimate is advisory: calibrate planning to risk and uncertainty. After a correction, reconcile affected criteria and identify needed downstream rechecks; do not require a whole-plan rewrite for an isolated change.
+Use this expanded local template as reference; keep only the required contract above and applicable detail. An optional size estimate is advisory: calibrate planning to risk and uncertainty. After a correction, reconcile affected criteria and identify needed downstream rechecks; do not require a whole-plan rewrite for an isolated change. Before returning, confirm every required section is present and Gherkin scenarios are fenced.
 
 ````markdown
 ## [PARSED TASK TITLE]
@@ -309,7 +309,8 @@ Use the `verification-gate` skill's platform routes and evidence rules to prove 
 - **Mechanical**: Named command(s), execution owner, and expected exit/output covering relevant mechanical health or a machine-checkable condition of the Objective. Existing build/lint/typecheck plus independent actual-path Observable proof can suffice for a simple UI change; require additional assertions when they protect a distinct changed failure mode. Together the lanes must distinguish success from the Falsifier. "tests pass" is not enough; do not invent test infrastructure just to fill this field.
 - **Observable**: Retained evidence path under `{ISSUE_DIR}/verification/`, using `screenshots/` or `videos/` for UI media and the real consumer result for CLI/API work. Use `n/a` only for genuinely internal `non-ui` changes with no changed user or consumer-observable behavior.
 - **Pass Criteria**: Exact condition that counts as success. Must be checkable from Mechanical output and, when not `n/a`, the Observable artifact.
-- **Blocked Conditions**: Missing auth, data, runtime access, activation permission, or tooling that would prevent reliable verification; name the prerequisite owner and unlock condition.
+- **Reference**: When the ticket or issue supplies a mock, screenshot, or design file, its path or link and the tolerance that counts as a match; `verification-gate` compares against it. Otherwise `n/a`.
+- **Blocked Conditions**: Missing auth, data, runtime access, activation permission, or tooling that would prevent reliable verification; name the prerequisite owner and unlock condition. Include known limits of the chosen runtime that the Primary Flow depends on (for example, a simulator without Mail, audio, or a required system voice) and the fallback device or proof, so the gap is settled before implementation.
 
 **Evidence rules:**
 - Mechanical names a command, not a paragraph. Build supplies its initial receipt; verification-gate owns independent receipt validation, reuse, and necessary reruns. For standalone plans, name the available execution owner without requiring pipeline dispatches.

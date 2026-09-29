@@ -14,6 +14,23 @@ Principles:
 
 # Issue To PR
 
+## How We Work
+
+- Each stage does one job. No stage judges its own work.
+- Prove behavior before freezing it. Build writes code and runs existing checks. Regression tests come after verification passes.
+- Fail fast, then unblock. Give each dispatch an expected duration. On a blocker or overrun, find the cause and route the cheapest fix to its owner (another device, setup, test data, or proof route) within your authority. Ask the user only when the unlock needs their action, permission, or intent, and then give the blocker, its unlock, and your recommendation.
+- Stay visible. Every dispatch tells the user the stage, what it proves, the expected duration, and where to watch. Before answering a status question, read the helper's latest output.
+- Rework only the delta. Reuse settled artifacts and evidence the change does not touch.
+
+## Anti-Patterns
+
+- Re-sending a check that is blocked for the same reason.
+- Handing the user a blocker the pipeline could resolve itself.
+- Reporting "still working" from a pending state alone, or ending a turn silently while work is pending.
+- Writing tests before behavior is proven, or treating passing tests as proof.
+- Re-running the full pipeline for a small follow-up, or editing from this wrapper to skip gates.
+- Declaring done on an edit that no gate has seen.
+
 ## Pipeline Components
 
 | Component                    | Role                                                      | Why                                                                              |
@@ -58,6 +75,7 @@ When resolving referenced skills, agents, or commands, check the project's locat
 
 ### 2. Proposal Judge Checkpoint
 
+- Skip this checkpoint when `gather-context` returns one supported approach and no decision is reserved to the user; record the skip in `## Checkpoint Timeline` and continue to planning.
 - Delegate review to a fresh subagent through Task with exact `subagent_type: reviewer` using `judge-proposal`. If `reviewer` cannot start by exact name, return `BLOCKED`; do not substitute another agent.
 - The subagent must receive only the task artifacts it needs, not accumulated conversation context.
 - Pass the execution request's technical selection authority explicitly, along with any decisions reserved to the user. Grant the judge narrow writeback authority to edit only the `Judge Decision` section of `{ISSUE_DIR}/issue.md`, as required by `judge-proposal`'s writeback contract; read-only judging without writeback never satisfies the step gate.
@@ -86,7 +104,7 @@ When resolving referenced skills, agents, or commands, check the project's locat
 - Do not implement directly from this wrapper.
 - Delegate every implementation and repository write through OpenCode Task with exact `subagent_type: build`. Task may omit primary agents from its advertised list; that omission is not a blocker.
 - If Build cannot start by exact name, report `BLOCKED`. Never fall back to `atlas`, `voyager`, or another research agent.
-- For changed user or consumer behavior, Build must get one safe observation through the actual affected path before adding regression tests. If that path is unavailable, return the blocker instead of treating tests as proof. This implementation feedback does not replace the later independent gates.
+- Build implements and runs the plan's existing Mechanical checks. It does not verify its own behavior or add new regression tests; independent gates own proof.
 - Delegate relevant read or research operations when needed.
 - Prefer parallel Build dispatch (at most three slices) when the work splits into independent, substantial slices; sequence slices that share files or depend on each other's output. Use the plan's delegation structure when safe; otherwise split ad hoc in context only, without saving or revising `plan.md`.
 - Give each slice an exclusive file list as its allowed writes. Concurrent slices share one pre-dispatch baseline; attribute the owner delta by each slice's list. Assign shared files (styles, test fakes, generated output) to the integration pass. A slice needing another slice's file reports it instead of editing.
@@ -116,6 +134,7 @@ When resolving referenced skills, agents, or commands, check the project's locat
 - Before treating the work as PR-ready, confirm the cited evidence is accessible (embedded or linked, paths resolve) and each artifact is labeled before/after where the claim depends on a state change, with stated limits. Evidence that does not open or does not support the claim is not PR-ready.
 - After it returns, run only a file-existence check: `test -f` on `{ISSUE_DIR}/verification/result.md` and every cited evidence path. Missing file = `FAIL`. This is not QA.
 - Continue only on `PASS` when every `test -f` succeeds. A `PASS` paragraph with missing files is `FAIL`.
+- After `PASS`, resume Build to add the smallest regression test that preserves the proven behavior, then get a `code-quality-gate` review of that test-only delta. Product code is unchanged, so verification is not rerun; a product-code change returns to step 6.
 - On `FAIL` or `BLOCKED`, route the verification owner's classified outcome and requested rechecks; enforce its declared ceiling across dispatches. Source corrections require fresh code-quality approval before acceptance. Do not redispatch against an unchanged blocker or add unrelated edits for a proof gap.
 - Do not run QA directly or define browser, iOS, macOS, or non-UI verification steps in this wrapper.
 
@@ -205,6 +224,7 @@ Before any correction, compare the failed criterion with prior findings: what ch
 - `code-quality-gate` returns `REVISE_CODE` or `ASK_USER`: use step 6's classified routing and unchanged verdict ceiling.
 - `verification-gate` returns `FAIL` or `BLOCKED`: use step 7's classified routing and unchanged verdict ceiling. A blocked gate does not restart itself; its owner may repair the prerequisite within the existing bound before a new dispatch.
 - `verification-gate` returns `PASS` but `test -f` fails on `result.md` or a cited path: treat as `FAIL`.
+- User feedback on a verified candidate or open PR that keeps the acceptance criteria: resume Build with only the delta, review that delta, and verify only the changed behavior. Re-plan and re-judge only when acceptance or scope changes. Route a build-only or publish-only request straight to its owning skill.
 - Any unexpected state: stop with the artifact path, expected state, actual state, and owning stage.
 
 ---
