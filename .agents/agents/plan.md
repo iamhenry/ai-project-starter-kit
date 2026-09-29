@@ -2,7 +2,7 @@
 name: plan
 description: Read-only analysis and planning agent with safe bash commands and web search.
 mode: all
-model: openai/gpt-6-sol
+model: anthropic/claude-opus-5-5
 variant: medium
 tools:
   write: false

@@ -2,8 +2,8 @@
 name: bb-supervisor
 description: Primary host for a long-lived project Supervisor or an explicitly briefed Mission Lead. The root coordinates; a Mission delivers one bounded outcome, directly or through workers. Do not use for ordinary terminal workers.
 mode: primary
-model: openai/gpt-6-sol
-variant: high
+model: anthropic/claude-opus-5-5
+variant: medium
 permission:
   edit: allow
   question: allow
