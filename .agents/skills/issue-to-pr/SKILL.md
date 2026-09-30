@@ -1,6 +1,6 @@
 ---
 name: issue-to-pr
-description: Orchestrate and judge an issue-to-PR pipeline without editing artifacts directly. Use when the user wants an issue-to-PR workflow, task-to-PR pipeline, or structured path from request to PR readiness. Routes each stage to the owning skill or subagent, checks gate outputs, asks for revisions when the pipeline drifts, and keeps PR as a placeholder.
+description: Orchestrate and judge an issue-to-PR pipeline without editing artifacts directly. Use when the user wants an issue-to-PR workflow, task-to-PR pipeline, or structured path from request to PR readiness. Routes each stage to the owning skill or subagent, checks gate outputs, asks for revisions when the pipeline drifts, and delegates PR creation to `create-pr`.
 ---
 
 <!--
@@ -44,13 +44,13 @@ Principles:
 | `verification-gate`          | Exact `qa` subagent proves completed work.                | Keeps QA execution outside this wrapper.                                         |
 | `agent-browser`              | Browser proof path used by `verification-gate`.           | Supports web and mobile-web validation without defining it here.                 |
 | `xcodebuildmcp-cli`          | Apple-platform proof path used by `verification-gate` (Expo projects prove via Metro dev server first; xcodebuildmcp for native changes and builds). | Supports iOS and macOS validation without defining it here.                      |
-| PR placeholder               | Future owner handles PR handoff.                          | Keeps review and merge policy outside this wrapper.                              |
+| `create-pr`                 | Exact `qa`/`general` subagent opens the PR with an evidence-based body. | Makes the pipeline end at an opened PR instead of a placeholder.                |
 
 Orchestrate and judge the pipeline. Do not create, edit, append, or repair task artifacts outside the artifact and coordination boundaries below.
 
 This skill connects modular skills, checks whether each stage produced the expected artifact, and routes revisions back to the owning skill or subagent when the pipeline is off track.
 
-An explicit request to execute this pipeline authorizes in-scope intake, research, technical approach selection, planning, implementation, and independent acceptance, subject to user limits and host permissions. Pass that authority and the existing handoff contract to each owner; do not ask for implementation approval again. Research-only or planning-only requests retain their endpoint. Commit, push, PR creation, and merge require explicit publication authority; this pipeline still ends at PR readiness. Repair owned gaps autonomously within the bounds below; ask the user only for unresolved intent, permission, or a blocker requiring their action.
+An explicit request to execute this pipeline authorizes in-scope intake, research, technical approach selection, planning, implementation, and independent acceptance, subject to user limits and host permissions. Pass that authority and the existing handoff contract to each owner; do not ask for implementation approval again. Research-only or planning-only requests retain their endpoint. Commit, push, PR creation, and merge require explicit publication authority; with that authority the pipeline ends at an opened PR via `create-pr`, without it at PR readiness. Repair owned gaps autonomously within the bounds below; ask the user only for unresolved intent, permission, or a blocker requiring their action.
 
 Use this composition for authorized delivery; focused research, planning, review, or verification calls remain valid and stop at their requested endpoint. Supply scope, authority, and optionally S/M/L/XL with a risk/uncertainty rationale. Each owner calibrates its own inputs, execution, effort, independence, evidence, recovery, and completion; size is not a stage-skip rule. A tiny delivery still passes applicable intake, selection, plan, implementation, fresh quality, and fresh acceptance responsibilities. Size scales gate depth, not a combined session. Do not reproduce owners' operating procedures here or grant publication beyond user authority.
 
@@ -138,11 +138,15 @@ When resolving referenced skills, agents, or commands, check the project's locat
 - On `FAIL` or `BLOCKED`, route the verification owner's classified outcome and requested rechecks; enforce its declared ceiling across dispatches. Source corrections require fresh code-quality approval before acceptance. Do not redispatch against an unchanged blocker or add unrelated edits for a proof gap.
 - Do not run QA directly or define browser, iOS, macOS, or non-UI verification steps in this wrapper.
 
-### 8. PR Placeholder
+### 8. PR Creation
 
-- Placeholder only.
-- Future work should define PR creation, review, and handoff workflow.
-- Do not define PR review policy or merge-readiness logic in this wrapper.
+- After verification `PASS` and regression-test review, delegate PR creation to `create-pr` through Task with exact `subagent_type: general`.
+- PR creation is publication: confirm the user's explicit authority before this dispatch; without it, stop at PR readiness with the verified candidate and evidence package.
+- Pass the exact candidate identity (branch, commit SHA, base), the verified evidence paths from `{ISSUE_DIR}/verification/`, and the issue title for the PR title.
+- Gate: `create-pr` returns the PR URL and pushed branch.
+- After `PASS`, resume Build to add the smallest regression test that preserves the proven behavior, then get a `code-quality-gate` review of that test-only delta. Product code is unchanged, so verification is not rerun; a product-code change returns to step 6. A test-only delta may ride the same PR via one `create-pr` body update in place of a second PR.
+- On `FAIL` at this stage (missing evidence, `gh` failure), route repairs to the owning gate per Revision Routing; do not patch bodies or retry `gh` from this wrapper.
+- Do not write PR bodies or define review/merge policy in this wrapper.
 
 ---
 
@@ -239,7 +243,7 @@ Before any correction, compare the failed criterion with prior findings: what ch
 - Do not define detailed implementation execution prompts.
 - Do not perform code quality review directly or skip `code-quality-gate` before verification.
 - Do not run QA directly or define web, mobile-web, iOS, macOS, or non-UI verification flows beyond `verification-gate` delegation. The wrapper may run `test -f` on cited verification paths only.
-- Do not define PR creation or review details beyond placeholders.
+- Do not define PR creation, review, or merge details beyond `create-pr` delegation.
 - Prefer artifact handoff over hidden state.
 - Prefer modular delegation over bloating this wrapper.
 
