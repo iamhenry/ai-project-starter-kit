@@ -1,9 +1,11 @@
 ---
 name: cua-driver
-description: Drive a native GUI app (macOS, Windows, Linux) via the cua-driver CLI (default) or MCP server — snapshot its accessibility tree, click/type/scroll by element_index or pixel coords, verify via re-snapshot, all without bringing the target to the foreground. Use when the user asks you to operate, drive, automate, or perform a GUI task in a real application on the host.
+description: Drive a native GUI app via the cua-driver CLI, with background interaction and accessibility snapshots. Use for Windows/Linux GUI tasks, explicit cua-driver requests, or native macOS fallback when agent-device is unavailable, blocked, unsupported, or background-only operation is required. Prefer agent-device for other native Mac UI tasks. MCP is only for an explicit request.
 ---
 
 # cua-driver
+
+For native macOS UI tasks, prefer `agent-device/SKILL.md` first. Use this skill as fallback for a concrete blocker or a background-only requirement; explicit cua-driver requests still use this skill. Keep its snapshot and no-foreground safeguards when falling back. Discover commands with the installed CLI's help before using older recipes below.
 
 Orchestrates cross-platform app automation via `cua-driver`. Whenever
 a user asks to drive a native app, follow the loop in this skill

@@ -1,6 +1,6 @@
 ---
 name: verification-gate
-description: Reusable verification gate for completed work before commit or merge. Use when implementation is done and Claude must prove the task works, verify the main user flow, route verification by platform, and return a PASS/FAIL/BLOCKED verdict with evidence. Supports the explicitly selected low-risk combined assurance route. Web and mobile-web verification uses agent-browser. Desktop verification uses agent-browser or cua-driver. iOS verification prefers the Metro/Expo dev server on the simulator for Expo projects and uses xcodebuildmcp-cli for native changes and builds. iOS and macOS verification uses xcodebuildmcp-cli, with argent flow replay for iOS user-flow proof. Android user-flow verification uses argent.
+description: Reusable verification gate for completed work before commit or merge. Use when implementation is done and Claude must prove the task works, verify the main user flow, route verification by platform, and return a PASS/FAIL/BLOCKED verdict with evidence. Supports the explicitly selected low-risk combined assurance route. Web and mobile-web verification uses agent-browser. Desktop verification uses agent-browser, agent-device for native Mac UI, or cua-driver fallback. iOS verification prefers the Metro/Expo dev server on the simulator for Expo projects and uses xcodebuildmcp-cli for native changes and builds. iOS verification uses xcodebuildmcp-cli, with argent flow replay for iOS user-flow proof. macOS builds and tests use xcodebuildmcp-cli. Android user-flow verification uses argent.
 ---
 
 <!--
@@ -99,7 +99,7 @@ Choose exactly one primary platform route:
 2. `mobile-web`
    - Use `agent-browser` with a mobile viewport/device profile for responsive browser UI flows and visible states.
 3. `desktop`
-   - Use `agent-browser` for Electron apps when available; otherwise use `cua-driver` to operate the installed application's visible controls.
+   - Use `agent-browser` for Electron apps when available. For native Mac apps, use the `macos` route below; otherwise use `cua-driver` to operate the installed application's visible controls.
 4. `ios`
    - Expo project (expo in dependencies) with a usable dev build: prove through the Metro/Expo dev server on the simulator — `npx expo start`, no native rebuild for JS/TS-only changes. Example: a button label or logic change in an Expo app proves in seconds against the running dev server; a change to native modules, `app.json`, or the SDK version forces a native rebuild instead.
    - Otherwise — bare/native project, native or app-config change, missing or stale dev build, physical-device or release-grade proof — use `xcodebuildmcp-cli` for build and mechanical proof; it equals mechanical proof for iOS.
@@ -108,7 +108,7 @@ Choose exactly one primary platform route:
    - Run the plan-named build or test command for mechanical proof.
    - Use `argent` on the target emulator or device for user-flow proof, replaying the exact reproduction flow when one exists.
 6. `macos`
-   - Use `xcodebuildmcp-cli` for macOS app build, launch, UI, and test verification.
+   - Use `xcodebuildmcp-cli` for app build, launch, and tests when required by the target. Use the installed `agent-device` CLI for native Mac UI proof, with `cua-driver` as fallback for a concrete tool/permission blocker, unsupported interaction, or background-only requirement. Load the selected tool's skill; do not configure MCP or upgrade shared runtimes.
 7. `non-ui`
    - For a user-facing CLI or API, operate that real interface and observe its concrete result. Use tests, builds, data checks, and file assertions as Mechanical support, not substitutes for the consumer path.
 
@@ -209,13 +209,13 @@ Prefer the actual affected surface when safe and authorized. Before building a s
    - Use recordings only when motion itself is the claim and screenshots cannot prove it.
 
     - For `ios`, prefer the Metro/Expo dev server on the simulator when the project is Expo-managed with a usable dev build and no native change forces a rebuild; otherwise use `xcodebuildmcp-cli`.
-    - For `ios` or `macos`, use `xcodebuildmcp-cli`.
+    - For `ios`, use `xcodebuildmcp-cli`; for `macos`, use it when the target requires build, test, or candidate launch.
     - First verify the CLI exists.
     - Use help-first discovery before commands: inspect available commands/options instead of relying on stale recipes.
     - Keep execution minimal: choose the smallest build, test, launch, simulator, or UI check that proves the Verification Target.
     - If `xcodebuildmcp-cli` is missing or the required project/device/runtime is unavailable, return `BLOCKED` with the missing prerequisite.
 
-    - `macos` observable proof is always the XcodeBuildMCP UI check.
+    - `macos` observable proof uses `agent-device` CLI on the exact candidate, with `cua-driver` fallback under the platform route above. XcodeBuildMCP supplies mechanical proof, not native Mac window interaction. Retain the app-owned result screenshot and follow Screenshot Hygiene; do not capture private desktop content.
     - `ios` without a reproduction flow: observable proof is the smallest XcodeBuildMCP UI check that proves the Verification Target. Do not author a flow during verification.
      - `ios` with a reproduction flow from `reproduce-bug` (use the supplied
        evidence path, normally `{ISSUE_DIR}/reproduction/flows/<safe-name>.yaml`): load `argent`
