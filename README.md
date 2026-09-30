@@ -26,16 +26,6 @@ The `docs` directory contains various templates that serve as:
 - Architecture design documents
 - Development workflow guidelines
 
-## Council workflow
-
-.bb/workflows/council.js is a dependency-free BB Workflow port of
-RoderickOxen/opencode-council at commit
-066b2add1c831d5ba1843695171c72879edb2d45. It runs Researcher, Logician,
-Creative, and Critic openings, rotating proposals, parallel votes, revisions,
-and a non-voting Synthesizer. The result reports consensus or dissent, the
-rounds used, a final vote summary, and (only with debug: true) the complete
-transcript.
-
 ## Purpose
 
 This starter kit is designed to:
