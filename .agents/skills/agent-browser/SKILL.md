@@ -29,6 +29,8 @@ between releases, which is why it just points at `skills get core`.
 ## Recording guardrails
 
 - Before recording, read the CLI-served recording docs (`agent-browser skills get core --full`) and follow the current `record start` / `record stop` sequence.
+- Add `--contact-sheet` when content briefly appears, disappears, flickers, or changes during an interaction. Inspect the resulting timestamped PNG; use ordinary screenshots for static results and keep video when continuous motion or precise timing matters.
+- For tiny changes missed by the default sensitivity, lower `--contact-sheet-threshold` using the CLI-served guidance.
 - Create the destination directory first and prefer an absolute output path for durable evidence.
 - Start recording only after the page or app is loaded enough to produce frames, then perform visible interactions with short pauses.
 - Stop the recording promptly, verify the file exists and is non-empty, and do not treat a saved-but-empty or no-frames recording as evidence.
