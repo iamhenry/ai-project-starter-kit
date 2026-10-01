@@ -17,7 +17,7 @@ Match aliases case-insensitively and map them exactly:
 | `glm`, `glm 5.2` | `ollama-cloud/glm-5.2` | none |
 | `kimi`, `kimi 3` | `ollama-cloud/kimi-k3` | none |
 | `luna`, `luna high` | `openai/gpt-6-luna` | `high` |
-| `sol`, `sol medium` | `openai/gpt-6-sol` | `medium` |
+| `sol`, `sol medium` | `openai/gpt-6.1-sol` | `medium` |
 | `deepseek`, `deepseek v4 pro` | `ollama-cloud/deepseek-v4-pro` | none |
 | `opus`, `opus 5` | `anthropic/claude-opus-5` | none |
 | `fable`, `fable 5` | `anthropic/claude-fable-5` | none |

@@ -2,7 +2,7 @@
 name: reviewer
 description: Independent review agent. For code quality, returns APPROVE_CODE, REVISE_CODE, or ASK_USER. For judge-proposal and judge-plan checkpoints, judges task artifacts and writes back the skill-defined verdict section. Does not implement. Do not use for GitHub PRs (pr-reviewer) or user-flow proof.
 mode: subagent
-model: openai/gpt-6-sol
+model: openai/gpt-6.1-sol
 variant: high
 tools:
   write: true
