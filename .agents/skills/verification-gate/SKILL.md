@@ -1,326 +1,124 @@
 ---
 name: verification-gate
-description: Reusable verification gate for completed work before commit or merge. Use when implementation is done and Claude must prove the task works, verify the main user flow, route verification by platform, and return a PASS/FAIL/BLOCKED verdict with evidence. Supports the explicitly selected low-risk combined assurance route. Web and mobile-web verification uses agent-browser. Desktop verification uses agent-browser, agent-device for native Mac UI, or cua-driver fallback. iOS verification prefers the Metro/Expo dev server on the simulator for Expo projects and uses xcodebuildmcp-cli for native changes and builds. iOS verification uses xcodebuildmcp-cli, with argent flow replay for iOS user-flow proof. macOS builds and tests use xcodebuildmcp-cli. Android user-flow verification uses argent.
+description: Independent verification gate for completed work before commit or merge. Use when implementation is done and a fresh agent must prove the work functions for its real user, verify the main flow, and return a PASS/FAIL/BLOCKED verdict with evidence. Supports the explicitly selected low-risk combined assurance route. Platform detail (web, mobile-web, desktop, ios, android, macos, non-ui) lives in platforms/.
 ---
-
-<!--
-Verification principles:
-- Done is the user-observable outcome proven working on the exact candidate through the shortest real user journey. Tests, builds, and logs are mechanical signals that support done, never certify it.
-- PASS requires the receipt: the evidence a real user or consumer would see (screenshot, recording, resulting output). A claim without its receipt is unverified.
-- When the observable does not appear, the verdict is FAIL or BLOCKED — never "tests pass, so likely fine." State exactly what remains unverified.
-- Stop when the terminal observation appears: one narrow recovery attempt for a failed prerequisite, then report — no re-runs past proof, no widening past the claim.
--->
 
 # Verification Gate
 
-Use this skill for delivery acceptance after implementation and `code-quality-gate` approval, for an explicitly selected `assurance: combined-low-risk` change that satisfies the eligibility contract below, or for an explicitly focused request to verify existing behavior. Focused proof is not delivery approval.
+## Purpose
 
-For standard delivery, run acceptance in a fresh `qa` agent, separate from implementation and from code-quality review. The caller must use exact `subagent_type: qa`; the `qa` agent configuration owns its model, so this skill does not override it or silently substitute another agent. Invoking this skill in the implementer's or reviewer's session does not supply independence. For `assurance: combined-low-risk`, one fresh `qa` agent, separate from implementation, performs the quality precheck first and then decisive verification; no prior `APPROVE_CODE` or separate reviewer is required, and it emits one result. If fresh separation from implementation is unavailable, return `BLOCKED`; fresh context reduces self-confirmation bias, not all bias. A focused verification request stops at its verdict and does not authorize fixes, commits, or publication.
+An agent that did the work tends to say it is done. This gate runs in a fresh agent that does not trust that claim. It proves, on the real surface and the exact candidate, whether the work functions for its real user. It returns `PASS` (proceed), `FAIL` (ask for revision), or `BLOCKED` (a named blocker). Keep it cheap and proportional: one claim, one decisive observation, then stop.
 
-## Combined low-risk assurance
+This skill does not edit application code, tests, or scorers, and it is not exploratory QA (use `dogfood`).
 
-This skill owns the eligibility contract for `assurance: combined-low-risk`. Use the combined route only when every condition holds:
+Use it for delivery acceptance after implementation and `code-quality-gate` approval, for an explicitly selected `assurance: combined-low-risk` change (`references/combined-assurance.md`, which owns the eligibility contract), or for an explicitly focused request to verify existing behavior. Focused proof is not delivery approval; it stops at its verdict and authorizes no fixes, commits, or publication. A focused run proceeds without the code-quality stage within the supplied target and authority, keeps a fresh verifier, and states in Notes that the verdict proves only the requested behavior.
 
-- The change is narrow and limited to docs or instructions, comments or copy, non-executable metadata, or a truly mechanical edit with no new behavior.
-- A decisive existing check can establish the requested outcome.
-- Generic configuration is not treated as low risk automatically.
-- The change does not involve auth, security, privacy, data or schema changes, migrations, dependencies, public interfaces, new or changed runtime behavior, build/release/deploy infrastructure, destructive operations, or broad/coupled changes.
+**Independence.** For standard delivery, run acceptance in a fresh `qa` agent, separate from implementation and from code-quality review. The caller must use exact `subagent_type: qa`; the `qa` configuration owns its model. Invoking this skill in the implementer's or reviewer's session does not supply independence. If fresh separation is unavailable, return `BLOCKED`.
 
-The fresh `qa` agent's quality precheck covers scope, correctness, simplicity, style and maintainability, sensitive content and security, and continued eligibility. A concrete defect returns `FAIL`; uncertainty or a need for deeper judgment returns `BLOCKED` before proof. If any eligibility condition is uncertain or unmet, return `BLOCKED` and use the standard separate `code-quality-gate` then `verification-gate` route.
+**Modes.** The default is issue mode below. Only an explicit `mode: isa` uses `references/isa-mode.md`; do not auto-detect it, and do not mix issue artifacts into ISA verification or the reverse. The Mechanical and Observable lanes below are issue mode only. `assurance` is independent of `mode`.
 
-## Acceptance Scope and Stopping
+## What good looks like
 
-- Verify declared claims, not the whole candidate. Map each claim to one terminal observation before probing.
-- An edit invalidates only claims it could affect. Reuse still-valid evidence for unaffected claims when candidate identity, runtime conditions, and the reason it remains valid are explicit.
-- Preserve receipts still relied upon rather than overwriting them during focused rechecks. In the existing result report, distinguish claims proven by this check, prior evidence that remains valid for the current candidate, and anything still unverified. A focused `PASS` does not establish overall acceptance beyond those supported claims; keep the evidence in the existing authorized directory.
-- Stop a claim as soon as its terminal observation appears. Do not investigate unrelated stale states or continue polling after success.
-- If the terminal observation is absent or contradicted, use at most one fallback source that can answer the named unresolved question. If it cannot, return `FAIL` or `BLOCKED` instead of widening the investigation.
-- A missing receipt or artifact is an evidence gap, not a new candidate. Reacquire only that evidence and preserve proven claims unless the candidate or relevant conditions changed.
-
-These rules apply to issue mode, ISA mode, and standalone verification. Mode-specific contracts may add claims but do not replace these stopping rules.
-
-## Mode Dispatch
-
-- The default, when `mode` is omitted, is the existing issue mode below. Any mode other than the explicit `mode: isa` request uses the existing issue-mode contract; do not auto-detect ISA inputs.
-- When the caller explicitly supplies `mode: isa`, use the alternate contract in `references/isa-mode.md`. Do not require, read, create, or infer `{ISSUE_DIR}/plan.md` for that invocation.
-- The two modes have separate inputs and output contracts. Do not mix issue artifacts into ISA verification or ISA inputs into issue verification.
-- Mechanical and Observable lanes below apply to issue mode only. ISA mode keeps declared leaf probes in `references/isa-mode.md`.
-- `assurance` is independent of `mode`; the existing issue/ISA dispatch and their contracts remain unchanged in meaning. `assurance: combined-low-risk` is the only combined route.
-
-Keep the scope narrow:
-
-- Prove the intended task outcome works.
-- Choose the lightest platform route that creates confidence.
-- Return a clear verdict with evidence.
-- Optimize for the first trustworthy signal, not the most verification activity.
-
-Do not use this skill for exploratory QA or bug hunting. Use `dogfood` for that.
+- A real user can complete the task on the exact candidate, and you hold a receipt (what the user would see, preserved). Example: for a dark mode toggle, a screenshot of the real app after one toggle showing the dark theme, on the candidate build.
+- Backend work that feeds a UI is proven when the user-visible result appears. Tests and logs support the claim; they do not prove it.
+- Nothing user-facing? Name the real consumer (next caller, build step, or agent). Good means that consumer gets what it needs from the real interface, and the real output is the receipt. Example: for a changed export command, run the real command and check the file holds the expected records. `Observable: n/a` only for a genuinely internal change with no consumer-observable difference, with the reason stated.
+- Proportional: one claim, one decisive observation, then stop. Example: toggle dark mode once; reload only when persistence is the claim.
 
 ## Inputs
 
-Collect the minimum context needed to verify the work:
+Collect the minimum. `plan.md` references mean the supplied Verification Target; standalone calls supply the same fields with approved scope, exact candidate identity, and an authorized evidence directory.
 
-`ISSUE_DIR` is the artifact directory created by `gather-context` for the current pipeline run.
+- Verification Target: `Platform` (`web|mobile-web|desktop|ios|android|macos|non-ui`), `Objective`, `Falsifier`, `Primary Flow`, `Regression Check` (or `None`), `Mechanical` (command plus expected result), `Observable` (retained path, or `n/a`), `Pass Criteria`, `Blocked Conditions`.
+- Optional `Reach`: how the candidate gets onto the surface, who authorized it, how to restore it, or "default surface already runs the candidate." In pipeline plans, Reach is the loading, activation-permission, and restoration statement in `Primary Flow` and `Blocked Conditions`.
+- Changed behavior or files, target URL or command, auth, seed data, prerequisites.
+- Bug tasks: the reproduction result and evidence from `reproduce-bug`, supplying the faithful smoke to reuse.
+- Standard delivery: `APPROVE_CODE` from `code-quality-gate`. Missing, `REVISE_CODE`, or `ASK_USER` returns `BLOCKED` without running QA. Combined assurance and explicitly focused verification follow `references/combined-assurance.md` and the focused-scope rule above.
 
-For standalone calls, accept the same Verification Target fields below directly with approved scope, exact candidate identity, and an authorized evidence directory; no pipeline plan is required. References to `plan.md` below mean that supplied target. Distinguish the requested endpoint explicitly: focused verification of existing behavior does not require an unassigned code-quality stage; standard delivery acceptance, including standalone delivery acceptance, requires `APPROVE_CODE` and both independent gates. An explicitly selected combined run requires a change satisfying the combined low-risk assurance contract above and one fresh QA session doing both checks; it does not require prior `APPROVE_CODE` or a separate reviewer. Missing pipeline inputs never authorize switching to focused verification; route them to their owners.
-
-- `plan.md` Verification Target:
-  - Platform: `web|mobile-web|desktop|ios|android|macos|non-ui`
-  - Objective: single outcome to prove
-  - Falsifier: observation that would disprove the Objective
-  - Primary Flow: shortest realistic proof path
-  - Regression Check: one adjacent behavior to protect, or `None`
-  - Mechanical: named command(s) plus expected exit code or output
-  - Observable: retained evidence path, or `n/a` only for a genuinely internal `non-ui` change with no changed user or consumer-observable behavior
-  - Pass Criteria: concrete success condition
-  - Blocked Conditions: known missing auth, data, environment, device, service, or tooling
-- changed behavior or files
-- target URL, command, or environment
-- auth, seed data, or other prerequisites
-- for bug tasks: the reproduction result and evidence paths from `reproduce-bug`, supplying the faithful smoke to reuse
-- for standard delivery acceptance: code-quality-gate result `APPROVE_CODE`; for combined assurance, the explicit selection and eligible scope
-
-If key prerequisites are missing, use only the bounded recovery below when safe and authorized; otherwise return `BLOCKED` naming the prerequisite owner and unlock condition, not a code defect or a demand that the user perform routine setup.
-
-If Mechanical is missing from the target, return `BLOCKED` naming the missing command and target owner (plan owner for pipeline calls, supplied-target owner for standalone calls). Do not invent a command or require a standalone caller to create a plan.
-
-For standard delivery acceptance, if the code-quality-gate result is missing, `REVISE_CODE`, or `ASK_USER`, return `BLOCKED` and do not run final acceptance QA. For combined assurance, run the quality precheck in this gate before proof and do not require a standalone quality result. For explicitly focused verification, proceed without that stage only within the supplied target and authority, retaining fresh verifier independence; state in Notes that the verdict proves only the requested behavior and does not imply delivery approval. Neither route authorizes unsafe live installation or mutation.
-
-`plan.md` owns what to prove. This skill owns how to prove it by choosing the platform route and smallest proof path.
-
-This skill must not edit application code, tests, or scorers. Independently validate supplied Mechanical receipts before reuse: the named command and exit status/raw output must be available, tied to the exact candidate and relevant runtime conditions, and sufficient for the declared check. An implementer's summary alone is not a receipt. Run the named command when evidence is missing, stale, unverifiable, or a distinct risk requires fresh execution; state the reason. Do not rewrite the command. This reuse rule does not waive independent actual-path Observable proof or explicit fresh-run requirements.
-
-## Platform Routes
-
-Choose exactly one primary platform route:
-
-1. `web`
-   - Use `agent-browser` for desktop browser UI flows, visible states, screenshots, and recordings.
-2. `mobile-web`
-   - Use `agent-browser` with a mobile viewport/device profile for responsive browser UI flows and visible states.
-3. `desktop`
-   - Use `agent-browser` for Electron apps when available. For native Mac apps, use the `macos` route below; otherwise use `cua-driver` to operate the installed application's visible controls.
-4. `ios`
-   - Expo project (expo in dependencies) with a usable dev build: prove through the Metro/Expo dev server on the simulator — `npx expo start`, no native rebuild for JS/TS-only changes. Example: a button label or logic change in an Expo app proves in seconds against the running dev server; a change to native modules, `app.json`, or the SDK version forces a native rebuild instead.
-   - Otherwise — bare/native project, native or app-config change, missing or stale dev build, physical-device or release-grade proof — use `xcodebuildmcp-cli` for build and mechanical proof; it equals mechanical proof for iOS.
-   - For user-flow (observable) proof: replay the exact reproduction flow with `argent` when one exists; otherwise the smallest UI check — direct interaction against the Metro-served app on the Expo route, or the XcodeBuildMCP UI check on the build route.
-5. `android`
-   - Run the plan-named build or test command for mechanical proof.
-   - Use `argent` on the target emulator or device for user-flow proof, replaying the exact reproduction flow when one exists.
-6. `macos`
-   - Use `xcodebuildmcp-cli` for app build, launch, and tests when required by the target. Use the installed `agent-device` CLI for native Mac UI proof, with `cua-driver` as fallback for a concrete tool/permission blocker, unsupported interaction, or background-only requirement. Load the selected tool's skill; do not configure MCP or upgrade shared runtimes.
-7. `non-ui`
-   - For a user-facing CLI or API, operate that real interface and observe its concrete result. Use tests, builds, data checks, and file assertions as Mechanical support, not substitutes for the consumer path.
-
-Prefer the smallest proof path that still demonstrates real user value.
-
-Choose the route from the actual user or consumer entry point, not the implementation layer or changed file types. Timing, persistence, delivery, synchronization, and background behavior can require a visible product flow even when no UI source changed. Do not classify desktop, mobile, or UI-backed behavior as `non-ui` merely because the implementation is in a bridge, service, SDK, or backend.
-
-Prefer the actual affected surface when safe and authorized. Before building a substitute, compare its setup cost and evidential value with resolving the concrete prerequisite for the real surface. A replica can omit the very integration under test; it cannot silently replace required real-flow proof. If proof infrastructure would exceed the change itself, reconsider the route before adding it: reuse existing checks or a direct preview, or return the precise blocker. Scale depth to risk and uncertainty, not ceremony. A static content/diff check can prove an instruction-only change; it cannot prove a changed UI renders correctly.
+If `Mechanical` is missing, return `BLOCKED` naming the missing command and its owner. Do not invent one. If the target cannot distinguish success from its falsifier, return `BLOCKED` naming the target owner and the clarification needed; do not invent acceptance. Missing pipeline inputs never authorize switching to focused verification.
 
 ## Workflow
 
-1. Define the verification target.
-   - For `assurance: combined-low-risk`, before proof the fresh `qa` agent inspects the exact diff for scope, correctness, simplicity, style/maintainability, sensitive content/security, and continued eligibility. A concrete defect returns `FAIL`; uncertainty or a need for deeper judgment returns `BLOCKED` without running proof. Record this precheck in the single result and continue only when it passes.
-   - State the single main user outcome that must work.
-   - State its falsifier: the observation that would show the outcome failed.
-   - State the terminal observation for each declared claim, including the regression check when present.
-   - Add one lightweight regression check when adjacent behavior could easily break.
+1. **Frame.** For each claim, write the observation that shows it works and the one that would show it is broken (the falsifier). Add one lightweight regression check only when adjacent behavior could easily break.
+2. **Pick the platform** from the real entry point, not the file types changed. Timing, persistence, delivery, synchronization, and background behavior can need a visible product flow even when no UI source changed. Read exactly one file:
+   - `web`, `mobile-web`, `desktop` -> `platforms/web.md`
+   - `ios` -> `platforms/ios.md`
+   - `android` -> `platforms/android.md`
+   - `macos` -> `platforms/macos.md`
+   - `non-ui` -> `platforms/non-ui.md`
+3. **Reach, before any proof or Mechanical run.** Answer three questions for the exact candidate (commit, or base plus exact diff):
+   - Is the running surface executing it? Name the check (commit, bundle hash, loaded path, version).
+   - Can this surface show the claim at all (tools, device, account, data, capture)?
+   - Am I allowed to set that up?
 
-2. Map the proof flow.
-   - Start from the first meaningful user or system action.
-   - End at the success state the user cares about.
-   - Avoid padding the flow with irrelevant steps.
-   - For timing or ordering behavior, wait for observable events instead of guessed delays. Use inputs that make the old and corrected outcomes distinguishable, then verify the required event order and that each event belongs to the intended run.
-   - Start with one decisive flow through the actual user or consumer entry point. Do not begin with a lower-layer substitute that cannot disprove the same claim.
+   A missing `Reach` line is not a blocker; work out the narrowest way using the platform file. Changing shared state (installing the candidate into a running host, restarting a service, mutating shared data) needs authority stated in `Reach` or the task. Without it, return `BLOCKED` naming the owner and the unlock step. With it, record the original state first and restore it always, including when you stop early. If activation could interrupt the verifier, use a disposable executor, restore, and judge the retained evidence. Before a costly or state-changing flow, check the capture mechanism with the smallest disposable capture.
+4. **Prove.** Run the Primary Flow through the actual user or consumer entry point first. Prefer the real surface to a replica; a replica can omit the very integration under test. If proof infrastructure would exceed the change itself, reconsider the route or return the precise blocker.
+   - **Mechanical:** validate and reuse a supplied receipt only if the command, exit status or raw output, and exact candidate and relevant runtime conditions are available and sufficient for the declared check; otherwise run the named command and say why (missing, stale, unverifiable, a distinct risk, or an explicit fresh-run requirement). Quote raw output and mark it fresh or reused. An implementer's summary alone is not a receipt. Do not rewrite the command. Reuse never waives independent Observable proof. Example: reuse a passing export check tied to this exact diff and dataset; rerun a receipt that came from the previous candidate.
+   - **Regression Check:** when not `None`, run that one regression. Add another counterexample only for a distinct named failure mode that is still unresolved.
+   - **Observable:** required whenever user or consumer behavior changed, even if the plan omitted it. Tests, logs, source, CI pages, and screenshots of them are Mechanical evidence only.
+   - **Bug fixes:** the primary flow is the same faithful reproduction smoke, now expected to pass. If it cannot be rerun, return `BLOCKED` instead of substituting a broader flow.
+   - **Timing or ordering:** wait on observable events, not guessed delays; use inputs that distinguish old and corrected outcomes; verify each event belongs to the intended run.
+   - **Async UI:** stop when the terminal observation appears even if unrelated status stays stale. If it does not appear after a short wait, use one authoritative fallback (run state, logs, network, a backend record) to answer only that question. If backend and UI disagree, report both.
+   - **Instrumentation:** use existing evidence, logs, and debug flags first. Never edit the candidate to add logging; return the need to implementation.
+   - **Visual comparison against a reference:** `references/visual-diff.md`.
+   - **Model-backed product operations:** keep the model chosen by the target, product, or user; record provider/model, reasoning level, and submitted turns (`unknown` if not exposed).
+5. **Stop** each claim as soon as its terminal observation appears. Before another probe, state the unresolved question, the new signal, how it could change the verdict, and its cost. If none is concrete, stop. Repeat only when repetition is the probe (timing, ordering, intermittency), with a stated window and stopping condition. An edit invalidates only the claims it could affect; reuse still-valid evidence when candidate identity, conditions, and the reason are explicit. In the report, separate claims proven by this check, prior evidence still valid for the current candidate, and anything unverified; keep receipts you still rely on rather than overwriting them.
+6. **Verdict and report.**
 
-3. Establish the exact candidate and prerequisites.
-   - Reuse known setup and confirm the executor can safely operate the candidate. When capture failure would force a costly or state-changing flow to be repeated, check the required screenshot or recording mechanism first with the smallest disposable capture. This checks tooling, not the product outcome; retain no extra proof or harness solely for preflight.
-   - Confirm that the runtime subject matches the candidate commit, or the base
-     commit plus exact uncommitted diff, before accepting evidence.
-   - If activating the candidate could interrupt the verifier or mutate shared state, use a disposable executor for that action, restore the prior state, and have the fresh verifier judge the retained evidence and candidate identity without repeating the mutation.
-   - Recover a missing prerequisite only while each recovery step changes the
-     available evidence and remains narrow and proportionate. Never repeat an
-     unchanged blocked setup. If no useful recovery remains, return `BLOCKED`
-     with the prerequisite owner and unlock condition.
-   - If the proof flow itself performs model-backed work, preserve the model
-     selected by the Verification Target, product, or user rather than
-     optimizing it here. Record the visible provider/model, reasoning level
-     when available, and number of submitted product turns; use `unknown` for
-     details the product does not expose.
+## When stuck
 
-4. Execute the tight proof loop.
+1. Re-read the target, plan, and ticket for the missing item (a granted permission, a path, a credential), then look up the symptom in the platform file's Recovery table.
+2. Make one narrow fix that changes the available evidence, within the authority already given. Never repeat an unchanged attempt.
+3. If it did not help, or about 15 tool calls pass without progress (finding the loaded bundle path is progress; rereading unchanged logs is not), stop and return `BLOCKED` naming the owner and the unlock condition.
 
-    - Principle: optimize for the first trustworthy signal, then stop as soon
-      as every declared claim is proven.
-    - Heuristic: for changed user or consumer behavior, run the Primary Flow
-      first when it is safely available. Otherwise run the cheapest decisive
-      lane while recovering its prerequisites. A failed decisive lane returns
-      `FAIL` without spending on the companion lane. Passing supporting checks
-      never waives required actual-path proof.
-    - Inline rule: validate and reuse the plan-named Mechanical receipt under
-      the rules above, or execute the command. Quote raw output and identify
-      whether it was reused or freshly run, with provenance and the reuse rationale.
-    - Inline rule: changed user or consumer behavior requires operating the actual
-      affected product or integration through the Primary Flow on the exact
-       candidate. Tests, CI screens, diagnostic logs, source inspection, and
-       screenshots of those materials are Mechanical evidence only. A real
-       CLI command or API request and its concrete result can be Observable
-       for that consumer interface, never a substitute for required UI proof.
-    - Use the selected platform route for Observable. `PASS` requires both
-      Mechanical and Observable whenever the task changes user or consumer
-      behavior, even if the plan omitted or misclassified the Observable lane.
-    - Proof must match the reported flow for the exact candidate being
-      accepted: the observed evidence comes from the primary flow on the
-      candidate commit (or base commit plus exact uncommitted diff), not a
-      different path, an earlier candidate, or implementer claims alone.
-    - For bug fixes, the primary flow is the same faithful reproduction smoke
-       that triggered the original bug (from the reproduction result), now
-       expected to pass on the candidate. Reuse it before/after rather than
-       inventing a new flow. If the reproduction evidence does not identify a
-       rerunnable faithful smoke, return `BLOCKED` instead of substituting a
-       broader flow.
-    - When the plan's Regression Check is not `None`, run that one regression.
-       Add another counterexample only when it covers a distinct named failure
-       mode that remains unresolved; do not expand into unrelated QA.
+Cleanup and restore always run, including after you stop.
 
-    - Spend more evidence only while it changes the decision. Before another
-      probe, state the unresolved question, the new signal, how it could change
-      the verdict, and its added cost or risk. Continue only when all four are
-      concrete and proportionate. If no discriminating probe remains, return
-      `BLOCKED` with the missing signal rather than accumulating activity.
-    - For async UI flows, stop immediately when the terminal observation appears, even if unrelated status UI remains stale. If it does not appear after a short visible wait, choose one authoritative fallback such as run state, logs, network activity, or a backend record. Use that fallback only to decide the named unresolved question. If backend and UI state disagree, report both and verify only the claim the evidence actually proves.
-    - Repetition is valid when repetition is itself the probe, such as timing,
-      ordering, or intermittency. State its observation window and stopping
-      condition. Otherwise, do not repeat an unchanged check.
-    - Instrument with existing evidence and logs first, then existing debug
-      flags or tool-level inspectors. This skill must not edit the candidate to
-      add logging. If source instrumentation is necessary, return the need to
-      diagnosis or implementation and verify the resulting candidate afresh.
-    - Example: toggle dark mode once to prove the visible change. Reload only
-      when persistence is part of the Objective. For a chunk-ordering bug, add
-      a boundary case only when the normal smoke never crosses that boundary.
+## Hard blockers: bail out
 
-    - For `web` or `mobile-web`, use `agent-browser` instead of re-inventing browser steps.
-   - Before browser commands, load `agent-browser` and follow its own CLI-served setup and usage guidance.
-   - Follow the `snapshot -> interact -> re-snapshot` cadence.
-   - Use named sessions.
-   - Use screenshots for static proof points.
-   - Use recordings only when motion itself is the claim and screenshots cannot prove it.
+Ask: would more effort, a different tool, or the authority already given change the answer? If not, it is a hard blocker (for example, a simulator cannot submit an app for App Store review).
 
-    - For `ios`, prefer the Metro/Expo dev server on the simulator when the project is Expo-managed with a usable dev build and no native change forces a rebuild; otherwise use `xcodebuildmcp-cli`.
-    - For `ios`, use `xcodebuildmcp-cli`; for `macos`, use it when the target requires build, test, or candidate launch.
-    - First verify the CLI exists.
-    - Use help-first discovery before commands: inspect available commands/options instead of relying on stale recipes.
-    - Keep execution minimal: choose the smallest build, test, launch, simulator, or UI check that proves the Verification Target.
-    - If `xcodebuildmcp-cli` is missing or the required project/device/runtime is unavailable, return `BLOCKED` with the missing prerequisite.
+Stop immediately. No workaround, no substitute, no extra probes. Return `BLOCKED` with:
+- what cannot be shown;
+- why it is impossible here;
+- who or what can supply it;
+- what was proven anyway, labeled partial. Partial proof never becomes `PASS` and does not cover the rest.
 
-    - `macos` observable proof uses `agent-device` CLI on the exact candidate, with `cua-driver` fallback under the platform route above. XcodeBuildMCP supplies mechanical proof, not native Mac window interaction. Retain the app-owned result screenshot and follow Screenshot Hygiene; do not capture private desktop content.
-    - `ios` without a reproduction flow: observable proof is the smallest XcodeBuildMCP UI check that proves the Verification Target. Do not author a flow during verification.
-     - `ios` with a reproduction flow from `reproduce-bug` (use the supplied
-       evidence path, normally `{ISSUE_DIR}/reproduction/flows/<safe-name>.yaml`): load `argent`
-      and replay that exact file on the exact candidate with `argent flow run
-      <path.yaml> --device <id> --platform ios --json`, selecting a device per
-      the `argent` skill. Establish candidate provenance for the installed app
-      before replay (the `argent` skill's provenance rule); a stale or
-      unprovable install is not a valid replay target. A pass on the flow that
-      originally triggered the bug is the strongest user-flow proof the fix
-      works; a pass from any other path does not substitute for it.
-    - A flow replay failing for environment reasons (device missing, runner
-      build/signing errors) is `BLOCKED`, not `FAIL`; a flow that runs and
-      reports a failed step is `FAIL`.
-    - Keep the device selection and report from the replay in the result notes.
+Platform files list known examples.
 
-    - For `android`, load `argent` and operate the exact candidate on the target emulator or device. Replay the faithful reproduction flow when one exists; otherwise run the smallest direct interaction that proves the Verification Target. Treat unavailable devices, builds, or runners as `BLOCKED`, and a flow that runs but fails its expected step as `FAIL`.
+## Anti-patterns
 
-    - For a genuinely internal `non-ui` change with no changed user or consumer-observable behavior, Mechanical is the proof path and Observable may be `n/a`; state why.
-    - For a user-facing CLI or API, the direct command or request and its concrete result are the consumer-observable path. Unit tests, mocked calls, builds, and source assertions remain Mechanical evidence.
+- Calling `PASS` from tests, logs, or code reading when the claim needs real use, or with no receipt ("tests pass, so likely fine").
+- Proving a different thing than the user path: a mock, a replica, or a stale install.
+- Trusting the implementer's summary.
+- Treating a hard blocker as a puzzle and burning calls on it.
+- Repeating an unchanged setup or probe.
+- Continuing after the success signal appears, or drifting into exploratory QA.
+- Changing shared state without stated authority, not restoring it, or stopping processes by name instead of by a PID you started.
+- Editing the candidate to make it pass.
+- Building a harness larger than the change.
+- Reporting `FAIL` when something was missing, or `BLOCKED` when the product is wrong.
+- Declaring `BLOCKED` on an assumption: without the observation that proves it, or without checking the task, plan, and ticket first.
 
-5. Decide the verdict and exit.
+## Verdicts
 
-    - `PASS`: Mechanical passed, and Observable is proven when it is not `n/a`.
-    - `FAIL`: under valid prerequisites and a clear target, Mechanical failed, the flow breaks, the result is wrong, cited files are missing, or the evidence does not prove the outcome. Distinguish code defects from evidence gaps in Notes and route to the actual owner.
-    - `BLOCKED`: required auth, data, environment, tooling, or a discriminating verification target is missing. A required screenshot or artifact that was explicitly requested but cannot be captured is `BLOCKED` (missing prerequisite), not `PASS`; if the plan declares it Observable and it is absent, that is `FAIL` per the file-existence rule.
+- `PASS`: Mechanical passed, Observable proven (or `n/a` as above), and every cited receipt exists.
+- `FAIL`: under valid conditions and a clear target, the product is wrong: Mechanical failed, the flow breaks, or the result is wrong. Say what the user saw. Separate code defects from evidence gaps and route to the real owner.
+- `BLOCKED`: access, authority, tooling, data, or capture is missing, or a hard blocker applies. Name the owner and the unlock condition, and show the observation that proves it (command output, error, or screenshot), not an assertion. A required capture that cannot be taken is `BLOCKED`. `BLOCKED` is not redispatched against an unchanged prerequisite.
+- A cited receipt missing at report time is an evidence gap: reacquire only that evidence, once. If it still cannot be captured, `BLOCKED`. Never `PASS` without it.
+- After 2 `FAIL`s on the same affected claim, stop: report `FAIL` and write `EXHAUSTED` in Next Action (the verdict stays one of `PASS|FAIL|BLOCKED`). Carry prior verdicts across dispatches. Never use exhaustion to waive acceptance.
+- Standard delivery: a `FAIL` routes through implementation and fresh code-quality review before acceptance. Focused verification reports and stops.
 
-    - Exit when the required lanes prove the target, a valid lane disproves it,
-      a prerequisite is blocked, no discriminating probe remains, or further
-      work is disproportionate to the unresolved risk.
+## Evidence
 
-6. Report the result.
-     - Write `{ISSUE_DIR}/verification/result.md` first (or `result.md` in the authorized standalone evidence directory).
-     - Run `test -f` on that file and every cited Observable path. Missing file = `FAIL`, not `PASS`.
-     - Do not return `PASS` from chat alone.
-     - In combined assurance, include the quality precheck and verification evidence in this one result; do not create a separate code-quality result.
+- Evidence must separate the claimed outcome from its likely false positive. For UI work it is the app-owned result of the Primary Flow. A terminal, test runner, log viewer, or source file, or a screenshot of any of them, is invalid Observable evidence.
+- A screenshot proves a static state. Use a short recording only when motion or timing is the claim.
+- Retain the minimum: screenshots by default, no duplicate media, no evidence theater. Capture the smallest app-owned area; never expose private desktop content.
+- Never record secrets, tokens, or personal data. Inspect the diff and evidence for them; sanitize or `FAIL`.
+- **One location rule:** write the result and retained evidence in `{ISSUE_DIR}/verification/` (`screenshots/`, `videos/`), or in the authorized durable directory for standalone calls. Never leave anything the caller consumes in OS temp. Raw snapshots, JSON, logs, and base64 stay in temp and are deleted before `PASS`, except sanitized output the target explicitly requires or that is itself the consumer receipt (for example an API response or an export); retain that in the evidence directory.
+- Remove temporary diagnostic instrumentation from the candidate, or justify it in Notes, before `PASS`.
 
-## Evidence Rules
+## Report
 
-- Prove the whole flow, not just the final screen. Evidence must distinguish the claimed outcome from its likely false positive; successful commands or plausible screenshots alone may not do that. If the target itself cannot discriminate success, return `BLOCKED` for plan-owner clarification rather than inventing acceptance or editing code.
-- For UI work, Observable evidence must show the app-owned result produced by
-  the Primary Flow. A terminal, test runner, CI page, log viewer, source file,
-  or screenshot of any of them is invalid Observable evidence even when it
-  shows a passing result.
-- When the requested Observable is a user-visible video or screenshot, backend
-  logs may corroborate the run but cannot substitute for the visible state. If
-  logs show success while the UI still shows loading, stale data, or no result,
-  the requested Observable is `BLOCKED` or `FAIL` unless another captured UI
-  state shows the success.
-- A screenshot proves a static visible state. Use the smallest ordered set of
-  proof states when only the before and after states matter. Use a short
-  recording when the claim concerns motion itself, including animation,
-  loading progression, transition continuity, gesture response, or timing.
-- Independently establish the candidate and assess the proof rather than accepting implementer claims. After corrections, apply the claim-scoped invalidation rules above. Coupled, uncertain, or consequential changes can affect more claims, but do not assume every correction invalidates every claim.
-- Capture only the evidence needed to support the verdict.
-- Never record secrets, tokens, private user data, or unnecessary personal information.
-- If any temporary diagnostic instrumentation was added during reproduction or
-  diagnosis, it must be removed from the candidate or explicitly justified in
-  Notes before `PASS`. Inspect the candidate diff and retained evidence for
-  secrets, personal data, or full prompt bodies; if found, that is `FAIL` until
-  sanitized.
-- Raw snapshots, JSON, measurements, logs, base64, and duplicate media default
-  to the OS temp area and are not durable unless the plan or leaf explicitly
-  requires them. If `ISSUE_DIR` exists, store only
-  retained evidence under `{ISSUE_DIR}/verification/` with `screenshots/` and
-  `videos/` subfolders.
-- For standalone delivery evidence, keep the final report and retained media in an authorized durable task or thread directory, not OS temp. If the supplied directory is temporary, resolve a durable destination with its owner before claiming a retained handoff; do not create pipeline intake or a plan for this.
-- Retain the minimum user-observable evidence needed by the claim: screenshots
-  by default; a short video only when motion or lifecycle cannot be shown
-  otherwise. Do not create evidence theater or retain artifacts that add no
-  proof.
-- Always include artifact paths in the final report when evidence exists.
-- `"No artifacts"` is allowed only when Observable is `n/a`. If Observable names a path, that file must exist or the verdict is `FAIL`.
-
-### Visual convergence loop (UI comparison tasks)
-
-When the task changes visible UI against a reference design or ideal-state screenshot:
-
-1. Capture a baseline of the target screen at or before the current state.
-2. Run the platform pixel diff against the ideal state: `agent-browser diff screenshot --baseline <before.png> -o diff.png` (web/desktop), argent `screenshot-diff` (iOS/Android).
-3. If the changed-pixel ratio exceeds the declared tolerance, the diff image names where to fix next. Route that back to implementation and re-diff after the fix — a cheap closed loop, no dependency installs.
-4. Stop when the ratio is within tolerance or the remaining diffs are declared acceptable (e.g. font-version rendering). Record the final ratio and diff image as Observable evidence.
-
-Tolerance is set by the Verification Target, not invented here. The diff image supports the verdict; it never replaces the Primary Flow proof.
-
-### Screenshot Hygiene
-
-- Capture the smallest app-owned proof area that supports the verdict, not the full desktop.
-- For `web` and `mobile-web`, prefer the browser viewport.
-- For traditional `macos` apps, prefer the app window or the active sheet/modal bounds.
-- For menu bar apps, prefer the opened popover, panel, or menu bounds, and prefer deterministic QA hooks or launch flags over raw status-item clicks when available.
-- If bounded capture is unavailable, crop tightly, close unrelated windows first, and retake or delete artifacts that include private desktop content.
-- If only full-desktop capture is possible and it would expose private content, return `BLOCKED` instead of saving the artifact.
-
-### Artifact Cleanup
-
-- Treat runtime logs as temporary evidence unless the plan explicitly requires them.
-- Before returning `PASS`, remove or leave untracked noisy logs that may include local paths, hostnames, process IDs, or user/system details.
-- Preserve durable proof artifacts only: cropped screenshots, sanitized summaries, command pass/fail excerpts, or explicitly required files.
-- If logs must be kept, sanitize them first and mention why they are required.
-
-## Output
-
-Return failed criteria, evidence/prerequisite owner, and required rechecks in Notes. For standard delivery, the caller routes defects through implementation and fresh code-quality review before acceptance; combined assurance includes the quality precheck in this gate, routes concrete defects to implementation, and routes uncertainty or deeper judgment to the standard reviewer then QA path. Proof gaps return here without unrelated edits. Focused verification reports findings and stops, without assigning fixes or implying delivery approval. After 2 `FAIL` verdicts for the same affected claim, stop with `EXHAUSTED`; evidence-only gaps do not invalidate other proven claims or create a new candidate. Carry prior verdicts across dispatches. `BLOCKED` does not redispatch itself against an unchanged prerequisite. Never use exhaustion to waive acceptance.
-
-Use this exact structure:
+Write `{ISSUE_DIR}/verification/result.md` first (or `result.md` in the authorized standalone directory). Run `test -f` on it and on every cited Observable path. Do not return `PASS` from chat alone. Cite only paths that exist; for a capture you could not take, write "not captured" and the reason, so a `BLOCKED` report is not mistaken for a missing-file `FAIL`. Combined assurance includes the quality precheck in this one result.
 
 ```md
 ## Verification Result
@@ -331,38 +129,29 @@ Use this exact structure:
 - Falsifier: [observation that would disprove the Objective]
 - Primary flow: [short description]
 - Regression check: [short description or "None"]
-- Quality: [standard `APPROVE_CODE` receipt, or combined quality precheck result and evidence]
-- Mechanical: [command] → [exit code / quoted raw excerpt; fresh or reused, receipt source, candidate/conditions and reuse rationale]
+- Quality: [standard `APPROVE_CODE` receipt, or combined precheck result]
+- Reach used: [exact steps and restore, or "default surface"; reusable on re-check]
+- Mechanical: [command] -> [exit code and quoted raw excerpt; fresh or reused, source, reuse rationale]
 - Observable: [artifact path or `n/a`]
 - Checks run: [concise list, including any observation window]
-- Model-backed product operations: [provider/model, reasoning level, and submitted turn count when applicable; `n/a` when none; `unknown` for unexposed details]
+- Model-backed product operations: [provider/model, reasoning, turns; `n/a`; or `unknown`]
 - Verdict: `PASS|FAIL|BLOCKED`
 
 ### Evidence
 
-- [artifact path; `"No artifacts"` only when Observable is `n/a`]
-- Report: [pipeline `{ISSUE_DIR}/verification/result.md` or authorized standalone `result.md` path]
+- [artifact path; "No artifacts" only when Observable is `n/a`]
+- Report: [result.md path]
 
 ### Notes
 
-- [key proof point, failure point, or blocker]
-- Why another probe was or was not warranted: [unresolved question and new signal, or "Result already decisive"]
+- [key proof point, failure point, or blocker with its proof, owner, and unlock]
+- Extra probe: [only if one was added beyond the Primary Flow, with the unresolved question]
 
 ### Risk
 
-- [anything not verified, or "None within the declared target"]
+- [anything not verified, partial proof, or "None within the declared target"]
 
 ### Next Action
 
 - [commit / fix issue / unblock environment]
 ```
-
-## Examples
-
-- `web`: Select model -> enter prompt -> submit -> generated images appear.
-- `mobile-web`: Open settings on mobile viewport -> verify new card, copy, and CTA render correctly.
-- `desktop`: Use the installed app's visible controls -> complete the changed flow -> verify the app-owned result.
-- `ios`: Launch app (dev build via Metro, or built app) -> complete primary flow in simulator -> success state appears.
-- `android`: Install and launch app -> complete primary flow on emulator or device -> success state appears.
-- `macos`: Build and launch app -> complete primary flow -> success state appears.
-- `non-ui`: Run the real export command -> confirm the user-requested output file exists and contains expected records; run proportional Mechanical checks separately.

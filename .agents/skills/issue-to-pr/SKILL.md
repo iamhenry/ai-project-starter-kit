@@ -220,6 +220,14 @@ Judge, Build implementation, code quality, and verification work is delegated:
 
 Before any correction, compare the failed criterion with prior findings: what changed, and why would this repair resolve the underlying failure? A rejection is not automatic permission for more code. Reconsider recurring failures before the cap; if no supported repair remains, stop with the evidence and decision needed. Never use exhaustion to waive safety or independent acceptance.
 
+**Blocker triage.** The pipeline runs unattended; contact the user only when triage ends at step 3. Triage every `BLOCKED` before acting on it:
+
+1. **Evidence.** Does the report show what the owner observed (command output, error, screenshot) and name an owner and an unlock? If it only asserts, or the answer sits in the plan, ticket, or user request, it is a false blocker: re-dispatch once with the missing context as a delta. Example: "no permission to load the plugin" when the request said to test it live.
+2. **Authority.** Can a pipeline owner or the user's request supply the unlock? Route it there; do not ask the user.
+3. **Hard.** Would more effort or a different tool change the answer? If not, or the same `BLOCKED` returns after step 1, it is true: stop and give the user the blocker, the unlock, any partial proof, and your recommendation (for example narrowing scope). Example: App Store review cannot run on a simulator.
+
+One repair dispatch per blocker. This is the "prerequisite bound" referenced above.
+
 - Missing `gather-context`-declared intake, cited evidence, or approaches: route repair to `gather-context`; compact inline research is not a missing report.
 - `judge-proposal` returns `ASK_USER`: route pipeline-owned gaps to `gather-context` within the prerequisite bound; ask the user only for the remaining decision.
 - Missing `{ISSUE_DIR}/plan.md`: rerun or revise `create-issue`.

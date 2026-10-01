@@ -65,7 +65,7 @@ credit/update the ISA or `JOURNAL`.
 
 ## Verification And Routing
 
-Use the existing platform routes, smallest-proof-path rule, evidence hygiene, screenshot hygiene, and artifact cleanup from `SKILL.md`. Execute only the declared probe for each locked leaf. A leaf is `PASS` only when its own consumer-boundary probe and exact pass condition are proven against the matched candidate; source inspection, mocks, fixtures, or another leaf's evidence are not substitutes.
+Use the platform routes in `platforms/*.md` (selected as in `SKILL.md` Workflow step 2), and the smallest-proof-path rule and Evidence section from `SKILL.md`. Execute only the declared probe for each locked leaf. A leaf is `PASS` only when its own consumer-boundary probe and exact pass condition are proven against the matched candidate; source inspection, mocks, fixtures, or another leaf's evidence are not substitutes.
 
 One real end-to-end execution is the default. Add at most two independent
 perspectives only when each addresses a distinct named risk such as recovery,
