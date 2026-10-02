@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cal+Sans&family=Inter:wght@400..600&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+<link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" type="text/css" />
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/iconify-icon@3/dist/iconify-icon.min.js"></script>
+<style>
+  /* design.md tokens mapped onto daisyUI's light and dark themes */
+  html[data-theme="light"] {
+    color-scheme: light;
+    --color-base-100: #ffffff; --color-base-200: #f5f5f5; --color-base-300: #e5e7eb; --color-base-content: #111111;
+    --color-primary: #111111; --color-primary-content: #ffffff;
+    --color-secondary: #374151; --color-secondary-content: #ffffff;
+    --color-accent: #3b82f6; --color-accent-content: #ffffff;
+    --color-neutral: #111111; --color-neutral-content: #ffffff;
+    --color-info: #3b82f6; --color-info-content: #ffffff;
+    --color-success: #10b981; --color-success-content: #ffffff;
+    --color-warning: #f59e0b; --color-warning-content: #111111;
+    --color-error: #ef4444; --color-error-content: #ffffff;
+    --muted: #6b7280; --pill-bg: #f5f5f5; --pill-active: #ffffff; --press: #242424; --pastel-mix: 22%;
+  }
+  html[data-theme="dark"] {
+    color-scheme: dark;
+    --color-base-100: #101010; --color-base-200: #1a1a1a; --color-base-300: #2a2a2a; --color-base-content: #f5f5f5;
+    --color-primary: #f5f5f5; --color-primary-content: #111111;
+    --color-secondary: #d4d4d8; --color-secondary-content: #111111;
+    --color-accent: #60a5fa; --color-accent-content: #111111;
+    --color-neutral: #f5f5f5; --color-neutral-content: #111111;
+    --color-info: #60a5fa; --color-info-content: #111111;
+    --color-success: #34d399; --color-success-content: #111111;
+    --color-warning: #fbbf24; --color-warning-content: #111111;
+    --color-error: #ef4444; --color-error-content: #ffffff;
+    --muted: #a1a1aa; --pill-bg: #1a1a1a; --pill-active: #2a2a2a; --press: #d4d4d4; --pastel-mix: 28%;
+  }
+  html[data-theme] {
+    --radius-selector: 0.375rem; --radius-field: 0.5rem; --radius-box: 0.75rem;
+    --size-selector: 0.25rem; --size-field: 0.25rem;
+    --border: 1px; --depth: 0; --noise: 0;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .font-display { font-family: "Cal Sans", "Inter", -apple-system, sans-serif; font-weight: 400; }
+  .muted { color: var(--muted); }
+  .btn { font-weight: 600; }
+  .btn-primary:active { background: var(--press); border-color: var(--press); }
+  .pill-group { background: var(--pill-bg); border-radius: 9999px; padding: 6px; border: 0; }
+  .pill-group .tab, .pill-group .btn { border-radius: 9999px; border: 0; background: transparent; box-shadow: none; color: var(--muted); font-weight: 500; }
+  .pill-group .tab-active, .pill-group .btn:checked { background: var(--pill-active); color: var(--color-base-content); box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.08); }
+  .av-0 { background: color-mix(in oklab, #fb923c var(--pastel-mix), transparent); }
+  .av-1 { background: color-mix(in oklab, #ec4899 var(--pastel-mix), transparent); }
+  .av-2 { background: color-mix(in oklab, #8b5cf6 var(--pastel-mix), transparent); }
+  .av-3 { background: color-mix(in oklab, #34d399 var(--pastel-mix), transparent); }
+  .soft-shadow { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+  iconify-icon { display: inline-block; flex-shrink: 0; }
+  kbd.key { font: 500 12px/1 "Inter", sans-serif; padding: 3px 6px; border-radius: 6px; border: 1px solid var(--color-base-300); color: var(--muted); }
+</style>
+</head>
+<body class="min-h-dvh bg-base-100 text-base-content">
+
+<div class="drawer lg:drawer-open">
+  <input id="side-drawer" type="checkbox" class="drawer-toggle" />
+
+  <div class="drawer-content flex flex-col min-h-dvh">
+    <!-- Top bar -->
+    <header class="navbar sticky top-0 z-20 bg-base-100 border-b border-base-300 px-4 min-h-16">
+      <div class="navbar-start gap-2">
+        <label for="side-drawer" class="btn btn-ghost btn-square btn-sm lg:hidden" aria-label="Open menu">
+          <iconify-icon icon="tabler:menu-2" width="22" height="22"></iconify-icon>
+        </label>
+        <span id="nav-title" class="font-semibold text-[15px]">Home</span>
+      </div>
+      <div class="navbar-end gap-2">
+        <button class="btn btn-primary btn-sm" data-modal="add">New item <kbd class="key !text-inherit !border-current/30">N</kbd></button>
+        <label class="swap swap-rotate btn btn-ghost btn-square btn-sm" aria-label="Toggle theme">
+          <input type="checkbox" class="theme-toggle" />
+          <iconify-icon class="swap-off" icon="tabler:sun" width="20" height="20"></iconify-icon>
+          <iconify-icon class="swap-on" icon="tabler:moon" width="20" height="20"></iconify-icon>
+        </label>
+      </div>
+    </header>
+
+    <main class="flex-1 w-full max-w-[1200px] mx-auto px-6 py-10">
+      <!-- HOME: list and detail side by side -->
+      <section id="screen-home" data-screen>
+        <div class="card bg-base-200 rounded-box p-8 mb-10">
+          <p class="text-sm muted mb-1">Prototype</p>
+          <h1 id="home-title" class="font-display text-[48px] leading-[1.1] tracking-[-1.5px]">0 items</h1>
+        </div>
+        <div id="home-body" class="grid grid-cols-1 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-6">
+          <div>
+            <h2 class="text-base font-semibold mb-2">Items</h2>
+            <ul id="list" class="list rounded-box border border-base-300 overflow-hidden"></ul>
+          </div>
+          <div id="detail" class="card border border-base-300 rounded-box p-6 min-h-48"></div>
+        </div>
+        <div id="empty" class="hidden py-16 max-w-md">
+          <h2 class="font-display text-[28px] leading-[1.2] tracking-[-0.5px] mb-2">Nothing here yet</h2>
+          <p class="muted mb-6">Add the first item to see this surface come alive.</p>
+          <div class="flex gap-2">
+            <button class="btn btn-primary" data-modal="add">Add an item</button>
+            <button class="btn btn-ghost" data-action="reset">Restore sample data</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section id="screen-settings" data-screen class="hidden max-w-xl">
+        <h1 class="font-display text-[36px] leading-[1.15] tracking-[-1px] mb-8">Settings</h1>
+        <h2 class="text-sm font-medium muted mb-2">Preferences</h2>
+        <ul class="list rounded-box border border-base-300 mb-8">
+          <li class="list-row items-center"><div class="list-col-grow">Dark theme</div><input type="checkbox" class="toggle toggle-sm theme-toggle" aria-label="Dark theme" /></li>
+        </ul>
+        <h2 class="text-sm font-medium muted mb-2">Data</h2>
+        <ul class="list rounded-box border border-base-300 mb-6">
+          <li><button class="list-row w-full text-left hover:bg-base-200" data-action="reset"><div class="list-col-grow">Restore sample data</div></button></li>
+          <li><button class="list-row w-full text-left hover:bg-base-200 text-error" data-modal="confirm-clear"><div class="list-col-grow">Delete everything</div></button></li>
+        </ul>
+        <p id="save-note" class="text-[13px] muted">Changes are saved in this browser.</p>
+      </section>
+    </main>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="drawer-side z-30">
+    <label for="side-drawer" aria-label="Close menu" class="drawer-overlay"></label>
+    <div class="bg-base-100 border-r border-base-300 min-h-full w-64 p-4 flex flex-col">
+      <div class="px-3 py-2 mb-6 font-display text-[22px] tracking-[-0.3px]">Prototype</div>
+      <ul class="menu w-full p-0 gap-1">
+        <li><button data-nav="home"><iconify-icon icon="tabler:home" width="18" height="18"></iconify-icon>Home</button></li>
+        <li><button data-nav="settings"><iconify-icon icon="tabler:settings" width="18" height="18"></iconify-icon>Settings</button></li>
+      </ul>
+    </div>
+  </aside>
+</div>
+
+<!-- Modals -->
+<dialog id="modal-add" class="modal">
+  <div class="modal-box rounded-2xl border border-base-300 soft-shadow">
+    <h3 class="font-display text-[22px] tracking-[-0.3px] mb-4">New item</h3>
+    <form id="add-form" class="flex flex-col gap-3">
+      <input name="title" class="input w-full" placeholder="Title" required maxlength="40" />
+      <input name="note" class="input w-full" placeholder="Note (optional)" maxlength="80" />
+      <div class="modal-action mt-2">
+        <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+        <button type="submit" class="btn btn-primary">Add</button>
+      </div>
+    </form>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
+<dialog id="modal-rename" class="modal">
+  <div class="modal-box rounded-2xl border border-base-300 soft-shadow">
+    <h3 class="font-display text-[22px] tracking-[-0.3px] mb-4">Rename</h3>
+    <form id="rename-form" class="flex flex-col gap-3">
+      <input name="title" class="input w-full" required maxlength="40" />
+      <div class="modal-action mt-2">
+        <button type="button" class="btn btn-ghost" data-close>Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
+<dialog id="modal-confirm-delete" class="modal">
+  <div class="modal-box rounded-2xl border border-base-300 soft-shadow">
+    <h3 class="font-display text-[22px] tracking-[-0.3px]">Delete this item?</h3>
+    <p class="pt-2 muted">This can't be undone.</p>
+    <div class="modal-action">
+      <button class="btn btn-ghost" data-close>Keep it</button>
+      <button class="btn btn-error" data-action="delete-current">Delete</button>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
+<dialog id="modal-confirm-clear" class="modal">
+  <div class="modal-box rounded-2xl border border-base-300 soft-shadow">
+    <h3 class="font-display text-[22px] tracking-[-0.3px]">Delete everything?</h3>
+    <p class="pt-2 muted">You'll see the empty state. Sample data can be restored.</p>
+    <div class="modal-action">
+      <button class="btn btn-ghost" data-close>Cancel</button>
+      <button class="btn btn-error" data-action="clear">Delete all</button>
+    </div>
+  </div>
+  <form method="dialog" class="modal-backdrop"><button>close</button></form>
+</dialog>
+
+<div class="toast toast-end toast-bottom z-50 pointer-events-none">
+  <div id="toast" class="alert hidden rounded-full soft-shadow py-2 px-4 text-sm font-medium bg-base-content text-base-100 border-0"></div>
+</div>
+
+<script>
+/* ---------- Seed data (replace for the idea) ---------- */
+const SEED = [
+  { title: "First item",  note: "Seed data lives in this one block." },
+  { title: "Second item", note: "Replace with data that fits the idea." },
+  { title: "Third item",  note: "" },
+];
+
+/* ---------- State + persistence ---------- */
+const STORE = "prototype:data", THEME = "prototype:theme";   // rename per prototype
+const canSave = (() => { try { localStorage.setItem("prototype:test", "1"); localStorage.removeItem("prototype:test"); return true; } catch { return false; } })();
+let nextId = 1;
+const seed = () => SEED.map(x => ({ ...x, id: nextId++ }));
+function save() { try { localStorage.setItem(STORE, JSON.stringify({ nextId, items })); } catch {} }
+function load() { try { const d = JSON.parse(localStorage.getItem(STORE)); if (!d) return null; nextId = d.nextId; return d.items; } catch { return null; } }
+let items = load() || seed();
+let current = items[0]?.id ?? null, screen = "home";
+
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const byId = id => items.find(x => x.id === id);
+
+/* Hooks filled by the motion module below. No-ops by default. */
+window.fx = { screen() {}, list() {}, detail() {}, toast() {} };
+
+/* ---------- Render (every change ends here, so save here) ---------- */
+function renderHome(animate) {
+  save();
+  if (!byId(current)) current = items[0]?.id ?? null;
+  $("#home-title").textContent = `${items.length} ${items.length === 1 ? "item" : "items"}`;
+  $("#empty").classList.toggle("hidden", items.length > 0);
+  $("#home-body").classList.toggle("hidden", items.length === 0);
+  $("#list").innerHTML = items.map(x => `
+    <li class="border-b border-base-300 last:border-b-0">
+      <button class="w-full flex items-center gap-4 px-5 py-3.5 text-left ${x.id === current ? "bg-base-200" : "hover:bg-base-200"}" data-open="${x.id}" aria-current="${x.id === current}">
+        <span class="av-${x.id % 4} size-9 rounded-full grid place-items-center text-sm font-semibold shrink-0">${esc(x.title[0] || "?")}</span>
+        <span class="min-w-0"><span class="block font-medium truncate">${esc(x.title)}</span><span class="block text-[13px] muted truncate">${esc(x.note || "No note")}</span></span>
+      </button>
+    </li>`).join("");
+  renderDetail();
+  if (animate) window.fx.list($$("#list > li"));
+}
+function renderDetail() {
+  const x = byId(current), d = $("#detail");
+  if (!x) { d.innerHTML = ""; return; }
+  d.innerHTML = `
+    <div class="flex items-center gap-3 mb-2">
+      <span class="av-${x.id % 4} size-10 rounded-full grid place-items-center font-semibold shrink-0">${esc(x.title[0] || "?")}</span>
+      <h2 class="font-display text-[28px] leading-[1.2] tracking-[-0.5px] truncate min-w-0">${esc(x.title)}</h2>
+    </div>
+    <p class="muted mb-8">${esc(x.note || "No note")}</p>
+    <div class="flex gap-2">
+      <button class="btn bg-base-100 border-base-300" data-modal="rename">Rename</button>
+      <button class="btn btn-outline btn-error" data-modal="confirm-delete">Delete</button>
+    </div>`;
+  window.fx.detail(d);
+}
+
+/* ---------- Navigation, modals, toast ---------- */
+const TITLES = { home: "Home", settings: "Settings" };
+function go(name) {
+  const prev = screen; screen = name;
+  $$("[data-screen]").forEach(s => s.classList.toggle("hidden", s.id !== "screen-" + name));
+  $("#nav-title").textContent = TITLES[name];
+  $$("[data-nav]").forEach(b => b.classList.toggle("menu-active", b.dataset.nav === name));
+  $("#side-drawer").checked = false;
+  if (name === "home") renderHome(prev !== "home");
+  window.fx.screen($("#screen-" + name), prev, name);
+}
+const closeModals = () => $$("dialog[open]").forEach(d => d.close());
+function openModal(name) {
+  closeModals();
+  const d = $("#modal-" + name);
+  d.querySelector("form:not([method])")?.reset();
+  if (name === "rename") $("#rename-form").title.value = byId(current)?.title || "";
+  d.showModal();
+  setTimeout(() => d.querySelector("input")?.focus(), 50);
+}
+let toastTimer;
+function toast(msg) {
+  const t = $("#toast"); t.textContent = msg; t.classList.remove("hidden"); window.fx.toast(t);
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.add("hidden"), 1800);
+}
+
+/* ---------- Theme ---------- */
+function setTheme(dark) {
+  document.documentElement.dataset.theme = dark ? "dark" : "light";
+  $$(".theme-toggle").forEach(t => t.checked = dark);
+}
+$$(".theme-toggle").forEach(t => t.addEventListener("change", e => {
+  setTheme(e.target.checked);
+  try { localStorage.setItem(THEME, e.target.checked ? "dark" : "light"); } catch {}
+}));
+const savedTheme = (() => { try { return localStorage.getItem(THEME); } catch { return null; } })();
+setTheme(savedTheme ? savedTheme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches);
+
+/* ---------- Events: one delegated listener + keyboard ---------- */
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-nav],[data-modal],[data-open],[data-action],[data-close]");
+  if (!el) return;
+  if (el.hasAttribute("data-close")) closeModals();
+  if (el.dataset.nav) go(el.dataset.nav);
+  if (el.dataset.modal) openModal(el.dataset.modal);
+  if (el.dataset.open) { current = +el.dataset.open; renderHome(false); }
+  const a = el.dataset.action;
+  if (a === "reset") { items = seed(); current = items[0].id; closeModals(); go("home"); toast("Sample data restored"); }
+  if (a === "clear") { items = []; closeModals(); go("home"); toast("Everything deleted"); }
+  if (a === "delete-current") { items = items.filter(x => x.id !== current); closeModals(); renderHome(false); toast("Deleted"); }
+});
+document.addEventListener("keydown", e => {
+  const typing = e.target.closest("input, textarea, select, [contenteditable]");
+  if (e.key === "n" && !typing && !e.metaKey && !e.ctrlKey && !$("dialog[open]")) { e.preventDefault(); openModal("add"); }
+  if ((e.key === "ArrowDown" || e.key === "ArrowUp") && !typing && screen === "home" && items.length && !$("dialog[open]")) {
+    e.preventDefault();
+    const i = items.findIndex(x => x.id === current);
+    current = items[Math.max(0, Math.min(items.length - 1, i + (e.key === "ArrowDown" ? 1 : -1)))].id;
+    renderHome(false);
+  }
+});
+$("#add-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const x = { id: nextId++, title: e.target.title.value.trim(), note: e.target.note.value.trim() };
+  items.push(x); current = x.id;
+  closeModals(); go("home"); toast("Added");
+});
+$("#rename-form").addEventListener("submit", e => {
+  e.preventDefault();
+  byId(current).title = e.target.title.value.trim();
+  closeModals(); renderHome(false); toast("Renamed");
+});
+
+go("home");
+if (!canSave) {
+  $("#save-note").textContent = "Saving is off: the way this page is opened blocks browser storage, so changes reset on reload.";
+  $("#save-note").classList.replace("muted", "text-error");
+  setTimeout(() => toast("Saving is off here. Changes reset on reload."), 600);
+}
+</script>
+
+<!-- Motion pass: fills window.fx. The app works without it. -->
+<script type="module">
+import { animate } from "https://cdn.jsdelivr.net/npm/motion@13.5.0/+esm";
+if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  const ease = [0.22, 1, 0.36, 1];
+  Object.assign(window.fx, {
+    screen(el, prev, next) { if (prev !== next) animate(el, { opacity: [0, 1], y: [4, 0] }, { duration: 0.18, ease }); },
+    list(rows) { rows.forEach((r, i) => animate(r, { opacity: [0, 1] }, { duration: 0.2, delay: i * 0.02, ease })); },
+    detail(el) { animate(el, { opacity: [0.4, 1] }, { duration: 0.15, ease }); },
+    toast(el) { animate(el, { opacity: [0, 1], y: [8, 0] }, { duration: 0.2, ease }); },
+  });
+}
+</script>
+</body>
+</html>
