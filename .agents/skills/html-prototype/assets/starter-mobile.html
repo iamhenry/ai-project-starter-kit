@@ -14,6 +14,8 @@
 <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
 <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" type="text/css" />
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/iconify-icon@3/dist/iconify-icon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.28/dist/interact.min.js"></script>
 <style>
   /* design.md tokens mapped onto daisyUI's light and dark themes */
   html[data-theme="light"] {
@@ -63,31 +65,41 @@
   .soft-shadow { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
   html, body { overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; }
   .pt-safe { padding-top: env(safe-area-inset-top); }
+  .pl-safe { padding-left: env(safe-area-inset-left); }
+  iconify-icon { display: inline-block; flex-shrink: 0; }
   .pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 0.5rem); }
 </style>
 </head>
 <body class="min-h-dvh bg-base-100 text-base-content overflow-x-clip">
 
-<div id="app" class="relative mx-auto max-w-md min-h-dvh flex flex-col">
+<!-- Side rail (tablet) -->
+<aside class="hidden md:flex fixed inset-y-0 left-0 z-30 w-20 flex-col items-center gap-2 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-4 pl-safe bg-base-100 border-r border-base-300">
+  <button class="btn btn-primary btn-square mb-4" data-modal="add" aria-label="Add item"><iconify-icon icon="tabler:plus" width="22" height="22"></iconify-icon></button>
+  <button class="rail-item btn btn-ghost h-auto py-2 flex-col gap-1 text-xs font-medium" data-nav="home"><iconify-icon icon="tabler:home" width="22" height="22"></iconify-icon>Home</button>
+  <button class="rail-item btn btn-ghost h-auto py-2 flex-col gap-1 text-xs font-medium" data-nav="settings"><iconify-icon icon="tabler:settings" width="22" height="22"></iconify-icon>Settings</button>
+</aside>
+
+<div id="app" class="relative min-h-dvh flex flex-col md:pl-20">
   <!-- Top bar -->
   <header class="navbar sticky top-0 z-20 pt-safe bg-base-100 border-b border-base-300 px-2 min-h-14">
     <div class="navbar-start">
       <button id="nav-back" class="btn btn-ghost btn-square btn-sm hidden" data-nav="home" aria-label="Back">
-        <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+        <iconify-icon icon="tabler:chevron-left" width="22" height="22"></iconify-icon>
       </button>
     </div>
     <div class="navbar-center"><span id="nav-title" class="font-semibold text-[15px]">Home</span></div>
     <div class="navbar-end">
       <label class="swap swap-rotate btn btn-ghost btn-square btn-sm" aria-label="Toggle theme">
         <input type="checkbox" class="theme-toggle" />
-        <svg class="swap-off size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-        <svg class="swap-on size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        <iconify-icon class="swap-off" icon="tabler:sun" width="20" height="20"></iconify-icon>
+        <iconify-icon class="swap-on" icon="tabler:moon" width="20" height="20"></iconify-icon>
       </label>
     </div>
   </header>
 
-  <main class="flex-1 pb-28">
-    <!-- HOME -->
+  <main class="flex-1 pb-28 md:pb-10">
+   <div class="mx-auto w-full max-w-md md:max-w-5xl md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] md:gap-2">
+    <!-- HOME (list pane on tablet) -->
     <section id="screen-home" data-screen class="px-5 pt-6 pb-8">
       <div class="card bg-base-200 rounded-box p-6 mb-8">
         <p class="text-sm muted mb-1">Prototype</p>
@@ -106,15 +118,17 @@
           <button class="btn btn-ghost" data-action="reset">Restore sample data</button>
         </div>
       </div>
-      <div class="fixed inset-x-0 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-10 mx-auto max-w-md px-5 flex justify-end pointer-events-none">
+      <div class="md:hidden fixed inset-x-0 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-10 mx-auto max-w-md px-5 flex justify-end pointer-events-none">
         <button class="btn btn-primary btn-circle btn-lg soft-shadow pointer-events-auto" data-modal="add" aria-label="Add item">
-          <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
+          <iconify-icon icon="tabler:plus" width="26" height="26"></iconify-icon>
         </button>
       </div>
     </section>
 
-    <!-- DETAIL -->
-    <section id="screen-detail" data-screen class="px-5 pt-6 pb-8 hidden">
+    <!-- DETAIL (pushed screen on phone, right pane on tablet) -->
+    <section id="screen-detail" data-screen class="px-5 pt-6 pb-8 hidden md:self-start md:mt-6 md:mr-5 md:p-6 md:border md:border-base-300 md:rounded-box">
+      <p id="d-none" class="hidden muted py-16 text-center">Select an item to see it here.</p>
+      <div id="d-body">
       <div class="flex items-center gap-3 mb-2">
         <div id="d-avatar" class="size-10 rounded-full grid place-items-center font-semibold shrink-0"></div>
         <h1 id="d-title" class="font-display text-[28px] leading-[1.2] tracking-[-0.5px] truncate min-w-0"></h1>
@@ -124,10 +138,11 @@
         <button class="btn bg-base-100 border-base-300 flex-1" data-modal="rename">Rename</button>
         <button class="btn btn-outline btn-error flex-1" data-modal="confirm-delete">Delete</button>
       </div>
+      </div>
     </section>
 
     <!-- SETTINGS -->
-    <section id="screen-settings" data-screen class="px-5 pt-6 pb-8 hidden">
+    <section id="screen-settings" data-screen class="px-5 pt-6 pb-8 hidden md:col-span-2 md:max-w-xl">
       <h2 class="text-sm font-medium muted mb-2">Preferences</h2>
       <ul class="list rounded-box border border-base-300 mb-8">
         <li class="list-row items-center"><div class="list-col-grow">Dark theme</div><input type="checkbox" class="toggle toggle-sm theme-toggle" aria-label="Dark theme" /></li>
@@ -139,10 +154,11 @@
       </ul>
       <p id="save-note" class="text-[13px] muted">Changes are saved in this browser.</p>
     </section>
+   </div>
   </main>
 
   <!-- Bottom navigation -->
-  <nav class="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md px-3 pt-2 pb-safe bg-base-100 border-t border-base-300">
+  <nav class="md:hidden fixed inset-x-0 bottom-0 z-20 mx-auto max-w-md px-3 pt-2 pb-safe bg-base-100 border-t border-base-300">
     <div role="tablist" class="tabs tabs-box pill-group grid grid-cols-2">
       <button role="tab" class="tab" data-nav="home">Home</button>
       <button role="tab" class="tab" data-nav="settings">Settings</button>
@@ -151,9 +167,9 @@
 </div>
 
 <!-- Modals -->
-<dialog id="modal-add" class="modal modal-bottom">
-  <div class="modal-box rounded-t-2xl border-t border-base-300 mx-auto max-w-md pt-3 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
-    <div data-grabber class="-mx-6 -mt-3 pt-3 pb-3 mb-1 touch-none cursor-grab" aria-hidden="true"><div class="mx-auto w-9 h-1 rounded-full bg-base-300"></div></div>
+<dialog id="modal-add" class="modal modal-bottom md:modal-middle">
+  <div class="modal-box rounded-t-2xl md:rounded-2xl border-t md:border border-base-300 mx-auto max-w-md pt-3 md:pt-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] md:pb-6">
+    <div data-grabber class="md:hidden -mx-6 -mt-3 pt-3 pb-3 mb-1 touch-none cursor-grab" aria-hidden="true"><div class="mx-auto w-9 h-1 rounded-full bg-base-300"></div></div>
     <h3 class="font-display text-[22px] tracking-[-0.3px] mb-4 touch-none">New item</h3>
     <form id="add-form" class="flex flex-col gap-3">
       <input name="title" class="input w-full" placeholder="Title" required maxlength="40" />
@@ -226,6 +242,7 @@ function save() { try { localStorage.setItem(STORE, JSON.stringify({ nextId, ite
 function load() { try { const d = JSON.parse(localStorage.getItem(STORE)); if (!d) return null; nextId = d.nextId; return d.items; } catch { return null; } }
 let items = load() || seed();
 let current = null, screen = "home";
+const wide = matchMedia("(min-width: 768px)");   // tablet: list and detail side by side
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -245,7 +262,7 @@ function renderHome(animate) {
   $("#list").classList.toggle("hidden", items.length === 0);
   $("#list").innerHTML = items.map(x => `
     <li class="border-b border-base-300 last:border-b-0">
-      <button class="w-full flex items-center gap-4 px-5 py-3.5 text-left" data-open="${x.id}">
+      <button class="w-full flex items-center gap-4 px-5 py-3.5 text-left ${wide.matches && x.id === current ? "bg-base-200" : ""}" data-open="${x.id}">
         <span class="av-${x.id % 4} size-9 rounded-full grid place-items-center text-sm font-semibold shrink-0">${esc(x.title[0] || "?")}</span>
         <span class="min-w-0"><span class="block font-medium truncate">${esc(x.title)}</span><span class="block text-[13px] muted truncate">${esc(x.note || "No note")}</span></span>
       </button>
@@ -253,7 +270,10 @@ function renderHome(animate) {
   if (animate) window.fx.list($$("#list > li"));
 }
 function renderDetail() {
-  const x = byId(current); if (!x) return;
+  const x = byId(current);
+  $("#d-none").classList.toggle("hidden", !!x);
+  $("#d-body").classList.toggle("hidden", !x);
+  if (!x) return;
   save();
   $("#d-avatar").className = `av-${x.id % 4} size-10 rounded-full grid place-items-center font-semibold shrink-0`;
   $("#d-avatar").textContent = x.title[0] || "?";
@@ -265,15 +285,19 @@ function renderDetail() {
 const TITLES = { home: "Home", detail: "Detail", settings: "Settings" };
 function go(name) {
   const prev = screen; screen = name;
-  $$("[data-screen]").forEach(s => s.classList.toggle("hidden", s.id !== "screen-" + name));
-  $("#nav-title").textContent = TITLES[name];
-  $("#nav-back").classList.toggle("hidden", name !== "detail");
+  const split = wide.matches && name !== "settings";
+  if (split && !byId(current)) current = items[0]?.id ?? null;
+  $$("[data-screen]").forEach(s => s.classList.toggle("hidden", split ? s.id === "screen-settings" : s.id !== "screen-" + name));
+  $("#nav-title").textContent = split ? TITLES.home : TITLES[name];
+  $("#nav-back").classList.toggle("hidden", split || name !== "detail");
   $$('[role="tab"]').forEach(t => t.classList.toggle("tab-active", t.dataset.nav === name));
-  window.scrollTo(0, 0);
-  if (name === "home") renderHome(prev !== "home");
-  if (name === "detail") renderDetail();
+  $$(".rail-item").forEach(b => b.classList.toggle("btn-active", b.dataset.nav === (name === "settings" ? "settings" : "home")));
+  if (!split || prev === "settings") window.scrollTo(0, 0);
+  if (split || name === "home") renderHome(split ? prev === "settings" : prev !== "home");
+  if (split || name === "detail") renderDetail();
   window.fx.screen($("#screen-" + name), prev, name);
 }
+wide.addEventListener("change", () => go(screen));
 const closeModals = () => $$("dialog[open]").forEach(d => d.close());
 function openModal(name) {
   closeModals();
@@ -317,13 +341,14 @@ document.addEventListener("click", e => {
 });
 $("#add-form").addEventListener("submit", e => {
   e.preventDefault();
-  items.push({ id: nextId++, title: e.target.title.value.trim(), note: e.target.note.value.trim() });
+  const x = { id: nextId++, title: e.target.title.value.trim(), note: e.target.note.value.trim() };
+  items.push(x); current = x.id;
   closeModals(); go("home"); toast("Added");
 });
 $("#rename-form").addEventListener("submit", e => {
   e.preventDefault();
   byId(current).title = e.target.title.value.trim();
-  closeModals(); renderDetail(); toast("Renamed");
+  closeModals(); go(screen); toast("Renamed");
 });
 
 go("home");
@@ -353,33 +378,31 @@ if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
 }
 </script>
 
-<!-- Gesture pass: use-gesture reads the pointer, Motion animates the result. See references/mobile.md for recipes. -->
+<!-- Gesture pass (phone): interact.js reads the pointer, Motion animates the result.
+     Mechanics and recipes: the animation-principles skill, references/gestures.md. -->
 <script type="module">
-import { DragGesture } from "https://esm.sh/@use-gesture/vanilla@10.3.1?bundle";
 import { animate } from "https://cdn.jsdelivr.net/npm/motion@13.5.0/+esm";
 
-const settle = { type: "spring", bounce: 0, duration: 0.3 };
-const rubber = (over, k = 0.35) => over * k;
-
-// Drag the bottom sheet down to dismiss (start area limited to the grab bar and title).
+const project = (v, rate = 0.998) => (v / 1000) * rate / (1 - rate);   // momentum projection
 const sheet = document.querySelector("#modal-add");
 const box = sheet.querySelector(".modal-box");
-const paint = y => { box.style.transform = `translateY(${y}px)`; };
-DragGesture(box, ({ first, last, initial: [, y0], movement: [, my], swipe: [, sy], cancel }) => {
-  if (first) {
-    if (y0 - box.getBoundingClientRect().top > 72) return cancel();
-    box.style.transition = "none";
-  }
-  const y = my < 0 ? rubber(my, 0.15) : my;
-  paint(y);
-  if (!last) return;
-  const reset = () => { box.style.transform = ""; box.style.transition = ""; };
-  if (y > box.offsetHeight * 0.3 || sy === 1) {
-    animate(y, box.offsetHeight, { duration: 0.2, ease: "easeIn", onUpdate: paint }).then(() => { sheet.close(); requestAnimationFrame(reset); });
-  } else {
-    animate(y, 0, { ...settle, onUpdate: paint }).then(reset);
-  }
-}, { axis: "y", filterTaps: true });
+let y = 0, settle;
+const paint = v => { y = v; box.style.transform = v ? `translateY(${v}px)` : ""; };
+
+// Drag the bottom sheet down to dismiss: follows the finger, resists upward, decides from the projected flick.
+if (window.interact) interact(box).draggable({
+  startAxis: "y", lockAxis: "start", allowFrom: "[data-grabber], h3",
+  listeners: {
+    start() { settle?.stop(); box.style.transition = "none"; },
+    move(e) { paint(y + (y + e.dy < 0 ? e.dy * 0.2 : e.dy)); },
+    end(e) {
+      const h = box.offsetHeight;
+      const dismiss = y + project(e.velocityY) > h / 2;
+      settle = animate(y, dismiss ? h : 0, { type: "spring", bounce: 0, duration: 0.3, velocity: e.velocityY, onUpdate: paint });
+      settle.then(() => { if (dismiss) sheet.close(); requestAnimationFrame(() => { paint(0); box.style.transition = ""; }); });
+    },
+  },
+});
 </script>
 </body>
 </html>

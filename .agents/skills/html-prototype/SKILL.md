@@ -1,6 +1,6 @@
 ---
 name: html-prototype
-description: Build a high-fidelity, single-file HTML prototype (Tailwind browser build, daisyUI 5, Motion, optional use-gesture) that opens by double-click with no build step, then hand it off as a living spec for a production build. Use only when the user explicitly invokes html-prototype or /html-prototype, or explicitly asks for an HTML prototype using this stack. Do not use for production code, framework apps, or general UI work.
+description: Build a high-fidelity, single-file HTML prototype (Tailwind browser build, daisyUI 5, Motion, Tabler icons, optional interact.js) that opens by double-click with no build step, then hand it off as a living spec for a production build. Use only when the user explicitly invokes html-prototype or /html-prototype, or explicitly asks for an HTML prototype using this stack. Do not use for production code, framework apps, or general UI work.
 ---
 
 # HTML Prototype
@@ -15,10 +15,10 @@ Each prototype targets exactly one domain. Do not mix them.
 
 | Domain | Read | Start from |
 |---|---|---|
-| Mobile / PWA (touch, phone-first, installable) | [references/mobile.md](references/mobile.md) | [assets/starter-mobile.html](assets/starter-mobile.html) |
-| Web (desktop browser, pointer and keyboard) | [references/web.md](references/web.md) | [assets/starter-web.html](assets/starter-web.html) |
+| Mobile / PWA (touch, phones and tablets, installable) | [references/mobile.md](references/mobile.md) | [assets/starter-mobile.html](assets/starter-mobile.html) |
+| Web (desktop-first, responsive down to phone, pointer and keyboard) | [references/web.md](references/web.md) | [assets/starter-web.html](assets/starter-web.html) |
 
-If the user does not say, ask once. Always read [references/stack.md](references/stack.md) and [references/design.md](references/design.md).
+If the user does not say, ask once. Always read [references/stack.md](references/stack.md) and [references/design.md](references/design.md). For the motion and interaction passes, use the `animation-principles` skill.
 
 ## Hard rules
 
@@ -28,6 +28,8 @@ If the user does not say, ask once. Always read [references/stack.md](references
 - Every interactive element does something real: navigates, changes state, or opens a real modal. No dead buttons, no `href="#"`.
 - Fake data lives in one clearly marked seed block. Every collection has an empty state.
 - Light and dark themes from `design.md`, both first-class.
+- Responsive across the domain's widths (see the domain reference). No horizontal page scroll at any width.
+- Icons from Tabler via Iconify (see `stack.md`), one set per prototype.
 - Never open public ports, deploy, or publish without explicit permission.
 
 ## Workflow
@@ -37,8 +39,8 @@ Work in passes. Prove each pass works before starting the next. Later passes are
 1. **Frame.** Restate the idea as the experience to feel, the screens or surfaces, the core actions, and the states each surface needs (empty, loading, error, success, edge cases). Ask only questions that would change the outcome.
 2. **Base.** Copy the domain starter. Build every surface, flow, and state with no motion. All interactions work.
 3. **Design.** Apply `design.md` through the theme variables already mapped in the starter. Tune hierarchy, spacing, and type until it reads as a real product in both themes.
-4. **Motion.** Add micro-interactions that explain a change, keep continuity, or confirm an action. Premium, never showy. Respect reduced motion.
-5. **Interaction depth.** Domain-specific input: gestures on mobile, keyboard and pointer affordances on web. Use the recipes in the domain reference.
+4. **Motion.** Apply the `animation-principles` skill: micro-interactions that explain a change, keep continuity, or confirm an action. Premium, never showy. Respect reduced motion.
+5. **Interaction depth.** Domain-specific input: gestures on mobile, keyboard, pointer, and drag and drop on web. Use the gesture reference in `animation-principles`.
 6. **Persistence.** Save state locally so the prototype survives reloads and can be lived with (see `stack.md`).
 
 The user may reorder or skip passes. Follow their call.
@@ -57,7 +59,7 @@ Keep the file readable for the next agent:
 
 Mechanical checks are not proof. Exercise the real thing:
 
-- Open the file directly (`file://`) in a headless browser at the domain's viewport.
+- Open the file directly (`file://`) in a headless browser at each of the domain's verification widths.
 - Walk every surface and flow; open every modal; check every state, including empty.
 - Toggle the theme; capture screenshots in both themes.
 - Use real input for interactions: pointer down, move, up for drags and swipes; keyboard for shortcuts.

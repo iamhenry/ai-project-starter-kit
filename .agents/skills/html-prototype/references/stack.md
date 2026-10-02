@@ -14,20 +14,36 @@ Pinned. Do not substitute. Both starters already include the base set.
 <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
 <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" type="text/css" />
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+<!-- Icons: Iconify web component, Tabler set by default -->
+<script src="https://cdn.jsdelivr.net/npm/iconify-icon@3/dist/iconify-icon.min.js"></script>
+
+<!-- Gestures and drag (only when the idea needs them) -->
+<script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.28/dist/interact.min.js"></script>
 ```
 
 ```js
 // Motion (vanilla, not Framer Motion). Exports animate, plus press, hover, inView, scroll.
 import { animate } from "https://cdn.jsdelivr.net/npm/motion@13.5.0/+esm";
-
-// use-gesture (mobile domain only). Load from esm.sh as one bundled file.
-import { DragGesture } from "https://esm.sh/@use-gesture/vanilla@10.3.1?bundle";
 ```
+
+## Icons
+
+Use Tabler icons through the Iconify web component. It loads each icon on demand, inherits `currentColor`, and sizes with font size or width and height.
+
+```html
+<iconify-icon icon="tabler:heart" width="20" height="20" aria-hidden="true"></iconify-icon>
+```
+
+- Outline is the default style; filled variants end in `-filled` (`tabler:heart-filled`). Browse names at [tabler.io/icons](https://tabler.io/icons).
+- Another set only when the idea calls for it, same component with a different prefix (`heroicons:`, `iconoir:`, `ion:`, `mingcute:`, `feather:`). Keep one set per prototype.
+- Icons need a network connection on first load, like the rest of the stack. For an offline handoff, paste the SVG inline.
 
 ## Known pitfalls
 
-- **use-gesture from jsDelivr is broken.** Its `+esm` build splits the library's internals into two copies; gestures never start and the console shows `Cannot convert undefined or null to object`. The package's raw files also expect Node's `process`. Use the esm.sh `?bundle` URL above.
-- **Motion's vanilla build has no drag, pan, or swipe.** Use use-gesture to read the pointer and Motion to animate the result.
+- **Motion's vanilla build has no drag, pan, or swipe.** Use interact.js to read the pointer and Motion to animate the result. interact.js is a classic script exposing the global `interact`, so modules can use it once the script has loaded.
+- **interact.js does not set `touch-action`.** Set it in CSS on every gesture surface, or the browser scrolls instead of dragging.
+- **Do not use use-gesture.** Its jsDelivr `+esm` build is broken and it has not been released since 2024.
 - **Tailwind browser build** scans the DOM at runtime, so classes added by JavaScript work. Only `<style type="text/tailwindcss">` is processed by Tailwind; plain `<style>` is plain CSS.
 - **Cal Sans ships one weight.** Use `font-weight: 400`; its regular already reads as the design's 600. Faux bold looks wrong. Check word gaps in large display text visually after applying negative tracking.
 
@@ -68,7 +84,7 @@ if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
 }
 ```
 
-Motion budget: animate state changes, continuity between screens, and confirmation of actions. Durations 150 to 300 ms, springs without bounce. No decorative loops, no reveal-on-scroll for every section, no celebration effects unless the product calls for them.
+Timing, easing, springs, and what deserves motion come from the `animation-principles` skill.
 
 ## Persistence (localStorage)
 

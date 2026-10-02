@@ -10,6 +10,7 @@
 <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
 <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" type="text/css" />
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/iconify-icon@3/dist/iconify-icon.min.js"></script>
 <style>
   /* design.md tokens mapped onto daisyUI's light and dark themes */
   html[data-theme="light"] {
@@ -57,6 +58,7 @@
   .av-2 { background: color-mix(in oklab, #8b5cf6 var(--pastel-mix), transparent); }
   .av-3 { background: color-mix(in oklab, #34d399 var(--pastel-mix), transparent); }
   .soft-shadow { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+  iconify-icon { display: inline-block; flex-shrink: 0; }
   kbd.key { font: 500 12px/1 "Inter", sans-serif; padding: 3px 6px; border-radius: 6px; border: 1px solid var(--color-base-300); color: var(--muted); }
 </style>
 </head>
@@ -70,7 +72,7 @@
     <header class="navbar sticky top-0 z-20 bg-base-100 border-b border-base-300 px-4 min-h-16">
       <div class="navbar-start gap-2">
         <label for="side-drawer" class="btn btn-ghost btn-square btn-sm lg:hidden" aria-label="Open menu">
-          <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          <iconify-icon icon="tabler:menu-2" width="22" height="22"></iconify-icon>
         </label>
         <span id="nav-title" class="font-semibold text-[15px]">Home</span>
       </div>
@@ -78,8 +80,8 @@
         <button class="btn btn-primary btn-sm" data-modal="add">New item <kbd class="key !text-inherit !border-current/30">N</kbd></button>
         <label class="swap swap-rotate btn btn-ghost btn-square btn-sm" aria-label="Toggle theme">
           <input type="checkbox" class="theme-toggle" />
-          <svg class="swap-off size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-          <svg class="swap-on size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+          <iconify-icon class="swap-off" icon="tabler:sun" width="20" height="20"></iconify-icon>
+          <iconify-icon class="swap-on" icon="tabler:moon" width="20" height="20"></iconify-icon>
         </label>
       </div>
     </header>
@@ -131,8 +133,8 @@
     <div class="bg-base-100 border-r border-base-300 min-h-full w-64 p-4 flex flex-col">
       <div class="px-3 py-2 mb-6 font-display text-[22px] tracking-[-0.3px]">Prototype</div>
       <ul class="menu w-full p-0 gap-1">
-        <li><button data-nav="home">Home</button></li>
-        <li><button data-nav="settings">Settings</button></li>
+        <li><button data-nav="home"><iconify-icon icon="tabler:home" width="18" height="18"></iconify-icon>Home</button></li>
+        <li><button data-nav="settings"><iconify-icon icon="tabler:settings" width="18" height="18"></iconify-icon>Settings</button></li>
       </ul>
     </div>
   </aside>
