@@ -7,6 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Prototype" />
 <meta name="theme-color" content="#ffffff" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -68,6 +69,12 @@
   .pl-safe { padding-left: env(safe-area-inset-left); }
   iconify-icon { display: inline-block; flex-shrink: 0; }
   .pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 0.5rem); }
+  /* Native touch feel: no double-tap zoom, no selection or callout on controls,
+     no zoom into fields (Safari zooms under 16px), sheets don't scroll the page behind them. */
+  html { touch-action: manipulation; }
+  button, .btn, [role="tab"], label, .toggle, .checkbox { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  @media (pointer: coarse) { .input, .select, .textarea { font-size: 16px; } }
+  .modal-box { overscroll-behavior: contain; }
 </style>
 </head>
 <body class="min-h-dvh bg-base-100 text-base-content overflow-x-clip">
@@ -248,6 +255,13 @@ const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const byId = id => items.find(x => x.id === id);
+
+/* Haptics: navigator.vibrate where it exists; on iPhone, toggling a hidden native switch gives a light haptic. */
+const hapticSwitch = Object.assign(document.createElement("label"), { innerHTML: '<input type="checkbox" switch tabindex="-1">' });
+hapticSwitch.setAttribute("aria-hidden", "true");
+hapticSwitch.style.cssText = "position:fixed;left:-100px;top:0;width:1px;height:1px;opacity:0;pointer-events:none";
+document.body.append(hapticSwitch);
+window.haptic = () => navigator.vibrate ? navigator.vibrate(8) : hapticSwitch.click();
 
 /* Hooks filled by the enhancement modules below. No-ops by default. */
 window.fx = { screen() {}, list() {}, toast() {} };

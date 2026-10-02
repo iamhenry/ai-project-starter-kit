@@ -1,6 +1,6 @@
 ---
 name: html-prototype
-description: Build a high-fidelity, single-file HTML prototype (Tailwind browser build, daisyUI 5, Motion, Tabler icons, optional interact.js) that opens by double-click with no build step, then hand it off as a living spec for a production build. Use only when the user explicitly invokes html-prototype or /html-prototype, or explicitly asks for an HTML prototype using this stack. Do not use for production code, framework apps, or general UI work.
+description: Build a high-fidelity, single-file HTML prototype (Tailwind browser build, daisyUI 5, Motion, Tabler icons, plus optional libraries for gestures, sound, Lottie, physics, and 3D) that opens by double-click with no build step, then hand it off as a living spec for a production build. Use only when the user explicitly invokes html-prototype or /html-prototype, or explicitly asks for an HTML prototype using this stack. Do not use for production code, framework apps, or general UI work.
 ---
 
 # HTML Prototype
@@ -23,7 +23,7 @@ If the user does not say, ask once. Always read [references/stack.md](references
 ## Hard rules
 
 - One `.html` file. It must work by double-clicking it: no npm, no bundler, no compile step, no local server.
-- Use only the pinned CDNs in `stack.md`. No React, Vue, Framer Motion, shadcn, or package installs.
+- Use only the pinned CDNs in `stack.md`; its table says what each one is for. Prefer native browser features before adding a library. No React, Vue, Framer Motion, shadcn, or package installs.
 - Use daisyUI class names for standard controls (buttons, inputs, cards, navbar, tabs, drawer, modal, toggles). Build anything novel with Tailwind utilities, SVG, or canvas. Do not invent a component library or copy framework components.
 - Every interactive element does something real: navigates, changes state, or opens a real modal. No dead buttons, no `href="#"`.
 - Fake data lives in one clearly marked seed block. Every collection has an empty state.
@@ -39,7 +39,7 @@ Work in passes. Prove each pass works before starting the next. Later passes are
 1. **Frame.** Restate the idea as the experience to feel, the screens or surfaces, the core actions, and the states each surface needs (empty, loading, error, success, edge cases). Ask only questions that would change the outcome.
 2. **Base.** Copy the domain starter. Build every surface, flow, and state with no motion. All interactions work.
 3. **Design.** Apply `design.md` through the theme variables already mapped in the starter. Tune hierarchy, spacing, and type until it reads as a real product in both themes.
-4. **Motion.** Apply the `animation-principles` skill: micro-interactions that explain a change, keep continuity, or confirm an action. Premium, never showy. Respect reduced motion.
+4. **Motion.** Apply the `animation-principles` skill: micro-interactions that explain a change, keep continuity, or confirm an action. Premium, never showy. Respect reduced motion. Optional sound and rich media (Lottie, physics, 3D) follow `stack.md`; use them where they make a moment clearer or more tactile, not as decoration.
 5. **Interaction depth.** Domain-specific input: gestures on mobile, keyboard, pointer, and drag and drop on web. Use the gesture reference in `animation-principles`.
 6. **Persistence.** Save state locally so the prototype survives reloads and can be lived with (see `stack.md`).
 
@@ -52,7 +52,7 @@ Keep the file readable for the next agent:
 - **Head:** pinned CDNs, then one `<style>` block with the theme variables and the few custom classes.
 - **Markup:** one section per screen or surface, then modals, then toast.
 - **App script (classic `<script>`):** seed data, state, render functions, one delegated click listener driven by `data-nav`, `data-modal`, `data-action`, and similar attributes, and persistence.
-- **Enhancement modules (`<script type="module">`):** motion and gestures, each in its own block. They fill named hooks on `window.fx` that the app script calls (no-ops by default). If a CDN fails, the prototype still works.
+- **Enhancement modules (`<script type="module">`):** motion, gestures, sound, and rich media, each in its own block. They fill named hooks (`window.fx`, and separate groups such as `window.sfx` or `window.media` when needed) that the app script calls (no-ops by default). If a CDN fails, the prototype still works.
 - **A small `window.app` API** for modules that need to change state (for example, reorder or remove), so they never reach into app internals.
 
 ## Prove it
@@ -62,7 +62,8 @@ Mechanical checks are not proof. Exercise the real thing:
 - Open the file directly (`file://`) in a headless browser at each of the domain's verification widths.
 - Walk every surface and flow; open every modal; check every state, including empty.
 - Toggle the theme; capture screenshots in both themes.
-- Use real input for interactions: pointer down, move, up for drags and swipes; keyboard for shortcuts.
+- Use real input for interactions: pointer down, move, up for drags and swipes; keyboard for shortcuts. For flicks, send input fast enough to be a flick (do not wait for each move to be acknowledged), and compare against a slow drag of the same distance.
+- Short animations (under half a second) are easy to miss in a screenshot. Sample the state on a timer, or copy a canvas frame, instead of trusting one screenshot.
 - Reload to prove persistence.
 - Confirm zero page errors.
 - Wait for open animations to finish before clicking inside a modal or sheet, or the click lands behind it.
