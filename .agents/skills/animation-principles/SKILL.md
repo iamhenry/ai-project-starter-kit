@@ -16,7 +16,7 @@ For gestures and direct manipulation (drag, swipe, pinch, throw), also read [ref
 1. Name what each animation communicates: a state change, where something came from or went, or confirmation of an action. If it communicates nothing, do not animate it.
 2. Start from the baseline tokens below. Reuse them so similar actions feel the same.
 3. Check frequency: the more often an action happens, the less it should animate.
-4. Make everything interruptible, and honor reduced motion.
+4. Give every animated change an animated reverse, make everything interruptible, and honor reduced motion.
 5. Judge in the running UI, at real speed, then slowed down. Adjust from there.
 
 ## Baseline tokens
@@ -136,7 +136,20 @@ animate(field, { x: [0, -6, 6, -4, 4, 0] }, { duration: 0.35 });
 **Use:** A detail view grows from the tapped item; a sheet slides from the edge it is dismissed to; back navigation reverses forward navigation.
 **Avoid:** Generic fades when the origin is known.
 
-### 14. Appeal
+### 14. Reversible motion
+**Rule:** Every animated change has an animated way back. Undoing an action plays the same motion in reverse: same properties, same path, ending exactly where it started.
+**Use:** Uncheck erases the checkmark the way it was drawn; a closed panel returns to the control that opened it; an undone delete slides the item back into its slot; a progress bar that filled also drains. The reverse may be slightly faster (about 80 % of the forward duration), never instant while the forward was animated.
+**Avoid:** One-way animations, where the forward state animates and the reverse snaps. Also avoid a different motion on the way back (fading out something that slid in), which breaks the user's sense of where things went.
+
+```js
+// One function owns both directions. Start from the current value so a quick toggle reverses mid-flight.
+function setChecked(path, on) {
+  path.anim?.stop();
+  path.anim = animate(path, { pathLength: on ? 1 : 0 }, { duration: on ? DUR.fast : DUR.fast * 0.8, ease: on ? EASE.out : EASE.in });
+}
+```
+
+### 15. Appeal
 **Rule:** The sum of the details makes an interface people want to use.
 **Use:** A final pass at real speed: does it feel crafted and calm? Remove anything showy.
 
@@ -144,19 +157,19 @@ animate(field, { x: [0, -6, 6, -4, 4, 0] }, { duration: 0.35 });
 
 Full mechanics and recipes are in [references/gestures.md](references/gestures.md).
 
-### 15. Respond from the first pixel
+### 16. Respond from the first pixel
 **Rule:** Follow the input immediately and 1:1. Thresholds decide the outcome; they never delay the feedback.
 **Avoid:** Nothing happening until a threshold, then a canned 0-to-1 animation.
 
-### 16. Everything is interruptible
+### 17. Everything is interruptible
 **Rule:** The user can grab, reverse, or redirect anything mid-animation, the way you can stop a page turning.
 **Use:** Start gestures from the element's current value; stop running animations when a new input arrives.
 
-### 17. Trigger timing matches intent
+### 18. Trigger timing matches intent
 **Rule:** Light, reversible actions may fire during the gesture once the element reaches its logical position (revealing search, peeking a panel). Destructive actions fire only on release, however far the drag went.
 **Use:** For release actions, show an armed state past the threshold (label, color, haptic) and let the user drag back to cancel.
 
-### 18. Momentum projection
+### 19. Momentum projection
 **Rule:** On release, pick the destination from where the gesture is going, not where it stopped.
 
 ```js
@@ -165,24 +178,24 @@ const project = (velocity /* px/s */, rate = 0.998) => (velocity / 1000) * rate 
 const target = nearest(snapPoints, position + project(velocity));
 ```
 
-### 19. Velocity handoff
+### 20. Velocity handoff
 **Rule:** The settle animation starts at the release velocity, so a flick carries through without a hitch.
 
 ```js
 animate(position, target, { ...SPRING.ui, velocity, onUpdate: v => (el.style.transform = `translateY(${v}px)`) });
 ```
 
-### 20. Resistance at limits
+### 21. Resistance at limits
 **Rule:** Past a boundary, move a fraction of the input (rubber band) instead of stopping dead.
 
 ```js
 const rubber = (over, dim, k = 0.55) => (1 - 1 / ((Math.abs(over) * k) / dim + 1)) * dim * Math.sign(over);
 ```
 
-### 21. Keep the target visible
+### 22. Keep the target visible
 **Rule:** A finger hides what it touches. Show a magnified value or a label above the touch point, and keep the drag alive when the finger drifts off a small control.
 
-### 22. Fitts's law
+### 23. Fitts's law
 **Rule:** Bigger and closer targets are faster to hit. Screen edges and corners are effectively infinite.
 **Use:** Primary actions within thumb reach; minimum 40 to 44 px touch targets; radial or pointer-anchored menus for power actions.
 
