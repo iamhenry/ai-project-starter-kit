@@ -31,6 +31,10 @@ Every web prototype works from phone to wide desktop without horizontal scrollin
 - **Context menus and popovers** anchored to their trigger; dialogs centered with `showModal()`.
 - **Toasts** bottom-right or top-center, never covering primary content.
 
+## Native browser features
+
+Prefer what the browser provides before adding a library: native inputs (`date`, `time`, `color`, `<select>`) with fitting `autocomplete` and `inputmode`, `<dialog>` for modals, and the `popover` attribute for menus. View changes can use `document.startViewTransition()` for a short cross-fade or a shared element moving between views, with persistent chrome given its own `view-transition-name` so it stays still. Skip it with reduced motion. Optional sound follows the rules in `stack.md`.
+
 ## Motion on web
 
 Follow the `animation-principles` skill. Desktop motion is subtler than mobile: frequent keyboard and pointer actions (menus, selection, shortcuts) appear instantly; panels and dialogs get short fades or slides.

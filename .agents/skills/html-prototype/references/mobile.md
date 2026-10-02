@@ -20,10 +20,21 @@ Design the phone layout first, then let it open up on tablets. Do not stretch a 
 - Full-bleed, not a phone frame. `min-h-dvh`. The document scrolls, not an inner box.
 - Sticky top bar; fixed bottom navigation on phones; leave bottom padding so content clears it.
 - `viewport-fit=cover` plus `env(safe-area-inset-*)` on the top bar, bottom bar, side rail, sheets, and edge-pinned controls.
-- `apple-mobile-web-app-capable`, `mobile-web-app-capable`, and a `theme-color` meta that updates with the theme.
-- `overscroll-behavior-y: none` and `-webkit-tap-highlight-color: transparent` on `html, body`.
-- Optional for real installs: a web app manifest and a 180 × 180 apple-touch-icon beside the HTML file.
 - Primary actions within thumb reach on phones; on tablets, keep them near the content they act on.
+
+## Native feel (browser features, no libraries)
+
+Use what the browser already does natively before reaching for a library.
+
+- **Home screen.** `apple-mobile-web-app-capable`, `mobile-web-app-capable`, `apple-mobile-web-app-title`, `apple-mobile-web-app-status-bar-style`, and a `theme-color` meta that updates with the theme. A 180 × 180 `apple-touch-icon` can be drawn on a canvas at startup and set as a data URL, so no image file is needed. Optionally show in settings whether it is running from the home screen (`matchMedia("(display-mode: standalone)")` or `navigator.standalone`) and how to add it.
+- **Native inputs.** `type="date"`, `"time"`, and `<select>` open the platform's own pickers. Add `autocapitalize`, `enterkeyhint`, `inputmode`, and `autocomplete` so the keyboard fits the field.
+- **Screen transitions.** Wrap screen changes in `document.startViewTransition()` where supported: deeper screens push in from the right while the screen underneath shifts about 30 % and dims; going back reverses it; same-level tabs cross-fade. Give persistent chrome (top bar, tab bar) its own `view-transition-name` so it stays still, and give a shared element the same name on both screens so it travels between them. Skip it during gestures (the finger already moved the screen) and with reduced motion, and keep the Motion fallback for browsers without it.
+- **Haptics.** `navigator.vibrate` where it exists. iPhone Safari has none, but toggling a hidden native switch (`<input type="checkbox" switch>` inside a label, clicked from a user action) gives a light system haptic on recent iOS. Wrap both in one `haptic()` helper and call it for commits, not for every movement.
+- **System font option.** A setting that swaps the brand fonts for `-apple-system, system-ui` lets the user compare against a stock platform feel.
+- **Touch polish.** `touch-action: manipulation` on `html` (no double-tap zoom); no text selection or long-press callout on controls; inputs at 16 px on touch screens so Safari does not zoom into them; `overscroll-behavior: contain` on sheets and scrolling panels; `overscroll-behavior-y: none` and `-webkit-tap-highlight-color: transparent` on `html, body`.
+- **Sound.** Optional; follow the sound rules in `stack.md`. Phones may mute web audio with the ring/silent switch, which matches native behavior.
+
+Haptics, home-screen launch, and the silent switch can only be confirmed on a real device. Say so when reporting.
 
 ## Navigation and overlays
 
@@ -37,7 +48,7 @@ Gestures are where mobile prototypes earn their feel. Use the `animation-princip
 
 ## Motion on mobile
 
-Follow the `animation-principles` skill. Screen pushes slide a few pixels in the navigation direction; lists may stagger in on first view; everything stays interruptible by the next touch.
+Follow the `animation-principles` skill. Screen pushes follow the platform (see View Transitions above), with a short slide as the fallback; lists may stagger in on first view, not on every return; everything stays interruptible by the next touch.
 
 ## Testing on a real phone
 
