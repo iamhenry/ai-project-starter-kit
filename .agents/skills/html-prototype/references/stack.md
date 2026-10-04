@@ -15,6 +15,7 @@ Pinned. Do not substitute. Both starters already include the base set. Add an op
 | Motion 13.5 (vanilla) | Animates values and elements: tweens, springs with velocity | Always for the motion pass |
 | Iconify + Tabler | Icons as a web component | Always for icons |
 | **Optional** | | |
+| AutoAnimate 0.10 | Animates a list's adds, removes, and moves with one call | Lists that change often; see `motion-recipes.md` |
 | interact.js 1.10 | Reads pointer drags, swipes, pinches, drag and drop | Gestures on mobile; drag and drop on web |
 | Tone.js 15.1 | Synthesizes sound in code, no audio files | Short UI sounds that confirm actions; audio-driven ideas |
 | dotLottie web 0.80 | Plays Lottie animations (designer files, or Lottie JSON built in code) | Celebrations, illustrations, empty states, animated icons; anything better drawn than coded |
@@ -49,6 +50,7 @@ import { animate } from "https://cdn.jsdelivr.net/npm/motion@13.5.0/+esm";
 
 // Optional, heavy: load on first use with dynamic import so they never slow the first paint.
 const THREE = await import("https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js");
+const { default: autoAnimate } = await import("https://cdn.jsdelivr.net/npm/@formkit/auto-animate@0.10.0/+esm");
 const { DotLottie } = await import("https://cdn.jsdelivr.net/npm/@lottiefiles/dotlottie-web@0.80.0/+esm");
 ```
 

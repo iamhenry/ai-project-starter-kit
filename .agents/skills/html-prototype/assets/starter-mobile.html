@@ -79,6 +79,21 @@
   button, .btn, [role="tab"], label, .toggle, .checkbox { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   @media (pointer: coarse) { .input, .select, .textarea { font-size: 16px; } }
   .modal-box { overscroll-behavior: contain; }
+  /* Motion recipes (references/motion-recipes.md): CSS keyed to browser states, no script.
+     daisyUI already animates modals, sheets, dropdowns, drawer, checkbox, toggle; these fill the gaps. */
+  @media (prefers-reduced-motion: no-preference) {
+    /* Press: shrink on touch-down. Add data-press to any custom pressable. */
+    .btn, [data-press] { transition-property: color, background-color, border-color, box-shadow, transform, scale; }
+    .btn:active:not(:disabled), [data-press]:active { scale: .97; transition-duration: .1s; }
+    /* Dialog and sheet: softer settle in, quicker exit. Menu: same easing. */
+    .modal-box, .dropdown-content, .dropdown[popover] { transition-timing-function: cubic-bezier(.22,1,.36,1); }
+    .modal:not([open], .modal-open, :popover-open, :target) > .modal-box { transition-duration: .2s; transition-timing-function: cubic-bezier(.55,0,1,.45); }
+    /* Toast: slides and fades in when shown, out when it gets .hidden. */
+    .toast > * { --toast-from: 8px; transition: opacity .2s ease-out, translate .25s cubic-bezier(.22,1,.36,1), display .25s allow-discrete; }
+    .toast-top > * { --toast-from: -8px; }
+    .toast > .hidden { opacity: 0; translate: 0 var(--toast-from); }
+    @starting-style { .toast > * { opacity: 0; translate: 0 var(--toast-from); } }
+  }
 </style>
 </head>
 <body class="min-h-dvh bg-base-100 text-base-content overflow-x-clip">
@@ -269,6 +284,8 @@ window.haptic = () => navigator.vibrate ? navigator.vibrate(8) : hapticSwitch.cl
 
 /* Hooks filled by the enhancement modules below. No-ops by default. */
 window.fx = { screen() {}, list() {}, toast() {} };
+// iOS Safari applies :active on touch-down only when the page has a touch listener.
+document.addEventListener("touchstart", () => {}, { passive: true });
 window.app = { get screen() { return screen; }, go: n => go(n) };
 
 /* ---------- Render (every change ends here, so save here) ---------- */
@@ -390,7 +407,6 @@ if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
       animate(el, { opacity: [0, 1], x: [8 * dir, 0] }, { duration: 0.2, ease });
     },
     list(rows) { rows.forEach((r, i) => animate(r, { opacity: [0, 1], y: [6, 0] }, { duration: 0.25, delay: i * 0.025, ease })); },
-    toast(el) { animate(el, { opacity: [0, 1], y: [-8, 0] }, { duration: 0.2, ease }); },
   });
   window.fx.list([...document.querySelectorAll("#list > li")]);
 }
