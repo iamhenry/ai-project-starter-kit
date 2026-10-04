@@ -26,8 +26,13 @@ Design the phone layout first, then let it open up on tablets. Do not stretch a 
 
 Use what the browser already does natively before reaching for a library.
 
-- **Home screen.** `apple-mobile-web-app-capable`, `mobile-web-app-capable`, `apple-mobile-web-app-title`, `apple-mobile-web-app-status-bar-style`, and a `theme-color` meta that updates with the theme. A 180 × 180 `apple-touch-icon` can be drawn on a canvas at startup and set as a data URL, so no image file is needed. Optionally show in settings whether it is running from the home screen (`matchMedia("(display-mode: standalone)")` or `navigator.standalone`) and how to add it.
+- **Home screen.** `apple-mobile-web-app-capable`, `mobile-web-app-capable`, `apple-mobile-web-app-title`, `apple-mobile-web-app-status-bar-style`, and `color-scheme`. Give `theme-color` one meta per scheme (`media="(prefers-color-scheme: light)"` and `dark`) so the status bar is right on first paint, then update both when the in-app theme toggles. A 180 × 180 `apple-touch-icon` can be drawn on a canvas at startup and set as a data URL, so no image file is needed. Optionally show in settings whether it is running from the home screen (`matchMedia("(display-mode: standalone)")` or `navigator.standalone`) and how to add it.
 - **Native inputs.** `type="date"`, `"time"`, and `<select>` open the platform's own pickers. Add `autocapitalize`, `enterkeyhint`, `inputmode`, and `autocomplete` so the keyboard fits the field.
+- **Keyboard and viewport.** Add `interactive-widget=resizes-content` to the viewport meta so the on-screen keyboard shrinks the layout on Android, as it does on iOS, and bottom-pinned fields stay visible. Never disable zoom (`user-scalable=no`, `maximum-scale=1`); fix the cause instead (fields under 16 px). Set `-webkit-text-size-adjust: 100%` so text does not inflate in landscape.
+- **Press feedback on touch-down.** Controls respond the moment the finger lands: style `:active`, or use `pointerdown` in script, not `click`. Keep it short (about 100 to 160 ms, ease-out); timing comes from `animation-principles`.
+- **Hover only with a real pointer.** On touch, a tapped element keeps its hover style until the next tap. Put custom `:hover` rules inside `@media (hover: hover) and (pointer: fine)`. Tailwind v4's `hover:` variant and daisyUI already do this; hand-written CSS does not.
+- **Capability, not device.** Decide input behavior with `(hover)` and `(pointer)` media queries, never user-agent sniffing. Width decides layout; capability decides touch versus mouse behavior. Touch and mouse can coexist (tablets with trackpads, touchscreen laptops), so support both at once.
+- **Native scrolling first.** A swipeable row of cards or a pager is usually `overflow-x: auto` with `scroll-snap-type: x mandatory` on the track and `scroll-snap-align: start` on items. The browser's own scroll physics beat a custom gesture. Reach for interact.js only when the gesture does more than scroll.
 - **Screen transitions.** Wrap screen changes in `document.startViewTransition()` where supported: deeper screens push in from the right while the screen underneath shifts about 30 % and dims; going back reverses it; same-level tabs cross-fade. Give persistent chrome (top bar, tab bar) its own `view-transition-name` so it stays still, and give a shared element the same name on both screens so it travels between them. Skip it during gestures (the finger already moved the screen) and with reduced motion, and keep the Motion fallback for browsers without it.
 - **Haptics.** `navigator.vibrate` where it exists. iPhone Safari has none, but toggling a hidden native switch (`<input type="checkbox" switch>` inside a label, clicked from a user action) gives a light system haptic on recent iOS. Wrap both in one `haptic()` helper and call it for commits, not for every movement.
 - **System font option.** A setting that swaps the brand fonts for `-apple-system, system-ui` lets the user compare against a stock platform feel.
@@ -35,6 +40,21 @@ Use what the browser already does natively before reaching for a library.
 - **Sound.** Optional; follow the sound rules in `stack.md`. Phones may mute web audio with the ring/silent switch, which matches native behavior.
 
 Haptics, home-screen launch, and the silent switch can only be confirmed on a real device. Say so when reporting.
+
+### Never ship (mobile self-check)
+
+| Never | Instead |
+|---|---|
+| `user-scalable=no` or `maximum-scale=1` | 16 px fields |
+| Hand-written `:hover` outside a hover-capable media query | `@media (hover: hover) and (pointer: fine)` |
+| `100vh` for the app shell or bottom-pinned UI | `100dvh` (`min-h-dvh`) |
+| Press feedback only on `click` | `:active` or `pointerdown` |
+| `touchmove` with `preventDefault()` to stop page bounce | `overscroll-behavior` |
+| `user-select: none` on body text | Only on controls |
+| `touch-action: none` on something the user must scroll past | `pan-x` or `pan-y` |
+| `env(safe-area-inset-*)` without `viewport-fit=cover` | Add it to the viewport meta, or the insets are 0 |
+| One `theme-color` for both schemes | One per `prefers-color-scheme`, updated on toggle |
+| User-agent or width checks to detect touch | `(hover)` and `(pointer)` media queries |
 
 ## Navigation and overlays
 
