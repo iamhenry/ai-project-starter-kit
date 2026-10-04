@@ -27,6 +27,7 @@ Every web prototype works from phone to wide desktop without horizontal scrollin
 
 - **Keyboard:** logical tab order, visible focus, Enter and Space activate, Esc closes overlays. Add shortcuts only for frequent actions and show them where the action lives.
 - **Pointer:** hover may reveal secondary actions, but every action is reachable without hover. Cursor reflects affordance (`pointer`, `grab`, `text`).
+- **Capability, not device:** touchscreen laptops and tablets with trackpads mix touch and mouse. Put hand-written `:hover` rules inside `@media (hover: hover) and (pointer: fine)` (Tailwind v4's `hover:` and daisyUI already do), and use `(pointer: coarse)` for touch-specific sizing. Never sniff the user agent.
 - **Drag and drop** where the product needs it (reorder, move between columns, resize): interact.js with a visible drop target and a keyboard alternative. See the `animation-principles` gesture reference.
 - **Context menus and popovers** anchored to their trigger; dialogs centered with `showModal()`.
 - **Toasts** bottom-right or top-center, never covering primary content.

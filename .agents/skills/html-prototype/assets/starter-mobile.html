@@ -2,13 +2,15 @@
 <html lang="en" data-theme="light">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
 <title>Prototype</title>
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="Prototype" />
-<meta name="theme-color" content="#ffffff" />
+<meta name="color-scheme" content="light dark" />
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#101010" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cal+Sans&family=Inter:wght@400..600&display=swap" rel="stylesheet">
@@ -71,7 +73,9 @@
   .pb-safe { padding-bottom: max(env(safe-area-inset-bottom), 0.5rem); }
   /* Native touch feel: no double-tap zoom, no selection or callout on controls,
      no zoom into fields (Safari zooms under 16px), sheets don't scroll the page behind them. */
-  html { touch-action: manipulation; }
+  html { touch-action: manipulation; -webkit-text-size-adjust: 100%; }
+  /* Hand-written hover rules go inside this query so a tap doesn't leave them stuck on touch screens:
+     @media (hover: hover) and (pointer: fine) { .thing:hover { … } } */
   button, .btn, [role="tab"], label, .toggle, .checkbox { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   @media (pointer: coarse) { .input, .select, .textarea { font-size: 16px; } }
   .modal-box { overscroll-behavior: contain; }
@@ -330,7 +334,7 @@ function toast(msg) {
 /* ---------- Theme ---------- */
 function setTheme(dark) {
   document.documentElement.dataset.theme = dark ? "dark" : "light";
-  $('meta[name="theme-color"]').content = dark ? "#101010" : "#ffffff";
+  $$('meta[name="theme-color"]').forEach(m => m.content = dark ? "#101010" : "#ffffff"); // in-app choice wins over the OS scheme
   $$(".theme-toggle").forEach(t => t.checked = dark);
 }
 $$(".theme-toggle").forEach(t => t.addEventListener("change", e => {
