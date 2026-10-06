@@ -4,6 +4,7 @@ This file is the template. Copy everything inside the `BEGIN TEMPLATE` / `END TE
 
 Rules:
 - The format is universal. It fits any brand in any style. It was derived from a Cal.com style reference, but Cal.com is only the source of the structure. Do not carry over any Cal.com values, names, or wording.
+- Prefer tables over bullet lists wherever content has repeatable fields. Keep prose only for the overview, imagery, and layout sections.
 - Keep the headings, section order, and table columns exactly. Add or remove table rows to fit the design.
 - Omit a whole section only if the input has no evidence for it (for example, no imagery). Never reorder.
 - Names, hex values, and token names must match across the tables, components, prompt guide, and CSS blocks. Do not use in prose a color, font, radius, or shadow that has no token.
@@ -30,14 +31,12 @@ Source measurements are normalized; roles and recommendations are interpreted. F
 
 ## Tokens — Typography
 
-[repeat this block once per font family]
-### [font name] — [one-line role and character] · `--font-[name]`
-- **Substitute:** [web-safe or Google Fonts fallback]
-- **Weights:** [list]
-- **Sizes:** [list]
-- **Line height:** [range]
-- **Letter spacing:** [value and effect]
-- **Role:** [where and why it is used]
+### Font Families
+
+| Font | Token | Substitute | Weights | Sizes | Line Height | Letter Spacing | Role |
+|------|-------|------------|---------|-------|-------------|----------------|------|
+| [font name] | `--font-[name]` | [web-safe or Google Fonts fallback] | [list] | [list] | [range] | [value and effect] | [where and why it is used, in one line] |
+| [one row per font family] | | | | | | | |
 
 ### Type Scale
 
@@ -69,30 +68,34 @@ Source measurements are normalized; roles and recommendations are interpreted. F
 
 ### Layout
 
-- **Page max-width:** [value]
-- **Section gap:** [value]
-- **Card padding:** [value]
+| Property | Value |
+|----------|-------|
+| Page max-width | [value] |
+| Section gap | [value] |
+| Card padding | [value] |
 
 ## Components
 
-[repeat this block once per component. Cover at least: primary button, secondary button, tag or chip, card, navigation link, and any signature or hero component.]
-### [component name]
-**Role:** [what it is for]
+[One row per component. Cover at least: primary button, secondary button, tag or chip, card, navigation link, and any signature or hero component. Use exact values and refer to colors by name and hex. Use — for properties that do not apply. Add columns for other properties the design needs, such as border, height, or states.]
 
-[One paragraph with exact values: background, text color, font and size, radius, padding, shadow. Refer to colors by token name and hex.]
+| Component | Role | Background | Text | Font | Radius | Padding | Shadow |
+|-----------|------|------------|------|------|--------|---------|--------|
+| [name] | [what it is for] | [color] | [color] | [font and size] | [value] | [value] | [value or —] |
 
 ## Do's and Don'ts
 
-### Do
-- [concrete, checkable rule using exact values: colors, radii, weights, fonts]
-
-### Don't
-- [concrete, checkable pitfall using exact values]
+| Do | Don't |
+|----|-------|
+| [concrete, checkable rule using exact values: colors, radii, weights, fonts] | [the matching pitfall to avoid, using exact values] |
+| [one row per rule pair; if a side has no match, use —] | |
 
 ## Elevation
 
-- **[component type]:** `[shadow value]`
-[For flat designs, replace the list with a short explanation of the alternative: borders, tonal layers, color contrast.]
+| Component | Shadow |
+|-----------|--------|
+| [component type] | `[shadow value]` |
+
+[For flat designs, replace this table with one that maps component types to the alternative: borders, tonal layers, color contrast.]
 
 ## Imagery
 
@@ -105,23 +108,32 @@ Source measurements are normalized; roles and recommendations are interpreted. F
 ## Agent Prompt Guide
 
 ### Quick Color Reference
-- **Page Background:** `[hex]` ([name])
-- **Card Background:** `[hex]` ([name])
-- **Headline Text:** `[hex]` ([name])
-- **Body Text:** `[hex]` ([name])
-- **Primary CTA:** `[hex]` ([name]) background, `[hex]` ([name]) text
-- **Borders/Dividers:** `[hex]` ([name])
+| Use | Value | Name |
+|-----|-------|------|
+| Page Background | `[hex]` | [name] |
+| Card Background | `[hex]` | [name] |
+| Headline Text | `[hex]` | [name] |
+| Body Text | `[hex]` | [name] |
+| Primary CTA | `[hex]` background, `[hex]` text | [names] |
+| Borders/Dividers | `[hex]` | [name] |
 
 ### Example Component Prompts
+
 [3 self-contained prompts, each with exact hex values, font names, sizes, radii, padding, and shadows.]
-1. **Hero Section:** "[prompt]"
-2. **Primary CTA Button:** "[prompt]"
-3. **Feature Card:** "[prompt]"
+
+| Component | Prompt |
+|-----------|--------|
+| Hero Section | "[prompt]" |
+| Primary CTA Button | "[prompt]" |
+| Feature Card | "[prompt]" |
 
 ## Similar Brands
 
-- **[brand]** — [one line on what is shared or different]
-[3-4 entries]
+[3-4 rows]
+
+| Brand | Shared or Different |
+|-------|---------------------|
+| [brand] | [one line on what is shared or different] |
 
 ## Quick Start
 
