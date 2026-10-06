@@ -2,7 +2,9 @@
 
 DESIGN.md is a self-contained, plain-markdown style reference for a brand or product. It carries the visual identity so it can be followed across design sessions and between AI agents and tools. It has no YAML front matter: tokens live in markdown tables and in a CSS block at the end. Tables and the CSS blocks are normative; prose explains how to apply them.
 
-The reference shape is the Cal.com style reference. Follow its structure, section order, and heading names exactly.
+This format is universal. It applies to any brand or product, in any visual style (dark, colorful, playful, editorial, and so on). It was derived from a Cal.com style reference, but Cal.com is only the source of the structure. Follow the section order, heading names, and table columns exactly. Everything else comes from the supplied design input.
+
+Every value, name, and sentence in the examples below (colors such as Ink or `#101010`, fonts such as Cal Sans, radii, shadows, tagline wording, "monochrome" language) is illustrative only. Never copy them into a generated file unless the input actually contains them. Color names, token names, scale roles, components, and the number of fonts, colors, or spacing steps should be whatever the input's design needs.
 
 ## Document Shape
 
@@ -37,6 +39,7 @@ Source measurements are normalized; roles and recommendations are interpreted. F
 - Title is `# {Brand} — Style Reference`.
 - The blockquote is a short tagline naming the design's core tension (for example, "Monochrome Utility, Human Touch.").
 - Keep the provenance note line as shown.
+- Write the tagline, theme, and overview from the input's own character, not from the example.
 
 ## 2. Tokens — Colors
 
