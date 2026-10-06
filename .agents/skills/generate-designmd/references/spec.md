@@ -1,198 +1,169 @@
-# DESIGN.md Format
+# DESIGN.md Template
 
-DESIGN.md is a self-contained, plain-markdown style reference for a brand or product. It carries the visual identity so it can be followed across design sessions and between AI agents and tools. It has no YAML front matter: tokens live in markdown tables and in a CSS block at the end. Tables and the CSS blocks are normative; prose explains how to apply them.
+This file is the template. Copy everything inside the `BEGIN TEMPLATE` / `END TEMPLATE` markers into `DESIGN.md` and replace every `[fill in ...]` with content from the supplied design input.
 
-This format is universal. It applies to any brand or product, in any visual style (dark, colorful, playful, editorial, and so on). It was derived from a Cal.com style reference, but Cal.com is only the source of the structure. Follow the section order, heading names, and table columns exactly. Everything else comes from the supplied design input.
+Rules:
+- The format is universal. It fits any brand in any style. It was derived from a Cal.com style reference, but Cal.com is only the source of the structure. Do not carry over any Cal.com values, names, or wording.
+- Keep the headings, section order, and table columns exactly. Add or remove table rows to fit the design.
+- Omit a whole section only if the input has no evidence for it (for example, no imagery). Never reorder.
+- Names, hex values, and token names must match across the tables, components, prompt guide, and CSS blocks. Do not use in prose a color, font, radius, or shadow that has no token.
+- Use exact values when the input provides them. Say so when a value is estimated or proposed.
+- Delete all `[...]` instructions from the final file. Do not include secrets or unrelated private data.
 
-Every value, name, and sentence in the examples below (colors such as Ink or `#101010`, fonts such as Cal Sans, radii, shadows, tagline wording, "monochrome" language) is illustrative only. Never copy them into a generated file unless the input actually contains them. Color names, token names, scale roles, components, and the number of fonts, colors, or spacing steps should be whatever the input's design needs.
+<!-- BEGIN TEMPLATE -->
 
-## Document Shape
+# [fill in brand or product name] — Style Reference
+> [fill in a short tagline naming the design's core tension, e.g. "X Y, Z W."] [fill in one sentence on the idea behind the system.]
 
-Sections appear in this order. Omit a section only if it has no evidence in the input (for example, no imagery). Never reorder.
-
-1. Title and header block
-2. Tokens — Colors
-3. Tokens — Typography
-4. Tokens — Spacing & Shapes
-5. Components
-6. Do's and Don'ts
-7. Elevation
-8. Imagery
-9. Layout
-10. Agent Prompt Guide
-11. Similar Brands
-12. Quick Start (CSS Custom Properties, Tailwind v4)
-
-## 1. Title and Header Block
-
-```markdown
-# {Brand} — Style Reference
-> {Two-to-four word concept}, {second half}. {One sentence on the idea behind the system.}
-
-**Theme:** {light | dark}
+**Theme:** [fill in light or dark]
 
 Source measurements are normalized; roles and recommendations are interpreted. Font summary lists are independent, not paired by position. HTML examples are reconstructions, not source components.
 
-{One paragraph (4-6 sentences): the overall feel, how color is used, what the typography does, the shape of buttons and cards, and the elevation approach.}
-```
+[fill in one paragraph, 4-6 sentences: the overall feel, how color is used, what the typography does, the shape of buttons and cards, and the elevation approach.]
 
-- Title is `# {Brand} — Style Reference`.
-- The blockquote is a short tagline naming the design's core tension (for example, "Monochrome Utility, Human Touch.").
-- Keep the provenance note line as shown.
-- Write the tagline, theme, and overview from the input's own character, not from the example.
-
-## 2. Tokens — Colors
-
-A table with columns `Name | Value | Token | Role`.
-
-```markdown
 ## Tokens — Colors
 
 | Name | Value | Token | Role |
 |------|-------|-------|------|
-| Ink | `#101010` | `--color-ink` | Primary CTAs, primary text, active states. |
-```
+| [short descriptive name] | `[CSS color, hex by default]` | `--color-[kebab-case-name]` | [where it is used, not just what it looks like] |
+| [one row per color; include brand or logo colors only if present in the input and mark them "logos only"] | | | |
 
-- Name is a short descriptive word (Ink, Paper, Slate). Value is a backticked CSS color, hex by default.
-- Token is a backticked CSS custom property, `--color-{name}` in kebab-case.
-- Role says where the color is used, not just what it looks like.
-- Include integration or brand-logo colors only if present in the input, and mark them "logos only".
-
-## 3. Tokens — Typography
-
-One subsection per font family, then a type scale table.
-
-```markdown
 ## Tokens — Typography
 
-### {Font Name} — {one-line role and character} · `--font-{name}`
-- **Substitute:** {web-safe or Google Fonts fallback}
-- **Weights:** {list}
-- **Sizes:** {list}
-- **Line height:** {range}
-- **Letter spacing:** {value and effect}
-- **Role:** {where and why it is used}
+[repeat this block once per font family]
+### [font name] — [one-line role and character] · `--font-[name]`
+- **Substitute:** [web-safe or Google Fonts fallback]
+- **Weights:** [list]
+- **Sizes:** [list]
+- **Line height:** [range]
+- **Letter spacing:** [value and effect]
+- **Role:** [where and why it is used]
 
 ### Type Scale
 
 | Role | Family | Weight | Size | Line Height | Letter Spacing | Token |
 |------|--------|--------|------|-------------|----------------|-------|
-| body | — | — | 16px | 1.5 | -0.19px | `--text-body` |
-```
+| [semantic role, e.g. caption, body-sm, body, subheading, heading-sm, heading, heading-lg, display; smallest to largest] | [family, or — if unknown or inherited] | [weight or —] | [size] | [line height] | [letter spacing] | `--text-[role]` |
 
-- Use `—` for family and weight cells when unknown or inherited.
-- Scale roles are semantic (caption, body-sm, body, subheading, heading-sm, heading, heading-lg, display). Order smallest to largest.
-- Token is `--text-{role}`.
-
-## 4. Tokens — Spacing & Shapes
-
-```markdown
 ## Tokens — Spacing & Shapes
 
-**Density:** {compact | comfortable | spacious}
+**Density:** [fill in compact, comfortable, or spacious]
 
 ### Spacing Scale
 
 | Name | Value | Token |
 |------|-------|-------|
-| 4 | 4px | `--spacing-4` |
+| [step, usually the pixel number] | [value] | `--spacing-[step]` |
 
 ### Border Radius
 
 | Element | Value |
 |---------|-------|
-| cards | 12px |
+| [element, e.g. tags, cards, inputs, buttons] | [value] |
 
 ### Shadows
 
 | Name | Value | Token |
 |------|-------|-------|
-| sm | `rgba(36, 36, 36, 0.05) 0px 4px 8px 0px` | `--shadow-sm` |
+| [name] | `[full CSS shadow value]` | `--shadow-[name]` |
 
 ### Layout
 
-- **Page max-width:** {value}
-- **Section gap:** {value}
-- **Card padding:** {value}
-```
+- **Page max-width:** [value]
+- **Section gap:** [value]
+- **Card padding:** [value]
 
-- Spacing names are the pixel number; token is `--spacing-{n}`.
-- Border Radius is keyed by element (tags, cards, inputs, buttons).
-- Shadows are listed by name with the full CSS value.
-
-## 5. Components
-
-One `###` subsection per component, each with a bold `**Role:**` line followed by a one-paragraph spec that states background, text color, font and size, radius, padding, and shadow with exact values.
-
-```markdown
 ## Components
 
-### Primary CTA Button
-**Role:** The main call-to-action on the page.
+[repeat this block once per component. Cover at least: primary button, secondary button, tag or chip, card, navigation link, and any signature or hero component.]
+### [component name]
+**Role:** [what it is for]
 
-A pill-shaped button. Background: Ink (#101010). Text: White (#ffffff). Font: {font} at 14-16px. Radius: 9999px. Padding: ~12px 24px.
-```
+[One paragraph with exact values: background, text color, font and size, radius, padding, shadow. Refer to colors by token name and hex.]
 
-Cover at least: primary button, secondary button, tag or chip, card, navigation link, and any hero or signature component. Reference colors by name and hex.
+## Do's and Don'ts
 
-## 6. Do's and Don'ts
+### Do
+- [concrete, checkable rule using exact values: colors, radii, weights, fonts]
 
-Two `###` subsections, `### Do` and `### Don't`, each a bullet list of concrete, checkable rules using exact values (colors, radii, weights, fonts). These act as guardrails.
+### Don't
+- [concrete, checkable pitfall using exact values]
 
-## 7. Elevation
+## Elevation
 
-A `## Elevation` section with bullets mapping component types to shadow values: `- **{Component}:** \`{shadow}\``. For flat designs, explain the alternative (borders, tonal layers).
+- **[component type]:** `[shadow value]`
+[For flat designs, replace the list with a short explanation of the alternative: borders, tonal layers, color contrast.]
 
-## 8. Imagery
+## Imagery
 
-A `## Imagery` section with one or two paragraphs on the image language: photography vs. illustration vs. product UI, icon style, framing (contained or full-bleed), and what is not used.
+[fill in 1-2 paragraphs: photography vs. illustration vs. product UI, icon style, framing (contained or full-bleed), and what is not used.]
 
-## 9. Layout
+## Layout
 
-A `## Layout` section with prose on the page container, section rhythm, hero composition, and the repeated content patterns (for example, 3-column card grids).
+[fill in prose: page container, section rhythm, hero composition, and the repeated content patterns, e.g. card grids.]
 
-## 10. Agent Prompt Guide
-
-```markdown
 ## Agent Prompt Guide
 
 ### Quick Color Reference
-- **Page Background:** `#f4f4f4` (Paper)
-- **Card Background:** `#ffffff` (White)
-- **Headline Text:** ...
-- **Body Text:** ...
-- **Primary CTA:** ...
-- **Borders/Dividers:** ...
+- **Page Background:** `[hex]` ([name])
+- **Card Background:** `[hex]` ([name])
+- **Headline Text:** `[hex]` ([name])
+- **Body Text:** `[hex]` ([name])
+- **Primary CTA:** `[hex]` ([name]) background, `[hex]` ([name]) text
+- **Borders/Dividers:** `[hex]` ([name])
 
 ### Example Component Prompts
-1. **Hero Section:** "{ready-to-use prompt with exact values}"
-2. **Primary CTA Button:** "{...}"
-3. **Feature Card:** "{...}"
-```
+[3 self-contained prompts, each with exact hex values, font names, sizes, radii, padding, and shadows.]
+1. **Hero Section:** "[prompt]"
+2. **Primary CTA Button:** "[prompt]"
+3. **Feature Card:** "[prompt]"
 
-Prompts must be self-contained: exact hex values, font names, sizes, radii, padding, and shadows.
+## Similar Brands
 
-## 11. Similar Brands
+- **[brand]** — [one line on what is shared or different]
+[3-4 entries]
 
-A bullet list: `- **{Brand}** — {one line on what is shared or different}`. Three to four entries.
-
-## 12. Quick Start
-
-Two fenced `css` blocks under `## Quick Start`.
+## Quick Start
 
 ### CSS Custom Properties
 
-`### CSS Custom Properties` contains a `:root { ... }` block with commented groups, in this order: Colors, Typography — Font Families, Typography — Scale (`--text-*`, `--leading-*`, `--tracking-*`), Typography — Weights, Spacing, Layout, Border Radius, Named Radii, Shadows.
+```css
+:root {
+  /* Colors */
+  [one line per color token in the Colors table]
+
+  /* Typography — Font Families */
+  [one --font-* per font, with a fallback stack]
+
+  /* Typography — Scale */
+  [--text-*, --leading-*, --tracking-* for each Type Scale row]
+
+  /* Typography — Weights */
+  [--font-weight-* for each weight used]
+
+  /* Spacing */
+  [one line per spacing token]
+
+  /* Layout */
+  [--page-max-width, --section-gap, --card-padding]
+
+  /* Border Radius */
+  [one --radius-* per scale value]
+
+  /* Named Radii */
+  [--radius-[element] for each row in Border Radius]
+
+  /* Shadows */
+  [one line per shadow token]
+}
+```
 
 ### Tailwind v4
 
-`### Tailwind v4` contains an `@theme { ... }` block with the same tokens, minus the Layout, Named Radii, and Weights groups.
+```css
+@theme {
+  [same tokens and values as above, minus the Layout, Named Radii, and Weights groups]
+}
+```
 
-Every token in the tables above must appear in both blocks with identical values.
-
-## Consistency Rules
-
-- Names, hex values, and token names must match across the tables, component specs, prompt guide, and CSS blocks.
-- Do not use a color, font, radius, or shadow in prose that is not defined in a token table.
-- Distinguish observed values from estimates or proposed choices in prose.
-- Do not include secrets or unrelated private data.
+<!-- END TEMPLATE -->
