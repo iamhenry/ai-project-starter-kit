@@ -1,377 +1,195 @@
-<!-- Generated from spec.mdx + spec-config.ts | version: alpha -->
-<!-- Do not edit directly. Run `bun run spec:gen` to regenerate. -->
-
 # DESIGN.md Format
 
-DESIGN.md is a self-contained, plain-text representation of a design system. It defines the visual identity of a brand and product, thereby ensuring that these stylistic choices can be followed across design sessions and between different AI agents and tools.  As a human-readable, open-format document, it serves as a living source of truth that both humans and AI can understand and refine.
+DESIGN.md is a self-contained, plain-markdown style reference for a brand or product. It carries the visual identity so it can be followed across design sessions and between AI agents and tools. It has no YAML front matter: tokens live in markdown tables and in a CSS block at the end. Tables and the CSS blocks are normative; prose explains how to apply them.
 
-A DESIGN.md file contains two parts: An optional YAML frontmatter, and a markdown body. The YAML front matter contains machine-readable design tokens. The markdown body sections provide human-readable design rationale and guidance. Prose may use descriptive color names (e.g., "Midnight Forest Green") that correspond to systematic token names (e.g., `primary`). The tokens are the normative values; the prose provides context for how to apply them.
+The reference shape is the Cal.com style reference. Follow its structure, section order, and heading names exactly.
 
-# Design Tokens
+## Document Shape
 
-DESIGN.md may embed design tokens in a structured format. The system that we use to describe design tokens is inspired by the
-[Design Token JSON spec](https://www.designtokens.org/tr/2025.10/format/#abstract). Specifically, we adopt the concept of typed token groups (colors, typography, spacing) and the `{path.to.token}` reference syntax for cross-referencing values.
+Sections appear in this order. Omit a section only if it has no evidence in the input (for example, no imagery). Never reorder.
 
-These tokens are easily converted from or to `tokens.json`, Figma variables, and Tailwind theme configs.
+1. Title and header block
+2. Tokens — Colors
+3. Tokens — Typography
+4. Tokens — Spacing & Shapes
+5. Components
+6. Do's and Don'ts
+7. Elevation
+8. Imagery
+9. Layout
+10. Agent Prompt Guide
+11. Similar Brands
+12. Quick Start (CSS Custom Properties, Tailwind v4)
 
-Design tokens are embedded as YAML front matter at the beginning of the file. The front matter block must begin with a line containing exactly `---` and end with a line containing exactly `---`. The YAML content between these delimiters is parsed according to the schema defined below.
-
-Example:
-
-```yaml
----
-version: alpha
-name: Daylight Prestige
-colors:
-  primary: "#1A1C1E"
-  secondary: "#6C7278"
-  tertiary: "#B8422E"
-typography:
-  h1:
-    fontFamily: Public Sans
-    fontSize: 48px
-    fontWeight: 600
-    lineHeight: 1.1
-    letterSpacing: -0.02em
----
-```
-
-## Schema
-
-Below is the schema for the design tokens defined in the front matter:
-
-```yaml
-version: <string>          # optional, current version: "alpha"
-name: <string>
-description: <string>      # optional
-omitted: <string[]|OmittedSection[]> # optional
-colors:
-  <token-name>: <Color>
-typography:
-  <token-name>: <Typography>
-rounded:
-  <scale-level>: <Dimension>
-spacing:
-  <scale-level>: <Dimension | number>
-components:
-  <component-name>:
-    <token-name>: <string|token reference>
-```
-
-The `<scale-level>` placeholder represents a named level in a sizing or spacing scale. Common level names include `xs`, `sm`, `md`, `lg`, `xl`, and `full`. Any descriptive string key is valid.
-
-**Color**: A color value is any valid CSS color string. Supported formats include:
-
-- Hex: `#RGB`, `#RGBA`, `#RRGGBB`, `#RRGGBBAA`
-- Named colors: `red`, `cornflowerblue`, `transparent`
-- Functional: `rgb()`, `rgba()`, `hsl()`, `hsla()`, `hwb()`
-- Wide-gamut: `oklch()`, `oklab()`, `lch()`, `lab()`
-- Mixing: `color-mix(in srgb, ...)`
-
-All color values are internally converted to sRGB for WCAG contrast checking. The original format is preserved for display and export.
-
-Hex notation (`#RRGGBB`) remains the recommended default for simplicity and broad tooling support.
-
-- `fontFamily` (string)
-- `fontSize` (Dimension)
-- `fontWeight` (number) - A numeric font weight value (e.g., `400`, `700`). In YAML, this may be expressed as either a bare number or a quoted string; both are equivalent.
-- `lineHeight` (Dimension | number) - Accepts either a Dimension (e.g., `24px`, `1.5rem`) or a unitless number (e.g., `1.6`). A unitless number represents a multiplier of the element's `fontSize`, which is the recommended CSS practice.
-- `letterSpacing` (Dimension)
-- `fontFeature` (string) - configures
-  [`font-feature-settings`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-feature-settings).
-- `fontVariation` (string) - configures
-  [`font-variation-settings`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/font-variation-settings).
-
-**Dimension**: A dimension value is a string with a unit suffix. Valid units are: px, em, rem.
-
-**Omitted**: An array of sections that are intentionally omitted from the design system. This suppresses linter warnings for missing sections (e.g. colors, typography, spacing, rounded, components). Each entry can be:
-
-* A string representing the section name (e.g., `spacing`)
-* An object of the form `{ section: string, reason?: string }` mapping a section to a documented reason for its omission:
-  ```yaml
-  omitted:
-    - spacing
-    - section: rounded
-      reason: "No rounded corners defined in brand book"
-  ```
-
-**Token References**: A token reference must be wrapped in curly braces, and contain an object path to another value in the YAML tree. For most token groups, the reference must point to a primitive value (e.g., `colors.primary-60`), not a group (e.g., `colors`). Within the `components` section, references to composite values (e.g., `{typography.label-md}`) are permitted.
-
-# Sections
-
-Every `DESIGN.md` follows the same structure. Sections can be omitted if they're not relevant to your project, but those present should appear in the sequence listed below. All sections use `<h2>` (`##`) headings. An optional `<h1>` heading may appear for document titling purposes but is not parsed as a section.
-
-### Section Order
-
-1. **Overview** (also: "Brand & Style")
-2. **Colors**
-3. **Typography**
-4. **Layout** (also: "Layout & Spacing")
-5. **Elevation & Depth** (also: "Elevation")
-6. **Shapes**
-7. **Components**
-8. **Do's and Don'ts**
-
-### Prose and Tokens
-
-## Overview
-
-Also known as "Brand & Style".
-
-This section is a holistic description of a product's look and feel. It defines the brand personality, target audience, and the emotional response the UI should evoke, such as whether it should feel playful or professional, dense or spacious. It serves as foundational context for guiding the agent's high-level stylistic decisions when a specific rule or token isn't explicitly defined.
-
-## Colors
-
-This section defines the color palettes for the design system.
-
-At least the `primary` color palette must be defined, and additional color palettes may be defined as needed.
-
-When there are multiple color palettes, the design system may assign a semantic role for each palette. A common convention is to name the palettes in this order: `primary`, `secondary`, `tertiary`, and `neutral`.
-
-Example:
+## 1. Title and Header Block
 
 ```markdown
-## Colors
+# {Brand} — Style Reference
+> {Two-to-four word concept}, {second half}. {One sentence on the idea behind the system.}
 
-The palette is rooted in high-contrast neutrals and a single, evocative accent color.
+**Theme:** {light | dark}
 
-- **Primary (#1A1C1E):** A deep ink used for headlines and core text to provide
-  maximum readability and a sense of permanence.
-- **Secondary (#6C7278):** A sophisticated slate used primarily for utilitarian
-  elements like borders, captions, and metadata.
-- **Tertiary (#B8422E):** A vibrant earthy red as the sole driver for
-  interaction, used exclusively for primary actions and critical highlights.
-- **Neutral (#F7F5F2):** A warm limestone that serves as the foundation for all
-  pages, providing a softer, more organic feel than pure white.
+Source measurements are normalized; roles and recommendations are interpreted. Font summary lists are independent, not paired by position. HTML examples are reconstructions, not source components.
+
+{One paragraph (4-6 sentences): the overall feel, how color is used, what the typography does, the shape of buttons and cards, and the elevation approach.}
 ```
 
-### Design Tokens
+- Title is `# {Brand} — Style Reference`.
+- The blockquote is a short tagline naming the design's core tension (for example, "Monochrome Utility, Human Touch.").
+- Keep the provenance note line as shown.
 
-The `colors` section defines all color design tokens. The color tokens should be derived from the key color palettes defined in the markdown prose. The exact mapping from color palettes to color tokens may follow any consistent naming convention.
+## 2. Tokens — Colors
 
-It is a
-map\<string, Color>, that maps the name of the color token to its value.
-
-```yaml
-colors:
-  primary: "#1A1C1E"
-  secondary: "#6C7278"
-  tertiary: "#B8422E"
-  neutral: "#F7F5F2"
-```
-
-## Typography
-
-This section defines typography levels.
-
-Most design systems have 9 - 15 typography levels. The design system may prescribe a role for each typography level.
-
-A common naming convention for typography levels is to use semantic categories such as `headline`, `display`, `body`, `label`, `caption`. Each category may further be divided into different sizes, such as `small`, `medium`, and `large`.
-
-Example:
+A table with columns `Name | Value | Token | Role`.
 
 ```markdown
-## Typography
+## Tokens — Colors
 
-The typography strategy leverages two distinct weights of **Public Sans** for
-the narrative and **Space Grotesk** for technical data.
-
-- **Headlines:** Set in Public Sans Semi-Bold to establish an institutional
-  and trustworthy voice.
-- **Body:** Public Sans Regular at 16px ensures contemporary professionalism
-  and long-form readability.
-- **Labels:** Space Grotesk is used for all technical data, timestamps, and
-  metadata. Its geometric construction evokes the precision of a digital
-  stopwatch. Labels are strictly uppercase with generous letter spacing.
+| Name | Value | Token | Role |
+|------|-------|-------|------|
+| Ink | `#101010` | `--color-ink` | Primary CTAs, primary text, active states. |
 ```
 
-### Design Tokens
+- Name is a short descriptive word (Ink, Paper, Slate). Value is a backticked CSS color, hex by default.
+- Token is a backticked CSS custom property, `--color-{name}` in kebab-case.
+- Role says where the color is used, not just what it looks like.
+- Include integration or brand-logo colors only if present in the input, and mark them "logos only".
 
-The `typography` section defines the precise font properties for the typography design tokens.
+## 3. Tokens — Typography
 
-It is a
-map\<string, Typography>
-
-```yaml
-typography:
-  h1:
-    fontFamily: Public Sans
-    fontSize: 48px
-    fontWeight: 600
-    lineHeight: 1.1
-    letterSpacing: -0.02em
-  body-md:
-    fontFamily: Public Sans
-    fontSize: 16px
-    fontWeight: 400
-    lineHeight: 1.6
-  label-caps:
-    fontFamily: Space Grotesk
-    fontSize: 12px
-    fontWeight: 500
-    lineHeight: 1
-    letterSpacing: 0.1em
-```
-
-## Layout
-
-Also known as "Layout & Spacing".
-
-This section describes the layout and spacing strategy.
-
-Many design systems follow a grid-based layout. Others, like Liquid Glass, use margins, safe areas, and dynamic padding.
-
-Example:
+One subsection per font family, then a type scale table.
 
 ```markdown
-## Layout
+## Tokens — Typography
 
-The layout follows a **Fluid Grid** model for mobile devices and a
-**Fixed-Max-Width Grid** for desktop (max 1200px).
+### {Font Name} — {one-line role and character} · `--font-{name}`
+- **Substitute:** {web-safe or Google Fonts fallback}
+- **Weights:** {list}
+- **Sizes:** {list}
+- **Line height:** {range}
+- **Letter spacing:** {value and effect}
+- **Role:** {where and why it is used}
 
-A strict 8px spacing scale (with a 4px half-step for micro-adjustments) is used to maintain a consistent rhythm. Components are grouped using "containment" principles, where related items are housed in cards with generous internal padding (24px) to emphasize the soft, approachable nature of the brand.
+### Type Scale
+
+| Role | Family | Weight | Size | Line Height | Letter Spacing | Token |
+|------|--------|--------|------|-------------|----------------|-------|
+| body | — | — | 16px | 1.5 | -0.19px | `--text-body` |
 ```
 
-### Design Tokens
+- Use `—` for family and weight cells when unknown or inherited.
+- Scale roles are semantic (caption, body-sm, body, subheading, heading-sm, heading, heading-lg, display). Order smallest to largest.
+- Token is `--text-{role}`.
 
-The spacing section defines the spacing design tokens. These may include spacing units that are useful for implementing the layout model. For example, a fixed grid layout may have spacing units for column spans, gutters, and margins.
-
-It is a
-map\<string, Dimension | number> that maps the spacing scale identifier to a dimension value or a unitless number (e.g., column counts or ratios).
-
-```yaml
-spacing:
-  base: 16px
-  xs: 4px
-  sm: 8px
-  md: 16px
-  lg: 32px
-  xl: 64px
-  gutter: 24px
-  margin: 32px
-```
-
-## Elevation & Depth
-
-Also known as "Elevation".
-
-This section describes how visual hierarchy is conveyed based on the design style. If elevation is used, it defines the required styling (spread, blur, color). For flat designs, this section explains the alternative methods used to convey visual hierarchy (e.g., borders, color contrast).
-
-Example:
+## 4. Tokens — Spacing & Shapes
 
 ```markdown
-## Elevation & Depth
+## Tokens — Spacing & Shapes
 
-Depth is achieved through **Tonal Layers** rather than heavy shadows. The
-background uses a soft off-white or very light green, while primary content sits on pure white cards.
+**Density:** {compact | comfortable | spacious}
+
+### Spacing Scale
+
+| Name | Value | Token |
+|------|-------|-------|
+| 4 | 4px | `--spacing-4` |
+
+### Border Radius
+
+| Element | Value |
+|---------|-------|
+| cards | 12px |
+
+### Shadows
+
+| Name | Value | Token |
+|------|-------|-------|
+| sm | `rgba(36, 36, 36, 0.05) 0px 4px 8px 0px` | `--shadow-sm` |
+
+### Layout
+
+- **Page max-width:** {value}
+- **Section gap:** {value}
+- **Card padding:** {value}
 ```
 
-## Shapes
+- Spacing names are the pixel number; token is `--spacing-{n}`.
+- Border Radius is keyed by element (tags, cards, inputs, buttons).
+- Shadows are listed by name with the full CSS value.
 
-This section describes how visual elements are shaped.
+## 5. Components
 
-Example:
+One `###` subsection per component, each with a bold `**Role:**` line followed by a one-paragraph spec that states background, text color, font and size, radius, padding, and shadow with exact values.
 
 ```markdown
-## Shapes
-
-The shape language is defined by **Architectural Sharpness**. All interactive
-elements, containers, and inputs utilize a minimal **4px corner radius**. This
-provides just enough softness to feel modern while maintaining a rigid,
-engineered aesthetic.
-```
-
-### Design Tokens
-
-The `rounded` section defines the design tokens for rounded corners used in
-buttons, cards, and other rectangular shapes.
-
-It is a map\<string, Dimension>.
-
-```yaml
-rounded:
-  sm: 4px
-  md: 8px
-  lg: 12px
-  full: 9999px
-```
-
 ## Components
 
-This section provides style guidance for component atoms within the design system. The following are common component types. Design systems are encouraged to define additional components relevant to their domain.
+### Primary CTA Button
+**Role:** The main call-to-action on the page.
 
-* **Buttons**: Covers primary, secondary, and tertiary variants, including sizing, padding, and states.
-* **Chips**: Covers selection chips, filter chips, and action chips.
-* **Lists**: Covers styling for list items, dividers, and leading/trailing elements.
-* **Tooltips**: Covers positioning, colors, and timing.
-* **Checkboxes**: Covers checked, unchecked, and indeterminate states.
-* **Radio buttons**: Covers selected and unselected states.
-* **Input fields**: Covers text inputs, text areas, labels, helper text, and error states.
-
-> **Note:** The components specification is actively evolving. The current structure provides intentional flexibility for domain-specific component definitions while the spec matures.
-
-### Design Tokens
-
-The components section defines a collection of design tokens used to ensure consistent styling of common components. It's a map\<string, map\<string, string>> that maps a component identifier to a group of sub token names and values. The design token values may be literal values, or references to previously defined design tokens.
-
-**Variants**. A component may have a variant for different UI states such as active, hover, pressed, etc. Those variant components may be defined under a different but related key, for example, "button-primary", "button-primary-hover", "button-primary-active". The agent will consider all variants and make the appropriate styling decisions.
-
-```yaml
-components:
-  button-primary:
-    backgroundColor: "{colors.primary-60}"
-    textColor: "{colors.primary-20}"
-    rounded: "{rounded.md}"
-    padding: 12px
-  button-primary-hover:
-    backgroundColor: "{colors.primary-70}"
+A pill-shaped button. Background: Ink (#101010). Text: White (#ffffff). Font: {font} at 14-16px. Radius: 9999px. Padding: ~12px 24px.
 ```
 
-### Component Property Tokens
+Cover at least: primary button, secondary button, tag or chip, card, navigation link, and any hero or signature component. Reference colors by name and hex.
 
-Each component has a set of properties that are themselves design tokens:
+## 6. Do's and Don'ts
 
-- backgroundColor: \<Color\>
-- textColor: \<Color\>
-- typography: \<Typography\>
-- rounded: \<Dimension\>
-- padding: \<Dimension\>
-- size: \<Dimension\>
-- height: \<Dimension\>
-- width: \<Dimension\>
+Two `###` subsections, `### Do` and `### Don't`, each a bullet list of concrete, checkable rules using exact values (colors, radii, weights, fonts). These act as guardrails.
 
-## Do's and Don'ts
+## 7. Elevation
 
-This section provides practical guidelines and common pitfalls. These act as guardrails when creating designs.
+A `## Elevation` section with bullets mapping component types to shadow values: `- **{Component}:** \`{shadow}\``. For flat designs, explain the alternative (borders, tonal layers).
+
+## 8. Imagery
+
+A `## Imagery` section with one or two paragraphs on the image language: photography vs. illustration vs. product UI, icon style, framing (contained or full-bleed), and what is not used.
+
+## 9. Layout
+
+A `## Layout` section with prose on the page container, section rhythm, hero composition, and the repeated content patterns (for example, 3-column card grids).
+
+## 10. Agent Prompt Guide
 
 ```markdown
-## Do's and Don'ts
+## Agent Prompt Guide
 
-- Do use the primary color only for the single most important action per screen
-- Don't mix rounded and sharp corners in the same view
-- Do maintain WCAG AA contrast ratios (4.5:1 for normal text)
-- Don't use more than two font weights on a single screen
+### Quick Color Reference
+- **Page Background:** `#f4f4f4` (Paper)
+- **Card Background:** `#ffffff` (White)
+- **Headline Text:** ...
+- **Body Text:** ...
+- **Primary CTA:** ...
+- **Borders/Dividers:** ...
+
+### Example Component Prompts
+1. **Hero Section:** "{ready-to-use prompt with exact values}"
+2. **Primary CTA Button:** "{...}"
+3. **Feature Card:** "{...}"
 ```
 
-# Recommended Token Names (Non-Normative)
+Prompts must be self-contained: exact hex values, font names, sizes, radii, padding, and shadows.
 
-The following names are commonly used across design systems. They are not required but are provided as guidance for consistency.
+## 11. Similar Brands
 
-**Colors:** `primary`, `secondary`, `tertiary`, `neutral`, `surface`, `on-surface`, `error`
+A bullet list: `- **{Brand}** — {one line on what is shared or different}`. Three to four entries.
 
-**Typography:** `headline-display`, `headline-lg`, `headline-md`, `body-lg`, `body-md`, `body-sm`, `label-lg`, `label-md`, `label-sm`
+## 12. Quick Start
 
-**Rounded:** `none`, `sm`, `md`, `lg`, `xl`, `full`
+Two fenced `css` blocks under `## Quick Start`.
 
-# Consumer Behavior for Unknown Content
+### CSS Custom Properties
 
-When a DESIGN.md consumer encounters content not defined by this spec:
+`### CSS Custom Properties` contains a `:root { ... }` block with commented groups, in this order: Colors, Typography — Font Families, Typography — Scale (`--text-*`, `--leading-*`, `--tracking-*`), Typography — Weights, Spacing, Layout, Border Radius, Named Radii, Shadows.
 
-| Scenario | Behavior | Example |
-|---|---|---|
-| Unknown section heading | Preserve; do not error | `## Iconography` |
-| Unknown color token name | Accept if value is valid | `surface-container-high: '#ede7dd'` |
-| Unknown typography token name | Accept as valid typography | `telemetry-data` |
-| Unknown spacing value | Accept; store as string if not a valid dimension | `grid-columns: '5'` |
-| Unknown component property | Accept with warning | `borderColor` |
-| Duplicate section heading | Error; reject the file | Two `## Colors` headings |
+### Tailwind v4
+
+`### Tailwind v4` contains an `@theme { ... }` block with the same tokens, minus the Layout, Named Radii, and Weights groups.
+
+Every token in the tables above must appear in both blocks with identical values.
+
+## Consistency Rules
+
+- Names, hex values, and token names must match across the tables, component specs, prompt guide, and CSS blocks.
+- Do not use a color, font, radius, or shadow in prose that is not defined in a token table.
+- Distinguish observed values from estimates or proposed choices in prose.
+- Do not include secrets or unrelated private data.
