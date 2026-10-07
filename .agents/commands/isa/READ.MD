@@ -5,6 +5,7 @@ This workflow is from product idea to a working app, driven by one `_ai/docs/ISA
 - Don't really use the `/goal-isa`, it's mostly for Openchamber `/craft-goal` specific feature
 
 ## FLOW
+0. Create user stories first, or a working html prototype then port that as user stories (User stories help write user facing content and metadata when submitting to the app store or creating landing pages.)
 1. Define the product into one ISA using `.agents/commands/isa/product-isa.md`
 2. Full autonomous software factory with `.agents/commands/isa/isa-factory.md`
 3. Done
