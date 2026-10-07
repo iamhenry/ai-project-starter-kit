@@ -20,11 +20,13 @@ Leaves:
   Exact threshold: [verbatim prescribed pass threshold]
   Current state: open | failed | blocked
   Implementation required: yes | no | uncertain
+  Fixes broken behavior: yes (the behavior exists but fails) | no
   Evidence basis: [code/Git/JOURNAL/ISA path and lines]
   Route: automated | human-external | contract-gap | dependency-blocked
 
 Capabilities:
 - [CAP-ID] Owner/outcome: [one narrow capability]
+  Agent: build (code, probe-required tests, app config) | general (docs, non-code artifacts)
   Covers: [ISC IDs or "enables evidence only"]
   Dependencies: [prerequisites]
   Evidence obligation: [exact consumer-boundary evidence]

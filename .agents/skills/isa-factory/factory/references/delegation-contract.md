@@ -39,7 +39,11 @@ EXACT ISA CONTRACT
 - Route and implementation-required flag: [per leaf]
 
 ASSIGNMENT
-- Role: [implementation | review | acceptance | close]
+- Role and agent: [implementation: `build` or `general` | reproduction: `qa` |
+  review: `reviewer` | acceptance: `qa` | close: `build`]
+- Implementation and review: include the factory's Test Rule verbatim.
+- Reproduction: include the authorized evidence directory from the ISA's
+  evidence rules.
 - [One bounded outcome, dependencies, and non-overlap boundary]
 
 REQUIRED EVIDENCE

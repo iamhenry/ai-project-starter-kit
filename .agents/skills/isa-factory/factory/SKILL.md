@@ -11,38 +11,54 @@ Artifact Mode for this invocation and grants local implementation, commit, and
 ledger authority within that ISA only. It never pushes, performs remote Git
 actions, or performs destructive actions.
 
-## Pipeline Components
+## Subagents and Skills
 
-| Component | Role |
-| --- | --- |
-| `isa-plan` | Selects one thin vertical slice and returns a transient locked packet. |
-| `build` / `general` | Fresh bounded implementation agents for code or non-code capability work. |
-| `code-quality-gate` | Fresh code review for slices that change files; invoked with explicit `mode: isa`. |
-| `verification-gate` | Fresh runtime/product acceptance; invoked with explicit `mode: isa`. |
-| `isa-close` | Validates PASS packets, commits the exact candidate, then updates ISA provenance/progress in a separate local commit. |
-| `agent-browser` / `xcodebuildmcp-cli` | Capability routes selected by `verification-gate`; not run or defined here. |
+The factory itself runs in the `orchestrator` agent via `/isa-factory`. It
+delegates every phase below to a fresh agent; the skills' references own the
+detailed phase contracts.
 
-## Available Capabilities
+### Subagents
 
-### Agents
+| Agent | Phase | Use |
+| --- | --- | --- |
+| `plan` | Plan | Read-only `isa-plan` invocation for each slice. |
+| `build` | Implement, Close | Application implementation, probe-required tests, code changes, and `isa-close`. |
+| `general` | Implement | Docs, non-code artifacts, and other bounded utility changes. |
+| `reviewer` | Review | `code-quality-gate` review with `mode: isa`. |
+| `qa` | Accept, bug repro | `verification-gate` acceptance with `mode: isa`; `reproduce-bug` before a bug fix. |
+| `atlas` | Any (research) | Local codebase research for the owning phase. |
+| `voyager` | Any (research) | Necessary external documentation research only. |
 
-| Agent | Use |
-| --- | --- |
-| `build` | Application implementation, tests, and code changes. |
-| `general` | Docs, non-code artifacts, and other bounded utility changes. |
+### Skills
+
+| Skill | Phase | Run by | Role |
+| --- | --- | --- | --- |
+| `isa-plan` | Plan | `plan` | Selects one thin vertical slice and returns a transient locked packet. |
+| `code-quality-gate` | Review | `reviewer` | Fresh code review for slices that change files; invoked with explicit `mode: isa`. |
+| `reproduce-bug` | Implement (bugs), FAIL correction | `qa` | Proves a broken behavior through its real entry point before a fix; returns `REPRODUCED`, `NOT_REPRODUCED`, or `BLOCKED` plus a reusable smoke. |
+| `verification-gate` | Accept | `qa` | Fresh runtime/product acceptance; invoked with explicit `mode: isa`. |
+| `isa-close` | Close | `build` | Validates PASS packets, commits the exact candidate, then updates ISA provenance/progress in a separate local commit. |
+| `agent-browser` / `xcodebuildmcp-cli` | Accept | `qa` | Capability routes selected by `verification-gate`; not run or defined here. |
+
+### Assignment Rules
+
+Use the exact agent ID for each role. Fresh contexts are mandatory for Plan,
+Review, Accept, and each correction. Never run Review or Accept in an
+implementation agent, run Review and Accept in the same agent, or substitute a
+research agent for a writing or gate role.
 
 Maximize useful concurrency with fresh agents whose assignments are bounded to
 one verifiable vertical slice or concrete capability. Fan out when collision
 risk is low; sequence shared paths, mutable state, subjects, outputs, or
 authority-sensitive writes rather than maximizing agent count for its own sake.
 
-### Subagents and Skills
+### Test Rule
 
-`atlas` may be used by the owning phase for local research, and `voyager` only
-for necessary external documentation. The factory delegates to `isa-plan`,
-`code-quality-gate`, `verification-gate`, and `isa-close`; their references own
-the detailed phase contracts. Fresh contexts are mandatory for Plan, Review,
-Accept, and each correction.
+The ISA owns tests. Write a test only when a selected leaf's exact probe calls
+for one, and write it as specified, asserting user- or contract-observable
+behavior rather than code structure. Add no other tests; QA, not a builder's
+test, proves behavior. A passing test never replaces the ISA probe; only
+`verification-gate` decides `PASS`.
 
 ## Input Contract
 
@@ -61,8 +77,8 @@ Repeat this ordered pipeline from the latest authoritative ISA state:
 
 ### 1. Plan
 
-Invoke `isa-plan` with `isa_path`. Require a transient `LOCKED ISA SLICE`
-packet. It must select one journey and 1-5 open leaves, preserve their exact
+Invoke `isa-plan` in a fresh `plan` agent with `isa_path`. Require a
+transient `LOCKED ISA SLICE` packet. It must select one journey and 1-5 open leaves, preserve their exact
 text/probes/thresholds, identify dependencies and routes, and state whether
 implementation is required. A blocked packet routes to its declared blocker;
 do not invent a preflight/probe phase or persist the packet.
@@ -101,16 +117,24 @@ implementation into a broken lane.
 
 ### 2. Implement
 
-For each capability in the packet, delegate one fresh bounded `build` or
-`general` agent using the delegation contract. Run low-collision assignments
-concurrently and sequence a shared enabling capability before its dependents.
+For each capability in the packet, delegate one fresh bounded agent of the
+capability's declared type (`build` or `general`) using the delegation
+contract. Run low-collision assignments concurrently and sequence a shared enabling capability before its dependents.
 Introduce shared structure only when at least two selected or imminent journeys
 need it; otherwise prefer the local change.
 The factory owns the journey;
 the agent owns only the assigned capability and evidence preparation. Do not
 delegate implementation for `implementation_required: no`; preserve existing
 behavior and proceed to gates. Agents may not edit the ISA, `JOURNAL.md`, or
-close/credit leaves.
+close/credit leaves. Include the Test Rule in every implementation
+assignment.
+
+**Bugs.** When a selected leaf has `Fixes broken behavior: yes`, first
+delegate a fresh `qa` agent running `reproduce-bug` through the leaf's real
+entry point. On `REPRODUCED`, hand its reusable smoke and observed boundary to
+the implementation agent. On `NOT_REPRODUCED`, return the leaf and the repro
+result to Plan as a possible proof-only leaf. On `BLOCKED`, park it like any
+acceptance blocker.
 
 ### 3. Review
 
@@ -122,10 +146,11 @@ against its declared paths and content-aware baseline. Unchanged protected
 work is allowed; unexpected mutation or behavior-affecting undeclared content
 blocks freeze. See `references/delegation-contract.md`.
 
-Freeze a source identity for each lane and delegate fresh `code-quality-gate`
-reviews concurrently with explicit `mode: isa`, the exact `isa_path`, immutable
-locked slice, implementation summary, changed files/diff, checks, and source
-identity. Build/runtime identity is not required for Review. On
+Freeze a source identity for each lane and delegate fresh `reviewer` agents
+running `code-quality-gate` concurrently with explicit `mode: isa`, the
+exact `isa_path`, immutable locked slice, implementation summary, changed files/diff, checks, and source
+identity, and ask the reviewer to flag any test no selected leaf's probe requires.
+Build/runtime identity is not required for Review. On
 `APPROVE_CODE`, integrate approved lanes into one immutable content-identified
 candidate. If integration changes reviewed content or a relevant dependency
 assumption, rerun Review only for affected lanes. On `REVISE_CODE`, allow one
@@ -134,8 +159,8 @@ rerun review. On `ASK_USER`, interrupt only under the Human Interrupt rules.
 
 ### 4. Accept
 
-Delegate a fresh `verification-gate` with explicit `mode: isa`, the same
-immutable slice, reviewed source identity, extended integrated/build/runtime
+Delegate a fresh `qa` agent running `verification-gate` with explicit
+`mode: isa`, the same immutable slice, reviewed source identity, extended integrated/build/runtime
 identity, either the matching `APPROVE_CODE` result for an implementation slice
 or the explicit no-implementation route, and all required prerequisites.
 Produce each required artifact once per integrated candidate and verify
@@ -150,8 +175,8 @@ and routes the result. No acceptance packet may credit or mutate the ISA.
 
 ### 5. Close
 
-Invoke `isa-close` only after its eligibility contract is satisfied: one
-independent `PASS` packet per target leaf, matched frozen candidate/build
+Invoke `isa-close` in a fresh `build` agent only after its eligibility
+contract is satisfied: one independent `PASS` packet per target leaf, matched frozen candidate/build
 identity, supplied `isa_path`, and explicit local commit authority. Forward the
 complete packet set unchanged. `isa-close` alone owns candidate reuse/commit,
 ledger credit, and the separate product/ledger commit; it must not push or use
@@ -233,17 +258,19 @@ Allowed durable writes are the application files explicitly assigned by a
 slice, plus the supplied ISA and `JOURNAL.md` during `isa-close`. The factory
 creates no planning, report, progress, dashboard, status, or packet artifacts.
 `isa-plan` packets and review/accept results remain transient unless the
-invoked skill's contract requires a retained evidence path.
+invoked skill's contract requires a retained evidence path. `reproduce-bug`
+evidence goes only in the authorized evidence directory named by the ISA's
+evidence rules.
 
 ## Ownership Boundaries
 
 | Decision or artifact | Owner |
 | --- | --- |
-| Slice choice, exact leaf contract, route | `isa-plan` |
-| Assigned capability and implementation files | Fresh implementation agent |
-| Code-quality decision | Fresh `code-quality-gate` |
-| Runtime/product verdict and evidence | Fresh `verification-gate` |
-| Candidate commit, ISA provenance/progress, JOURNAL entry | `isa-close` only |
+| Slice choice, exact leaf contract, route | `isa-plan` in a fresh `plan` agent |
+| Assigned capability and implementation files | Fresh `build` or `general` agent |
+| Code-quality decision | `code-quality-gate` in a fresh `reviewer` agent |
+| Runtime/product verdict and evidence | `verification-gate` in a fresh `qa` agent |
+| Candidate commit, ISA provenance/progress, JOURNAL entry | `isa-close` only, in a fresh `build` agent |
 | Journey, sequencing, gates, routing, resume | `isa-factory` |
 
 The factory does not implement, review, verify, close, edit the ISA, or repair
@@ -269,7 +296,9 @@ phase routing remain with the factory.
 - `ASK_USER`: interrupt only for a true human interrupt; otherwise return the concrete missing prerequisite to its owner.
 - `FAIL`: route failing leaf evidence to the implementation owner; correct the
   same slice when its contract still holds, and re-plan only when its boundary
-  or relevant assumptions changed. Do not close.
+  or relevant assumptions changed. If the evidence does not show where behavior
+  diverges, run `reproduce-bug` in a fresh `qa` agent before the correction. Do
+  not close.
 - `BLOCKED`: park the probe with its exact unblock condition, preserve reviewed
   implementation, and continue independent work. Do not close.
 - Identity `VOID/BLOCKED`: invalidate only the affected evidence/candidate,
