@@ -39,7 +39,8 @@ EXACT ISA CONTRACT
 - Route and implementation-required flag: [per leaf]
 
 ASSIGNMENT
-- Role: [implementation | review | acceptance | close]
+- Role and agent: [implementation: `build` or `general` | review: `reviewer` |
+  acceptance: `qa` | close: `build`]
 - [One bounded outcome, dependencies, and non-overlap boundary]
 
 REQUIRED EVIDENCE

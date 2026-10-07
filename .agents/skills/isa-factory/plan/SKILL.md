@@ -50,7 +50,8 @@ Load references as needed:
    useful work is an honest probe; an implementation assignment is not needed
    in that case.
 5. Decompose only the selected journey into narrow capabilities. Each
-   assignment has one owner/outcome, explicit ISC coverage, dependencies,
+   assignment has one owner/outcome, an implementation agent (`build` for
+   code, `general` for non-code), explicit ISC coverage, dependencies,
    evidence obligations, and boundaries. Assignments must not overlap or
    silently rewrite the ISA. Prefer concurrent assignments when paths/modules,
    mutable runtime/data, subjects, outputs, and verification side effects have

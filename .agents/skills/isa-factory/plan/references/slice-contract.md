@@ -25,6 +25,7 @@ Leaves:
 
 Capabilities:
 - [CAP-ID] Owner/outcome: [one narrow capability]
+  Agent: build (code, tests, app config) | general (docs, non-code artifacts)
   Covers: [ISC IDs or "enables evidence only"]
   Dependencies: [prerequisites]
   Evidence obligation: [exact consumer-boundary evidence]
