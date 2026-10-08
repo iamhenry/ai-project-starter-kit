@@ -1,0 +1,473 @@
+<!doctype html>
+<!--
+  DESIGN.html TEMPLATE  (generate-designmd skill)
+
+  Copy this file to the project as DESIGN.html, then edit it in place.
+  It renders as-is with neutral sample values; replace every sample value and
+  every [fill: ...] with the project's evidence. SKILL.md holds the rules.
+
+  Conditionals: resolve each block, then delete the markers.
+    <!~~ @if interactive ~~>   keep only for a working prototype or app
+    <!~~ @if behavior ~~>      keep for spec/partial prototype OR interactive
+    <!~~ @if dark ~~>          keep only if the design has dark values
+    <!~~ @if evidence:X ~~>    keep only if the input has evidence for X
+    <!~~ @repeat ... ~~>       duplicate the next element once per item
+    <!~~ @end ~~>              closes the nearest @if
+  (Markers below use real HTML comments; "~~" here only avoids nesting.)
+
+  Depth: static base = drop every @if interactive and @if behavior block.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>[fill: Product] — Design System</title>
+<meta name="color-scheme" content="light dark" />
+<!-- [fill: font links for the project's families; delete if system fonts] -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ================= DESIGN TOKENS =================
+     The project's tokens, defined once. Rename and refill every line; keep
+     this block identical to the Quick Start :root at the bottom of the page. */
+  :root {
+    /* Colors */
+    --color-canvas: #fafafa;    /* page background */
+    --color-surface: #ffffff;   /* cards, panels */
+    --color-ink: #18181b;       /* primary text */
+    --color-muted: #71717a;     /* secondary text */
+    --color-line: rgba(0,0,0,.08); /* borders, dividers */
+    --color-accent: #2563eb;    /* primary action */
+    --color-on-accent: #ffffff; /* text on accent */
+    /* Fonts */
+    --font-body: "Inter", system-ui, -apple-system, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    /* Type scale: --text-[role] / --leading-[role] / --tracking-[role] */
+    --text-display: 40px; --leading-display: 1.1; --tracking-display: -1px;
+    --text-heading: 24px; --leading-heading: 1.2; --tracking-heading: -0.4px;
+    --text-body: 16px;    --leading-body: 1.5;
+    --text-caption: 12px; --leading-caption: 1.3;
+    /* Spacing */
+    --spacing-4: 4px; --spacing-8: 8px; --spacing-12: 12px; --spacing-16: 16px; --spacing-24: 24px; --spacing-32: 32px; --spacing-48: 48px;
+    /* Radius */
+    --radius-sm: 6px; --radius-md: 10px; --radius-lg: 16px; --radius-full: 9999px;
+    /* Shadows */
+    --shadow-card: 0 1px 3px rgba(0,0,0,.08);
+    --shadow-overlay: 0 12px 32px rgba(0,0,0,.16);
+    /* Motion */
+    --ease-out: cubic-bezier(.22,1,.36,1);
+  }
+  /* @if dark */
+  :root[data-theme="dark"] {
+    --color-canvas: #0b0b0c; --color-surface: #161618; --color-ink: #f4f4f5; --color-muted: #a1a1aa; --color-line: rgba(255,255,255,.1);
+    color-scheme: dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --color-canvas: #0b0b0c; --color-surface: #161618; --color-ink: #f4f4f5; --color-muted: #a1a1aa; --color-line: rgba(255,255,255,.1);
+    }
+  }
+  :root[data-theme="light"] { color-scheme: light; }
+  /* @end */
+
+  /* ================= PAGE BRIDGE (not design tokens) =================
+     Point each --doc-* at the project's matching token. The page chrome
+     below only uses --doc-*, so it adopts any design without edits. */
+  :root {
+    --doc-bg: var(--color-canvas); --doc-panel: var(--color-surface); --doc-text: var(--color-ink);
+    --doc-muted: var(--color-muted); --doc-line: var(--color-line); --doc-accent: var(--color-accent);
+    --doc-code: color-mix(in srgb, var(--doc-text) 5%, var(--doc-bg));
+    --doc-font: var(--font-body); --doc-mono: var(--font-mono);
+  }
+
+  /* ================= PAGE CHROME ================= */
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--doc-bg); color: var(--doc-text); font: 400 15px/1.55 var(--doc-font); -webkit-font-smoothing: antialiased; }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  a { color: inherit; }
+  code, pre, .mono { font-family: var(--doc-mono); font-size: 12.5px; }
+  :not(pre) > code { background: var(--doc-code); border: 1px solid var(--doc-line); padding: 1px 5px; border-radius: 5px; white-space: nowrap; font-size: 11.5px; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 28px; }
+
+  #top { position: sticky; top: 0; z-index: 50; background: color-mix(in srgb, var(--doc-bg) 85%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid var(--doc-line); }
+  #top .wrap { display: flex; align-items: center; gap: 20px; height: 56px; }
+  #top .brand { font-weight: 700; font-size: 17px; white-space: nowrap; }
+  #top nav { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; flex: 1; }
+  #top nav a { text-decoration: none; padding: 6px 10px; border-radius: 99px; font-size: 13px; font-weight: 500; color: var(--doc-muted); white-space: nowrap; }
+  #top nav a:hover, #top nav a.on { color: var(--doc-text); background: var(--doc-code); }
+  .seg { display: flex; padding: 3px; border-radius: 99px; background: var(--doc-code); }
+  .seg button { padding: 5px 11px; border-radius: 99px; font-size: 12.5px; font-weight: 500; color: var(--doc-muted); }
+  .seg button.on { background: var(--doc-panel); color: var(--doc-text); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+
+  header.hero { padding-top: 72px; padding-bottom: 40px; }
+  .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .6px; text-transform: uppercase; color: var(--doc-accent); }
+  h1 { font-size: 46px; line-height: 1.05; font-weight: 600; letter-spacing: -1.6px; margin: 10px 0 14px; }
+  .lede { font-size: 19px; line-height: 1.5; color: var(--doc-muted); max-width: 720px; margin: 0; }
+  .overview { max-width: 760px; margin: 18px 0 0; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 99px; border: 1px solid var(--doc-line); font-size: 12.5px; color: var(--doc-muted); }
+
+  section.s { padding: 56px 0; scroll-margin-top: 60px; }
+  h2 { font-size: 28px; line-height: 1.15; font-weight: 600; letter-spacing: -.7px; margin: 0 0 8px; }
+  h3 { font-size: 17px; line-height: 1.3; font-weight: 600; margin: 28px 0 10px; }
+  .sub { color: var(--doc-muted); margin: 0 0 28px; max-width: 760px; }
+  p { margin: 0 0 12px; }
+  .note { font-size: 13px; color: var(--doc-muted); }
+  .tag { font-size: 11px; font-weight: 600; color: var(--doc-muted); background: var(--doc-code); padding: 1px 6px; border-radius: 5px; margin-left: 4px; vertical-align: 1px; }
+  ul.list { margin: 0; padding-left: 18px; } ul.list li { margin: 4px 0; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th { text-align: left; font-weight: 600; font-size: 12px; color: var(--doc-muted); text-transform: uppercase; letter-spacing: .3px; padding: 8px 10px; border-bottom: 1px solid var(--doc-line); }
+  td { padding: 9px 10px; border-bottom: 1px solid var(--doc-line); vertical-align: top; }
+  .tw { overflow-x: auto; border: 1px solid var(--doc-line); border-radius: 16px; background: var(--doc-panel); }
+  .tw tr:last-child td { border-bottom: 0; }
+
+  .grid { display: grid; gap: 16px; }
+  .g2 { grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); }
+  .g3 { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+  .g4 { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+  .card { border: 1px solid var(--doc-line); border-radius: 20px; background: var(--doc-panel); padding: 18px; position: relative; }
+
+  /* swatches */
+  .sw { display: flex; flex-direction: column; border: 1px solid var(--doc-line); border-radius: 18px; overflow: hidden; background: var(--doc-panel); text-align: left; }
+  .pair { display: flex; height: 92px; } .pair > div { flex: 1; display: flex; align-items: flex-end; padding: 8px 10px; font: 500 10.5px/1 var(--doc-mono); }
+  .sw .info { padding: 10px 12px 12px; }
+  .sw b { display: block; font-size: 14px; }
+  .sw .tok { font-family: var(--doc-mono); font-size: 11px; color: var(--doc-muted); margin-top: 6px; }
+  .sw .role { font-size: 12.5px; color: var(--doc-muted); margin-top: 6px; line-height: 1.4; }
+
+  /* type scale */
+  .ts { border-top: 1px solid var(--doc-line); }
+  .ts-row { display: grid; grid-template-columns: 290px 1fr; gap: 32px; align-items: center; padding: 26px 0; border-bottom: 1px solid var(--doc-line); }
+  .ts-k b { display: block; font-size: 13px; font-weight: 600; }
+  .ts-k span { display: block; margin-top: 4px; font: 400 12px/1.6 var(--doc-mono); color: var(--doc-muted); }
+  .ts-k em { display: block; margin-top: 2px; font-style: normal; font-size: 12px; color: var(--doc-muted); }
+  .ts-k code { display: inline-block; margin-top: 8px; }
+  .playtext { outline: none; border-radius: 6px; } .playtext:focus { box-shadow: 0 0 0 2px color-mix(in srgb, var(--doc-accent) 35%, transparent); }
+
+  /* scales */
+  .bar { display: flex; align-items: center; gap: 14px; padding: 5px 0; font-size: 13px; }
+  .bar .n { width: 56px; font-family: var(--doc-mono); font-size: 12px; color: var(--doc-muted); }
+  .bar .v { height: 14px; border-radius: 4px; background: var(--doc-accent); opacity: .85; flex-shrink: 0; }
+  .bar .u { color: var(--doc-muted); font-size: 12.5px; }
+  .rad { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; font-size: 12.5px; }
+  .rad .box { width: 96px; height: 96px; background: var(--doc-code); border: 1.5px solid var(--doc-line); }
+  .rad small { color: var(--doc-muted); font-family: var(--doc-mono); font-size: 11.5px; }
+  .shd { height: 110px; border-radius: 18px; background: var(--doc-panel); display: grid; place-items: center; font-size: 12.5px; color: var(--doc-muted); }
+
+  /* components */
+  .comp { display: grid; grid-template-columns: minmax(300px, 380px) 1fr; border: 1px solid var(--doc-line); border-radius: 22px; overflow: hidden; background: var(--doc-panel); }
+  .comp + .comp { margin-top: 16px; }
+  .comp .demo { position: relative; background: var(--doc-bg); border-right: 1px solid var(--doc-line); padding: 28px 18px; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 10px; min-height: 200px; }
+  .comp .txt { padding: 22px 24px; }
+  .comp .txt h3 { margin: 0 0 4px; font-size: 18px; }
+  .comp .role { font-size: 13px; color: var(--doc-muted); margin-bottom: 12px; }
+  .comp dl { display: grid; grid-template-columns: 120px 1fr; gap: 6px 14px; margin: 12px 0 0; font-size: 13px; }
+  .comp dt { color: var(--doc-muted); } .comp dd { margin: 0; }
+
+  /* do / don't */
+  .rules h3 { margin-top: 0; }
+  .rl { list-style: none; margin: 0; padding: 0; }
+  .rl li { padding: 7px 0; font-size: 14.5px; }
+
+  /* code blocks */
+  pre { margin: 0; padding: 18px; background: var(--doc-code); border: 1px solid var(--doc-line); border-radius: 16px; overflow: auto; max-height: 520px; line-height: 1.55; }
+  .copy { position: absolute; top: 12px; right: 12px; z-index: 2; font-size: 12px; font-weight: 500; padding: 5px 10px; border-radius: 99px; background: var(--doc-panel); border: 1px solid var(--doc-line); }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 99px; background: var(--doc-code); font-size: 13px; font-weight: 500; }
+  #toast { position: fixed; z-index: 300; left: 50%; top: 14px; transform: translateX(-50%); padding: 8px 16px; border-radius: 99px; background: var(--doc-text); color: var(--doc-bg); font-size: 13px; font-weight: 500; opacity: 0; pointer-events: none; transition: opacity .2s; }
+  #toast.on { opacity: 1; }
+
+  /* @if interactive */
+  .play-wrap { display: grid; grid-template-columns: 400px 1fr; gap: 40px; align-items: start; }
+  .frame { position: relative; width: 390px; height: 780px; border-radius: 48px; overflow: hidden; background: var(--color-canvas); border: 1px solid var(--doc-line); box-shadow: 0 0 0 10px var(--doc-panel), 0 0 0 11px var(--doc-line), 0 30px 80px rgba(0,0,0,.14); margin: 12px 10px 30px; }
+  .steps { counter-reset: s; list-style: none; padding: 0; margin: 0; }
+  .steps li { counter-increment: s; position: relative; padding: 10px 0 10px 40px; font-size: 14px; }
+  .steps li::before { content: counter(s); position: absolute; left: 0; top: 9px; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 600; background: var(--doc-code); }
+  /* @end */
+
+  @media (max-width: 900px) {
+    .comp, .ts-row, .play-wrap { grid-template-columns: 1fr; } .comp .demo { border-right: 0; border-bottom: 1px solid var(--doc-line); }
+    .g2 { grid-template-columns: 1fr; } .frame { width: min(390px, calc(100vw - 40px)); } h1 { font-size: 36px; }
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } html { scroll-behavior: auto; } }
+
+  /* ================= COMPONENT CSS =================
+     The project's components, styled only with the design tokens above.
+     Replace these samples. */
+  .ds-button { display: inline-flex; align-items: center; justify-content: center; height: 40px; padding: 0 var(--spacing-16); border-radius: var(--radius-md); background: var(--color-accent); color: var(--color-on-accent); font: 600 14px/1 var(--font-body); transition: transform .15s var(--ease-out), opacity .15s; }
+  .ds-button.secondary { background: var(--color-surface); color: var(--color-ink); box-shadow: inset 0 0 0 1px var(--color-line); }
+  /* @if behavior */
+  .ds-button:hover { opacity: .9; } .ds-button:active { transform: scale(.97); }
+  /* @end */
+  .ds-card { width: 100%; padding: var(--spacing-16); border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-card); }
+</style>
+</head>
+<body>
+<div id="top"><div class="wrap">
+  <div class="brand">[fill: Product]</div>
+  <nav id="nav">
+    <!-- One short link per section that is kept. -->
+    <a href="#overview">Overview</a><a href="#colors">Colors</a><a href="#type">Type</a><a href="#shapes">Shapes</a>
+    <!-- @if interactive --><a href="#playground">Playground</a><!-- @end -->
+    <a href="#components">Components</a>
+    <!-- @if evidence:motion --><a href="#motion">Motion</a><!-- @end -->
+    <a href="#rules">Rules</a><a href="#layout">Layout</a><a href="#prompts">Agent guide</a><a href="#quickstart">Quick start</a>
+  </nav>
+  <!-- @if dark -->
+  <div class="seg" id="theme" role="group" aria-label="Theme"><button data-t="auto" class="on">Auto</button><button data-t="light">Light</button><button data-t="dark">Dark</button></div>
+  <!-- @end -->
+</div></div>
+
+<main>
+<!-- ================= HERO ================= -->
+<header class="hero wrap" id="overview">
+  <div class="eyebrow">[fill: Product] — Style Reference</div>
+  <h1>[fill: tagline naming the design's core tension, e.g. "X Y, Z W."]</h1>
+  <p class="lede">[fill: one sentence on the idea behind the system.]</p>
+  <p class="overview">[fill: 4-6 sentences: the overall feel, how color is used, what the typography does, the shape of buttons and cards, and the elevation approach.]</p>
+  <div class="meta">
+    <span class="chip">Theme: [fill: light or dark]</span>
+    <span class="chip">[fill: platform, e.g. Web, iPhone]</span>
+    <span class="chip">Source: <code>[fill: source]</code></span>
+  </div>
+</header>
+
+<!-- ================= COLORS =================
+     One card per color. Role says where it is used, not what it looks like.
+     Brand or logo colors only if present in the input, marked "logos only". -->
+<section class="s" id="colors"><div class="wrap">
+  <h2>Colors</h2>
+  <p class="sub">[fill: one line on the color strategy.]</p>
+  <div class="grid g4">
+    <!-- @repeat per color. Two halves when a dark value exists, one otherwise. -->
+    <button class="sw" data-copy="#18181b"><div class="pair"><div style="background:#18181b;color:#fafafa">#18181b</div><div style="background:#f4f4f5;color:#18181b">#f4f4f5</div></div><div class="info"><b>Ink</b><div class="tok">--color-ink</div><div class="role">[fill: where it is used]</div></div></button>
+    <button class="sw" data-copy="#2563eb"><div class="pair"><div style="background:#2563eb;color:#fff">#2563eb</div></div><div class="info"><b>Accent <span class="tag">est.</span></b><div class="tok">--color-accent</div><div class="role">[fill: where it is used]</div></div></button>
+  </div>
+</div></section>
+
+<!-- ================= TYPOGRAPHY =================
+     Family cards: font, token, substitute, weights, role.
+     Scale rows largest to smallest: role, size · weight · line height ·
+     tracking (+ family when not the default), usage, token, editable sample. -->
+<section class="s" id="type"><div class="wrap">
+  <h2>Typography</h2>
+  <p class="sub">[fill: how the faces split the work.] Click any sample to type your own text.</p>
+  <div class="grid g2" style="margin-bottom:24px">
+    <!-- @repeat per font family -->
+    <div class="card"><div style="font:400 52px/1 var(--font-body);letter-spacing:-1.4px">Aa</div>
+      <h3 style="margin-top:14px">Inter · <code>--font-body</code></h3>
+      <p class="note" style="margin:0">Weights [fill]. Substitute: [fill]. [fill: where and why it is used.]</p></div>
+  </div>
+  <div class="ts">
+    <!-- @repeat per type scale role -->
+    <div class="ts-row"><div class="ts-k"><b>display</b><span>40px · 600 · 1.10 · -1px</span><em>[fill: usage]</em><code>--text-display</code></div><div class="playtext" contenteditable spellcheck="false" style="font:600 var(--text-display)/var(--leading-display) var(--font-body);letter-spacing:var(--tracking-display)">The quick brown fox</div></div>
+    <div class="ts-row"><div class="ts-k"><b>body</b><span>16px · 400 · 1.50</span><em>[fill: usage]</em><code>--text-body</code></div><div class="playtext" contenteditable spellcheck="false" style="font:400 var(--text-body)/var(--leading-body) var(--font-body)">Body copy reads like this at its true size.</div></div>
+  </div>
+  <!-- @if evidence:rounding --><p class="note" style="margin-top:14px">Rounded from the source (proposed): [fill: 15.5px → 16px, ...].</p><!-- @end -->
+</div></section>
+
+<!-- ================= SPACING & SHAPES =================
+     Density, spacing bars, one radius box per scale step with the elements
+     that use it, shadow tiles. Rounding notes sit under their scale. -->
+<section class="s" id="shapes"><div class="wrap">
+  <h2>Spacing &amp; shapes</h2>
+  <p class="sub">Density: [fill: compact, comfortable, or spacious]. [fill: one line on rhythm and corners.]</p>
+  <div class="grid g2">
+    <div class="card">
+      <h3 style="margin-top:0">Spacing scale</h3>
+      <!-- @repeat per spacing step -->
+      <div class="bar"><span class="n">8</span><span class="v" style="width:8px"></span><span class="u">[fill: where it is used]</span></div>
+      <div class="bar"><span class="n">16</span><span class="v" style="width:16px"></span><span class="u">[fill: where it is used]</span></div>
+      <p class="note" style="margin:12px 0 0">Tokens: <code>--spacing-{n}</code>. [fill: layout values: page max width, section gap, card padding.]</p>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0">Border radius</h3>
+      <div class="grid" style="grid-template-columns:repeat(4,1fr);gap:18px 10px">
+        <!-- @repeat per radius step -->
+        <div class="rad"><div class="box" style="border-radius:var(--radius-md)"></div>md · 10<small>[fill: elements]</small></div>
+        <div class="rad"><div class="box" style="border-radius:var(--radius-full)"></div>full<small>[fill: elements]</small></div>
+      </div>
+    </div>
+  </div>
+  <h3>Shadows</h3>
+  <div class="grid g4">
+    <!-- @repeat per shadow. For flat designs, show the alternative (borders, tonal layers) instead. -->
+    <div><div class="shd" style="box-shadow:var(--shadow-card)">card</div><p class="note mono" style="margin-top:8px">--shadow-card<br>0 1px 3px rgba(0,0,0,.08)</p></div>
+  </div>
+</div></section>
+
+<!-- @if interactive -->
+<!-- ================= PLAYGROUND =================
+     The real screens rebuilt in a device or browser frame, components working
+     together. Resize .frame for desktop products. -->
+<section class="s" id="playground"><div class="wrap">
+  <h2>Playground</h2>
+  <p class="sub">[fill: what the frame shows.] Changes are not saved.</p>
+  <div class="play-wrap">
+    <div class="frame" id="frame"><!-- [fill: rebuilt screen] --></div>
+    <div><h3 style="margin-top:0">Try it</h3><ol class="steps"><li><b>[fill: action]</b> [fill: what happens]</li></ol></div>
+  </div>
+</div></section>
+<!-- @end -->
+
+<!-- ================= COMPONENTS =================
+     One card per component. Cover at least: primary and secondary button,
+     tag or chip, card, navigation link, and any signature component.
+     Left: demo. Static base = a still preview; @if behavior = wire up the
+     behavior the source describes, with its motion values.
+     Right: name, one-line role, short prose with values as <code>, and a
+     property list (background, text, font, radius, padding, shadow, states). -->
+<section class="s" id="components"><div class="wrap">
+  <h2>Components</h2>
+  <p class="sub">[fill: how components are built.]</p>
+  <!-- @repeat per component -->
+  <div class="comp"><div class="demo"><button class="ds-button">Primary action</button><button class="ds-button secondary">Secondary</button></div>
+    <div class="txt"><h3>Button</h3><div class="role">[fill: what it is for]</div>
+      <p>Accent fill, <code>40px</code> high, radius <code>10px</code>, padding <code>0 16px</code>, <code>600 14px</code> text.</p>
+      <dl><dt>Background</dt><dd>Accent <code>#2563eb</code></dd><dt>Text</dt><dd>On accent <code>#ffffff</code></dd><dt>Shadow</dt><dd>—</dd><!-- @if behavior --><dt>Press</dt><dd>scales to <code>0.97</code> over <code>.15s</code></dd><!-- @end --></dl></div></div>
+  <div class="comp"><div class="demo"><div class="ds-card"><b>Card title</b><p class="note" style="margin:6px 0 0">Supporting text.</p></div></div>
+    <div class="txt"><h3>Card</h3><div class="role">[fill: what it is for]</div>
+      <p>Surface fill, radius <code>16px</code>, padding <code>16px</code>, <code>--shadow-card</code>.</p></div></div>
+</div></section>
+
+<!-- @if evidence:motion -->
+<!-- ================= MOTION =================
+     Replayable demos with timing or spring values as captions; a gestures
+     table; a sound table with play buttons if the source has sounds. -->
+<section class="s" id="motion"><div class="wrap">
+  <h2>Motion</h2>
+  <p class="sub">[fill: the motion philosophy in one line.]</p>
+  <div class="grid g3">
+    <!-- @repeat per motion -->
+    <div class="card"><h3 style="margin-top:0">[fill: name]</h3><div style="height:70px;display:flex;align-items:flex-end"><button class="ds-button" id="m1">Hello</button></div>
+      <button class="btn" data-replay="m1" style="margin-top:12px">Replay</button><p class="note mono" style="margin-top:10px">[fill: e.g. scale .9→1 · .3s · ease-out]</p></div>
+  </div>
+</div></section>
+<!-- @end -->
+
+<!-- ================= DO'S AND DON'TS =================
+     Two plain lists. Short, checkable rules with exact values. -->
+<section class="s" id="rules"><div class="wrap">
+  <h2>Do's and don'ts</h2>
+  <div class="grid g2">
+    <div class="card rules"><h3>Do</h3><ul class="rl"><li>[fill: rule with exact values]</li></ul></div>
+    <div class="card rules"><h3>Don't</h3><ul class="rl"><li>[fill: pitfall with exact values]</li></ul></div>
+  </div>
+</div></section>
+
+<!-- ================= LAYOUT, ELEVATION, IMAGERY ================= -->
+<section class="s" id="layout"><div class="wrap">
+  <h2>Layout, elevation and imagery</h2>
+  <div class="grid g3">
+    <div class="card"><h3 style="margin-top:0">Layout</h3><p class="note">[fill: page container, section rhythm, hero composition, repeated patterns.]</p></div>
+    <div class="card"><h3 style="margin-top:0">Elevation</h3><p class="note">[fill: which components get which shadow, or the flat alternative.]</p></div>
+    <!-- @if evidence:imagery --><div class="card"><h3 style="margin-top:0">Imagery</h3><p class="note">[fill: photo vs illustration vs product UI, icon style, framing, what is not used.]</p></div><!-- @end -->
+  </div>
+</div></section>
+
+<!-- ================= AGENT PROMPT GUIDE ================= -->
+<section class="s" id="prompts"><div class="wrap">
+  <h2>Agent prompt guide</h2>
+  <h3 style="margin-top:0">Quick color reference</h3>
+  <div class="tw"><table>
+    <tr><th>Use</th><th>Value</th><th>Name</th></tr>
+    <tr><td>Page background</td><td><code>#fafafa</code></td><td>Canvas</td></tr>
+    <tr><td>Card background</td><td><code>#ffffff</code></td><td>Surface</td></tr>
+    <tr><td>Headline text</td><td><code>#18181b</code></td><td>Ink</td></tr>
+    <tr><td>Body text</td><td><code>#18181b</code></td><td>Ink</td></tr>
+    <tr><td>Primary CTA</td><td><code>#2563eb</code> background, <code>#ffffff</code> text</td><td>Accent, On accent</td></tr>
+    <tr><td>Borders</td><td><code>rgba(0,0,0,.08)</code></td><td>Line</td></tr>
+  </table></div>
+  <h3>Example component prompts</h3>
+  <div class="grid g3">
+    <!-- @repeat 3 self-contained prompts with exact values -->
+    <div class="card"><button class="copy" data-copy-next>Copy</button><b>[fill: component]</b><p class="note" style="margin:8px 0 0">[fill: prompt with exact hex values, fonts, sizes, radii, padding, shadows.]</p></div>
+  </div>
+</div></section>
+
+<!-- ================= SIMILAR BRANDS ================= -->
+<section class="s" id="brands"><div class="wrap">
+  <h2>Similar brands</h2>
+  <div class="tw"><table><tr><th>Brand</th><th>Shared or different</th></tr><!-- @repeat 3-4 rows --><tr><td>[fill]</td><td>[fill]</td></tr></table></div>
+</div></section>
+
+<!-- ================= QUICK START =================
+     Must match the DESIGN TOKENS block at the top exactly. -->
+<section class="s" id="quickstart"><div class="wrap">
+  <h2>Quick start</h2>
+  <h3 style="margin-top:0">CSS custom properties</h3>
+  <div style="position:relative"><button class="copy" data-copy-pre>Copy</button><pre><code>:root {
+  /* Colors */
+  --color-canvas: #fafafa;
+  --color-surface: #ffffff;
+  --color-ink: #18181b;
+  --color-muted: #71717a;
+  --color-line: rgba(0, 0, 0, 0.08);
+  --color-accent: #2563eb;
+  --color-on-accent: #ffffff;
+
+  /* Fonts */
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Type scale */
+  --text-display: 40px; --leading-display: 1.1; --tracking-display: -1px;
+  --text-heading: 24px; --leading-heading: 1.2; --tracking-heading: -0.4px;
+  --text-body: 16px;    --leading-body: 1.5;
+  --text-caption: 12px; --leading-caption: 1.3;
+
+  /* Spacing */
+  --spacing-4: 4px; --spacing-8: 8px; --spacing-12: 12px; --spacing-16: 16px;
+  --spacing-24: 24px; --spacing-32: 32px; --spacing-48: 48px;
+
+  /* Radius */
+  --radius-sm: 6px; --radius-md: 10px; --radius-lg: 16px; --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-overlay: 0 12px 32px rgba(0, 0, 0, 0.16);
+}</code></pre></div>
+  <h3>Tailwind v4</h3>
+  <div style="position:relative"><button class="copy" data-copy-pre>Copy</button><pre><code>@theme {
+  /* same tokens and values as above */
+}</code></pre></div>
+</div></section>
+</main>
+
+<div id="toast"></div>
+<script>
+  const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const toast = msg => { const t = $("#toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("on"), 1400); };
+  const copy = text => navigator.clipboard?.writeText(text).then(() => toast("Copied"), () => toast("Copy failed"));
+
+  // Copy: swatches, code blocks, prompt cards
+  $$("[data-copy]").forEach(b => b.addEventListener("click", () => copy(b.dataset.copy)));
+  $$("[data-copy-pre]").forEach(b => b.addEventListener("click", () => copy(b.parentElement.querySelector("pre").innerText)));
+  $$("[data-copy-next]").forEach(b => b.addEventListener("click", () => copy(b.parentElement.querySelector("p").innerText)));
+
+  // Nav: highlight the section in view
+  const links = $$("#nav a");
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting) links.forEach(a => a.classList.toggle("on", a.getAttribute("href") === "#" + e.target.id));
+  }), { rootMargin: "-40% 0px -55% 0px" });
+  $$("main > [id]").forEach(el => io.observe(el));
+
+  // @if dark: theme switch (Auto / Light / Dark)
+  const seg = $("#theme");
+  if (seg) {
+    const set = t => { t === "auto" ? delete document.documentElement.dataset.theme : document.documentElement.dataset.theme = t; $$("button", seg).forEach(b => b.classList.toggle("on", b.dataset.t === t)); localStorage.setItem("design-theme", t); };
+    set(localStorage.getItem("design-theme") || "auto");
+    seg.addEventListener("click", e => e.target.dataset.t && set(e.target.dataset.t));
+  }
+  // @end
+
+  // @if evidence:motion: replay buttons re-run a Web Animation on the target. Use the source's values.
+  $$("[data-replay]").forEach(b => b.addEventListener("click", () => {
+    const el = document.getElementById(b.dataset.replay);
+    el?.animate([{ transform: "scale(.9)", opacity: 0 }, { transform: "scale(1)", opacity: 1 }], { duration: 300, easing: "cubic-bezier(.22,1,.36,1)" });
+  }));
+  // @end
+</script>
+</body>
+</html>
