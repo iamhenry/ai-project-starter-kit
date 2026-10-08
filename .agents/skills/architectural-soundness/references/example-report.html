@@ -3,612 +3,598 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pull Requests in BB — Architecture</title>
-  <!--
-    CANONICAL ARCHITECTURAL SOUNDNESS REPORT
-
-    Copy this file for a new report. Preserve its information order, visual
-    system, responsive diagram behavior, and accessible interactions.
-
-    ADAPT every project-specific element: title, opening answer, requirements,
-    system pieces, Mermaid diagrams, subsystem tabs, behavior flows, growth
-    triggers, options, verdict, decision history, assumptions, handoff, and
-    sources. Before presenting the copy, search for Pull Requests, GitHub,
-    GitHub CLI, and BB. Keep a match only when it is independently true and
-    cited for the current project. This example is structure, not evidence.
-  -->
+  <title>Journal — System Architecture</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
   <style>
     :root {
-      --ink: #171717;
-      --muted: #666;
-      --canvas: #fff;
-      --soft: #fafafa;
-      --line: #e7e7e7;
-      --blue: #005ee9;
-      --blue-soft: #edf5ff;
-      --purple: #7200c4;
-      --purple-soft: #f6edff;
-      --green: #397c3b;
-      --green-soft: #eff8ef;
-      --amber: #9e5200;
-      --amber-soft: #fff5e8;
-      --red: #c62128;
-      --radius: 12px;
+      --ink: #171717; --muted: #5f5f5f; --faint: #9a9a9a; --canvas: #fff; --soft: #fafafa; --line: #e7e7e7;
+      --blue: #005ee9; --blue-soft: #edf5ff; --purple: #7200c4; --purple-soft: #f6edff;
+      --green: #397c3b; --green-soft: #eff8ef; --amber: #9e5200; --amber-soft: #fff5e8; --red: #c62128; --red-soft: #fff0f0;
     }
-
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; }
-    body { margin: 0; background: var(--canvas); color: var(--ink); font-family: Geist, Arial, Helvetica, sans-serif; line-height: 1.5; }
-    button { font: inherit; }
+    body { margin: 0; color: var(--ink); background: var(--canvas); font-family: Geist, -apple-system, Arial, sans-serif; line-height: 1.55; font-size: 16px; }
     a { color: var(--blue); }
-    .skip { position: absolute; left: -9999px; }
-    .skip:focus { left: 1rem; top: 1rem; z-index: 10; background: white; padding: .6rem; outline: 2px solid var(--blue); }
-    .shell { width: min(1180px, calc(100% - 40px)); margin: auto; }
+    .layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 56px; width: min(1160px, calc(100% - 40px)); margin: auto; }
 
-    header { display: flex; align-items: center; justify-content: space-between; min-height: 72px; border-bottom: 1px solid var(--line); font-size: 14px; }
-    .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; }
-    .mark { width: 18px; height: 18px; background: var(--ink); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
-    header span:last-child { color: var(--muted); }
+    nav { position: sticky; top: 0; align-self: start; height: 100vh; padding: 40px 0; overflow-y: auto; font-size: 14px; }
+    nav .title { font-weight: 700; margin-bottom: 4px; }
+    nav .meta { color: var(--muted); font-size: 12px; margin-bottom: 24px; }
+    nav ol { list-style: none; margin: 0; padding: 0; }
+    nav li { margin: 2px 0; }
+    nav a { display: block; padding: 6px 10px; border-radius: 6px; color: var(--ink); text-decoration: none; }
+    nav a:hover { background: var(--soft); }
+    nav a.active { background: var(--ink); color: #fff; }
+    nav a span { color: var(--faint); margin-right: 6px; }
+    nav a.active span { color: #aaa; }
+    nav .sub { padding-left: 26px; font-size: 13px; color: var(--muted); }
 
-    main { padding: 72px 0 96px; }
-    section { margin-top: 104px; scroll-margin-top: 24px; }
-    h1, h2, h3, p { margin-top: 0; }
-    h1 { max-width: 820px; margin-bottom: 24px; font-size: clamp(48px, 7vw, 88px); line-height: .98; letter-spacing: -.065em; font-weight: 600; }
-    h2 { margin-bottom: 12px; font-size: clamp(30px, 4vw, 48px); line-height: 1.06; letter-spacing: -.045em; }
-    h3 { margin-bottom: 8px; font-size: 17px; }
-    .lede { max-width: 700px; color: var(--muted); font-size: 20px; }
-    .kicker { margin-bottom: 18px; color: var(--blue); font-size: 13px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; }
-    .section-head { display: grid; grid-template-columns: 5fr 7fr; gap: 48px; margin-bottom: 32px; align-items: start; }
-    .section-head p { max-width: 650px; color: var(--muted); font-size: 17px; }
-    .section-number { display: inline-grid; place-items: center; width: 30px; height: 30px; margin-bottom: 18px; border-radius: 50%; background: var(--ink); color: white; font-size: 12px; font-weight: 700; }
-    .tech-tag { display: inline-block; margin: 0 0 12px 8px; padding: 3px 8px; border: 1px solid var(--line); border-radius: 999px; background: var(--soft); color: var(--muted); font-size: 11px; font-style: normal; font-weight: 600; letter-spacing: .01em; line-height: 1.35; text-transform: none; vertical-align: middle; }
-    h3 .tech-tag { margin: 0 0 0 5px; font-size: 10px; }
+    main { padding: 40px 0 120px; max-width: 840px; }
+    h1 { font-size: clamp(36px, 5vw, 54px); line-height: 1.05; letter-spacing: -.045em; margin: 0 0 14px; }
+    h2 { font-size: 30px; letter-spacing: -.03em; line-height: 1.15; margin: 0 0 6px; }
+    h3 { font-size: 18px; letter-spacing: -.01em; margin: 32px 0 8px; }
+    h4 { font-size: 14px; margin: 0 0 6px; }
+    p { margin: 0 0 12px; }
+    .lede { font-size: 19px; color: var(--muted); max-width: 720px; }
+    section { padding-top: 64px; scroll-margin-top: 8px; }
+    section + section { border-top: 1px solid var(--line); margin-top: 64px; }
+    .num { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--ink); color: #fff; font-size: 13px; font-weight: 700; margin-bottom: 12px; }
+    .intro { color: var(--muted); margin-bottom: 20px; }
+    .summary { font-size: 17px; color: var(--ink); border-left: 3px solid var(--blue); padding: 2px 0 2px 16px; margin: 4px 0 28px; max-width: 72ch; }
 
-    .opening { display: grid; grid-template-columns: 8fr 4fr; gap: 48px; align-items: end; }
-    .answer { padding: 24px 0 4px 24px; border-left: 3px solid var(--green); }
-    .answer strong { display: block; margin-bottom: 8px; color: var(--green); font-size: 13px; }
-    .answer p { margin: 0; font-size: 18px; line-height: 1.4; }
-    .plain-summary { margin-top: 48px; padding: 24px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); font-size: clamp(22px, 3vw, 34px); line-height: 1.25; letter-spacing: -.025em; }
-    .plain-summary b { color: var(--blue); }
+    /* Behavior → Technical pair */
+    .pair { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin: 16px 0; }
+    .pair > div { padding: 18px 20px; }
+    .pair .beh { background: var(--blue-soft); }
+    .pair .tech { background: var(--soft); border-left: 1px solid var(--line); }
+    .pair .label { display: block; font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; margin-bottom: 8px; }
+    .pair .beh .label { color: var(--blue); }
+    .pair .tech .label { color: var(--muted); }
+    .pair ul { margin: 0; padding-left: 18px; }
+    .pair li { margin: 5px 0; font-size: 15px; }
+    .pair p { font-size: 15px; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; background: #f1f1f1; padding: 1px 5px; border-radius: 4px; }
 
-    .coverage { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
-    .coverage article { min-height: 260px; padding: 24px; border-right: 1px solid var(--line); }
-    .coverage article:last-child { border-right: 0; }
-    .coverage-icon { display: grid; place-items: center; width: 34px; height: 34px; margin-bottom: 40px; border-radius: 8px; font-size: 12px; font-weight: 800; }
-    .coverage article:nth-child(1) .coverage-icon { background: var(--blue-soft); color: var(--blue); }
-    .coverage article:nth-child(2) .coverage-icon { background: var(--purple-soft); color: var(--purple); }
-    .coverage article:nth-child(3) .coverage-icon { background: var(--amber-soft); color: var(--amber); }
-    .coverage ul { margin: 14px 0 0; padding-left: 18px; color: var(--muted); font-size: 14px; }
-    .coverage li { margin: 7px 0; }
+    /* Answers that shaped this section */
+    .answers { border: 1px solid var(--line); border-radius: 12px; margin: 16px 0; }
+    .answers h4 { padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--soft); border-radius: 12px 12px 0 0; }
+    .answer { display: grid; grid-template-columns: 1.1fr 1fr 1.3fr; gap: 16px; padding: 12px 16px; font-size: 14px; border-bottom: 1px solid var(--line); }
+    .answer:last-child { border-bottom: 0; }
+    .answer .q { color: var(--muted); }
+    .answer .a { font-weight: 600; }
+    .answer .t { color: var(--muted); }
+    .answer .t::before { content: "→ "; color: var(--faint); }
 
-    .diagram-frame { overflow-x: auto; padding: 24px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--soft); }
-    .diagram-frame .mermaid { width: 100%; min-width: 0; display: flex; justify-content: center; }
-    .diagram-frame svg, #subsystem-diagram svg { display: block; width: 100% !important; max-width: 100% !important; height: auto !important; }
-    .caption { margin: 14px 0 0; color: var(--muted); font-size: 14px; }
-    .diagram-key { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 18px; color: var(--muted); font-size: 13px; }
-    .diagram-key span { display: inline-flex; align-items: center; gap: 7px; }
-    .swatch { width: 10px; height: 10px; border-radius: 2px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 12px 0 20px; }
+    th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+    thead th { font-size: 12px; color: var(--muted); font-weight: 700; border-bottom: 1px solid var(--ink); }
+    tbody th { font-weight: 600; }
+    .table-wrap { overflow-x: auto; }
+    .pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+    .hi { background: var(--red-soft); color: var(--red); }
+    .med { background: var(--amber-soft); color: var(--amber); }
+    .lo { background: var(--green-soft); color: var(--green); }
+    .off { background: #f1f1f1; color: var(--muted); }
 
-    .architecture-decisions { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 16px; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
-    .architecture-decisions article { padding: 20px; border-right: 1px solid var(--line); }
-    .architecture-decisions article:last-child { border-right: 0; }
-    .architecture-decisions article > span { display: block; margin-bottom: 6px; color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; }
-    .architecture-decisions .tech-tag { margin: 0 0 0 5px; }
-    .architecture-decisions p { margin: 0; font-size: 15px; }
+    .diagram { padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--soft); overflow-x: auto; margin: 12px 0 8px; }
+    .diagram:has(> svg.dd) { padding: 0; }
+    .diagram svg.dd { display: block; width: 100%; height: auto; }
+    details { border: 1px solid var(--line); border-radius: 8px; margin: 12px 0; }
+    details summary { cursor: pointer; padding: 10px 14px; font-size: 14px; font-weight: 600; }
+    details[open] summary { border-bottom: 1px solid var(--line); }
+    details > :not(summary) { margin: 12px 14px; }
 
-    .parts-overview { margin-top: 40px; }
-    .parts-overview-head { display: flex; justify-content: space-between; gap: 32px; align-items: end; margin-bottom: 16px; }
-    .parts-overview-head h3 { margin: 0; font-size: 24px; letter-spacing: -.025em; }
-    .parts-overview-head p { max-width: 560px; margin: 0; color: var(--muted); font-size: 14px; }
-    .parts-overview th:first-child { width: 14%; }
-    .parts-overview td:nth-child(2) { width: 20%; }
-    .parts-overview td:nth-child(3) { width: 34%; }
-    .parts-overview td:last-child { width: 32%; }
-    table .tech-tag { margin: 0; white-space: nowrap; }
+    .flow { display: flex; flex-direction: column; align-items: stretch; gap: 0; }
+    .flow .tier { display: flex; justify-content: center; }
+    .flow .box { padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; background: #fff; font-size: 14px; font-weight: 600; text-align: center; }
+    .flow .box small { display: block; font-weight: 400; font-size: 12px; color: var(--muted); }
+    .flow .box.person { background: var(--blue-soft); border-color: var(--blue); min-width: 160px; }
+    .flow .box.app, .flow .box.truth { background: var(--ink); color: #fff; border-color: var(--ink); }
+    .flow .box.app { min-width: 280px; padding: 14px 20px; font-size: 16px; }
+    .flow .box.app small, .flow .box.truth small { color: #bbb; }
+    .flow .box.dashed { border-style: dashed; border-color: #aaa; color: var(--muted); background: transparent; }
+    .flow .arrow { padding: 10px 0; text-align: center; color: var(--muted); font-size: 13px; }
+    .flow .arrow.two { display: flex; justify-content: center; gap: 40px; flex-wrap: wrap; }
+    .flow .groups { display: grid; grid-template-columns: 1.4fr 1fr .8fr; gap: 12px; }
+    .flow .group { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+    .flow .group h5 { margin: 0 0 2px; font-size: 13px; }
+    .flow .group h5 small { font-weight: 400; color: var(--muted); }
+    .flow .group.ios, .flow .group.online { border-top: 3px solid var(--amber); }
+    .flow .group.ios .box, .flow .group.online .box:not(.dashed) { background: var(--amber-soft); border-color: #e5c9a5; }
+    .flow .group.off { border-style: dashed; }
+    .flow .group.ui { border-top: 3px solid var(--blue); }
+    .flow .group.ui .box { background: var(--blue-soft); border-color: #bcd6fb; }
+    .flow .group.svc { border-top: 3px solid var(--purple); }
+    .flow .group.svc .box:not(.dashed) { background: var(--purple-soft); border-color: #dcc2f2; }
+    .flow .group.store { border-top: 3px solid var(--ink); }
+    .flow .row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .flow .row .box { flex: 1 1 120px; }
+    .caption { font-size: 14px; color: var(--muted); margin: 0 0 16px; }
 
-    .subsystem-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
-    .subsystem-tab { padding: 18px; border: 1px solid var(--line); border-radius: 10px; background: white; color: var(--ink); text-align: left; cursor: pointer; }
-    .subsystem-tab > .tab-meta { display: block; margin-bottom: 18px; color: var(--muted); font-size: 12px; }
-    .subsystem-tab .tech-tag { margin: 0 0 0 5px; }
-    .subsystem-tab strong { display: block; }
-    .subsystem-tab small { display: block; margin-top: 4px; color: var(--muted); }
-    .subsystem-tab:hover { border-color: #aaa; }
-    .subsystem-tab:focus-visible { outline: 3px solid #8ab4ff; outline-offset: 2px; }
-    .subsystem-tab[aria-selected="true"] { border-color: var(--blue); box-shadow: 0 0 0 1px var(--blue); }
-    .subsystem-stage { min-height: 430px; padding: 28px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--soft); }
-    .subsystem-summary { display: grid; grid-template-columns: 1fr 2fr; gap: 24px; margin-bottom: 20px; }
-    .subsystem-summary p { margin: 0; color: var(--muted); }
-    #subsystem-diagram { width: 100%; min-width: 0; display: flex; justify-content: center; }
-    .subsystem-diagram-wrap { overflow-x: auto; }
+    .goals { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+    .goal { padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px; }
+    .goal .rank { font-size: 12px; font-weight: 700; color: var(--blue); }
+    .goal h4 { font-size: 16px; margin: 2px 0 6px; }
+    .goal p { font-size: 14px; color: var(--muted); margin: 0 0 6px; }
+    .goal .give { font-size: 13px; color: var(--amber); margin: 0; }
 
-    .flows { display: grid; grid-template-columns: 1fr; gap: 16px; }
-    .flow-card { overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius); }
-    .flow-card header { display: block; min-height: 0; padding: 20px 22px; background: white; }
-    .flow-card header p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
-    .flow-card .diagram-frame { border: 0; border-top: 1px solid var(--line); border-radius: 0; }
-    .flow-card .mermaid { min-width: 0; }
+    .scope { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .scope div { padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px; }
+    .scope ul { margin: 0; padding-left: 18px; font-size: 15px; }
+    .scope li { margin: 4px 0; }
+    .scope .in h4 { color: var(--green); }
+    .scope .out h4 { color: var(--red); }
 
-    .reliability { display: grid; grid-template-columns: 7fr 5fr; gap: 16px; }
-    .reliability .diagram-frame .mermaid { min-width: 0; }
-    .reliability-notes { padding: 26px; border: 1px solid var(--line); border-radius: var(--radius); }
-    .reliability-notes ul { margin: 18px 0 0; padding-left: 18px; color: var(--muted); }
-    .reliability-notes li { margin: 9px 0; }
+    .status { display: inline-block; margin: 8px 0 0; padding: 4px 10px; border-radius: 6px; background: var(--ink); color: #fff; font-size: 13px; font-weight: 600; }
+    footer { margin-top: 80px; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
 
-    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); }
-    table { width: 100%; min-width: 850px; border-collapse: collapse; text-align: left; }
-    th, td { padding: 17px 18px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); vertical-align: top; }
-    th:last-child, td:last-child { border-right: 0; }
-    tbody tr:last-child td, tbody tr:last-child th { border-bottom: 0; }
-    thead th { background: var(--ink); color: white; font-size: 13px; font-weight: 600; }
-    tbody th { width: 18%; background: var(--soft); font-size: 14px; }
-    td { width: 27.3%; color: var(--muted); font-size: 14px; }
-    td strong { color: var(--ink); }
-    .chosen-head { background: var(--blue); }
-    .chosen { background: var(--blue-soft); color: #0046ad; }
-    .option-name { display: block; margin-bottom: 3px; font-size: 14px; }
-
-    .decision-grid { display: grid; grid-template-columns: 7fr 5fr; gap: 16px; }
-    .decision-main { padding: 32px; border-radius: var(--radius); background: var(--ink); color: white; }
-    .decision-main h2 { max-width: 620px; }
-    .decision-main p { max-width: 600px; margin-bottom: 0; color: #ccc; font-size: 17px; }
-    .decision-side { padding: 28px; border: 1px solid var(--line); border-radius: var(--radius); }
-    .decision-side ul { margin: 14px 0 0; padding-left: 18px; color: var(--muted); }
-    .decision-side li { margin: 8px 0; }
-    details { margin-top: 24px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-    summary { cursor: pointer; padding: 20px 0; font-weight: 600; }
-    .audit { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; padding: 8px 0 28px; }
-    .audit p, .audit li { color: var(--muted); font-size: 14px; }
-    .audit ul { margin: 0; padding-left: 17px; }
-    .open-record { margin-top: 56px; }
-    .open-record > h2 { margin-bottom: 28px; font-size: clamp(26px, 3vw, 38px); }
-    .timeline { position: relative; margin: 0; padding: 0 0 0 34px; list-style: none; }
-    .timeline::before { content: ""; position: absolute; top: 7px; bottom: 7px; left: 7px; width: 1px; background: var(--line); }
-    .timeline li { position: relative; display: grid; grid-template-columns: 150px 1fr; gap: 24px; padding: 0 0 28px; }
-    .timeline li::before { content: ""; position: absolute; top: 6px; left: -31px; width: 9px; height: 9px; border: 2px solid white; border-radius: 50%; background: var(--blue); box-shadow: 0 0 0 1px var(--blue); }
-    .timeline time { color: var(--muted); font-size: 13px; }
-    .timeline h3 { margin-bottom: 4px; }
-    .timeline p { max-width: 700px; margin: 0; color: var(--muted); font-size: 14px; }
-    .handoff-open { margin-top: 28px; padding-top: 28px; border-top: 1px solid var(--line); }
-    footer { display: flex; justify-content: space-between; gap: 20px; padding: 28px 0 40px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
-
-    @media (max-width: 850px) {
-      .opening, .section-head, .reliability, .decision-grid, .subsystem-summary { grid-template-columns: 1fr; }
-      .opening, .section-head { gap: 20px; }
-      .answer { margin-top: 12px; }
-      .coverage, .architecture-decisions { grid-template-columns: 1fr; }
-      .coverage article, .architecture-decisions article { min-height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
-      .coverage article:last-child, .architecture-decisions article:last-child { border-bottom: 0; }
-      .coverage-icon { margin-bottom: 20px; }
-      .flows { grid-template-columns: 1fr; }
-      .audit { grid-template-columns: 1fr; }
-      .timeline li { grid-template-columns: 1fr; gap: 4px; }
-    }
-    @media (max-width: 600px) {
-      .shell { width: min(100% - 28px, 1180px); }
-      header span:last-child { display: none; }
-      main { padding-top: 48px; }
-      section { margin-top: 76px; }
-      h1 { font-size: 48px; }
-      .subsystem-tabs { grid-template-columns: 1fr; }
-      .subsystem-tab > .tab-meta { margin-bottom: 8px; }
-      .subsystem-stage { padding: 16px; }
-      footer { flex-direction: column; }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; gap: 0; }
+      nav { position: static; height: auto; padding: 24px 0 0; }
+      nav ol { display: flex; flex-wrap: wrap; gap: 4px; }
+      nav .sub { display: none; }
+      .pair, .goals, .scope, .answer { grid-template-columns: 1fr; }
+      .pair .tech { border-left: 0; border-top: 1px solid var(--line); }
+      .answer { gap: 2px; }
+      .flow .groups { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
-  <a class="skip" href="#main">Skip to content</a>
-  <div class="shell">
+<div class="layout">
+  <nav aria-label="Sections">
+    <div class="title">Journal</div>
+    <div class="meta">System architecture · Draft 4 · Oct 8, 2026</div>
+    <ol>
+      <li><a href="#overview"><span>1</span>Overview</a></li>
+      <li><a href="#goals"><span>2</span>Architectural goals</a></li>
+      <li><a href="#context"><span>3</span>System context</a></li>
+      <li><a href="#components"><span>4</span>Components</a></li>
+      <li><a href="#data"><span>5</span>Data models</a></li>
+      <li><a href="#interfaces"><span>6</span>Interfaces</a></li>
+      <li><a href="#risks"><span>7</span>Risks and mitigation</a></li>
+      <li><a href="#appendix"><span>8</span>Appendix</a></li>
+    </ol>
+  </nav>
+
+  <main>
     <header>
-      <div class="brand"><span class="mark" aria-hidden="true"></span>Architectural soundness</div>
-      <span>Pull Requests in BB · Draft 4</span>
+      <h1>Journal: system architecture</h1>
+      <span class="status">Draft 4: checked against the template code, diagrams redrawn (Oct 8)</span>
     </header>
 
-    <main id="main">
-      <section class="opening" style="margin-top:0">
-        <div>
-          <p class="kicker">The proposed system</p>
-          <h1>One place to see which pull requests need you.</h1>
-          <p class="lede">A read-only page inside BB groups pull requests by what needs attention, explains their status, and sends you to GitHub when you are ready to act.</p>
-        </div>
-        <aside class="answer">
-          <strong>Recommended architecture</strong>
-          <p>GitHub keeps the facts. BB organizes them. The existing signed-in GitHub helper connects the two.</p>
-        </aside>
-      </section>
+    <!-- 1 -->
+    <section id="overview">
+      <span class="num">1</span>
+      <h2>Overview</h2>
+      <p class="summary">Journal is a texting-style diary that lives entirely on one iPhone. It is built on our Expo template: we keep the template's plumbing (database, settings storage, navigation) and replace its habit demo. No accounts and no server, because privacy and simplicity matter more than sync. This section covers what's in version one, what's not, and why.</p>
 
-      <p class="plain-summary"><b>The 80 percent answer:</b> build the complete read-only loop first. Do not recreate GitHub actions or storage inside BB.</p>
+      <h3>Purpose</h3>
+      <p>Journal is a private journal that feels like texting yourself. Notes, photos, clips and check-ins are messages in a chat, grouped by day. One pinch moves between three views of the same entries: Daily (the chat), Weekly and Monthly. The intended user is someone like Henry, who texts himself, wants to look back on his days, and wants reminders about things later.</p>
 
-      <section id="requirements">
-        <div class="section-head">
-          <div><span class="section-number">1</span><span class="tech-tag">Requirements</span><h2>What this needs to do</h2></div>
-          <p>Start with the experience you need, the promises it should keep, and the real-world limits it has to work within.</p>
-        </div>
-        <div class="coverage">
-          <article>
-            <span class="coverage-icon">DO</span>
-            <h3>What you need to accomplish <span class="tech-tag">Features</span></h3>
-            <ul><li>Show pull requests across repositories</li><li>Group what needs review, what is mine, and what changed</li><li>Explain review, checks, draft, and merge status</li><li>Search, refresh, preview, and open in GitHub</li></ul>
-          </article>
-          <article>
-            <span class="coverage-icon">BE</span>
-            <h3>What you should be able to trust <span class="tech-tag">Quality</span></h3>
-            <ul><li>Feel current without repeatedly hitting GitHub</li><li>Label stale, partial, or unavailable information honestly</li><li>Keep working when one group fails</li><li>Keep credentials out of the browser and logs</li></ul>
-          </article>
-          <article>
-            <span class="coverage-icon">FIT</span>
-            <h3>What already shapes the solution <span class="tech-tag">Constraints</span></h3>
-            <ul><li>One local user for the first version</li><li>Existing BB plugin navigation and server patterns</li><li>An installed and signed-in GitHub CLI</li><li>GitHub remains the source of truth</li></ul>
-          </article>
-        </div>
-      </section>
+      <h3>Scope</h3>
+      <div class="scope">
+        <div class="in"><h4>In version one</h4><ul>
+          <li>Daily chat, Weekly, Monthly, pinch between them</li>
+          <li>Notes, photos and clips, check-ins</li>
+          <li>Replies in threads, one reaction per entry</li>
+          <li>Reminders with real notifications</li>
+          <li>Real location, Apple Maps, nearby places, photo places</li>
+          <li>Haptics, sounds, light and dark mode</li>
+        </ul></div>
+        <div class="out"><h4>Not in version one</h4><ul>
+          <li>Accounts, a server, sharing, friends</li>
+          <li>iCloud sync (CloudKit), export, or backup of our own</li>
+          <li>Editing or deleting entries</li>
+          <li>Paywall (code kept, switched off)</li>
+          <li>Share sheet, widgets, Siri, iPad, Android</li>
+          <li>App lock (Face ID)</li>
+        </ul></div>
+      </div>
 
-      <section id="high-level-design">
-        <div class="section-head">
-          <div><span class="section-number">2</span><span class="tech-tag">High-level design</span><h2>How the whole experience works</h2></div>
-          <p>This bird’s-eye view shows what you use, what the new plugin handles behind the scenes, and what remains GitHub’s responsibility.</p>
-        </div>
-        <div class="diagram-frame">
-          <pre class="mermaid">
-flowchart LR
-  U[You]
+      <h3>Context</h3>
+      <div class="pair">
+        <div class="beh"><span class="label">What the person experiences</span><ul>
+          <li>No sign-up. Open the app and start writing.</li>
+          <li>Nothing is ever asked until they tap something that needs it.</li>
+          <li>Their journal is never sent to anyone. The only copy outside the phone is their own iPhone backup, if they have it turned on.</li>
+        </ul></div>
+        <div class="tech"><span class="label">Technical translation</span><ul>
+          <li>iOS only (iPhone). Expo SDK 55, React Native 0.83, New Architecture.</li>
+          <li>Built on <code>expo-local-first-paywall-template</code>. Its plumbing stays: database, preferences, router, styling, onboarding and paywall code. Its habit demo (habits table, <code>app/(tabs)</code>, <code>app/habits</code>, <code>app/create.tsx</code>) is replaced.</li>
+          <li>App identity changes in <code>app.config.ts</code>: name <code>Expo Starter</code> → Journal, bundle id <code>com.expostarter.base</code> → our own, scheme <code>ltstarter</code> → <code>journal</code>, <code>supportsTablet: true</code> → <code>false</code>.</li>
+          <li>The <code>ios/</code> folder is generated by <code>expo run:ios</code> / prebuild and is not committed. All native settings (permission texts, plugins) live in <code>app.config.ts</code>.</li>
+          <li>No backend. No running costs except the Apple Developer account.</li>
+          <li>One developer. The MVP aims to be fast to build, cheap to run and easy to maintain.</li>
+        </ul></div>
+      </div>
 
-  subgraph BB[What you use in BB]
-    NAV[Pull Requests page]
-    subgraph PLUGIN[What the new plugin handles]
-      ENGINE[Decides what to ask for]
-      STATUS[Makes status understandable]
-      MEMORY[Keeps the last good results briefly]
-      FAILURE[Explains delays and problems]
-    end
-  end
+      <div class="answers"><h4>Your answers that shaped this section</h4>
+        <div class="answer"><span class="q">How should paying work?</span><span class="a">No paywall now. Keep the code.</span><span class="t">The template's RevenueCat paywall and onboarding stay in the code behind one switch, set to off. Once the switch is in, no payment service is contacted. Until then, the template contacts RevenueCat only if an API key is set in the environment.</span></div>
+        <div class="answer"><span class="q">Anything outside the app adding entries?</span><span class="a">No, only inside the app</span><span class="t">No share extension or widget, so one program owns the journal.</span></div>
+      </div>
+    </section>
 
-  subgraph HOST[What already exists on this computer]
-    GHCLI[Signed-in GitHub connection]
-  end
+    <!-- 2 -->
+    <section id="goals">
+      <span class="num">2</span>
+      <h2>Architectural goals</h2>
+      <p class="summary">Four goals, ranked, decide every trade-off: feel, then privacy, then simplicity, then respectful permissions. When two clash, the higher one wins. For example, we accept slower building to get gestures that feel physical. Each card says what the goal costs us.</p>
+      <p class="intro">Ranked. When two goals conflict, the higher one wins.</p>
+      <div class="goals">
+        <div class="goal"><span class="rank">1 · Feel</span><h4>It feels native and physical</h4><p>Pile throws, pinch zoom and the hold menu match the prototype and run smoothly.</p><p><strong>Tech:</strong> Reanimated and Gesture Handler on the UI thread, custom components where libraries fall short, native iOS modules where they help (hold menu, nearby places).</p><p class="give">Gives up: build speed.</p></div>
+        <div class="goal"><span class="rank">2 · Privacy</span><h4>No journal data leaves the phone</h4><p>No account and no server of ours. Private like Messages. Apple map and place lookups send only a location, never journal content.</p><p><strong>Tech:</strong> All data stays in the app's Documents folder. No iCloud sync or CloudKit, no analytics SDK. Only Apple's opt-in crash reports. iOS's own device backup includes the folder by default.</p><p class="give">Gives up: sync, export and detailed crash data.</p></div>
+        <div class="goal"><span class="rank">3 · Simplicity</span><h4>One app, few moving parts</h4><p>Easy for one person to build and keep working.</p><p><strong>Tech:</strong> One database, one media folder, no backend, the template's stack, fallbacks listed for each risky library.</p><p class="give">Gives up: flexibility for later features.</p></div>
+        <div class="goal"><span class="rank">4 · Respectful permissions</span><h4>Ask only at the moment of action</h4><p>Location, notifications and photo places are asked for only when needed, with a way back from "no".</p><p><strong>Tech:</strong> One permission helper handles every request and links to Settings.</p><p class="give">Gives up: nothing meaningful.</p></div>
+      </div>
+      <p class="caption"><strong>Not a goal now:</strong> growing to many devices or users. A single phone holds years of entries comfortably.</p>
 
-  GH[(GitHub)]
+      <div class="answers"><h4>Your answers that shaped this section</h4>
+        <div class="answer"><span class="q">When we must trade, what wins?</span><span class="a">Feel first</span><span class="t">Custom gesture and animation work comes before using ready-made libraries.</span></div>
+        <div class="answer"><span class="q">How private on the phone?</span><span class="a">Like Messages</span><span class="t">No app lock. Notification text shows the entry. iOS "Show Previews" covers the lock screen.</span></div>
+      </div>
+    </section>
 
-  U -->|opens and filters| NAV
-  NAV -->|asks for chosen groups| ENGINE
-  ENGINE -->|sends safe searches| GHCLI
-  GHCLI -->|asks as you| GH
-  GH -->|returns current PR facts| GHCLI
-  GHCLI -->|returns checked information| ENGINE
-  ENGINE --> STATUS
-  ENGINE <--> MEMORY
-  ENGINE --> FAILURE
-  STATUS -->|returns a clear PR list| NAV
-  FAILURE -->|shows age or a problem| NAV
-  NAV -->|open selected PR| GH
+    <!-- 3 -->
+    <section id="context">
+      <span class="num">3</span>
+      <h2>System context diagram</h2>
+      <p class="summary">The app sits in the middle and everything else is an iOS or Apple service around it. Most of them are built-in iOS features: the photo picker, location, notifications and iPhone backup. Only Apple Maps goes online, and it only receives a location, never journal content. The diagram shows what each outside service is used for. The table says what the person notices.</p>
+      <p class="intro">Everything Journal talks to. Only Apple Maps needs the internet. Dashed boxes are optional or switched off.</p>
+      <div class="diagram"><svg class="dd" viewBox="0 0 840 536" style="min-width:680px" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ctx-title ctx-desc">
+<title id="ctx-title">Journal system context</title>
+<desc id="ctx-desc">Journal app on the iPhone talks to on-phone iOS services, uses Apple Maps online, and never contacts the switched-off RevenueCat paywall.</desc>
+<defs><marker id="ctx-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#5f5f5f"/></marker><marker id="ctx-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#005ee9"/></marker><marker id="ctx-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#7200c4"/></marker><marker id="ctx-arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#5f5f5f" stroke-width="1.2"/></marker></defs>
+<rect width="100%" height="100%" fill="#fafafa"/>
+<rect x="504" y="24" width="316" height="184" rx="8" fill="rgba(23,23,23,0.02)" stroke="rgba(23,23,23,0.14)" stroke-width="0.8"/><rect x="516" y="30" width="84" height="14" rx="2" fill="#fafafa"/><text x="520" y="40" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" letter-spacing="0.12em">ON THE PHONE</text><rect x="504" y="228" width="316" height="112" rx="8" fill="rgba(23,23,23,0.02)" stroke="rgba(23,23,23,0.14)" stroke-width="0.8"/><rect x="516" y="234" width="176" height="14" rx="2" fill="#fafafa"/><text x="520" y="244" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" letter-spacing="0.12em">APPLE ONLINE · NEEDS INTERNET</text><rect x="504" y="360" width="316" height="112" rx="8" fill="rgba(23,23,23,0.02)" stroke="rgba(23,23,23,0.14)" stroke-width="0.8"/><rect x="516" y="366" width="84" height="14" rx="2" fill="#fafafa"/><text x="520" y="376" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" letter-spacing="0.12em">SWITCHED OFF</text><path d="M152,220 H240" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#ctx-arrow)"/><path d="M240,244 H152" fill="none" stroke="#5f5f5f" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#ctx-arrow)"/><path d="M416,204 H428 Q436,204 436,196 V124 Q436,116 444,116 H504" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#ctx-arrow)"/><path d="M416,232 H460 Q468,232 468,240 V284 Q468,292 476,292 H504" fill="none" stroke="#7200c4" stroke-width="1.2" marker-end="url(#ctx-arrow-link)"/><path d="M416,260 H444 Q452,260 452,268 V416 Q452,424 460,424 H504" fill="none" stroke="#5f5f5f" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#ctx-arrow)"/><rect x="174" y="200" width="44" height="14" rx="2" fill="#fafafa"/><text x="196" y="210" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">WRITES</text><rect x="178" y="250" width="36" height="14" rx="2" fill="#fafafa"/><text x="196" y="260" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">SEES</text><rect x="24" y="200" width="128" height="64" rx="6" fill="#fafafa"/><rect x="24" y="200" width="128" height="64" rx="6" fill="rgba(95,95,95,0.10)" stroke="#9a9a9a" stroke-width="1"/><rect x="32" y="208" width="32" height="14" rx="2" fill="none" stroke="#5f5f5f" stroke-opacity="0.45" stroke-width="0.8"/><text x="48" y="218" fill="#5f5f5f" font-size="8" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">USER</text><text x="88" y="238" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Person</text><text x="88" y="254" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">one phone</text><rect x="240" y="184" width="176" height="96" rx="6" fill="#fafafa"/><rect x="240" y="184" width="176" height="96" rx="6" fill="#edf5ff" stroke="#005ee9" stroke-width="1"/><rect x="248" y="192" width="28" height="14" rx="2" fill="none" stroke="#005ee9" stroke-opacity="0.45" stroke-width="0.8"/><text x="262" y="202" fill="#005ee9" font-size="8" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">APP</text><text x="328" y="238" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Journal app</text><text x="328" y="254" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">all data lives here</text><rect x="520" y="56" width="136" height="64" rx="6" fill="#fafafa"/><rect x="520" y="56" width="136" height="64" rx="6" fill="#ffffff" stroke="#171717" stroke-width="1"/><text x="588" y="87" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Photo picker</text><text x="588" y="103" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">no prompt</text><rect x="668" y="56" width="136" height="64" rx="6" fill="#fafafa"/><rect x="668" y="56" width="136" height="64" rx="6" fill="#ffffff" stroke="#171717" stroke-width="1"/><text x="736" y="87" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Location</text><text x="736" y="103" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">asked on check-in</text><rect x="520" y="128" width="136" height="64" rx="6" fill="#fafafa"/><rect x="520" y="128" width="136" height="64" rx="6" fill="#ffffff" stroke="#171717" stroke-width="1"/><text x="588" y="159" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Notifications</text><text x="588" y="175" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">local, tap opens</text><rect x="668" y="128" width="136" height="64" rx="6" fill="#fafafa"/><rect x="668" y="128" width="136" height="64" rx="6" fill="rgba(23,23,23,0.03)" stroke="rgba(23,23,23,0.30)" stroke-width="1"/><text x="736" y="159" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">iPhone backup</text><text x="736" y="175" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">iOS default</text><rect x="520" y="260" width="136" height="64" rx="6" fill="#fafafa"/><rect x="520" y="260" width="136" height="64" rx="6" fill="rgba(23,23,23,0.03)" stroke="rgba(23,23,23,0.30)" stroke-width="1"/><text x="588" y="291" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Apple Maps</text><text x="588" y="307" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">maps, nearby</text><rect x="668" y="260" width="136" height="64" rx="6" fill="#fafafa"/><rect x="668" y="260" width="136" height="64" rx="6" fill="rgba(23,23,23,0.02)" stroke="rgba(23,23,23,0.28)" stroke-width="1" stroke-dasharray="4,3"/><text x="736" y="291" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Crash reports</text><text x="736" y="307" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">opt-in, via iOS</text><rect x="520" y="392" width="136" height="64" rx="6" fill="#fafafa"/><rect x="520" y="392" width="136" height="64" rx="6" fill="rgba(23,23,23,0.02)" stroke="rgba(23,23,23,0.28)" stroke-width="1" stroke-dasharray="4,3"/><text x="588" y="423" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">RevenueCat</text><text x="588" y="439" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">code kept, off</text><text x="328" y="312" fill="#5f5f5f" font-size="12" font-weight="400" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle" font-style="italic">No account. No server of ours.</text><line x1="24" y1="500" x2="816" y2="500" stroke="rgba(23,23,23,0.12)" stroke-width="0.8"/><text x="24" y="520" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" letter-spacing="0.14em">LEGEND</text><rect x="96" y="509" width="28" height="14" rx="3" fill="#edf5ff" stroke="#005ee9" stroke-width="1"/><text x="132" y="520" fill="#5f5f5f" font-size="11" font-family="Geist, -apple-system, Arial, sans-serif">where the journal lives</text><line x1="302.6" y1="516" x2="330.6" y2="516" stroke="#5f5f5f" stroke-width="1.2"/><text x="338.6" y="520" fill="#5f5f5f" font-size="11" font-family="Geist, -apple-system, Arial, sans-serif">on the phone</text><line x1="441" y1="516" x2="469" y2="516" stroke="#7200c4" stroke-width="1.2"/><text x="477" y="520" fill="#5f5f5f" font-size="11" font-family="Geist, -apple-system, Arial, sans-serif">needs internet</text><line x1="591.8" y1="516" x2="619.8" y2="516" stroke="#5f5f5f" stroke-width="1.2" stroke-dasharray="4,3"/><text x="627.8" y="520" fill="#5f5f5f" font-size="11" font-family="Geist, -apple-system, Arial, sans-serif">return or never used</text>
+</svg></div>
 
-  classDef person fill:#edf5ff,stroke:#005ee9,color:#171717
-  classDef interface fill:#edf5ff,stroke:#005ee9,color:#171717
-  classDef engine fill:#f6edff,stroke:#7200c4,color:#171717
-  classDef memory fill:#eff8ef,stroke:#397c3b,color:#171717
-  classDef connector fill:#fff5e8,stroke:#9e5200,color:#171717
-  classDef source fill:#171717,stroke:#171717,color:#ffffff
-  class U person
-  class NAV interface
-  class ENGINE,STATUS,FAILURE engine
-  class MEMORY memory
-  class GHCLI connector
-  class GH source
-          </pre>
-        </div>
-        <p class="caption"><strong>Read it clockwise:</strong> you ask BB, the plugin coordinates the work, the existing helper asks GitHub, and checked information returns to the page. Only “Open in GitHub” leaves the read-only loop.</p>
-        <div class="diagram-key" aria-label="Diagram color key">
-          <span><i class="swatch" style="background:var(--blue)"></i>User experience</span>
-          <span><i class="swatch" style="background:var(--purple)"></i>Plugin logic</span>
-          <span><i class="swatch" style="background:var(--green)"></i>Temporary memory</span>
-          <span><i class="swatch" style="background:var(--amber)"></i>Existing connection</span>
-          <span><i class="swatch" style="background:var(--ink)"></i>Source of truth</span>
-        </div>
-        <div class="architecture-decisions">
-          <article><span>How the page asks for information <span class="tech-tag">API boundary</span></span><p><strong>One structured, checked request</strong><br>The screen never talks directly to GitHub.</p></article>
-          <article><span>Where the facts live <span class="tech-tag">Storage and cache</span></span><p><strong>GitHub plus short-term memory</strong><br>BB does not create a second permanent copy.</p></article>
-          <article><span>How BB reaches GitHub <span class="tech-tag">Integration and auth</span></span><p><strong>The existing signed-in helper</strong><br>No new token or login system for version one.</p></article>
-        </div>
+      <h3>Description</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Outside party</th><th>What the person notices</th><th>Technical role</th></tr></thead>
+        <tbody>
+          <tr><th>Photo picker</th><td>Picking a photo never asks for permission.</td><td>iOS system picker (PHPicker) via <code>expo-image-picker</code>. Returns only the chosen files.</td></tr>
+          <tr><th>Location</th><td>Asked once, the first time they check in.</td><td><code>expo-location</code>, a one-time "when in use" position.</td></tr>
+          <tr><th>Apple Maps</th><td>Real maps and real nearby places. Shows "Map needs internet" when offline.</td><td>MapKit via <code>react-native-maps</code> and our own Swift module for nearby places and map images. No API key or cost.</td></tr>
+          <tr><th>Notifications</th><td>Reminders arrive even with the app closed. Tapping one opens the entry.</td><td><code>expo-notifications</code> local notifications. No push server.</td></tr>
+          <tr><th>Settings app</th><td>A "no" can be changed later from a button in the app.</td><td>Opens Journal's page in iOS Settings.</td></tr>
+          <tr><th>Apple crash reports</th><td>Nothing visible.</td><td>Crash logs from people who opted in, viewed in Xcode Organizer. No SDK.</td></tr>
+          <tr><th>iPhone backup</th><td>Restoring a new iPhone from a whole-phone backup brings the journal back.</td><td>iOS includes <code>Documents/</code> (SQLite, MMKV, media) by default. No code, no iCloud or CloudKit capability.</td></tr>
+          <tr><th>RevenueCat</th><td>Nothing. The paywall is off.</td><td><code>configureRevenueCat()</code> and <code>OnboardingGate</code> both gated by <code>PAYWALL_ENABLED = false</code>.</td></tr>
+        </tbody>
+      </table></div>
 
-        <div class="parts-overview">
-          <div class="parts-overview-head">
-            <h3>Everything the system needs</h3>
-            <p>A quick inventory of every distinct piece in the diagram, why it exists, and the job it owns.</p>
-          </div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th scope="col">Category</th><th scope="col">Piece</th><th scope="col">What it is for</th><th scope="col">What it does</th></tr></thead>
-              <tbody>
-                <tr><th scope="row"><span class="tech-tag">Interface</span></th><td><strong>Pull Requests page</strong></td><td>Give you one predictable place to understand what needs attention.</td><td>Shows groups, search, pull request rows, status, previews, and freshness.</td></tr>
-                <tr><th scope="row"><span class="tech-tag">Product rules</span></th><td><strong>Attention groups</strong></td><td>Turn a large list into useful questions such as “What needs my review?”</td><td>Defines and requests Needs my review, Mine, and Recently updated.</td></tr>
-                <tr><th scope="row"><span class="tech-tag">API boundary</span></th><td><strong>Page-to-plugin request</strong></td><td>Give the screen one safe way to ask for information.</td><td>Accepts a known request and returns one checked answer.</td></tr>
-                <tr><th scope="row"><span class="tech-tag">Server logic</span></th><td><strong>Request coordinator</strong></td><td>Keep behind-the-scenes work out of the page.</td><td>Runs each search, combines the answers, and contains partial failures.</td></tr>
-                <tr><th scope="row"><span class="tech-tag">Data rules</span></th><td><strong>Status translator</strong></td><td>Help you understand several GitHub signals as one coherent status.</td><td>Combines draft, review, checks, and merge information into clear labels.</td></tr>
-                <tr><th scope="row"><span class="tech-tag">Cache</span></th><td><strong>Last good answer</strong></td><td>Keep refreshes quick and preserve a useful view during brief trouble.</td><td>Holds recent checked results temporarily; it is not permanent storage.</td></tr>
-                <tr><th scope="row"><span class="tech-tag">Error handling</span></th><td><strong>Freshness and problem states</strong></td><td>Prevent old or incomplete information from silently looking current.</td><td>Shows when results are fresh, stale, partial, signed out, or unavailable.</td></tr>
-                <tr><th scope="row"><span class="tech-tag">Integration</span></th><td><strong>GitHub connection</strong></td><td>Reach pull requests across repositories without creating another login.</td><td>Uses safe predefined searches through the signed-in GitHub CLI.</td></tr>
-                <tr><th scope="row"><span class="tech-tag">Source of truth</span></th><td><strong>GitHub</strong></td><td>Keep one authoritative home for pull request facts and changes.</td><td>Returns current data and remains the place for comments, approvals, and merges.</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
+      <div class="answers"><h4>Your answers that shaped this section</h4>
+        <div class="answer"><span class="q">Anything outside the app adding entries?</span><span class="a">No</span><span class="t">The only way in from outside is a tapped reminder.</span></div>
+        <div class="answer"><span class="q">How do you learn about crashes?</span><span class="a">Apple's built-in crash reports</span><span class="t">No crash SDK and no privacy label for crash data.</span></div>
+      </div>
+    </section>
 
-      <section id="subsystems">
-        <div class="section-head">
-          <div><span class="tech-tag" style="margin-left:0">Subsystems</span><h2>See who handles each part</h2></div>
-          <p>The whole experience becomes three smaller jobs. Select one to see the pieces inside it and how they work together.</p>
-        </div>
-        <div class="subsystem-tabs" role="tablist" aria-label="Architecture subsystems">
-          <button class="subsystem-tab" id="tab-experience" type="button" role="tab" aria-selected="true" aria-controls="subsystem-stage" data-system="experience"><span class="tab-meta">What you use <span class="tech-tag">Interface</span></span><strong>Find the work that needs you</strong><small>How you narrow, understand, and continue</small></button>
-          <button class="subsystem-tab" id="tab-coordination" type="button" role="tab" aria-selected="false" aria-controls="subsystem-stage" data-system="coordination"><span class="tab-meta">Behind the screen <span class="tech-tag">Server logic</span></span><strong>Keep the answer trustworthy</strong><small>How results stay consistent and honest</small></button>
-          <button class="subsystem-tab" id="tab-connection" type="button" role="tab" aria-selected="false" aria-controls="subsystem-stage" data-system="connection"><span class="tab-meta">Outside connection <span class="tech-tag">Integration</span></span><strong>Safely ask GitHub</strong><small>How BB reaches the source of truth</small></button>
-        </div>
-        <div class="subsystem-stage" id="subsystem-stage" role="tabpanel" aria-labelledby="tab-experience" tabindex="0">
-          <div class="subsystem-summary"><h3 id="subsystem-title">Find the work that needs you</h3><p id="subsystem-copy">Turns a large set of pull requests into a short decision path: choose a useful group, understand status, then continue in GitHub.</p></div>
-          <div class="subsystem-diagram-wrap"><div id="subsystem-diagram" aria-live="polite"></div></div>
-        </div>
-      </section>
+    <!-- 4 -->
+    <section id="components">
+      <span class="num">4</span>
+      <h2>Component diagrams</h2>
+      <p class="summary">Inside the app there are three layers. Screens take taps. Services do the work. Storage keeps the result. Every save goes through the Journal store, which checks the rules and writes to the database. Screens never save anything themselves. When the database changes, the screens redraw on their own, so there's a single source of truth and nothing gets out of step. The map shows who calls whom. The table and build notes say what each piece is built with. The last two parts cover Check in and photo places in detail.</p>
 
-      <section id="deep-dive">
-        <div class="section-head">
-          <div><span class="section-number">3</span><span class="tech-tag">Data flow</span><span class="tech-tag">Error handling</span><h2>What happens when you refresh</h2></div>
-          <p>These two stories show how GitHub information reaches you—and how BB stays honest when that journey breaks. Exact data fields and request names come later.</p>
-        </div>
-        <div class="flows">
-          <article class="flow-card">
-            <header><h3>When everything works <span class="tech-tag">Sequence</span></h3><p>How current facts become an understandable list.</p></header>
-            <div class="diagram-frame"><pre class="mermaid">
-sequenceDiagram
-  actor You
-  participant Page as BB page
-  participant Engine as Behind the scenes helper
-  participant Helper as GitHub connection
-  participant GitHub
-  You->>Page: Open or refresh
-  Page->>Engine: Ask for your chosen groups
-  Engine->>Helper: Send safe searches
-  Helper->>GitHub: Ask using your existing login
-  GitHub-->>Helper: Pull request facts
-  Helper-->>Engine: Checked information
-  Engine->>Engine: Make status understandable
-  Engine-->>Page: Groups plus last updated time
-  Page-->>You: Show what needs attention
-            </pre></div>
-          </article>
-          <article class="flow-card">
-            <header><h3>When GitHub cannot answer <span class="tech-tag">Recovery</span></h3><p>How the page stays useful without pretending old data is current.</p></header>
-            <div class="diagram-frame"><pre class="mermaid">
-sequenceDiagram
-  actor You
-  participant Page as BB page
-  participant Engine as Behind the scenes helper
-  participant Memory as Last good answer
-  participant Helper as GitHub connection
-  You->>Page: Refresh
-  Page->>Engine: Ask for your chosen groups
-  Engine->>Helper: Send safe searches
-  Helper--xEngine: Signed out offline or limited
-  Engine->>Memory: Ask for the last good answer
-  Memory-->>Engine: Return it if one exists
-  Engine-->>Page: Old or partial answer plus reason
-  Page-->>You: Label the problem and offer retry
-            </pre></div>
-          </article>
-        </div>
-      </section>
+      <h3>High-level architecture</h3>
+      <p class="intro">All screens sit on one expo-router <code>Stack</code>. The template's tab bar is removed.</p>
+      <div class="diagram"><svg class="dd" viewBox="0 0 896 496" style="min-width:680px" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="mod-title mod-desc">
+<title id="mod-title">Journal module map</title>
+<desc id="mod-desc">Screens call six services; the Journal store checks every rule and saves to the database, other services write files, settings, notifications, or ask Apple Maps, and the database redraws screens when it changes.</desc>
+<defs><marker id="mod-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#5f5f5f"/></marker><marker id="mod-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#005ee9"/></marker><marker id="mod-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#7200c4"/></marker><marker id="mod-arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#5f5f5f" stroke-width="1.2"/></marker></defs>
+<rect width="100%" height="100%" fill="#fafafa"/>
+<rect x="24" y="24" width="848" height="104" rx="8" fill="rgba(23,23,23,0.02)" stroke="rgba(23,23,23,0.14)" stroke-width="0.8"/><rect x="36" y="30" width="76" height="14" rx="2" fill="#fafafa"/><text x="40" y="40" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" letter-spacing="0.12em">1 · SCREENS</text><rect x="24" y="176" width="848" height="104" rx="8" fill="rgba(23,23,23,0.02)" stroke="rgba(23,23,23,0.14)" stroke-width="0.8"/><rect x="36" y="182" width="84" height="14" rx="2" fill="#fafafa"/><text x="40" y="192" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" letter-spacing="0.12em">2 · SERVICES</text><rect x="24" y="328" width="452" height="104" rx="8" fill="rgba(23,23,23,0.02)" stroke="rgba(23,23,23,0.14)" stroke-width="0.8"/><rect x="36" y="334" width="148" height="14" rx="2" fill="#fafafa"/><text x="40" y="344" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" letter-spacing="0.12em">3 · STORAGE ON THE PHONE</text><rect x="488" y="328" width="384" height="104" rx="8" fill="rgba(23,23,23,0.02)" stroke="rgba(23,23,23,0.14)" stroke-width="0.8"/><rect x="500" y="334" width="88" height="14" rx="2" fill="#fafafa"/><text x="504" y="344" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" letter-spacing="0.12em">iOS AND APPLE</text><path d="M108,116 V204" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#mod-arrow)"/><rect x="114" y="147" width="56" height="14" rx="2" fill="#fafafa"/><text x="119" y="157" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="start" letter-spacing="0.06em">ADD NOTE</text><path d="M198,116 V204" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#mod-arrow)"/><rect x="204" y="147" width="64" height="14" rx="2" fill="#fafafa"/><text x="209" y="157" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="start" letter-spacing="0.06em">ADD PHOTO</text><path d="M580,116 V204" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#mod-arrow)"/><rect x="586" y="147" width="44" height="14" rx="2" fill="#fafafa"/><text x="591" y="157" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="start" letter-spacing="0.06em">REMIND</text><path d="M680,116 V204" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#mod-arrow)"/><rect x="686" y="147" width="56" height="14" rx="2" fill="#fafafa"/><text x="691" y="157" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="start" letter-spacing="0.06em">CHECK IN</text><path d="M108,268 V356" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#mod-arrow)"/><rect x="114" y="299" width="36" height="14" rx="2" fill="#fafafa"/><text x="119" y="309" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="start" letter-spacing="0.06em">SAVE</text><path d="M252,268 V356" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#mod-arrow)"/><rect x="258" y="299" width="64" height="14" rx="2" fill="#fafafa"/><text x="263" y="309" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="start" letter-spacing="0.06em">COPY FILE</text><path d="M398,268 V356" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#mod-arrow)"/><rect x="404" y="299" width="52" height="14" rx="2" fill="#fafafa"/><text x="409" y="309" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="start" letter-spacing="0.06em">CONSENT</text><path d="M560,268 V356" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#mod-arrow)"/><rect x="566" y="299" width="56" height="14" rx="2" fill="#fafafa"/><text x="571" y="309" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="start" letter-spacing="0.06em">SCHEDULE</text><path d="M700,268 V356" fill="none" stroke="#7200c4" stroke-width="1.2" marker-end="url(#mod-arrow-link)"/><rect x="706" y="299" width="44" height="14" rx="2" fill="#fafafa"/><text x="711" y="309" fill="#7200c4" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="start" letter-spacing="0.06em">NEARBY</text><path d="M40,396 H22 Q14,396 14,388 V92 Q14,84 22,84 H40" fill="none" stroke="#005ee9" stroke-width="1.2" marker-end="url(#mod-arrow-accent)"/><rect x="20" y="147" width="68" height="14" rx="2" fill="#fafafa"/><text x="25" y="157" fill="#005ee9" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="start" letter-spacing="0.06em">LIVE QUERY</text><rect x="40" y="52" width="168" height="64" rx="6" fill="#fafafa"/><rect x="40" y="52" width="168" height="64" rx="6" fill="#ffffff" stroke="#171717" stroke-width="1"/><text x="124" y="83" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Daily chat</text><text x="124" y="99" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">FlashList 2</text><rect x="220" y="52" width="168" height="64" rx="6" fill="#fafafa"/><rect x="220" y="52" width="168" height="64" rx="6" fill="#ffffff" stroke="#171717" stroke-width="1"/><text x="304" y="83" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Weekly &amp; Monthly</text><text x="304" y="99" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">pinch morph</text><rect x="400" y="52" width="140" height="64" rx="6" fill="#fafafa"/><rect x="400" y="52" width="140" height="64" rx="6" fill="#ffffff" stroke="#171717" stroke-width="1"/><text x="470" y="83" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Viewers</text><text x="470" y="99" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">photo · clip · map</text><rect x="552" y="52" width="160" height="64" rx="6" fill="#fafafa"/><rect x="552" y="52" width="160" height="64" rx="6" fill="#ffffff" stroke="#171717" stroke-width="1"/><text x="632" y="83" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Overlays</text><text x="632" y="99" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">react · remind · +</text><rect x="728" y="52" width="128" height="64" rx="6" fill="#fafafa"/><rect x="728" y="52" width="128" height="64" rx="6" fill="rgba(23,23,23,0.02)" stroke="rgba(23,23,23,0.28)" stroke-width="1" stroke-dasharray="4,3"/><text x="792" y="83" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Paywall gate</text><text x="792" y="99" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">off</text><rect x="40" y="204" width="136" height="64" rx="6" fill="#fafafa"/><rect x="40" y="204" width="136" height="64" rx="6" fill="#edf5ff" stroke="#005ee9" stroke-width="1"/><text x="108" y="235" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Journal store</text><text x="108" y="251" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">checks every rule</text><rect x="188" y="204" width="128" height="64" rx="6" fill="#fafafa"/><rect x="188" y="204" width="128" height="64" rx="6" fill="#ffffff" stroke="#171717" stroke-width="1"/><text x="252" y="235" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Media importer</text><text x="252" y="251" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">from picker</text><rect x="328" y="204" width="140" height="64" rx="6" fill="#fafafa"/><rect x="328" y="204" width="140" height="64" rx="6" fill="#ffffff" stroke="#171717" stroke-width="1"/><text x="398" y="235" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Permission helper</text><text x="398" y="251" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">asks at use</text><rect x="480" y="204" width="148" height="64" rx="6" fill="#fafafa"/><rect x="480" y="204" width="148" height="64" rx="6" fill="#ffffff" stroke="#171717" stroke-width="1"/><text x="554" y="235" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Reminder scheduler</text><text x="554" y="251" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">one per entry</text><rect x="640" y="204" width="124" height="64" rx="6" fill="#fafafa"/><rect x="640" y="204" width="124" height="64" rx="6" fill="#ffffff" stroke="#171717" stroke-width="1"/><text x="702" y="235" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Place finder</text><text x="702" y="251" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">Swift · MapKit</text><rect x="776" y="204" width="80" height="64" rx="6" fill="#fafafa"/><rect x="776" y="204" width="80" height="64" rx="6" fill="#ffffff" stroke="#171717" stroke-width="1"/><text x="816" y="235" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Feel</text><text x="816" y="251" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">haptics</text><rect x="40" y="356" width="136" height="64" rx="6" fill="#fafafa"/><rect x="40" y="356" width="136" height="64" rx="6" fill="#edf5ff" stroke="#005ee9" stroke-width="1"/><rect x="48" y="364" width="36" height="14" rx="2" fill="none" stroke="#005ee9" stroke-opacity="0.45" stroke-width="0.8"/><text x="66" y="374" fill="#005ee9" font-size="8" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.08em">TRUTH</text><text x="108" y="394" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Database</text><text x="108" y="410" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">SQLite · Drizzle</text><rect x="188" y="356" width="128" height="64" rx="6" fill="#fafafa"/><rect x="188" y="356" width="128" height="64" rx="6" fill="rgba(23,23,23,0.05)" stroke="#5f5f5f" stroke-width="1"/><text x="252" y="387" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Photo files</text><text x="252" y="403" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">Documents/media</text><rect x="328" y="356" width="140" height="64" rx="6" fill="#fafafa"/><rect x="328" y="356" width="140" height="64" rx="6" fill="rgba(23,23,23,0.05)" stroke="#5f5f5f" stroke-width="1"/><text x="398" y="387" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Settings store</text><text x="398" y="403" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">MMKV</text><rect x="504" y="356" width="124" height="64" rx="6" fill="#fafafa"/><rect x="504" y="356" width="124" height="64" rx="6" fill="rgba(23,23,23,0.03)" stroke="rgba(23,23,23,0.30)" stroke-width="1"/><text x="566" y="387" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Notifications</text><text x="566" y="403" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">local</text><rect x="640" y="356" width="124" height="64" rx="6" fill="#fafafa"/><rect x="640" y="356" width="124" height="64" rx="6" fill="rgba(23,23,23,0.03)" stroke="rgba(23,23,23,0.30)" stroke-width="1"/><text x="702" y="387" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Apple Maps</text><text x="702" y="403" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">needs internet</text><line x1="24" y1="460" x2="872" y2="460" stroke="rgba(23,23,23,0.12)" stroke-width="0.8"/><text x="24" y="480" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" letter-spacing="0.14em">LEGEND</text><rect x="96" y="469" width="28" height="14" rx="3" fill="#edf5ff" stroke="#005ee9" stroke-width="1"/><text x="132" y="480" fill="#5f5f5f" font-size="11" font-family="Geist, -apple-system, Arial, sans-serif">rules and truth</text><rect x="253" y="469" width="28" height="14" rx="3" fill="rgba(23,23,23,0.03)" stroke="rgba(23,23,23,0.30)" stroke-width="1"/><text x="289" y="480" fill="#5f5f5f" font-size="11" font-family="Geist, -apple-system, Arial, sans-serif">iOS and Apple</text><rect x="397.6" y="469" width="28" height="14" rx="3" fill="rgba(23,23,23,0.02)" stroke="rgba(23,23,23,0.28)" stroke-width="1" stroke-dasharray="4,3"/><text x="433.6" y="480" fill="#5f5f5f" font-size="11" font-family="Geist, -apple-system, Arial, sans-serif">switched off</text><line x1="536" y1="476" x2="564" y2="476" stroke="#005ee9" stroke-width="1.2"/><text x="572" y="480" fill="#5f5f5f" font-size="11" font-family="Geist, -apple-system, Arial, sans-serif">redraws screens</text><line x1="693" y1="476" x2="721" y2="476" stroke="#7200c4" stroke-width="1.2"/><text x="729" y="480" fill="#5f5f5f" font-size="11" font-family="Geist, -apple-system, Arial, sans-serif">needs internet</text>
+</svg></div>
+      <p class="caption">Every screen redraws from the database when it changes (drawn once, to Daily chat). Feel has no arrows: it only plays light taps and sounds.</p>
 
-      <section id="scale">
-        <div class="section-head">
-          <div><span class="section-number">4</span><span class="tech-tag">Scale</span><span class="tech-tag">Reliability</span><h2>When this simple setup stops being enough</h2></div>
-          <p>The first version fits one person working locally. These changes in real usage—not hypothetical possibilities—would justify a larger system.</p>
-        </div>
-        <div class="reliability">
-          <div class="diagram-frame"><pre class="mermaid">
-flowchart TB
-  NOW[Today one local user and dozens of visible PRs]
-  SIMPLE[Existing GitHub connection plus last good answer]
-  NOW --> SIMPLE
+      <h3>Subsystems and modules</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Module</th><th>What the person gets</th><th>Built with</th></tr></thead>
+        <tbody>
+          <tr><th>Daily chat</th><td>Texting-style chat with piles and check-in cards.</td><td>FlashList 2, keyboard controller, in-house pile and swipe-to-reply.</td></tr>
+          <tr><th>Weekly and Monthly</th><td>Pinch out to look back. The same day stays in view.</td><td>One pinch gesture morphs three layouts of the same data. <code>flash-calendar</code> for Monthly.</td></tr>
+          <tr><th>Overlays</th><td>Hold to react or remind. Swipe to reply. + to add.</td><td>Native context menu, <code>formSheet</code> for Nearby, <code>expo-blur</code> for Thread.</td></tr>
+          <tr><th>Viewers</th><td>Photos large, clips with sound, a full-screen map.</td><td><code>expo-media-viewer</code>, <code>expo-video</code>, <code>react-native-maps</code>.</td></tr>
+          <tr><th>Permission helper</th><td>Asked only at the right moment, with a way back from "no".</td><td>One wrapper over each <code>requestPermissionsAsync</code>, re-checked on foreground.</td></tr>
+          <tr><th>Reminder scheduler</th><td>The bell, plus a notification at the chosen time.</td><td><code>expo-notifications</code>. Database first, alarm second, launch repair.</td></tr>
+          <tr><th>Place finder</th><td>A real Nearby list and a map on the card.</td><td>Local Swift Expo module, MapKit.</td></tr>
+          <tr><th>Media importer</th><td>Photos stay even if deleted from Photos.</td><td><code>expo-file-system</code>, EXIF from the picker.</td></tr>
+          <tr><th>Feel</th><td>Light taps and soft sounds.</td><td><code>expo-haptics</code>, <code>expo-audio</code>.</td></tr>
+          <tr><th>Storage</th><td>Everything is there after reopening.</td><td>SQLite + Drizzle, MMKV, <code>Documents/media</code>.</td></tr>
+          <tr><th>Paywall gate <span class="pill off">off</span></th><td>Nothing.</td><td>Code constant <code>PAYWALL_ENABLED = false</code>.</td></tr>
+        </tbody>
+      </table></div>
 
-  SIMPLE --> A{What changes}
-  A -->|BB runs elsewhere or serves many people| AUTH[Give each person a separate GitHub login]
-  A -->|There are thousands of results| SCALE[Load results in pages and refresh behind the scenes]
-  A -->|People need alerts| EVENTS[Check on a schedule and deliver notifications]
-  A -->|People act from BB| WRITES[Add permissions confirmations and a change history]
+      <details open><summary>Build notes per module (technical detail)</summary>
+        <ul>
+          <li><strong>Daily chat:</strong> FlashList 2 has no <code>inverted</code> prop. Newest-at-bottom uses <code>maintainVisibleContentPosition: { startRenderingFromBottom: true, autoscrollToBottomThreshold }</code>. Input bar on <code>react-native-keyboard-controller</code>.</li>
+          <li><strong>Overlays:</strong> hold menu is <code>react-native-ios-context-menu</code>. Nearby is an expo-router <code>formSheet</code> with <code>sheetLargestUndimmedDetentIndex</code> set, because the story needs no dimming behind it (the default dims). Thread is a frosted overlay. Try a sheet first, fall back to an in-screen overlay.</li>
+          <li><strong>Permission helper:</strong> re-checks on <code>AppState</code> foreground so changes made in iOS Settings are picked up. Opens Settings with <code>Linking.openSettings()</code>, as the template's <code>NotificationItem</code> already does. Photo places is an in-app consent, not an iOS permission (see below).</li>
+          <li><strong>Reminder scheduler:</strong> saves the time, schedules or cancels the iOS notification, saves its id. On launch, future reminders only: cancel orphan alarms, reschedule missing ones.</li>
+          <li><strong>Place finder:</strong> made with <code>create-expo-module --local</code> in <code>modules/place-finder</code>, autolinked. <code>MKLocalPointsOfInterestRequest</code> for places and <code>MKMapSnapshotter</code> for card images, saved as files.</li>
+          <li><strong>Media importer:</strong> the picker returns files in a temporary cache. Copy into <code>Documents/media/</code>, then insert the row in a transaction, and delete the copy if the insert fails. A full disk shows an error. Reads when and where the photo was taken from its EXIF.</li>
+          <li><strong>Storage:</strong> <code>useLiveQuery</code> needs <code>enableChangeListener: true</code> (already set in <code>db/drizzle.ts</code>). Migrations via <code>useMigrations</code>, generated by <code>bun run db:generate</code>. Preferences in MMKV via <code>lib/storage.ts</code>. zustand is only used by the template's portal primitive. <strong>Migration gate:</strong> today <code>useMigrationHelper()</code> runs only in <code>app/(tabs)/index.tsx</code>. Move it to <code>app/_layout.tsx</code> before deleting the tabs, so nothing reads the database before its tables exist.</li>
+          <li><strong>Paywall gate:</strong> wraps <code>components/OnboardingGate.tsx</code> and the <code>configureRevenueCat()</code> call. A constant, not a stored preference, so no saved value can turn it on.</li>
+        </ul>
+      </details>
 
-  classDef now fill:#eff8ef,stroke:#397c3b,color:#171717
-  classDef choice fill:#edf5ff,stroke:#005ee9,color:#171717
-  classDef later fill:#fff5e8,stroke:#9e5200,color:#171717
-  class NOW,SIMPLE now
-  class A choice
-  class AUTH,SCALE,EVENTS,WRITES later
-          </pre></div>
-          <aside class="reliability-notes">
-            <h3>What you can trust now <span class="tech-tag">Reliability</span></h3>
-            <ul><li>One failed group does not hide successful groups.</li><li>Old results are labelled with their age.</li><li>Unexpected GitHub output is rejected.</li><li>Users can retry; no user data is lost.</li><li>Safe logs describe events without credentials.</li></ul>
-          </aside>
-        </div>
-      </section>
+      <h3>Check in: what Nearby shows</h3>
+      <p class="intro">Every way Nearby can come up empty has its own message and a next step. Nothing is saved until the person picks a place.</p>
+      <div class="diagram"><svg class="dd" viewBox="0 0 840 308" style="min-width:680px" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="nb-title nb-desc">
+<title id="nb-title">Check in: what Nearby shows</title>
+<desc id="nb-desc">Decision flow for Check in: location permission, a position fix, internet, and whether places were found each lead to a specific message, otherwise the Nearby list.</desc>
+<defs><marker id="nb-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#5f5f5f"/></marker><marker id="nb-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#005ee9"/></marker><marker id="nb-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#7200c4"/></marker><marker id="nb-arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#5f5f5f" stroke-width="1.2"/></marker></defs>
+<rect width="100%" height="100%" fill="#fafafa"/>
+<rect x="40" y="16" width="112" height="32" rx="16" fill="#fafafa"/><rect x="40" y="16" width="112" height="32" rx="16" fill="rgba(95,95,95,0.10)" stroke="#9a9a9a"/><text x="96" y="36" fill="#171717" font-size="12" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Tap Check in</text><path d="M96,48 V68" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#nb-arrow)"/><path d="M156,108 H202" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#nb-arrow)"/><path d="M324,108 H370" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#nb-arrow)"/><path d="M492,108 H538" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#nb-arrow)"/><path d="M660,108 H700" fill="none" stroke="#005ee9" stroke-width="1.2" marker-end="url(#nb-arrow-accent)"/><rect x="166" y="90" width="28" height="14" rx="2" fill="#fafafa"/><text x="180" y="100" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">YES</text><rect x="334" y="90" width="28" height="14" rx="2" fill="#fafafa"/><text x="348" y="100" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">YES</text><rect x="502" y="90" width="28" height="14" rx="2" fill="#fafafa"/><text x="516" y="100" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">YES</text><rect x="666" y="90" width="28" height="14" rx="2" fill="#fafafa"/><text x="680" y="100" fill="#005ee9" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">YES</text><path d="M96,148 V196" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#nb-arrow)"/><path d="M264,148 V196" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#nb-arrow)"/><path d="M432,148 V196" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#nb-arrow)"/><path d="M600,148 V196" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#nb-arrow)"/><rect x="104" y="162" width="24" height="14" rx="2" fill="#fafafa"/><text x="109" y="172" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="start" letter-spacing="0.06em">NO</text><rect x="272" y="162" width="24" height="14" rx="2" fill="#fafafa"/><text x="277" y="172" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="start" letter-spacing="0.06em">NO</text><rect x="440" y="162" width="24" height="14" rx="2" fill="#fafafa"/><text x="445" y="172" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="start" letter-spacing="0.06em">NO</text><rect x="608" y="162" width="24" height="14" rx="2" fill="#fafafa"/><text x="613" y="172" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="start" letter-spacing="0.06em">NO</text><polygon points="96,68 156,108 96,148 36,108" fill="#fafafa"/><polygon points="96,68 156,108 96,148 36,108" fill="#fff" stroke="#171717" stroke-width="1"/><text x="96" y="106" fill="#171717" font-size="12" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Location</text><text x="96" y="121" fill="#171717" font-size="12" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">allowed?</text><polygon points="264,68 324,108 264,148 204,108" fill="#fafafa"/><polygon points="264,68 324,108 264,148 204,108" fill="#fff" stroke="#171717" stroke-width="1"/><text x="264" y="106" fill="#171717" font-size="12" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Got a</text><text x="264" y="121" fill="#171717" font-size="12" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">position?</text><polygon points="432,68 492,108 432,148 372,108" fill="#fafafa"/><polygon points="432,68 492,108 432,148 372,108" fill="#fff" stroke="#171717" stroke-width="1"/><text x="432" y="112" fill="#171717" font-size="12" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Online?</text><polygon points="600,68 660,108 600,148 540,108" fill="#fafafa"/><polygon points="600,68 660,108 600,148 540,108" fill="#fff" stroke="#171717" stroke-width="1"/><text x="600" y="106" fill="#171717" font-size="12" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Places</text><text x="600" y="121" fill="#171717" font-size="12" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">found?</text><rect x="700" y="76" width="120" height="64" rx="6" fill="#fafafa"/><rect x="700" y="76" width="120" height="64" rx="6" fill="#edf5ff" stroke="#005ee9" stroke-width="1"/><text x="760" y="107" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Nearby list</text><text x="760" y="123" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">closest first</text><rect x="24" y="196" width="144" height="64" rx="6" fill="#fafafa"/><rect x="24" y="196" width="144" height="64" rx="6" fill="#ffffff" stroke="#171717" stroke-width="1"/><text x="96" y="227" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Enable location</text><text x="96" y="243" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">opens Settings</text><rect x="192" y="196" width="144" height="64" rx="6" fill="#fafafa"/><rect x="192" y="196" width="144" height="64" rx="6" fill="#ffffff" stroke="#171717" stroke-width="1"/><text x="264" y="227" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Can't find you</text><text x="264" y="243" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">Try again</text><rect x="360" y="196" width="144" height="64" rx="6" fill="#fafafa"/><rect x="360" y="196" width="144" height="64" rx="6" fill="#ffffff" stroke="#171717" stroke-width="1"/><text x="432" y="227" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Needs internet</text><text x="432" y="243" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">Try again</text><rect x="528" y="196" width="144" height="64" rx="6" fill="#fafafa"/><rect x="528" y="196" width="144" height="64" rx="6" fill="rgba(23,23,23,0.02)" stroke="rgba(23,23,23,0.28)" stroke-width="1" stroke-dasharray="4,3"/><text x="600" y="227" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">No places here</text><text x="600" y="243" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">Check in here</text><text x="24" y="292" fill="#5f5f5f" font-size="11" font-weight="400" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="start">First check-in: iOS asks for location before the first diamond. Approximate location still gives a position.</text>
+</svg></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Situation</th><th>What the person sees</th><th>How the app knows</th></tr></thead>
+        <tbody>
+          <tr><th>First check-in</th><td>iOS asks for location "while using the app".</td><td>Permission status is undetermined. <code>requestForegroundPermissionsAsync()</code>.</td></tr>
+          <tr><th>Said no</th><td>"Enable location" with a button to Settings. No card is added.</td><td>Status is denied. <code>Linking.openSettings()</code>.</td></tr>
+          <tr><th>Location Services off for the whole phone</th><td>"Location Services are off" with a button to Settings.</td><td><code>hasServicesEnabledAsync()</code> is false. iOS only lets us open the app's own Settings page.</td></tr>
+          <tr><th>Approximate location only</th><td>The list still shows, with a quiet note: "Turn on Precise Location for closer places."</td><td>iOS reduced accuracy. Read it in the Swift module (<code>accuracyAuthorization</code>) if expo-location doesn't expose it.</td></tr>
+          <tr><th>No position after about 10 seconds</th><td>"Can't find your location" and Try again.</td><td><code>getCurrentPositionAsync()</code> times out. A recent last-known position can be used instead.</td></tr>
+          <tr><th>Offline</th><td>"Nearby needs internet" and Try again. Same wording as "Map needs internet".</td><td><code>expo-network</code> says unreachable, or MapKit returns a network error.</td></tr>
+          <tr><th>Apple is busy or errors</th><td>"Couldn't load places" and Try again.</td><td>Any other MapKit error, including throttling.</td></tr>
+          <tr><th>Online, but no places <span class="pill med">to confirm</span></th><td>"No places found nearby" and a <strong>Check in here</strong> button.</td><td>Empty result. Check in here saves the area name and coordinates with no place name.</td></tr>
+        </tbody>
+      </table></div>
 
-      <section id="tradeoffs">
-        <div class="section-head">
-          <div><span class="section-number">5</span><span class="tech-tag">Trade-off analysis</span><h2>Why we are choosing this approach</h2></div>
-          <p>Every option can put pull requests on a page. Only one currently gives you the complete view without first building a new GitHub login and connection system.</p>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th scope="col">What changes for you</th><th scope="col" class="chosen-head"><span class="option-name">A · Chosen</span>Reuse the signed-in GitHub helper</th><th scope="col"><span class="option-name">B</span>Build a new direct GitHub connection</th><th scope="col"><span class="option-name">C</span>Show only PRs BB already knows</th></tr></thead>
-            <tbody>
-              <tr><th scope="row">What must be built</th><td class="chosen">The page, behind-the-scenes rules, clear status labels, short-term memory, and a small GitHub adapter.</td><td>The same page and rules, plus a login system, GitHub web connection, paged loading, and usage-limit handling.</td><td>The page and a BB data adapter, but no way to discover everything outside current BB work.</td></tr>
-              <tr><th scope="row">Coverage</th><td class="chosen"><strong>Complete for the goal.</strong> Searches accessible repositories.</td><td>Complete and highly controllable.</td><td><strong>Incomplete.</strong> Misses PRs not attached to BB work.</td></tr>
-              <tr><th scope="row">New security burden <span class="tech-tag">Auth</span></th><td class="chosen"><strong>Low.</strong> Reuses the existing login.</td><td><strong>High.</strong> Must store and protect new credentials.</td><td>Low, but only because it avoids the full problem.</td></tr>
-              <tr><th scope="row">Speed to first value</th><td class="chosen"><strong>Fastest complete path.</strong></td><td>Slowest because foundational GitHub plumbing comes first.</td><td>Fastest partial path.</td></tr>
-              <tr><th scope="row">What needs ongoing care</th><td class="chosen">Check the helper’s answers and maintain the GitHub searches.</td><td>Maintain login, GitHub API changes, paged loading, usage limits, and searches.</td><td>Very little, but you cannot trust it as a complete overview.</td></tr>
-              <tr><th scope="row">Main compromise</th><td class="chosen">Requires a signed-in GitHub CLI on the BB host.</td><td>More control bought with much more code and risk.</td><td>Native simplicity bought by failing the core requirement.</td></tr>
-              <tr><th scope="row">Choose when</th><td class="chosen"><strong>Now.</strong> Local, single-user tracer bullet.</td><td>BB becomes remote or multi-user.</td><td>The product intentionally covers only BB-linked PRs.</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <h3>Photo places: privacy approach</h3>
+      <div class="pair">
+        <div class="beh"><span class="label">What the person experiences</span><ul>
+          <li>Picking a photo never asks for anything.</li>
+          <li>The first time they open a map of their photos, Journal asks once: "Show your photos where they were taken? Journal uses the location saved in each photo. It stays on this phone."</li>
+          <li>"Not now" keeps photos working, just with no map pins. They can turn it on later in Journal's Settings.</li>
+        </ul></div>
+        <div class="tech"><span class="label">Technical translation</span><ul>
+          <li>iOS has no "photo places" permission. The picked file can carry its location in EXIF, unless the photo has none or the person removed it in the picker. Read it with <code>expo-image-picker</code> <code>exif: true</code> and confirm on a device in the photo spike.</li>
+          <li>Don't request full Photos library access (<code>expo-media-library</code>) just to read locations. It's a bigger ask than the feature needs.</li>
+          <li>Coordinates are saved with the media row, on the phone. The copied file already contains them, so this adds no new exposure.</li>
+          <li>The one-time question is an in-app consent stored in MMKV (<code>photoPlaces: on | off</code>). <code>ensure("photoPlaces")</code> shows it instead of an iOS prompt.</li>
+        </ul></div>
+      </div>
+    </section>
 
-      <section id="conclusion">
-        <div class="decision-grid">
-          <div class="decision-main">
-            <p class="kicker" style="color:#8ab4ff">Is the system complete</p>
-            <h2>Ready for implementation planning.</h2>
-            <p>The read-only design covers the user journey, gives every necessary behavior a home, protects credentials, fails honestly, and has explicit conditions for future change.</p>
-          </div>
-          <div class="decision-side">
-            <h3>Every important job has an owner <span class="tech-tag">Soundness</span></h3>
-            <ul><li>Attention and navigation belong to the BB page.</li><li>Queries and status rules belong to the plugin engine.</li><li>Authentication belongs to the existing GitHub helper.</li><li>Pull request truth belongs to GitHub.</li><li>Freshness and recovery are visible to the user.</li></ul>
-          </div>
-        </div>
-        <div class="open-record">
-          <span class="tech-tag" style="margin-left:0">Decision record</span>
-          <h2>How we arrived here</h2>
-          <ol class="timeline">
-            <li><time datetime="2026-09-10">September 10 · Starting point</time><div><h3>Bring pull request attention into BB</h3><p>The initial idea was a GitHub Dash-style view that makes many pull requests easier to track from one simple place.</p></div></li>
-            <li><time datetime="2026-09-10">September 10 · Scope</time><div><h3>Keep the first version read-only</h3><p>Tracking is the proven need. Comments, approvals, merges, checkout, and notifications stay in GitHub until real use justifies their cost and risk.</p></div></li>
-            <li><time datetime="2026-09-10">September 10 · Existing system</time><div><h3>Use a global BB page and protected plugin logic</h3><p>Existing BB plugins prove the navigation and page-to-server pattern. BB’s environment data cannot supply a complete cross-repository list.</p></div></li>
-            <li><time datetime="2026-09-10">September 10 · Connection</time><div><h3>Reuse the signed-in GitHub helper</h3><p>The GitHub CLI is already present and authenticated. Reusing it avoids a new token system while still covering accessible repositories.</p></div></li>
-            <li><time datetime="2026-09-10">September 10 · Report</time><div><h3>Teach the architecture visually and in plain English</h3><p>The report now moves from the whole system to its pieces, subsystem behavior, growth limits, and trade-offs, with technical terms kept as supporting labels.</p></div></li>
-          </ol>
-        </div>
+    <!-- 5 -->
+    <section id="data">
+      <span class="num">5</span>
+      <h2>Data models</h2>
+      <p class="summary">Everything the person adds is one kind of record, an entry, saved in one on-phone database. A photo or a check-in adds an optional extra record. A reply is just an entry that points to its parent. Photos are copied into the app's own folder, so they survive being deleted from Photos. The two flow diagrams show the order of steps that keeps the database and the files (or the iOS alarm) in step when something fails.</p>
+      <div class="pair">
+        <div class="beh"><span class="label">What the person experiences</span><ul>
+          <li>Everything they add shows up on the day they added it, like a text.</li>
+          <li>A photo stays in the journal even if it's deleted from Photos.</li>
+          <li>Each entry can have one reaction, one reminder and many replies.</li>
+          <li>Nothing can be edited or deleted in version one.</li>
+          <li>If the phone is lost, the journal is lost, unless they restore a new phone from an iPhone backup.</li>
+        </ul></div>
+        <div class="tech"><span class="label">Technical translation</span><ul>
+          <li><code>created_at</code> and <code>local_day</code> are set in JavaScript from the device clock and time zone. Not the template's SQL <code>CURRENT_TIMESTAMP</code>, which is UTC and puts late-evening entries on the wrong day.</li>
+          <li>Media paths are relative to Documents (<code>media/abc.jpg</code>). The app's folder path changes between installs and restores.</li>
+          <li>Reaction and reminder are fields on the entry. A reply is an entry with a <code>parent_id</code>.</li>
+          <li>Add-only. Only reaction and reminder fields ever change.</li>
+        </ul></div>
+      </div>
 
-        <div class="handoff-open">
-          <span class="tech-tag" style="margin-left:0">Assumptions and handoff</span>
-          <div class="audit">
-            <div><h3>What we established</h3><ul><li>BB supports global plugin pages.</li><li>The GitHub CLI is installed and signed in.</li><li>BB’s known PR data is not a complete cross-repository source.</li></ul></div>
-            <div><h3>What version one assumes</h3><ul><li>One local user.</li><li>Dozens rather than thousands of visible results.</li><li>Manual refresh is enough.</li><li>GitHub remains available for all write actions.</li></ul></div>
-            <div><h3>What implementation planning decides</h3><ul><li>Which GitHub facts each row needs <span class="tech-tag">Data model</span></li><li>The plain-English status rules</li><li>How briefly to keep the last answer <span class="tech-tag">Cache</span></li><li>The exact page-to-plugin request <span class="tech-tag">API contract</span></li></ul></div>
-          </div>
-        </div>
-      </section>
-    </main>
+      <h3>Database schema</h3>
+      <p class="caption">Draft Drizzle tables in <code>db/schema.ts</code>, replacing the template's <code>habits</code> table. Names may change; the structure is the decision.</p>
+      <div class="diagram"><svg class="dd" viewBox="0 0 840 412" style="min-width:680px" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="er-title er-desc">
+<title id="er-title">Journal data model</title>
+<desc id="er-desc">An Entry table with optional Media and Checkin rows, and replies that are entries pointing to a parent entry.</desc>
+<defs><marker id="er-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#5f5f5f"/></marker><marker id="er-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#005ee9"/></marker><marker id="er-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#7200c4"/></marker><marker id="er-arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#5f5f5f" stroke-width="1.2"/></marker></defs>
+<rect width="100%" height="100%" fill="#fafafa"/>
+<line x1="320" y1="104" x2="520" y2="104" stroke="#5f5f5f" stroke-width="1.2"/><line x1="320" y1="236" x2="520" y2="236" stroke="#5f5f5f" stroke-width="1.2"/><path d="M96,250 V284 Q96,292 88,292 H28 Q20,292 20,284 V156 Q20,148 28,148 H40" fill="none" stroke="#5f5f5f" stroke-width="1.2"/><rect x="378" y="84" width="84" height="14" rx="2" fill="#fafafa"/><text x="420" y="94" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">PHOTO OR CLIP</text><rect x="374" y="216" width="92" height="14" rx="2" fill="#fafafa"/><text x="420" y="226" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">CHECK-IN PLACE</text><rect x="32" y="300" width="52" height="14" rx="2" fill="#fafafa"/><text x="58" y="310" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">REPLIES</text><text x="328" y="96" fill="#171717" font-size="10" font-weight="400" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="start">1</text><text x="512" y="96" fill="#171717" font-size="10" font-weight="400" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="end">0..1</text><text x="328" y="228" fill="#171717" font-size="10" font-weight="400" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="start">1</text><text x="512" y="228" fill="#171717" font-size="10" font-weight="400" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="end">0..1</text><text x="104" y="268" fill="#171717" font-size="10" font-weight="400" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="start">N</text><text x="30" y="140" fill="#171717" font-size="10" font-weight="400" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="start">1</text><rect x="40" y="40" width="280" height="210" rx="6" fill="#fafafa"/><rect x="40" y="40" width="280" height="210" rx="6" fill="#edf5ff" stroke="#005ee9" stroke-width="1"/><text x="56" y="65" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif">Entry</text><line x1="40" y1="76" x2="320" y2="76" stroke="#005ee9" stroke-opacity="0.35" stroke-width="0.8"/><text x="56" y="96" fill="#171717" font-size="11" font-family="'Geist Mono', ui-monospace, Menlo, monospace"># id</text><text x="304" y="96" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="end">text · cuid2</text><text x="56" y="114" fill="#171717" font-size="11" font-family="'Geist Mono', ui-monospace, Menlo, monospace">kind</text><text x="304" y="114" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="end">note|photo|clip|checkin</text><text x="56" y="132" fill="#171717" font-size="11" font-family="'Geist Mono', ui-monospace, Menlo, monospace">body</text><text x="304" y="132" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="end">text</text><text x="56" y="150" fill="#171717" font-size="11" font-family="'Geist Mono', ui-monospace, Menlo, monospace">created_at</text><text x="304" y="150" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="end">int · epoch ms</text><text x="56" y="168" fill="#171717" font-size="11" font-family="'Geist Mono', ui-monospace, Menlo, monospace">local_day</text><text x="304" y="168" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="end">text · 2026-10-07</text><text x="56" y="186" fill="#171717" font-size="11" font-family="'Geist Mono', ui-monospace, Menlo, monospace">→ parent_id</text><text x="304" y="186" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="end">reply to entry</text><text x="56" y="204" fill="#171717" font-size="11" font-family="'Geist Mono', ui-monospace, Menlo, monospace">reaction</text><text x="304" y="204" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="end">one of six | null</text><text x="56" y="222" fill="#171717" font-size="11" font-family="'Geist Mono', ui-monospace, Menlo, monospace">remind_at</text><text x="304" y="222" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="end">int · ms | null</text><text x="56" y="240" fill="#171717" font-size="11" font-family="'Geist Mono', ui-monospace, Menlo, monospace">notification_id</text><text x="304" y="240" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="end">text | null</text><rect x="520" y="24" width="280" height="174" rx="6" fill="#fafafa"/><rect x="520" y="24" width="280" height="174" rx="6" fill="#fff" stroke="#171717" stroke-width="1"/><text x="536" y="49" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif">Media</text><line x1="520" y1="60" x2="800" y2="60" stroke="#171717" stroke-opacity="0.35" stroke-width="0.8"/><text x="536" y="80" fill="#171717" font-size="11" font-family="'Geist Mono', ui-monospace, Menlo, monospace">→ entry_id</text><text x="784" y="80" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="end">entry</text><text x="536" y="98" fill="#171717" font-size="11" font-family="'Geist Mono', ui-monospace, Menlo, monospace">file_path</text><text x="784" y="98" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="end">media/abc.jpg</text><text x="536" y="116" fill="#171717" font-size="11" font-family="'Geist Mono', ui-monospace, Menlo, monospace">type</text><text x="784" y="116" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="end">photo|clip</text><text x="536" y="134" fill="#171717" font-size="11" font-family="'Geist Mono', ui-monospace, Menlo, monospace">width, height</text><text x="784" y="134" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="end">int</text><text x="536" y="152" fill="#171717" font-size="11" font-family="'Geist Mono', ui-monospace, Menlo, monospace">duration_s</text><text x="784" y="152" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="end">real | null</text><text x="536" y="170" fill="#171717" font-size="11" font-family="'Geist Mono', ui-monospace, Menlo, monospace">taken_at</text><text x="784" y="170" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="end">int · ms | null</text><text x="536" y="188" fill="#171717" font-size="11" font-family="'Geist Mono', ui-monospace, Menlo, monospace">lat, lng</text><text x="784" y="188" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="end">real | null</text><rect x="520" y="216" width="280" height="138" rx="6" fill="#fafafa"/><rect x="520" y="216" width="280" height="138" rx="6" fill="#fff" stroke="#171717" stroke-width="1"/><text x="536" y="241" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif">Checkin</text><line x1="520" y1="252" x2="800" y2="252" stroke="#171717" stroke-opacity="0.35" stroke-width="0.8"/><text x="536" y="272" fill="#171717" font-size="11" font-family="'Geist Mono', ui-monospace, Menlo, monospace">→ entry_id</text><text x="784" y="272" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="end">entry</text><text x="536" y="290" fill="#171717" font-size="11" font-family="'Geist Mono', ui-monospace, Menlo, monospace">place_name</text><text x="784" y="290" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="end">text</text><text x="536" y="308" fill="#171717" font-size="11" font-family="'Geist Mono', ui-monospace, Menlo, monospace">area</text><text x="784" y="308" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="end">text</text><text x="536" y="326" fill="#171717" font-size="11" font-family="'Geist Mono', ui-monospace, Menlo, monospace">lat, lng</text><text x="784" y="326" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="end">real</text><text x="536" y="344" fill="#171717" font-size="11" font-family="'Geist Mono', ui-monospace, Menlo, monospace">snapshot_path</text><text x="784" y="344" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="end">relative | null</text><line x1="24" y1="376" x2="816" y2="376" stroke="rgba(23,23,23,0.12)" stroke-width="0.8"/><text x="24" y="396" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" letter-spacing="0.14em">LEGEND</text><rect x="96" y="385" width="28" height="14" rx="3" fill="#edf5ff" stroke="#005ee9" stroke-width="1"/><text x="132" y="396" fill="#5f5f5f" font-size="11" font-family="Geist, -apple-system, Arial, sans-serif">core table</text><line x1="222" y1="392" x2="250" y2="392" stroke="#5f5f5f" stroke-width="1.2"/><text x="258" y="396" fill="#5f5f5f" font-size="11" font-family="Geist, -apple-system, Arial, sans-serif">relationship, 1 to 0..1 or N</text><text x="560" y="396" fill="#5f5f5f" font-size="10" font-weight="400" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="start">#  key     →  points to another row</text>
+</svg></div>
+      <p class="caption"><strong>Preferences</strong> (outside the database, in MMKV through <code>lib/storage.ts</code>): appearance (template key <code>theme</code>), sounds on or off, last view. Whether a permission was granted is always read live from iOS, never cached. The paywall switch is a code constant, not a preference.</p>
 
-    <footer><span>Pull Requests in BB · Architecture draft</span><span>Draft 4 · September 10, 2026</span></footer>
-  </div>
+      <h3>Data flow</h3>
+      <p class="intro">Adding a photo: copy first, then record, then show. A failed record removes the copy, so no stray files.</p>
+      <div class="diagram"><svg class="dd" viewBox="0 0 840 344" style="min-width:680px" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="seqp-title seqp-desc">
+<title id="seqp-title">Adding a photo</title>
+<desc id="seqp-desc">The picker hands a file to the media importer, which copies it into the media folder, records it in the database, and deletes the copy if the record fails; the live query then shows the photo.</desc>
+<defs><marker id="seqp-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#5f5f5f"/></marker><marker id="seqp-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#005ee9"/></marker><marker id="seqp-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#7200c4"/></marker><marker id="seqp-arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#5f5f5f" stroke-width="1.2"/></marker></defs>
+<rect width="100%" height="100%" fill="#fafafa"/>
+<rect x="392" y="224" width="222" height="56" rx="4" fill="rgba(23,23,23,0.02)" stroke="rgba(23,23,23,0.22)" stroke-width="1"/><rect x="392" y="224" width="40" height="16" rx="2" fill="#fafafa" stroke="rgba(23,23,23,0.22)" stroke-width="1"/><text x="412" y="236" fill="#5f5f5f" font-size="8" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.12em">OPT</text><text x="440" y="236" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace">[insert fails]</text><line x1="88" y1="60" x2="88" y2="320" stroke="rgba(23,23,23,0.22)" stroke-width="1" stroke-dasharray="3,3"/><line x1="254" y1="60" x2="254" y2="320" stroke="rgba(23,23,23,0.22)" stroke-width="1" stroke-dasharray="3,3"/><line x1="420" y1="60" x2="420" y2="320" stroke="rgba(23,23,23,0.22)" stroke-width="1" stroke-dasharray="3,3"/><line x1="586" y1="60" x2="586" y2="320" stroke="rgba(23,23,23,0.22)" stroke-width="1" stroke-dasharray="3,3"/><line x1="752" y1="60" x2="752" y2="320" stroke="rgba(23,23,23,0.22)" stroke-width="1" stroke-dasharray="3,3"/><path d="M92,100 H248" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#seqp-arrow)"/><rect x="139" y="82" width="64" height="14" rx="2" fill="#fafafa"/><text x="171" y="92" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">ADD PHOTO</text><path d="M258,136 H414" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#seqp-arrow)"/><rect x="301" y="118" width="72" height="14" rx="2" fill="#fafafa"/><text x="337" y="128" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">PICKED FILE</text><path d="M424,172 H580" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#seqp-arrow)"/><rect x="477" y="154" width="52" height="14" rx="2" fill="#fafafa"/><text x="503" y="164" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">COPY IN</text><path d="M424,208 H746" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#seqp-arrow)"/><rect x="635" y="190" width="68" height="14" rx="2" fill="#fafafa"/><text x="669" y="200" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">INSERT ROW</text><path d="M424,264 H580" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#seqp-arrow)"/><rect x="467" y="246" width="72" height="14" rx="2" fill="#fafafa"/><text x="503" y="256" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">DELETE COPY</text><path d="M748,312 H94" fill="none" stroke="#005ee9" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#seqp-arrow-accent)"/><rect x="633" y="294" width="72" height="14" rx="2" fill="#fafafa"/><text x="669" y="304" fill="#005ee9" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">PHOTO SHOWS</text><rect x="16" y="16" width="144" height="44" rx="6" fill="#fafafa"/><rect x="16" y="16" width="144" height="44" rx="6" fill="rgba(95,95,95,0.10)" stroke="#9a9a9a" stroke-width="1"/><text x="88" y="43" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Person</text><rect x="182" y="16" width="144" height="44" rx="6" fill="#fafafa"/><rect x="182" y="16" width="144" height="44" rx="6" fill="rgba(23,23,23,0.03)" stroke="rgba(23,23,23,0.30)" stroke-width="1"/><text x="254" y="43" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Photo picker</text><rect x="348" y="16" width="144" height="44" rx="6" fill="#fafafa"/><rect x="348" y="16" width="144" height="44" rx="6" fill="#ffffff" stroke="#171717" stroke-width="1"/><text x="420" y="43" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Media importer</text><rect x="514" y="16" width="144" height="44" rx="6" fill="#fafafa"/><rect x="514" y="16" width="144" height="44" rx="6" fill="rgba(23,23,23,0.05)" stroke="#5f5f5f" stroke-width="1"/><text x="586" y="43" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Media folder</text><rect x="680" y="16" width="144" height="44" rx="6" fill="#fafafa"/><rect x="680" y="16" width="144" height="44" rx="6" fill="#edf5ff" stroke="#005ee9" stroke-width="1"/><text x="752" y="43" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Journal database</text>
+</svg></div>
+      <p class="intro">Setting a reminder: the database is saved first and the iOS alarm follows it. If a step fails, the launch check repairs it.</p>
+      <div class="diagram"><svg class="dd" viewBox="0 0 840 492" style="min-width:680px" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="seqr-title seqr-desc">
+<title id="seqr-title">Setting a reminder</title>
+<desc id="seqr-desc">The scheduler saves the reminder time to the database before scheduling the iOS notification and saving its alarm id; later, tapping the notification opens the entry.</desc>
+<defs><marker id="seqr-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#5f5f5f"/></marker><marker id="seqr-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#005ee9"/></marker><marker id="seqr-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#7200c4"/></marker><marker id="seqr-arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#5f5f5f" stroke-width="1.2"/></marker></defs>
+<rect width="100%" height="100%" fill="#fafafa"/>
+<rect x="226" y="124" width="554" height="72" rx="4" fill="rgba(23,23,23,0.02)" stroke="rgba(23,23,23,0.22)" stroke-width="1"/><rect x="226" y="124" width="40" height="16" rx="2" fill="#fafafa" stroke="rgba(23,23,23,0.22)" stroke-width="1"/><text x="246" y="136" fill="#5f5f5f" font-size="8" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.12em">OPT</text><text x="274" y="136" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace">[first reminder ever]</text><text x="24" y="384" fill="#5f5f5f" font-size="9" font-weight="400" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="start">LATER</text><line x1="72" y1="381" x2="816" y2="381" stroke="rgba(23,23,23,0.14)" stroke-width="0.8" stroke-dasharray="2,4"/><line x1="88" y1="60" x2="88" y2="468" stroke="rgba(23,23,23,0.22)" stroke-width="1" stroke-dasharray="3,3"/><line x1="254" y1="60" x2="254" y2="468" stroke="rgba(23,23,23,0.22)" stroke-width="1" stroke-dasharray="3,3"/><line x1="420" y1="60" x2="420" y2="468" stroke="rgba(23,23,23,0.22)" stroke-width="1" stroke-dasharray="3,3"/><line x1="586" y1="60" x2="586" y2="468" stroke="rgba(23,23,23,0.22)" stroke-width="1" stroke-dasharray="3,3"/><line x1="752" y1="60" x2="752" y2="468" stroke="rgba(23,23,23,0.22)" stroke-width="1" stroke-dasharray="3,3"/><path d="M92,100 H248" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#seqr-arrow)"/><rect x="135" y="82" width="72" height="14" rx="2" fill="#fafafa"/><text x="171" y="92" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">PICK A TIME</text><path d="M258,156 H746" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#seqr-arrow)"/><rect x="655" y="138" width="28" height="14" rx="2" fill="#fafafa"/><text x="669" y="148" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">ASK</text><path d="M748,184 H260" fill="none" stroke="#5f5f5f" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#seqr-arrow)"/><rect x="643" y="166" width="52" height="14" rx="2" fill="#fafafa"/><text x="669" y="176" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">ALLOWED</text><path d="M258,228 H414" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#seqr-arrow)"/><rect x="323" y="210" width="28" height="14" rx="2" fill="#fafafa"/><text x="337" y="220" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">SET</text><path d="M424,260 H580" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#seqr-arrow)"/><rect x="471" y="242" width="64" height="14" rx="2" fill="#fafafa"/><text x="503" y="252" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">SAVE TIME</text><path d="M424,292 H746" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#seqr-arrow)"/><rect x="641" y="274" width="56" height="14" rx="2" fill="#fafafa"/><text x="669" y="284" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">SCHEDULE</text><path d="M748,320 H426" fill="none" stroke="#5f5f5f" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#seqr-arrow)"/><rect x="641" y="302" width="56" height="14" rx="2" fill="#fafafa"/><text x="669" y="312" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">ALARM ID</text><path d="M424,352 H580" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#seqr-arrow)"/><rect x="461" y="334" width="84" height="14" rx="2" fill="#fafafa"/><text x="503" y="344" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">SAVE ALARM ID</text><path d="M748,404 H94" fill="none" stroke="#5f5f5f" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#seqr-arrow-open)"/><rect x="629" y="386" width="80" height="14" rx="2" fill="#fafafa"/><text x="669" y="396" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">NOTIFICATION</text><path d="M92,432 H746" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#seqr-arrow)"/><rect x="655" y="414" width="28" height="14" rx="2" fill="#fafafa"/><text x="669" y="424" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">TAP</text><path d="M748,460 H260" fill="none" stroke="#005ee9" stroke-width="1.2" marker-end="url(#seqr-arrow-accent)"/><rect x="469" y="442" width="68" height="14" rx="2" fill="#fafafa"/><text x="503" y="452" fill="#005ee9" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">OPEN ENTRY</text><rect x="16" y="16" width="144" height="44" rx="6" fill="#fafafa"/><rect x="16" y="16" width="144" height="44" rx="6" fill="rgba(95,95,95,0.10)" stroke="#9a9a9a" stroke-width="1"/><text x="88" y="43" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Person</text><rect x="182" y="16" width="144" height="44" rx="6" fill="#fafafa"/><rect x="182" y="16" width="144" height="44" rx="6" fill="#ffffff" stroke="#171717" stroke-width="1"/><text x="254" y="43" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Journal app</text><rect x="348" y="16" width="144" height="44" rx="6" fill="#fafafa"/><rect x="348" y="16" width="144" height="44" rx="6" fill="#ffffff" stroke="#171717" stroke-width="1"/><text x="420" y="43" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Reminder scheduler</text><rect x="514" y="16" width="144" height="44" rx="6" fill="#fafafa"/><rect x="514" y="16" width="144" height="44" rx="6" fill="#edf5ff" stroke="#005ee9" stroke-width="1"/><text x="586" y="43" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Journal database</text><rect x="680" y="16" width="144" height="44" rx="6" fill="#fafafa"/><rect x="680" y="16" width="144" height="44" rx="6" fill="rgba(23,23,23,0.03)" stroke="rgba(23,23,23,0.30)" stroke-width="1"/><text x="752" y="43" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">iOS notifications</text>
+</svg></div>
 
-  <script type="module">
-    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      <div class="answers"><h4>Your answers that shaped this section</h4>
+        <div class="answer"><span class="q">Lost or new phone?</span><span class="a">On the phone only. No iCloud sync (CloudKit) in version one. Whole-phone backup is fine.</span><span class="t">No sync IDs, no conflict handling, no export format. iOS device backup still applies and we don't disable it.</span></div>
+        <div class="answer"><span class="q">Photo deleted from Photos?</span><span class="a">Journal keeps its own copy</span><span class="t">A media folder plus file paths, not links into the Photos library.</span></div>
+        <div class="answer"><span class="q">An old photo added today goes where?</span><span class="a">Today, as added</span><span class="t">One date per entry. The date taken is kept only for the map and info.</span></div>
+        <div class="answer"><span class="q">Sent by mistake?</span><span class="a">Nothing in version one</span><span class="t">Add-only entries. The only cleanup needed is for a failed import (see Media importer).</span></div>
+      </div>
+    </section>
 
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: "base",
-      securityLevel: "strict",
-      themeVariables: {
-        fontFamily: "Geist, Arial, sans-serif",
-        primaryColor: "#edf5ff",
-        primaryBorderColor: "#005ee9",
-        primaryTextColor: "#171717",
-        lineColor: "#666666",
-        secondaryColor: "#f6edff",
-        tertiaryColor: "#fafafa",
-        clusterBkg: "#ffffff",
-        clusterBorder: "#cccccc",
-        actorBkg: "#edf5ff",
-        actorBorder: "#005ee9",
-        signalColor: "#666666",
-        noteBkgColor: "#fff5e8",
-        noteBorderColor: "#9e5200"
-      },
-      flowchart: { curve: "basis", htmlLabels: true },
-      sequence: { mirrorActors: false, useMaxWidth: true }
+    <!-- 6 -->
+    <section id="interfaces">
+      <span class="num">6</span>
+      <h2>Interface definitions</h2>
+      <p class="summary">There's no web API. The "interfaces" are the handful of calls the app's modules make to each other, plus one link from a tapped reminder into the app. The first table lists those calls, which are the arrows on the section 4 map. The second lists the rules every piece of data must follow, all checked by the Journal store before saving.</p>
+      <div class="pair">
+        <div class="beh"><span class="label">What the person experiences</span><ul>
+          <li>Everything happens inside the app.</li>
+          <li>The only way in from outside is tapping a reminder.</li>
+          <li>Nothing waits on a server of ours. Only maps and Nearby need internet, for Apple's services.</li>
+        </ul></div>
+        <div class="tech"><span class="label">Technical translation</span><ul>
+          <li>There is no web API. The "APIs" are the boundaries between modules inside the app.</li>
+          <li>One deep link: <code>journal://entry/{id}</code>, carried in the notification's <code>data.url</code>. This needs the scheme changed from <code>ltstarter</code> and an expo-router route <code>app/entry/[id].tsx</code>. Taps are handled with <code>Notifications.useLastNotificationResponse()</code>, which covers cold starts too.</li>
+          <li>One custom native bridge: the Swift place-finder module. Everything else uses Expo or community modules.</li>
+        </ul></div>
+      </div>
+
+      <h3>APIs (internal module boundaries)</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Module</th><th>Operations</th><th>Returns</th></tr></thead>
+        <tbody>
+          <tr><th>Journal store</th><td><code>addNote(text, parentId?)</code><br><code>addMedia(file, parentId?)</code><br><code>addCheckIn(place, parentId?)</code><br><code>setReaction(entryId, reaction | null)</code><br><code>watchDays(range)</code></td><td>The saved entry, or a live list for the views.</td></tr>
+          <tr><th>Media importer</th><td><code>importPicked(asset)</code></td><td><code>{ filePath, type, takenAt, lat?, lng?, size }</code></td></tr>
+          <tr><th>Reminder scheduler</th><td><code>set(entryId, at)</code><br><code>cancel(entryId)</code><br><code>reconcileOnLaunch()</code></td><td>Updates the entry. Opens <code>journal://entry/{id}</code> on tap. The launch check only looks at future reminders. Past ones are already delivered and are left alone.</td></tr>
+          <tr><th>Permission helper</th><td><code>ensure("location" | "notifications" | "photoPlaces")</code><br><code>openSettings()</code></td><td><code>granted</code> or <code>denied</code>. On denial, the screen shows the explanation.</td></tr>
+          <tr><th>Place finder (Swift)</th><td><code>nearby(lat, lng)</code><br><code>snapshot(lat, lng, size)</code></td><td><code>[{ name, area, distanceM, lat, lng }]</code> and an image file path.</td></tr>
+          <tr><th>Paywall gate</th><td><code>PAYWALL_ENABLED</code> (constant)</td><td><code>false</code>. Gates <code>&lt;OnboardingGate /&gt;</code> in <code>app/_layout.tsx</code> and the <code>configureRevenueCat()</code> call.</td></tr>
+        </tbody>
+      </table></div>
+      <p class="caption">No authentication: there are no accounts, and only the person holding the phone uses the app.</p>
+
+      <h3>Data contracts</h3>
+      <p>Every rule below is checked in one place, the Journal store, before anything is saved. Screens only disable buttons to match.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Data</th><th>Rule</th><th>What the person sees if it breaks</th></tr></thead>
+        <tbody>
+          <tr><th>Note</th><td>Text is trimmed and can't be empty.</td><td>The send button stays disabled.</td></tr>
+          <tr><th>Reaction</th><td>One of: heart, thumbs up, thumbs down, HA HA, !!, ?. At most one per entry.</td><td>Tapping the same one again removes it.</td></tr>
+          <tr><th>Reminder</th><td>The time must be in the future. At most one per entry.</td><td>Past times aren't offered. A new time replaces the old one.</td></tr>
+          <tr><th>Media</th><td>Photos (HEIC, JPEG, PNG) and short clips (MOV, MP4). Saved by relative path. Location is optional.</td><td>A photo without a location has no map pin.</td></tr>
+          <tr><th>Check-in</th><td>Needs a name and coordinates. The map image is optional.</td><td>The card shows the name even if the image failed.</td></tr>
+          <tr><th>Reply</th><td>Its parent must be an existing top-level entry. Replies can't have replies.</td><td>Threads are one level deep.</td></tr>
+          <tr><th>Day</th><td><code>local_day</code> is set once, when the entry is added.</td><td>Days never reshuffle after travelling.</td></tr>
+        </tbody>
+      </table></div>
+
+      <div class="answers"><h4>Your answers that shaped this section</h4>
+        <div class="answer"><span class="q">Anything outside the app adding entries?</span><span class="a">No, only inside the app</span><span class="t">No share extension or widget, so there's no second program to keep in step with the database.</span></div>
+      </div>
+    </section>
+
+    <!-- 7 -->
+    <section id="risks">
+      <span class="num">7</span>
+      <h2>Risk and mitigation</h2>
+      <p class="summary">The biggest risk is time, not technology: custom gestures may take longer than planned. That's why they get built first, on a real device. Other risks are smaller or accepted. For example, losing the phone without a backup loses the journal. The map places each risk by how likely and how bad it is. The table gives the response to each.</p>
+
+      <h3>Risk map</h3>
+      <p class="intro">Placed by how likely and how bad each risk is. Act on the top-right first.</p>
+      <div class="diagram"><svg class="dd" viewBox="0 0 840 452" style="min-width:680px" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="rk-title rk-desc">
+<title id="rk-title">Journal risk map</title>
+<desc id="rk-desc">Risks placed by chance and impact; custom gestures running long is the main risk to act on first.</desc>
+<defs><marker id="rk-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#5f5f5f"/></marker><marker id="rk-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#005ee9"/></marker><marker id="rk-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#7200c4"/></marker><marker id="rk-arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#5f5f5f" stroke-width="1.2"/></marker></defs>
+<rect width="100%" height="100%" fill="#fafafa"/>
+<rect x="444" y="32" width="348" height="184" fill="rgba(0,94,233,0.04)"/><line x1="96" y1="216" x2="792" y2="216" stroke="#171717" stroke-width="1"/><line x1="444" y1="32" x2="444" y2="400" stroke="#171717" stroke-width="1"/><path d="M96,416 H784" fill="none" stroke="#5f5f5f" stroke-width="1" marker-end="url(#rk-arrow)"/><path d="M80,400 V40" fill="none" stroke="#5f5f5f" stroke-width="1" marker-end="url(#rk-arrow)"/><text x="792" y="436" fill="#5f5f5f" font-size="9" font-weight="400" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="end">CHANCE</text><text x="72" y="36" fill="#5f5f5f" font-size="9" font-weight="400" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="end">IMPACT</text><text x="108" y="52" fill="#5f5f5f" font-size="9" font-weight="400" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="start">WATCH CLOSELY</text><text x="456" y="52" fill="#005ee9" font-size="9" font-weight="400" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="start">ACT FIRST</text><text x="108" y="236" fill="#5f5f5f" font-size="9" font-weight="400" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="start">ACCEPT</text><text x="456" y="236" fill="#5f5f5f" font-size="9" font-weight="400" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="start">KEEP CHEAP</text><circle cx="172" cy="76" r="5" fill="#171717"/><text x="184" y="80" fill="#171717" font-size="12" font-weight="400" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="start">Phone lost or reset</text><circle cx="236" cy="132" r="5" fill="#171717"/><text x="248" y="136" fill="#171717" font-size="12" font-weight="400" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="start">Update breaks saved data</text><circle cx="560" cy="92" r="5" fill="#005ee9"/><text x="572" y="96" fill="#005ee9" font-size="12" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="start">Custom gestures run long</text><circle cx="492" cy="156" r="5" fill="#171717"/><text x="504" y="160" fill="#171717" font-size="12" font-weight="400" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="start">Library falls short</text><circle cx="212" cy="268" r="5" fill="#171717"/><text x="224" y="272" fill="#171717" font-size="12" font-weight="400" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="start">Reminders out of step</text><circle cx="220" cy="324" r="5" fill="#171717"/><text x="232" y="328" fill="#171717" font-size="12" font-weight="400" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="start">Paywall shows by accident</text><circle cx="492" cy="256" r="5" fill="#171717"/><text x="504" y="260" fill="#171717" font-size="12" font-weight="400" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="start">Crashes go unnoticed</text><circle cx="556" cy="300" r="5" fill="#171717"/><text x="568" y="304" fill="#171717" font-size="12" font-weight="400" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="start">Photos fill the phone</text><circle cx="492" cy="348" r="5" fill="#171717"/><text x="504" y="352" fill="#171717" font-size="12" font-weight="400" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="start">No internet</text><circle cx="612" cy="380" r="5" fill="#171717"/><text x="624" y="384" fill="#171717" font-size="12" font-weight="400" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="start">Nearby finds few places</text>
+</svg></div>
+
+      <h3>Mitigation strategies</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Risk</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr><th>Custom gestures run long</th><td>Build pile, pinch and hold menu first, as spikes on a real device. Cut scope elsewhere before simplifying motion.</td></tr>
+          <tr><th>Library falls short</th><td>Use the fallbacks in the user stories: own hold menu, <code>gesture-image-viewer</code>, own month rows, <code>expo-maps</code>.</td></tr>
+          <tr><th>Phone lost or reset</th><td>Accepted. iOS device backup includes <code>Documents/</code>. Confirm once with a real backup and restore before release, and say so plainly in Settings.</td></tr>
+          <tr><th>Update breaks saved data</th><td>Before release, replace the two habit migrations with one baseline. After release, additive migrations only, each tested on a copy of a real journal.</td></tr>
+          <tr><th>Photos fill the phone</th><td>Keep clips short. Revisit smaller copies if people complain.</td></tr>
+          <tr><th>Reminders out of step</th><td>Database first, alarm second. Launch check repairs future reminders.</td></tr>
+          <tr><th>Crashes go unnoticed</th><td>Check Xcode Organizer after each release. TestFlight on a real device.</td></tr>
+          <tr><th>Paywall shows by accident</th><td>First build task: gate it with <code>PAYWALL_ENABLED = false</code>. Before each release, a fresh install must open straight to Daily.</td></tr>
+          <tr><th>No internet, or Nearby finds few places</th><td>Clear messages per situation (see Check in in section 4). Check-in cards keep their saved map image.</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <!-- 8 -->
+    <section id="appendix">
+      <span class="num">8</span>
+      <h2>Appendix</h2>
+      <p class="summary">Reference material: questions still open, decisions made and when, how to run and rebuild the app day to day, what changes from the template, a glossary, and sources.</p>
+
+      <h3>Open questions for build planning</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Question</th><th>Why it matters</th></tr></thead>
+        <tbody>
+          <tr><td>When Nearby finds no places, offer <strong>Check in here</strong> (area name and coordinates, no place name)?</td><td>Proposed in section 4. Needs your OK. Changes the check-in data rule.</td></tr>
+          <tr><td>Stories 02.5 and the tech stack mention photo places as an iOS setting and <code>expo-media-library</code>. Update them to the in-app consent?</td><td>Keeps stories and architecture in step.</td></tr>
+          <tr><td>Who owns a photo pile's thread: the day's first photo, or the day itself? (06.2)</td><td>Changes where pile replies are saved.</td></tr>
+          <tr><td>Maximum clip length?</td><td>Storage.</td></tr>
+          <tr><td>What goes in Settings?</td><td>Not defined in the stories.</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>Decision log</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Question (behavior)</th><th>Answer</th><th>Section</th></tr></thead>
+        <tbody>
+          <tr><td>Oct 7</td><td>Lost or new phone, what happens to the journal?</td><td>On the phone only. They lose it.</td><td>5, 7</td></tr>
+          <tr><td>Oct 7</td><td>How should paying work?</td><td>No paywall now. Keep the code.</td><td>1, 4</td></tr>
+          <tr><td>Oct 7</td><td>Photo deleted from Photos?</td><td>Journal keeps its own copy.</td><td>5</td></tr>
+          <tr><td>Oct 7</td><td>How private on the phone?</td><td>Like Messages.</td><td>2</td></tr>
+          <tr><td>Oct 7</td><td>What wins when we must trade?</td><td>Feel first.</td><td>2, 7</td></tr>
+          <tr><td>Oct 7</td><td>An old photo added today goes where?</td><td>Today, as added.</td><td>5</td></tr>
+          <tr><td>Oct 7</td><td>Sent by mistake?</td><td>Nothing in version one.</td><td>1, 5</td></tr>
+          <tr><td>Oct 7</td><td>Anything outside the app adding entries?</td><td>No, only inside the app.</td><td>1, 3, 6</td></tr>
+          <tr><td>Oct 7</td><td>How do you learn about crashes?</td><td>Apple's built-in crash reports.</td><td>3, 7</td></tr>
+          <tr><td>Oct 8</td><td>Is iPhone backup intentional? Turn on iCloud?</td><td>Whole-phone backup is fine and stays on (iOS default). No iCloud sync or CloudKit in version one.</td><td>2, 3, 5, 7</td></tr>
+          <tr><td>Oct 8</td><td>Does showing photo places need permission?</td><td>Follow privacy best practice: no extra iOS permission, one in-app question the first time, data stays on the phone.</td><td>4</td></tr>
+          <tr><td>Oct 8</td><td>What should Check in show when Nearby is empty?</td><td>One message and next step per cause (proposed, see section 4).</td><td>4, 7</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>Development workflow</h3>
+      <p>The app runs as an Expo <strong>development build</strong> (<code>expo-dev-client</code>), not Expo Go, because it has native code Expo Go doesn't include. Most days, only Metro is needed.</p>
+      <div class="diagram"><svg class="dd" viewBox="0 0 840 212" style="min-width:680px" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="dev-title dev-desc">
+<title id="dev-title">When you need a full rebuild</title>
+<desc id="dev-desc">JavaScript-only changes reload through Metro in seconds; native changes need a prebuild and rebuild, then Metro takes over again.</desc>
+<defs><marker id="dev-arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#5f5f5f"/></marker><marker id="dev-arrow-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#005ee9"/></marker><marker id="dev-arrow-link" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#7200c4"/></marker><marker id="dev-arrow-open" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polyline points="0 0, 8 3, 0 6" fill="none" stroke="#5f5f5f" stroke-width="1.2"/></marker></defs>
+<rect width="100%" height="100%" fill="#fafafa"/>
+<path d="M184,64 H264" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#dev-arrow)"/><path d="M384,64 H464" fill="none" stroke="#005ee9" stroke-width="1.2" marker-end="url(#dev-arrow-accent)"/><path d="M324,96 V132 Q324,140 332,140 H464" fill="none" stroke="#5f5f5f" stroke-width="1.2" marker-end="url(#dev-arrow)"/><path d="M624,140 H664 Q672,140 672,132 V96" fill="none" stroke="#5f5f5f" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#dev-arrow)"/><rect x="390" y="46" width="68" height="14" rx="2" fill="#fafafa"/><text x="424" y="56" fill="#005ee9" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle" letter-spacing="0.06em">ONLY JS/TS</text><rect x="332" y="110" width="44" height="14" rx="2" fill="#fafafa"/><text x="337" y="120" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="start" letter-spacing="0.06em">NATIVE</text><rect x="680" y="114" width="36" height="14" rx="2" fill="#fafafa"/><text x="685" y="124" fill="#5f5f5f" font-size="9" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="start" letter-spacing="0.06em">THEN</text><rect x="24" y="44" width="160" height="40" rx="20" fill="rgba(95,95,95,0.10)" stroke="#9a9a9a"/><text x="104" y="69" fill="#171717" font-size="12" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Change some code</text><polygon points="324,32 384,64 324,96 264,64" fill="#fafafa"/><polygon points="324,32 384,64 324,96 264,64" fill="#fff" stroke="#171717" stroke-width="1"/><text x="324" y="62" fill="#171717" font-size="12" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">What</text><text x="324" y="77" fill="#171717" font-size="12" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">changed?</text><rect x="464" y="32" width="320" height="64" rx="6" fill="#fafafa"/><rect x="464" y="32" width="320" height="64" rx="6" fill="#edf5ff" stroke="#005ee9" stroke-width="1"/><text x="624" y="63" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Save the file. Metro reloads the app.</text><text x="624" y="79" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">bun run dev · seconds</text><rect x="464" y="112" width="160" height="56" rx="6" fill="#fafafa"/><rect x="464" y="112" width="160" height="56" rx="6" fill="#ffffff" stroke="#171717" stroke-width="1"/><text x="544" y="139" fill="#171717" font-size="13" font-weight="600" font-family="Geist, -apple-system, Arial, sans-serif" text-anchor="middle">Rebuild the app</text><text x="544" y="155" fill="#5f5f5f" font-size="10" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="middle">minutes</text><text x="464" y="196" fill="#5f5f5f" font-size="10" font-weight="400" font-family="'Geist Mono', ui-monospace, Menlo, monospace" text-anchor="start">bunx expo prebuild --clean  →  bun run ios</text>
+</svg></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Change</th><th>What to run</th><th>Speed</th></tr></thead>
+        <tbody>
+          <tr><th>JS/TS only: screens, styles, logic, Drizzle schema</th><td>Leave <code>bun run dev</code> running. Saving reloads the app. After a schema change, run <code>bun run db:generate</code> first.</td><td>Seconds</td></tr>
+          <tr><th>Native: adding a package with native code, editing <code>app.config.ts</code> plugins or permission texts, changing the Swift module, changing app name, bundle id or scheme</th><td><code>bunx expo prebuild --clean</code>, then <code>bun run ios</code>. Plain <code>expo run:ios</code> skips config changes once <code>ios/</code> exists. <code>--clean</code> is safe because <code>ios/</code> is generated. If CocoaPods fails with a Unicode error, set <code>LANG=en_US.UTF-8</code>.</td><td>Minutes</td></tr>
+        </tbody>
+      </table></div>
+      <p class="caption">Most version-one native packages are not installed yet. Batch their <code>bunx expo install</code> calls to rebuild fewer times.</p>
+
+      <h3>Template changes needed before feature work</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Today in the template</th><th>Change</th></tr></thead>
+        <tbody>
+          <tr><td>Habit onboarding and paywall shown on first open</td><td>Gate with <code>PAYWALL_ENABLED = false</code></td></tr>
+          <tr><td>Name, bundle id, scheme <code>ltstarter</code>, iPad support on</td><td>Journal identity, scheme <code>journal</code>, <code>supportsTablet: false</code></td></tr>
+          <tr><td><code>habits</code> table and two habit migrations</td><td>Journal schema with one fresh baseline migration</td></tr>
+          <tr><td>Tab layout with Habits and Settings. The migration gate lives inside the Habits screen.</td><td>Move the migration gate to the root layout first, then replace tabs with one <code>Stack</code>: Daily, then sheets and Settings</td></tr>
+          <tr><td>Android and web code (<code>drizzle.web.ts</code>, sql.js, Vercel and gh-pages files)</td><td>Leave in place but don't maintain. Out of scope.</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>Glossary</h3>
+      <div class="table-wrap"><table><tbody>
+        <tr><th>Source of truth</th><td>The one place a fact really lives. Here, the journal database.</td></tr>
+        <tr><th>Live query</th><td>Screens re-draw automatically when saved data changes.</td></tr>
+        <tr><th>Migration</th><td>A careful change to how data is stored when the app updates.</td></tr>
+        <tr><th>Deep link</th><td>An address that opens the app at a specific entry.</td></tr>
+        <tr><th>Expo module</th><td>A small piece of native Swift code the app can call.</td></tr>
+        <tr><th>Development build</th><td>Our own debug copy of the app with native code baked in. JavaScript changes reload instantly through Metro.</td></tr>
+        <tr><th>EXIF</th><td>Details saved inside a photo file, such as when and where it was taken.</td></tr>
+      </tbody></table></div>
+
+      <h3>Sources</h3>
+      <p><a href="user-stories.md">user-stories.md</a> (features, stories, tech stack, fallbacks) · <a href="../../prototype/index-v2.html">prototype/index-v2.html</a> · <a href="https://github.com/iamhenry/expo-local-first-paywall-template">Expo starter template</a></p>
+    </section>
+
+    <footer>Journal · System architecture · Draft 4 · October 8, 2026 · Diagrams are inline SVG drawn with the diagram-design skill (<code>.opencode/skills/diagram-design</code>) and work offline.</footer>
+  </main>
+</div>
+
+<script>
+  // Highlight the current section in the side menu.
+  const links = [...document.querySelectorAll("nav a")];
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) links.forEach(a => a.classList.toggle("active", a.getAttribute("href") === "#" + e.target.id));
     });
-
-    await mermaid.run({ querySelector: ".mermaid" });
-
-    const subsystems = {
-      experience: {
-        title: "Find the work that needs you",
-        copy: "Turns a large set of pull requests into a short decision path: choose a useful group, understand status, then continue in GitHub.",
-        diagram: `flowchart LR
-          OPEN[Open Pull Requests]
-          GROUPS[Choose an attention group]
-          LIST[Scan compact PR rows]
-          STATUS[Understand review checks and merge status]
-          PREVIEW[Read a short preview]
-          ACT[Open in GitHub]
-          OPEN --> GROUPS --> LIST --> STATUS --> PREVIEW --> ACT
-          SEARCH[Search current results] --> LIST
-          FRESH[See when results are old or incomplete] --> LIST
-          classDef main fill:#edf5ff,stroke:#005ee9,color:#171717
-          classDef support fill:#eff8ef,stroke:#397c3b,color:#171717
-          class OPEN,GROUPS,LIST,STATUS,PREVIEW,ACT main
-          class SEARCH,FRESH support`
-      },
-      coordination: {
-        title: "Keep the answer trustworthy",
-        copy: "Owns the behind-the-scenes rules that turn separate GitHub facts into one consistent answer and explain when something went wrong.",
-        diagram: `flowchart LR
-          REQUEST[Page asks for chosen groups]
-          COORD[Decide what to ask GitHub]
-          QUERIES[Search each attention group]
-          TRANSLATE[Make status understandable]
-          MEMORY[Keep the last good answer briefly]
-          FAILURE[Explain old partial or failed results]
-          RESPONSE[Return one clear answer]
-          REQUEST --> COORD --> QUERIES
-          QUERIES --> TRANSLATE --> RESPONSE
-          COORD <--> MEMORY
-          COORD --> FAILURE --> RESPONSE
-          classDef logic fill:#f6edff,stroke:#7200c4,color:#171717
-          classDef memory fill:#eff8ef,stroke:#397c3b,color:#171717
-          classDef edge fill:#edf5ff,stroke:#005ee9,color:#171717
-          class COORD,QUERIES,TRANSLATE,FAILURE logic
-          class MEMORY memory
-          class REQUEST,RESPONSE edge`
-      },
-      connection: {
-        title: "Safely ask GitHub",
-        copy: "Keeps your GitHub identity behind the screen and reuses the connection already installed and signed in on this computer.",
-        diagram: `flowchart LR
-          FIXED[Safe predefined searches]
-          CLI[Existing GitHub connection]
-          AUTH[Your existing GitHub login]
-          GH[(GitHub)]
-          CHECK[Check that the answer makes sense]
-          RESULT[Return trustworthy PR facts]
-          ERROR[Explain the specific problem safely]
-          FIXED --> CLI
-          AUTH --> CLI
-          CLI --> GH
-          GH --> CLI
-          CLI --> CHECK
-          CHECK -->|understood| RESULT
-          CHECK -->|signed out offline limited malformed| ERROR
-          classDef connector fill:#fff5e8,stroke:#9e5200,color:#171717
-          classDef source fill:#171717,stroke:#171717,color:#ffffff
-          classDef safe fill:#eff8ef,stroke:#397c3b,color:#171717
-          classDef problem fill:#fff0f0,stroke:#c62128,color:#171717
-          class FIXED,CLI,AUTH,CHECK connector
-          class GH source
-          class RESULT safe
-          class ERROR problem`
-      }
-    };
-
-    const tabs = document.querySelectorAll(".subsystem-tab");
-    const stage = document.querySelector("#subsystem-stage");
-    const title = document.querySelector("#subsystem-title");
-    const copy = document.querySelector("#subsystem-copy");
-    const diagram = document.querySelector("#subsystem-diagram");
-    let renderCount = 0;
-
-    async function showSubsystem(key, focusStage = false) {
-      const selected = subsystems[key];
-      const activeTab = document.querySelector(`[data-system="${key}"]`);
-      tabs.forEach((tab) => tab.setAttribute("aria-selected", String(tab === activeTab)));
-      stage.setAttribute("aria-labelledby", activeTab.id);
-      title.textContent = selected.title;
-      copy.textContent = selected.copy;
-      const { svg } = await mermaid.render(`subsystem-${++renderCount}`, selected.diagram);
-      diagram.innerHTML = svg;
-      if (focusStage) stage.focus({ preventScroll: true });
-    }
-
-    tabs.forEach((tab) => tab.addEventListener("click", () => showSubsystem(tab.dataset.system, true)));
-    await showSubsystem("experience");
-  </script>
+  }, { rootMargin: "-20% 0px -70% 0px" });
+  document.querySelectorAll("main section").forEach(s => obs.observe(s));
+</script>
 </body>
 </html>
