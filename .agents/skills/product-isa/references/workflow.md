@@ -208,9 +208,21 @@ After all readiness gates pass and before asking to mark the ISA ready, invoke t
 
 Validate findings against source evidence, apply only confirmed readiness corrections, and rerun affected gates. Let the `second-opinion` skill own command construction, quoting, independent execution, failures, and synthesis. Two distinct model reviews must succeed before handoff. If either model is unavailable or fails, flag it to the human and ask them to select an alternative; do not proceed with only one successful review.
 
+## Verification Cost Review
+
+After adversarial review and before asking to mark the ISA ready, spawn a fresh `reviewer` agent (read-only; it never edits the ISA). Goal: the coding agent closes every ISC autonomously and cheaply; only genuinely costly or unprovable probes reach the human.
+
+The reviewer checks `_ai/docs/ISA.md` against `artifact-template.md` and `formats.md` for format conformance (section order, stable IDs, one binary probe per leaf ISC, every required-behavior bullet mapped), then tags each probe:
+
+- **Cheap**: an agent can run it alone (test, script, Metro or simulator, headless browser).
+- **Expensive**: it would work, but a cheaper route proves the same claim (e.g. a full native iOS build where Metro shows the same result). Name the cheaper route.
+- **Unprovable or manual**: no honest automated closer exists.
+
+It returns format findings plus a table of only the Expensive and Unprovable rows: ISC ID, why, suggested cheaper probe. Show the table to the user in chat (not in `ISA.md`). The user decides per row: accept the cost, switch to the cheaper probe, or mark manual/contextual. Apply the decisions, rerun affected gates, and do not self-approve or ask to mark ready while flagged rows are unresolved.
+
 ## Completion And Handoff
 
-When all gates pass and adversarial review is complete:
+When all gates pass, adversarial review is complete, and the Verification Cost Review is resolved:
 
 1. Show the final scope, ISC count, and any explicitly N/A categories; ask once: `Mark this ISA ready for coding?`
 2. If accepted, set `status: ready`, `clarification_progress: 8/8`, `progress: 0/N`, and update `updated`. Otherwise remain `drafting` and capture the requested changes.
