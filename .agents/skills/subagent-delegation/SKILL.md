@@ -40,6 +40,30 @@ State whether the assignment is discovery, planning, implementation, or an expli
 
 The delegating owner supplies applicable context and criteria; the worker returns Result / Evidence for its assignment. Resolve referenced workflow locations in the recipient's environment; supply an authoritative excerpt if unavailable rather than making the worker hunt for it. Workers may inspect gaps needed to execute safely; unknown paths are valid discovery inputs, not reasons to fabricate precision. Existing gates own their procedures; name the check, do not paste `verification-gate`.
 
+### Talk-back (mid-run messages)
+
+Give every worker one way to reach you before it finishes. Paste the TALK-BACK block into the first message, filled with your real ID and exactly one channel row. Never give two channels; the same event must never arrive twice.
+
+| How the worker was started | Channel |
+|---|---|
+| BB thread (`thr_…`) | `bb thread tell <parent-thr-id> --mode queue '<msg>'` (multi-line: `--message-file -` with `<<'EOF'`) |
+| OpenCode subagent (parent `ses_…`, from your system prompt) | `opencode api post /api/session/<parent-ses-id>/prompt --data '{"text":"<msg>","delivery":"queue"}'` |
+| Anything else, or the command fails | No channel. Record it and report it in the final result. |
+
+**Steer or queue.** Ask: "If the receiver keeps going, is its current work now wrong or harmful?" Yes → steer (interrupt). No → queue (default).
+- Parent → worker: steer when the plan changes ("stop, wrong file"); queue additions ("also check X"). BB: `bb thread tell <thr-id> '<msg>'` steers by default. OpenCode: send to the worker's `sessionID` with `"delivery":"steer"` or `"queue"`.
+- Worker → parent: always queue, except a stop-everything emergency (destructive risk, or something breaking other workers).
+
+**Rules.** One event, one message. Only `BUG`, `BLOCKED <step>: <exact error>`, `QUESTION: <one question>`, or `STOP: <reason>`. No acks, progress notes, or final results as messages. The final result goes back the normal way. Don't resend unless the send command failed. Keep doing independent work after sending. Workers never message each other; everything goes through the parent.
+
+```
+TALK-BACK: Reach the parent mid-run without stopping: <one channel command>.
+Send only BUG / BLOCKED / QUESTION, once per issue, then keep doing independent work.
+Only for emergencies, send STOP: <reason> as steer (BB: drop --mode queue; OpenCode: "delivery":"steer").
+If the command fails, put the issue in your final result. The parent may steer you; follow it.
+Your final result still lists everything.
+```
+
 ## Handoff Brief
 
 Use these fields as a guide, populated with actual context or references. Assignment completion is not delivery acceptance: Build implements and runs assigned checks, review judges code quality, and verification proves the outcome. Workers return their assigned result and remaining risks without launching downstream review or acceptance unless explicitly assigned that responsibility. Do not assign every worker the final acceptance responsibilities; preserve the owning skill's required independence and output format.
