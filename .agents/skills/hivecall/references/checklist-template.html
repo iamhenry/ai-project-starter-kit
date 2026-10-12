@@ -1,0 +1,139 @@
+<!doctype html>
+<!-- Hivecall checklist: the run's only progress record. Copy to .hivecall/checklist.html and fill in.
+     The orchestrator only (1) adds `checked` to a criterion's checkbox and (2) appends <li> lines to
+     #verification. Never edit the numbers; the script counts them. Reload the page to refresh. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hivecall: GOAL TITLE</title>
+<style>
+  :root{--fg:#1a1a1a;--muted:#6b6b6b;--bubble:#f2f2f2;--line:#e2e2e2;--accent:#111;--warn:#b42318}
+  body{font:15px/1.5 -apple-system,system-ui,sans-serif;color:var(--fg);max-width:900px;margin:32px auto;padding:0 20px}
+  h1{font-size:26px;margin:0 0 4px} h2{font-size:19px;margin:32px 0 10px;border-bottom:1px solid var(--line);padding-bottom:6px}
+  h3{font-size:15px;margin:18px 0 6px} .muted{color:var(--muted)} code{background:var(--bubble);padding:1px 5px;border-radius:5px}
+  #progress .overall{display:flex;align-items:center;gap:14px;margin:6px 0 18px}
+  .bar{height:10px;border-radius:999px;background:var(--bubble);overflow:hidden;flex:1}
+  .bar>i{display:block;height:100%;width:0;background:var(--accent);border-radius:999px}
+  #progress .overall b{font-size:20px;min-width:48px;text-align:right}
+  #progress .tiles{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+  @media (max-width:620px){#progress .tiles{grid-template-columns:repeat(2,1fr)}}
+  .tile{background:var(--bubble);border-radius:14px;padding:12px 14px}
+  .tile b{display:block;font-size:28px;line-height:1.1} .tile span{display:block;font-weight:600;margin-top:4px} .tile small{color:var(--muted)}
+  .tile.stuck b{color:var(--warn)}
+  table{border-collapse:collapse;width:100%} td,th{text-align:left;padding:4px 8px 4px 0;vertical-align:top}
+  table.areas td:first-child{width:220px} table.areas td:last-child{width:70px;color:var(--muted);text-align:right}
+  .warn{margin-top:14px;padding:10px 14px;border-radius:12px;border:1px solid var(--warn)}
+  #contract dt{font-weight:600;margin-top:8px} #contract dd{margin:2px 0 0 0}
+  ul.isc{list-style:none;padding-left:0} ul.isc li{margin:4px 0}
+</style>
+</head>
+<body>
+<h1>GOAL TITLE</h1>
+<table id="frontmatter" class="muted">
+  <tr><th>progress</th><td>0/0</td></tr>
+  <tr><th>started</th><td>YYYY-MM-DD</td></tr>
+</table>
+
+<section id="progress" aria-label="Progress">
+<h2>Progress</h2>
+<p class="muted">Counted live from this page. Reload to refresh.</p>
+<noscript><p>Open with JavaScript enabled to see live progress. The <code>progress</code> row above is the stored count.</p></noscript>
+<div class="overall"><div class="bar"><i id="pg-bar"></i></div><b id="pg-pct">0%</b><span id="pg-frac" class="muted">0 / 0</span></div>
+<div class="tiles">
+  <div class="tile"><b id="pg-done">0</b><span>Done</span><small>proved PASS</small></div>
+  <div class="tile"><b id="pg-in-progress">0</b><span>In progress</span><small>tried, fix underway</small></div>
+  <div class="tile"><b id="pg-left">0</b><span>Not started</span><small>not tried yet</small></div>
+  <div class="tile stuck"><b id="pg-stuck">0</b><span>Stuck</span><small>blocked or parked</small></div>
+  <div class="tile"><b id="pg-owner">0</b><span>Owner-only</span><small>not counted</small></div>
+</div>
+<h3>By feature</h3>
+<table class="areas" id="pg-areas"></table>
+<div id="pg-stuck-list"></div>
+<div id="pg-warn"></div>
+</section>
+
+<section id="contract">
+<h2>Goal contract</h2>
+<dl>
+  <dt>Current state</dt><dd>…</dd>
+  <dt>Ideal state</dt><dd>…</dd>
+  <dt>Narrow scope</dt><dd>IN: … · OUT: …</dd>
+  <dt>Verification</dt><dd>… → evidence: …</dd>
+  <dt>E2E smoke</dt><dd>… → …</dd>
+  <dt>Definition of done</dt><dd>scope held · implementation proven and working before regression test is written · check passed with evidence · smoke ran end to end</dd>
+  <dt>Exit criteria</dt><dd>…</dd>
+</dl>
+<p class="muted">Implementation Workflow Note: Validate and prove functionality or via smoke tests first. Write permanent automated tests only after the implementation is proven to work, using them to lock in behavior and prevent future regressions.</p>
+</section>
+
+<section id="criteria">
+<h2>Checklist</h2>
+<!-- One <h3> per feature, then a ul.isc. The checkbox must come right after the <li id>. -->
+<h3>Feature name</h3>
+<ul class="isc">
+  <li id="ISC-1"><input type="checkbox" disabled> ISC-1: observable behavior — check: exact check</li>
+</ul>
+</section>
+
+<section id="owner">
+<h2>Owner-only (not counted)</h2>
+<ul id="owner-only">
+  <!-- <li>Item only the owner can check, and why</li> -->
+</ul>
+</section>
+
+<section id="verification">
+<h2>Verification</h2>
+<!-- Append one line per result; latest line per ID wins:
+     <li>ISC-1: PASS - observed …; evidence .hivecall/verification/…; verifier …; commit …</li> -->
+<ul>
+</ul>
+</section>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); };
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('#criteria li[id^="ISC-"] > input[type=checkbox]'));
+  var total = boxes.length, isDone = {};
+  boxes.forEach(function (c) { isDone[c.parentNode.id] = c.checked; });
+  var done = boxes.filter(function (c) { return c.checked; }).length;
+  var latest = {};
+  Array.prototype.forEach.call(document.querySelectorAll('#verification li'), function (li) {
+    var m = li.textContent.trim().match(/^(ISC-[0-9.]+):\s*(PASS|FAIL|BLOCKED)\s*-\s*([^;]*)/);
+    if (m) latest[m[1]] = { status: m[2], reason: m[3].trim() };
+  });
+  var open = Object.keys(isDone).filter(function (id) { return !isDone[id]; });
+  var stuck = open.filter(function (id) { return latest[id] && latest[id].status === 'BLOCKED'; });
+  var failing = open.filter(function (id) { return latest[id] && latest[id].status === 'FAIL'; });
+  var pct = total ? Math.round(done * 100 / total) : 0;
+  $('pg-bar').style.width = pct + '%'; $('pg-pct').textContent = pct + '%';
+  $('pg-frac').textContent = done + ' / ' + total;
+  $('pg-done').textContent = done; $('pg-in-progress').textContent = failing.length;
+  $('pg-left').textContent = total - done - failing.length - stuck.length;
+  $('pg-stuck').textContent = stuck.length;
+  $('pg-owner').textContent = document.querySelectorAll('#owner-only li').length;
+  var rows = '';
+  Array.prototype.forEach.call(document.querySelectorAll('#criteria h3'), function (h3) {
+    var ul = h3.nextElementSibling; if (!ul) return;
+    var items = ul.querySelectorAll('li[id^="ISC-"] > input[type=checkbox]');
+    var d = Array.prototype.filter.call(items, function (c) { return c.checked; }).length;
+    var p = items.length ? Math.round(d * 100 / items.length) : 0;
+    rows += '<tr><td>' + esc(h3.textContent) + '</td><td><div class="bar"><i style="width:' + p + '%"></i></div></td><td>' + d + ' / ' + items.length + '</td></tr>';
+  });
+  $('pg-areas').innerHTML = rows;
+  if (stuck.length) {
+    var h = '<h3>Stuck (' + stuck.length + ')</h3><table>';
+    stuck.forEach(function (id) { h += '<tr><td><a href="#' + id + '">' + id + '</a></td><td>' + esc(latest[id].reason) + '</td></tr>'; });
+    $('pg-stuck-list').innerHTML = h + '</table>';
+  }
+  var stored = (document.querySelector('#frontmatter td') || {}).textContent || '';
+  var passes = Object.keys(latest).filter(function (id) { return latest[id].status === 'PASS'; }).length;
+  if (stored.trim() !== done + '/' + total || passes < done) {
+    $('pg-warn').innerHTML = '<div class="warn">Counts disagree: stored progress ' + esc(stored) + ', ticked ' + done + '/' + total + ', PASS lines ' + passes + '. Fix the page.</div>';
+  }
+})();
+</script>
+</body>
+</html>
