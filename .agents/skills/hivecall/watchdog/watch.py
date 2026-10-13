@@ -141,6 +141,20 @@ def declared_path(value: str, base: str, root: str) -> str | None:
     return str(path.resolve())
 
 
+BB_WORKTREES = Path.home() / ".bb/plugins/environment-git-worktree/host-data/worktrees"
+
+
+def lane_roots(repo: Path) -> list[Path]:
+    """Folders a PROMISE lane may live in: the repo, BB worktrees, and any LANE_ROOTS (os.pathsep-separated)."""
+    roots = [repo]
+    if BB_WORKTREES.is_dir():
+        roots.append(BB_WORKTREES.resolve())
+    for extra in os.environ.get("LANE_ROOTS", "").split(os.pathsep):
+        if extra.strip():
+            roots.append(Path(extra.strip()).expanduser().resolve())
+    return roots
+
+
 def bind_promise_paths(promise: dict, root: str, verify_dir: str) -> dict:
     if not promise.get("valid"):
         return promise
@@ -149,8 +163,8 @@ def bind_promise_paths(promise: dict, root: str, verify_dir: str) -> dict:
         verify = Path(verify_dir).resolve()
         lane = declared_path(promise["lane"], root, root)
         result = declared_path(promise["result"], verify_dir, root)
-        if lane:
-            Path(lane).relative_to(repo)
+        if lane and not any(Path(lane).is_relative_to(r) for r in lane_roots(repo)):
+            raise ValueError("lane outside allowed roots")
         if result:
             Path(result).relative_to(verify)
         promise.update(lane_path=lane, result_path=result)

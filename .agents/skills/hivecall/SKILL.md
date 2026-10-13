@@ -42,9 +42,18 @@ Repeat until every item is done or parked:
 
 1. **Pick** the thinnest slice a user could run end to end: 1-5 related items. Run lanes in parallel only when they touch different files and state.
 2. **Delegate** each slice as one bounded task. Load the `subagent-delegation` skill before the first delegation and follow it for every brief. Every brief carries its TALK-BACK block (one channel, filled with your real id) so workers can send BUG / BLOCKED / QUESTION mid-run. `build` or `general` implements. Add `reviewer` (`code-quality-gate`) and `qa` (`verification-gate`) as risk warrants, always in fresh agents, never the builder. Every brief says: do not spawn further subagents unless allowed. With the watchdog on, every brief also carries a `PROMISE:` line and a result filename (see README.md, Watchdog).
-3. **Tick** items proven by independent evidence. Commit the accepted work locally. Never push.
+3. **Tick** items proven by independent evidence. Commit the accepted work locally. Never push. For a worktree lane, merge it first (below).
 4. **Log lessons.** After any surprise, failure, or false alarm, add one line to the run card's Lessons section.
 5. **Re-check** (below).
+
+## Worktree lanes (optional)
+
+Use when parallel lanes would otherwise share a checkout. One lane = one visible BB child thread with its own worktree, branched from the orchestrator's branch: `bb thread spawn --parent-self --project <id> --new-environment worktree --visibility visible`.
+
+- Group work so no two live lanes touch the same files. Give each lane its own simulator clone.
+- Lanes never edit the ledger. They write evidence and result rows to the orchestrator's `VERIFY_DIR`; only the orchestrator ticks.
+- Limit live lanes to what disk allows (a native app worktree can need several GB).
+- **Merge after QA passes:** commit in the lane, then in the orchestrator's checkout `git merge --no-ff <lane-branch>`; rebuild and rerun the ledger's regression smoke checks on the merged build; tick; remove the worktree (`git worktree remove`) and stop the lane thread. A merge conflict or smoke failure reopens the item; never tick from the lane's build alone.
 
 ## Re-check after every result
 

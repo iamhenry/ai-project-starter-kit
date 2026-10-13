@@ -60,6 +60,7 @@ Each check takes 1–2 seconds of CPU. A failed read skips that check for the ru
 | `AUTOMATION_ID` | yes for automatic cleanup | Created automation id, used for pause and delete; if unset, pause falls back to the legacy name `hivecall watchdog <ORCH_THREAD>` and deletion is disabled |
 | `STATE_FILE` | no | Defaults to `$REPO/.lanes/watch-state.json` |
 | `WATCH_SHADOW` | no | `1` = log would-be messages to `.lanes/watch-shadow.log` instead of sending |
+| `LANE_ROOTS` | no | Extra folders (`:`-separated) a PROMISE `lane=` may live in. The repo and BB worktrees (`~/.bb/plugins/environment-git-worktree/host-data/worktrees`) are always allowed |
 
 Optional limits: `WATCH_LOAD_LIMIT` (150), `WATCH_DISK_FREE_GB` (10), `WATCH_LARGE_FILE_MB` (100), `WATCH_LARGE_FILE_MIN` (15), `WATCH_AGENT_STUCK_MIN` (10), `WATCH_AGENT_MAX_HOURS` (3), `WATCH_GHOST_MIN` (15), `WATCH_ORPHAN_MIN` (15), `WATCH_CONTINUE_MIN` (15).
 
@@ -131,6 +132,8 @@ Put one machine-readable line in each child's first message so the watchdog can 
 | build | Long native builds | 10 min | Newest `.build/*.log` in its lane grows |
 | code | Builder | 20 min | Any file in its lane changes |
 | helper | Reviewer or other answer-producing agent | 20 min | PASS/FAIL answer with evidence |
+
+For a worktree lane (see SKILL.md, Worktree lanes), `lane=` is that worktree's absolute path. `result=` stays a bare filename in the orchestrator's `VERIFY_DIR`, so testers in a worktree write results there.
 
 Result rows: `| ISC-n | PASS|FAIL|BLOCKED | observed | evidence file |`. A row counts only if it is PASS/FAIL, not a placeholder, and cites evidence. Testers write result files as they go, not at the end. Sessions without a valid promise still get the basic stuck/visible/ghost checks. A brief with no `TALK-BACK:` line (from `subagent-delegation`) raises one BRIEF alert for that agent.
 
