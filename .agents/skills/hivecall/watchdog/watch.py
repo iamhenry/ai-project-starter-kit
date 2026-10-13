@@ -6,9 +6,10 @@
 #
 # INVARIANTS — what this script is and is not. Change these only with the user's OK.
 #
-# 1. Watch, never act. It only reports. It never stops agents, fixes code,
-#    records results or edits the ISA. The orchestrator decides.
-#    (Only exception: at most one OpenCode reload per hour when the server is down.)
+# 1. Watch, never act on the run. It never stops agents, fixes code, records
+#    results or edits the ISA. It pauses its own automation when done and
+#    deletes it on the check after the run card closes.
+#    (Other exception: at most one OpenCode reload per hour when the server is down.)
 # 2. No AI, cheap, every 5 minutes. A plain script that finishes in seconds
 #    and adds no load of its own.
 # 3. Quiet unless it matters. One status line per run. A message only for a
@@ -31,10 +32,11 @@
 #     remains and nothing is running. Progress means a ledger verdict change.
 #     Stop nudging after 3 checks with no change and leave the user a note.
 # 11. Stop when done. When the ledger is complete or only parked items remain,
-#     or the run card says closed, say so once and pause its own automation.
+#     pause its own automation; when the run card says closed, pause first and
+#     delete the automation on the check after a successful pause.
 #     While the run card says waiting, never nudge; keep the other checks.
 
-"""Cheap, read-only watchdog for a long-running BB/ISA task."""
+"""Cheap watchdog for a long-running BB/ISA task."""
 
 from __future__ import annotations
 
@@ -263,7 +265,7 @@ def read_run_status(path: str) -> str | None:
 def pause_automation(env: dict[str, str], dry_run: bool) -> str:
     """Rule 11: switch itself off. Returns a short result for the heartbeat."""
     automation_id = env.get("AUTOMATION_ID", "")
-    if not automation_id and env.get("PROJECT_ID") and env.get("ORCH_THREAD"):
+    if "AUTOMATION_ID" not in env and env.get("PROJECT_ID") and env.get("ORCH_THREAD"):
         listing, _ = parse_json_command(["bb", "automation", "list", "--project", env["PROJECT_ID"], "--json"])
         name = f"hivecall watchdog {env['ORCH_THREAD']}"
         for item in flatten_dicts(listing):
@@ -280,6 +282,41 @@ def pause_automation(env: dict[str, str], dry_run: bool) -> str:
         args += ["--project", env["PROJECT_ID"]]  # bb requires it outside a thread
     _, error = command(args, 10.0)
     return f"pause {automation_id} failed: {error}" if error else f"paused {automation_id}"
+
+
+def delete_automation(env: dict[str, str], dry_run: bool) -> str:
+    """Delete itself after a closed run. Unlike pause, deletion never looks up by name."""
+    automation_id = env.get("AUTOMATION_ID", "")
+    if not automation_id:
+        return "no explicit automation id; not deleting"
+    if not env.get("PROJECT_ID"):
+        return "no project id; not deleting"
+    args = ["bb", "automation", "delete", automation_id, "--project", env["PROJECT_ID"], "--yes"]
+    if dry_run:
+        print(f"DRY-RUN: would run {' '.join(args)}")
+        return f"would delete {automation_id}"
+    _, error = command(args, 10.0)
+    return f"delete {automation_id} failed: {error}" if error else f"deleted {automation_id}"
+
+
+def finish_closed_run(state: dict, env: dict[str, str], dry_run: bool) -> None:
+    """Retry pause until successful, then retry deletion; only an explicit id is deleted."""
+    state["done"] = True
+    if not state.get("closed_pause_recorded"):
+        state["pause_result"] = pause_automation(env, dry_run)
+        if not dry_run and state["pause_result"].startswith("paused "):
+            state["closed_pause_recorded"] = True
+            state["closed_automation_id"] = env.get("AUTOMATION_ID", "")
+        print(f"WATCH DONE: run card closed; {state['pause_result']}")
+        return
+    if state.get("automation_deleted"):
+        return
+    automation_id = state.get("closed_automation_id") or env.get("AUTOMATION_ID", "")
+    delete_env = dict(env, AUTOMATION_ID=automation_id)
+    state["delete_result"] = delete_automation(delete_env, dry_run)
+    if state["delete_result"].startswith("deleted "):
+        state["automation_deleted"] = True
+    print(f"WATCH DONE: run card closed; {state['delete_result']}")
 
 
 def parse_isa(path: str, root: str = "") -> dict:
@@ -1080,6 +1117,7 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
         ("host", "server", "sessions", "bb", "isa", "evidence"))
     root = env.get("REPO", "")
     thread_id = env.get("ORCH_THREAD", "")
+    run_status = snapshot.get("run_status")
     shadow = env.get("WATCH_SHADOW") == "1"
     snapshot["shadow_mode"] = shadow
     snapshot["shadow_alert_count"] = 0
@@ -1105,19 +1143,25 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
     review.setdefault("promise_agents", [])
     review.setdefault("other_agents", [])
 
+    if run_status == "closed":
+        finish_closed_run(state, env, dry_run)
+        return alert_tags
     if state.get("done"):
+        # Ledger-only completion stays paused until the run card is closed.
+        state.pop("closed_pause_recorded", None)
+        state.pop("closed_automation_id", None)
+        state.pop("delete_result", None)
+        state["pause_result"] = pause_automation(env, dry_run)
         return alert_tags
     isa_valid = not isa.get("error")
-    run_status = snapshot.get("run_status")
-    if (isa_valid and isa["done"]) or run_status == "closed":
+    if isa_valid and isa["done"]:
         summary = (f"{isa['pass']}/{isa['total']} PASS, {len(isa.get('parked', []))} parked "
                    f"(owner {isa['owner_done']}/{len(isa['owner'])}, blocked {len(isa['blocked'])})"
                    if isa_valid else "ledger unreadable")
         state["done"] = True
         state["pause_result"] = pause_automation(env, dry_run)
-        if run_status != "closed":  # the orchestrator closed it itself; don't wake it again
-            messages.append(f"WATCH DONE: ledger complete or parked-only ({summary}); watchdog {state['pause_result']}. "
-                            "Set the run card status to closed and send the owner the final report.")
+        messages.append(f"WATCH DONE: ledger complete or parked-only ({summary}); watchdog {state['pause_result']}. "
+                        "Set the run card status to closed and send the owner the final report.")
         print(f"WATCH DONE: {summary}; {state['pause_result']}")
         emit()
         return alert_tags
@@ -1551,12 +1595,69 @@ def synthetic(name: str, now: float) -> dict:
         isa.update({"pass": 1, "total": 1, "pass_lines": 1, "pass_ids": ["ISC-001"],
                     "checked": ["ISC-001"], "done": True})
     return {"now": now, "host": host, "server": server, "sessions": sessions, "bb": bb,
-            "isa": isa, "evidence": evidence, "head": "fixture-head", "head_valid": True}
+            "isa": isa, "evidence": evidence, "run_status": "running" if name in ("done", "not-closed") else None,
+            "head": "fixture-head", "head_valid": True}
 
 
 def simulate(name: str, state_path: str, env: dict[str, str]) -> None:
     base = 1_800_000_000.0
     state = state_read(state_path)
+    if name in ("closed-delete", "done", "not-closed"):
+        sim_env = dict(env, AUTOMATION_ID="auto-fixture", PROJECT_ID="project-fixture")
+        state = {}
+        output = io.StringIO()
+        if name == "closed-delete":
+            first = synthetic(name, base)
+            first["run_status"] = "closed"
+            with redirect_stdout(output):
+                evaluate(first, state, sim_env, True)
+            if "DRY-RUN: would run bb automation delete" in output.getvalue():
+                raise AssertionError("closed run deleted its automation on the first check")
+            if "DRY-RUN: would run bb automation pause auto-fixture" not in output.getvalue():
+                raise AssertionError(f"first closed check did not pause the automation: {output.getvalue()}")
+            # Dry-run cannot persist a real pause, so model the completed first check here.
+            state["closed_pause_recorded"] = True
+            state["closed_automation_id"] = "auto-fixture"
+            second = synthetic(name, base + 300)
+            second["run_status"] = "closed"
+            with redirect_stdout(output):
+                evaluate(second, state, sim_env, True)
+            if "DRY-RUN: would run bb automation delete auto-fixture --project project-fixture --yes" not in output.getvalue():
+                raise AssertionError(f"next closed check did not delete the explicit automation id: {output.getvalue()}")
+            no_id_env = {"REPO": env.get("REPO", ""), "ORCH_THREAD": "fixture-thread"}
+            no_id_state = {}
+            no_id_output = io.StringIO()
+            for i in range(2):
+                no_id_snapshot = synthetic(name, base + i * 300)
+                no_id_snapshot["run_status"] = "closed"
+                with redirect_stdout(no_id_output):
+                    evaluate(no_id_snapshot, no_id_state, no_id_env, True)
+            if "bb automation delete" in no_id_output.getvalue():
+                raise AssertionError("closed run deleted without a saved or explicit automation id")
+            print("SIM closed-delete: first closed check paused; next check would delete auto-fixture by explicit id; missing id did not delete.")
+            print(summary_line(second, []))
+            return
+        if name == "not-closed":
+            for status in ("running", "waiting-owner", "waiting-usage"):
+                snap = synthetic(name, base)
+                snap["run_status"] = status
+                with redirect_stdout(output):
+                    evaluate(snap, state, sim_env, True)
+            if "bb automation delete" in output.getvalue():
+                raise AssertionError(f"non-closed status deleted the automation: {output.getvalue()}")
+            print("SIM not-closed: running, waiting-owner, and waiting-usage did not delete the automation.")
+            print(summary_line(snap, []))
+            return
+        for i in range(2):
+            snap = synthetic(name, base + i * 900)
+            snap["run_status"] = "running"
+            with redirect_stdout(output):
+                evaluate(snap, state, sim_env, True)
+        if "bb automation delete" in output.getvalue():
+            raise AssertionError(f"ledger completion without closed status deleted the automation: {output.getvalue()}")
+        print("SIM done: complete ledger paused the automation; no delete while run card was not closed.")
+        print(summary_line(snap, []))
+        return
     if name == "alert-once":
         state = {}
         sim_env = dict(env, WATCH_AGENT_MAX_HOURS="100")
@@ -2022,7 +2123,7 @@ def main() -> int:
     parser.add_argument("--simulate", choices=("stuck-agent", "ghost-agent", "ghost-agent-no-message", "invisible-agent", "high-load",
         "disk-big-file", "orphan-recorder", "fail-under-load", "unrecorded-pass", "unrecorded-pass-reload",
         "superseded-pass", "server-down", "combined-alerts", "shadow-mode", "continue",
-        "anti-spin", "done", "read-failure", "working-old-bb", "resumed-idle-agent",
+        "anti-spin", "done", "closed-delete", "not-closed", "read-failure", "working-old-bb", "resumed-idle-agent",
         "off-track", "on-track-timed", "on-track-code", "fast-jules", "new-testers-old-results",
         "no-promise", "review", "lane-drift", "alert-once"),
         help="run a deterministic offline scenario; always dry-run")
@@ -2058,10 +2159,16 @@ def main() -> int:
         return 2
     state = state_read(state_path)
     if state.get("done"):
-        # Still firing after done means the earlier pause failed: try again (rule 11).
-        state["pause_result"] = pause_automation(env, args.dry_run)
+        if read_run_status(env.get("RUN_CARD") or os.path.join(root, ".hivecall", "run.md")) == "closed":
+            finish_closed_run(state, env, args.dry_run)
+        else:
+            # Ledger-only completion retries pause until the run card is closed.
+            state.pop("closed_pause_recorded", None)
+            state.pop("closed_automation_id", None)
+            state.pop("delete_result", None)
+            state["pause_result"] = pause_automation(env, args.dry_run)
         state_write(state_path, state)
-        print(f"WATCH: run already done; {state['pause_result']}.")
+        print(f"WATCH: run already done; {state.get('delete_result') or state.get('pause_result', 'automation lifecycle complete')}.")
         print(summary_line({"shadow_mode": env.get("WATCH_SHADOW") == "1",
                             "shadow_alert_count": 0}, []))
         return 0

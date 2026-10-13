@@ -32,3 +32,4 @@ Universal rules learned the hard way. Project-specific traps belong in the run c
 19. `bb automation update` drops any field you don't pass. Re-pass env, interpreter, working directory, and script every time.
 20. Watch the watchdog: once an hour, check its alerts matched reality. Note false alarms; loosen the check, never special-case it.
 21. Usage limits stop agents silently. Set the run card to `waiting-usage` so the watchdog stops nudging.
+22. A paused watchdog still clutters BB; delete its automation on the check after the run card closes.
