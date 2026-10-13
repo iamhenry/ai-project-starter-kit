@@ -343,6 +343,7 @@ def parse_isa(path: str, root: str = "") -> dict:
     pass_lines = 0
     fails = []
     fail_occurrences = {}
+    fail_counts: dict[str, int] = {}
     if verdict_texts:
         for text in verdict_texts:
             m = ISA_VERDICT.match(text)
@@ -355,6 +356,7 @@ def parse_isa(path: str, root: str = "") -> dict:
                 pass_lines += 1
                 pass_ids.add(ident)
             if status == "FAIL":
+                fail_counts[normalize_ident(ident)] = fail_counts.get(normalize_ident(ident), 0) + 1
                 signature = hashlib.sha256(text.encode()).hexdigest()[:12]
                 fail_occurrences[signature] = fail_occurrences.get(signature, 0) + 1
                 fails.append((ident, f"{signature}-{fail_occurrences[signature]}", text))
@@ -383,6 +385,7 @@ def parse_isa(path: str, root: str = "") -> dict:
             "frontmatter": frontmatter, "fails": enriched_fails, "test_tools": test_tools,
             "latest_verdicts": {normalize_ident(ident): {"status": status, "reason": reason}
                                 for ident, (status, reason) in latest.items()},
+            "fail_counts": fail_counts,
             "ledger_mtime": ledger_mtime,
             "owner_only": len(re.findall(r"<li\b", re.sub(r"<!--.*?-->", "", (
                 re.search(r'<ul[^>]*id="owner-only"[^>]*>(.*?)</ul>', source, re.S) or re.match(r"()", "")).group(1), flags=re.S))),
@@ -1191,6 +1194,7 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
                 "ghost-agent": "ghost agent", "fail-load": "FAIL under load",
                 "opencode-down": "server down", "sim-without-agent": "idle simulator",
                 "off-track": "off track", "no-talkback": "no talk-back",
+                "repeat-fail": "repeat failure",
             }.get(key.split(":", 1)[0], "alert")
             if tag not in alert_tags:
                 alert_tags.append(tag)
@@ -1373,6 +1377,16 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
                       f"(>40), {age:.0f} min ago; recheck under calm load." if qualifies else "")
             trigger("fail-load:" + key, qualifies, detail)
 
+    # One item failing again while others move is a loop the anti-spin check cannot see.
+    if isa_valid:
+        checked = {normalize_ident(ident) for ident in isa.get("checked", [])}
+        for ident, verdict in isa.get("latest_verdicts", {}).items():
+            count = isa.get("fail_counts", {}).get(ident, 0)
+            trigger("repeat-fail:" + ident,
+                    verdict.get("status") == "FAIL" and count >= 2 and ident not in checked,
+                    f"LOOP {ident}: {count} FAIL verdicts and still not parked. Per 'Park, don't loop', append "
+                    f"{ident}: BLOCKED with its exact unlock condition and move to other work.")
+
     # OpenCode recovery is intentionally one reload per hour, followed by a user note if still down.
     server_state = state.setdefault("server", {})
     if server.get("valid", False):
@@ -1512,6 +1526,11 @@ def synthetic(name: str, now: float) -> dict:
                                     "verdict_count": 1, "pending_wait": None, "builder": False})
         isa["latest_verdicts"] = {"ISC-013.1": {"status": "FAIL", "reason": "newer smoke failed"}}
         isa["ledger_mtime"] = now - 30 * 60
+    elif name == "repeat-fail":
+        isa["latest_verdicts"] = {"ISC-001": {"status": "FAIL", "reason": "swipe ignored again"},
+                                  "ISC-002": {"status": "PASS", "reason": "fixed"},
+                                  "ISC-003": {"status": "FAIL", "reason": "first failure"}}
+        isa["fail_counts"] = {"ISC-001": 2, "ISC-002": 2, "ISC-003": 1}
     elif name == "orphan-recorder":
         host["processes"] = [{"pid": 123, "ppid": 1, "age": 1200,
                               "command": "recordVideo /fixture/out.mp4", "orphan": True}]
@@ -2111,6 +2130,13 @@ def simulate(name: str, state_path: str, env: dict[str, str]) -> None:
         raise AssertionError("an old result file without a live session raised a stuck-agent alert")
     if name == "stuck-agent":
         print("SIM stuck-agent: finished-agent result file raised no no-progress alert.")
+    if name == "repeat-fail":
+        conditions = state.get("conditions", {})
+        alerted = sorted(key for key, rec in conditions.items()
+                         if key.startswith("repeat-fail:") and rec.get("last_alert"))
+        if alerted != ["repeat-fail:ISC-001"]:
+            raise AssertionError(f"repeat-fail alerted on the wrong items: {alerted}")
+        print("SIM repeat-fail: only the item with two FAILs and no PASS or park raised a LOOP alert.")
     print(summary_line(snap, alerts))
 
 
@@ -2125,7 +2151,7 @@ def main() -> int:
         "superseded-pass", "server-down", "combined-alerts", "shadow-mode", "continue",
         "anti-spin", "done", "closed-delete", "not-closed", "read-failure", "working-old-bb", "resumed-idle-agent",
         "off-track", "on-track-timed", "on-track-code", "fast-jules", "new-testers-old-results",
-        "no-promise", "review", "lane-drift", "alert-once"),
+        "no-promise", "review", "lane-drift", "alert-once", "repeat-fail"),
         help="run a deterministic offline scenario; always dry-run")
     args = parser.parse_args()
     env = dict(os.environ)

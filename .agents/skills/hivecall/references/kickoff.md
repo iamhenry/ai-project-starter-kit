@@ -27,6 +27,7 @@ How the contract maps to the run:
 - **Exit criteria** is when the run stops early: set the run card to `waiting-owner`, report the one-line status, and stop. Items also park after the second failure of the same kind.
 - **Owner-only items** (physical device, accounts) go under OUT with a note "owner-only". They are not counted toward done.
 - Between items, pick the thinnest runnable slice next (see the hivecall loop).
+- **No check, no start.** Before any worker launches, every counted item names a check that can actually run on this machine (for example, an app that cannot be built here cannot be checked here). If any item lacks one, mark it owner-only or ask the owner how it will be proven. Do not launch workers until every counted item has a runnable check.
 
 In the same message ask: **"Watchdog on? (yes / no)"**. Approval of the contract plus that answer starts the run.
 
