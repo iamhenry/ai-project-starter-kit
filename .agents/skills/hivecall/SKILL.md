@@ -25,7 +25,7 @@ Follow [references/kickoff.md](references/kickoff.md):
 2. Show both. Ask "Watchdog on? (yes / no)". Wait for approval.
 3. Use the supplied ISA.html as the ledger, or create `.hivecall/checklist.html` from the template, with the approved contract on it.
 4. Write the run card `.hivecall/run.md` with `status: running`.
-5. If watchdog is on, set it up per [README.md](README.md#watchdog): shadow first, then live.
+5. If watchdog is on, set it up per [README.md](README.md#watchdog): name it `🐝 <orchestrator thread title>`, capture the automation id, write `watchdog: on, automation <id>` in the run card, pass `AUTOMATION_ID`, then use shadow first and live second.
 
 When resuming in a fresh thread, read the run card and ledger first, then [watchdog/lessons.md](watchdog/lessons.md).
 
@@ -68,7 +68,7 @@ Missing authority or access, a contradictory ledger, or a destructive or remote 
 
 ## End
 
-When every counted item is ticked or parked: set the run card to `status: closed`, then send the final report (confirmed with evidence, parked with unlock, owner-only items, uncertain). The watchdog pauses itself on its next check. A `WATCH DONE` or `🚦 WATCH STALLED` message means: report to the user and stop; do not start new work.
+When every counted item is ticked or parked: set the run card to `status: closed`, then send the final report (confirmed with evidence, parked with unlock, owner-only items, uncertain). The watchdog pauses after closure and deletes its automation on the check after a successful pause; it retries a failed pause. Ledger completion before the card is closed only pauses the watchdog and sends `WATCH DONE`. A `WATCH DONE` or `🚦 WATCH STALLED` message means: report to the user and stop; do not start new work.
 
 ## Workflow skills
 

@@ -53,7 +53,7 @@ goal: <one-line outcome>
 ledger: .hivecall/checklist.html
 verification: .hivecall/verification/
 orchestrator: thread thr_..., session ses_...
-watchdog: on, automation "hivecall watchdog thr_..."
+watchdog: on, automation auto_...
 started: <date>
 
 ## Lessons
@@ -69,13 +69,13 @@ The approved contract lives on the checklist page, not here.
 | `running` | Work in progress | All checks, nudges when idle |
 | `waiting-owner` | Blocked on the owner | No nudges; machine and agent checks continue |
 | `waiting-usage` | Paused by a usage limit | Same as waiting-owner |
-| `closed` | Run over: goal met or only parked items remain | Pauses its own automation |
+| `closed` | Run over: goal met or only parked items remain | Pauses first, deletes its automation on the check after a successful pause |
 
 ## 4. Prepare the repo
 
 - Create `.hivecall/verification/`.
 - Hide noise from Git: add `.lanes/` and `.hivecall/verification/` to `.git/info/exclude`. Thousands of evidence files slow Git and BB.
-- If watchdog is on, follow [../README.md](../README.md#watchdog): shadow mode first, then live.
+- If watchdog is on, follow [../README.md](../README.md#watchdog): name it `🐝 <orchestrator thread title>`, capture its automation id, write `watchdog: on, automation <id>` in the run card, pass `AUTOMATION_ID`, then use shadow mode before live.
 
 ## 5. Keep the owner informed
 
@@ -94,4 +94,4 @@ When every counted item is ticked or parked:
 
 1. Set `status: closed` in the run card.
 2. Send the final report: confirmed (with evidence), parked (with unlock), owner-only items, uncertain.
-3. The watchdog sees `closed` (or the complete ledger) on its next check and pauses itself.
+3. The watchdog pauses after `closed`, then deletes its automation on the check after a successful pause. If pause fails, it retries; a complete ledger with a card that is not closed only pauses and sends `WATCH DONE` without deleting the automation.
