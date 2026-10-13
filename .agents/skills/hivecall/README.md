@@ -59,7 +59,7 @@ Each check takes 1–2 seconds of CPU. A failed read skips that check for the ru
 | `PROJECT_ID` | yes for self-management | BB project id; used for delete and for the legacy pause lookup |
 | `AUTOMATION_ID` | yes for automatic cleanup | Created automation id, used for pause and delete; if unset, pause falls back to the legacy name `hivecall watchdog <ORCH_THREAD>` and deletion is disabled |
 | `STATE_FILE` | no | Defaults to `$REPO/.lanes/watch-state.json` |
-| `WATCH_SHADOW` | no | `1` = log would-be messages to `.lanes/watch-shadow.log` instead of sending |
+| `WATCH_SHADOW` | no | Harness development and `--simulate` testing only; never use in a real run |
 | `LANE_ROOTS` | no | Extra folders (`:`-separated) a PROMISE `lane=` may live in. The repo and BB worktrees (`~/.bb/plugins/environment-git-worktree/host-data/worktrees`) are always allowed |
 
 Optional limits: `WATCH_LOAD_LIMIT` (150), `WATCH_DISK_FREE_GB` (10), `WATCH_LARGE_FILE_MB` (100), `WATCH_LARGE_FILE_MIN` (15), `WATCH_AGENT_STUCK_MIN` (10), `WATCH_AGENT_MAX_HOURS` (3), `WATCH_GHOST_MIN` (15), `WATCH_ORPHAN_MIN` (15), `WATCH_CONTINUE_MIN` (15).
@@ -81,29 +81,20 @@ python3 "$W" --dry-run       # prints messages instead of sending
 
 ```sh
 LAUNCHER=$'import os, runpy, sys\np = os.path.join(os.environ["REPO"], ".hivecall/watch.py")\nsys.argv = [p] + sys.argv[1:]\nrunpy.run_path(p, run_name="__main__")'
-export WATCH_SHADOW=1
 ORCH_TITLE="$(bb thread show "$ORCH_THREAD" --json | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("title") or (d.get("thread") or {}).get("title", ""))')"
-CREATE_ENV_JSON="$(python3 -c 'import json,os; keys=("ORCH_THREAD","ORCH_SESSION","REPO","LEDGER","VERIFY_DIR","PROJECT_ID","WATCH_SHADOW"); print(json.dumps({k:os.environ[k] for k in keys if os.environ.get(k)}))')"
+CREATE_ENV_JSON="$(python3 -c 'import json,os; keys=("ORCH_THREAD","ORCH_SESSION","REPO","LEDGER","VERIFY_DIR","PROJECT_ID"); print(json.dumps({k:os.environ[k] for k in keys if os.environ.get(k)}))')"
 AUTOMATION_ID="$(bb automation create --project "$PROJECT_ID" --name "🐝 $ORCH_TITLE" \
   --cron '*/5 * * * *' --timezone "$(readlink /etc/localtime | sed 's#.*/zoneinfo/##')" \
   --script "$LAUNCHER" --interpreter python3 --working-directory "$REPO" --disabled \
   --env-json "$CREATE_ENV_JSON" --json | python3 -c 'import json,sys; d=json.load(sys.stdin); print((d.get("automation") or d)["id"])')"
 export AUTOMATION_ID
-ENV_JSON="$(python3 -c 'import json,os; keys=("ORCH_THREAD","ORCH_SESSION","REPO","LEDGER","VERIFY_DIR","PROJECT_ID","WATCH_SHADOW","AUTOMATION_ID"); print(json.dumps({k:os.environ[k] for k in keys if os.environ.get(k)}))')"
+ENV_JSON="$(python3 -c 'import json,os; keys=("ORCH_THREAD","ORCH_SESSION","REPO","LEDGER","VERIFY_DIR","PROJECT_ID","AUTOMATION_ID"); print(json.dumps({k:os.environ[k] for k in keys if os.environ.get(k)}))')"
 # Write this exact value into .hivecall/run.md: watchdog: on, automation $AUTOMATION_ID
 bb automation update "$AUTOMATION_ID" --env-json "$ENV_JSON" --interpreter python3 \
   --working-directory "$REPO" --script "$LAUNCHER"
 ```
 
-3. `bb automation resume "$AUTOMATION_ID"`. After one or two checks, read `.lanes/watch-shadow.log` and the run history (`bb automation runs "$AUTOMATION_ID"`). The heartbeat line looks like `load 5 · disk 80 GB · 2 agents visible · 1/4 · OK`.
-4. Go live:
-
-```sh
-unset WATCH_SHADOW
-ENV_JSON="$(python3 -c 'import json,os; keys=("ORCH_THREAD","ORCH_SESSION","REPO","LEDGER","VERIFY_DIR","PROJECT_ID","AUTOMATION_ID"); print(json.dumps({k:os.environ[k] for k in keys if os.environ.get(k)}))')"
-bb automation update "$AUTOMATION_ID" --env-json "$ENV_JSON" --interpreter python3 \
-  --working-directory "$REPO" --script "$LAUNCHER"
-```
+3. `bb automation resume "$AUTOMATION_ID"` to start it live. After one or two checks, read the run history (`bb automation runs "$AUTOMATION_ID"`). The heartbeat line looks like `load 5 · disk 80 GB · 2 agents visible · 1/4 · OK`.
 
 `update` drops fields you don't pass, so always re-pass all of them.
 
@@ -145,4 +136,4 @@ Every message the watchdog sends ends with the one-row status table (Done · In 
 
 ### Rolling out a changed watchdog
 
-Shadow mode, then replay a real stuck run (must alarm) and real false alarms (must stay silent), then a live drill. When an alarm is wrong, loosen or remove the check; never add a special case.
+Use shadow mode only for harness development and `--simulate` testing; real runs never use it. Replay a real stuck run (must alarm) and real false alarms (must stay silent), then do a live drill. When an alarm is wrong, loosen or remove the check; never add a special case.

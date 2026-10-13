@@ -25,7 +25,7 @@ Follow [references/kickoff.md](references/kickoff.md):
 2. Show both. Ask "Watchdog on? (yes / no)". Wait for approval.
 3. Use the supplied ISA.html as the ledger, or create `.hivecall/checklist.html` from the template, with the approved contract on it.
 4. Write the run card `.hivecall/run.md` with `status: running`.
-5. If watchdog is on, set it up per [README.md](README.md#watchdog): name it `🐝 <orchestrator thread title>`, capture the automation id, write `watchdog: on, automation <id>` in the run card, pass `AUTOMATION_ID`, then use shadow first and live second.
+5. If watchdog is on, set it up per [README.md](README.md#watchdog): name it `🐝 <orchestrator thread title>`, capture the automation id, write `watchdog: on, automation <id>` in the run card, pass `AUTOMATION_ID`, then start it live with `WATCH_SHADOW` unset.
 
 When resuming in a fresh thread, read the run card and ledger first, then [watchdog/lessons.md](watchdog/lessons.md).
 
