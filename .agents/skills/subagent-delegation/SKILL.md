@@ -22,6 +22,22 @@ Pass every relevant file you already know. Token savings from precision outweigh
 
 **Reusing existing reports:** When an authoritative report or plan already exists, verify it exists and read its latest scope before sending the brief, and point the subagent at that path to reuse its facts rather than copying them into the brief; never invent a report artifact as a prerequisite. If findings materially change the task scope, reconcile the change in the owning artifact and continue with a concise delta follow-up rather than restarting or expanding silently.
 
+**Delta: building on existing work.** Use whenever prior work exists that this assignment can build on, whatever its source or reason: an agent that stopped or failed, a planned handoff between phases or owners, work the user or you started, or another thread's output. Continue from that state; do not restart or rediscover it.
+
+Before briefing, inspect the prior state yourself: result and evidence files, the working copy's diff and its fingerprint (hash), any built artifact, and any ticket or ledger. Don't brief from memory or from the previous owner's summary alone. Add one short block to the brief:
+
+- **Done:** finished items, with the evidence path. The worker skips these.
+- **Still valid only if:** the thing it judged is unchanged (name the diff hash or build id). If that changed, the item goes back to Remaining.
+- **Partial:** started but not concluded (evidence with no verdict, a build with no check, a draft with no review). Redo it, or reuse the output only after you check it.
+- **Remaining:** the actual assignment.
+- **Continue in:** the same workspace at the stated fingerprint, not a fresh copy. Append to the existing result file or artifact.
+
+Rules:
+- Check ownership first. Confirm no one else is writing the same files, device, or build folder. If a shared path moves or is overwritten, tell everyone using it.
+- Trust is by evidence, not by source. A previous owner's claim counts only as far as its retained evidence. Independent gates (review, verification) start fresh and may reuse that evidence, but they re-judge the current candidate.
+- Say what you skipped and what you redid, so the next owner can trust the trail.
+- If the prior state is missing, damaged, or contradicts the brief, say so and go back to the last clean point. Do not guess.
+
 For durable supervised work, identify the canonical local ticket or existing issue artifact in the brief's Key Files. It holds intent and acceptance independently of the harness; in BB, also retain the required native Task key, Mission attachment, and UI lifecycle tracking under the Supervisor SOP. Other harnesses need no BB IDs. The Supervisor owns scope and lifecycle, the Mission records execution evidence at serialized handoffs, and gates judge the same candidate against that source. Share one verified path across environments, or supply a source excerpt and return findings to its owner if inaccessible; do not create independently edited copies or a second ledger. Research or status questions do not require a new ticket.
 
 **Brief proportionally, not ceremonially.** Use the existing brief fields or authoritative references to make clear what is established, what remains unresolved, relevant working or failed routes and their conditions, and where this assignment stops. Include known runtime, capture setup, permissions, and restoration requirements when relevant so the next owner can continue rather than rediscover them. Add detail only where it resolves uncertainty; no extra template or fixed length is needed. Keep scope, authority, safety, and owning-skill gates explicit, and choose proof that distinguishes success from the likely false positive.
