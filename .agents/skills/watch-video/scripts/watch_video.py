@@ -2,7 +2,8 @@
 """watch_video.py - timestamped speech transcript plus frame sheets for a narrated screen recording.
 
 Stdlib only. Needs ffmpeg/ffprobe, whisper-cli (brew install whisper-cpp), the ggml-base model
-at ~/.cache/whisper/ggml-base.bin, and swiftc (Xcode CLT) for a one-time sheet helper.
+at ~/.cache/whisper/ggml-base.bin, the Silero VAD model at ~/.cache/whisper/ggml-silero-v5.1.2.bin
+(unless --no-vad), and swiftc (Xcode CLT) for a one-time sheet helper.
 
 Usage: watch_video.py <video> [--out DIR] [--window 1.5] [--max-bursts 12] [--scene 0.02]
 """
@@ -19,6 +20,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 MODEL_DEFAULT = Path.home() / ".cache" / "whisper" / "ggml-base.bin"
+VAD_MODEL_DEFAULT = Path.home() / ".cache" / "whisper" / "ggml-silero-v5.1.2.bin"
+VAD_THRESHOLD_DEFAULT = 0.3
 HELPER_BIN = Path.home() / ".cache" / "watch-video" / "sheet-maker"
 OVERVIEW_MAX = 40
 OVERVIEW_COLS = 8
@@ -114,7 +117,7 @@ def group_lines(words):
     return lines
 
 
-def transcribe(video, info, work, model, lang):
+def transcribe(video, info, work, model, lang, vad_model):
     if not info["has_audio"]:
         log("no audio stream: skipping transcript")
         return [], []
@@ -122,8 +125,12 @@ def transcribe(video, info, work, model, lang):
     run(["ffmpeg", "-v", "error", "-y", "-i", str(video), "-vn", "-ac", "1", "-ar", "16000",
          "-c:a", "pcm_s16le", str(wav)], "audio extract")
     prefix = work / "words"
-    run(["whisper-cli", "-m", str(model), "-f", str(wav), "-l", lang, "-ml", "1", "-sow",
-         "-oj", "-of", str(prefix)], "whisper-cli")
+    cmd = ["whisper-cli", "-m", str(model), "-f", str(wav), "-l", lang, "-ml", "1", "-sow",
+           "-oj", "-of", str(prefix)]
+    if vad_model is not None:
+        # Silero VAD stops Whisper from placing words early after pauses (smoke test: up to 2 s late -> 0.3 s).
+        cmd += ["--vad", "-vm", str(vad_model), "-vt", str(VAD_THRESHOLD_DEFAULT)]
+    run(cmd, "whisper-cli")
     data = json.loads(prefix.with_suffix(".json").read_text())
     words = []
     for seg in data.get("transcription", []):
@@ -219,6 +226,8 @@ def main():
     ap.add_argument("--max-bursts", type=int, default=12, help="strongest motion bursts to keep")
     ap.add_argument("--thumb-width", type=int, default=150, help="detail frame width in px")
     ap.add_argument("--model", type=Path, default=MODEL_DEFAULT)
+    ap.add_argument("--vad-model", type=Path, default=VAD_MODEL_DEFAULT, help="Silero VAD model (default on)")
+    ap.add_argument("--no-vad", action="store_true", help="skip voice activity detection (faster to set up, less accurate timing)")
     ap.add_argument("--lang", default="en", help="whisper language code, or auto")
     ap.add_argument("--force", action="store_true", help=f"allow videos longer than {MAX_SECONDS_WITHOUT_FORCE}s")
     args = ap.parse_args()
@@ -231,6 +240,11 @@ def main():
         need(cmd)
     if not args.model.is_file():
         die(f"model missing: {args.model}. One-time setup in SKILL.md.")
+    vad_model = None
+    if not args.no_vad:
+        if not args.vad_model.is_file():
+            die(f"VAD model missing: {args.vad_model}. One-time setup in SKILL.md (or pass --no-vad).")
+        vad_model = args.vad_model
     need("whisper-cli")
 
     out = (args.out or video.with_name(video.stem + ".watch")).expanduser().resolve()
@@ -249,8 +263,8 @@ def main():
         pts = frame_times(video)
         log(f"{len(pts)} frames")
 
-        log("transcribing (whisper-cli, base model)")
-        lines, words = transcribe(video, info, work, args.model, args.lang)
+        log("transcribing (whisper-cli, base model" + (", Silero VAD)" if vad_model else ", no VAD)"))
+        lines, words = transcribe(video, info, work, args.model, args.lang, vad_model)
         log(f"{len(lines)} speech lines")
 
         log("scanning for motion bursts")
@@ -334,7 +348,7 @@ def write_index(out, video, info, lines, words, bursts, burst_total, moments, ov
           f"- Motion bursts: {burst_total} found, {len(bursts)} kept (scene > {args.scene}, window +/-{args.window} s)",
           f"- Detail window: +/-{args.window} s around each speech line and each motion burst outside speech",
           "- Read order: transcript, then the detail sheets for each moment, then judge the frames.",
-          "- Transcript is Whisper base output: timing can drift by a second or more, and names or numbers may be wrong. "
+          "- Transcript is Whisper base output with Silero VAD. Times can still be off by about 1 s, and names or numbers may be wrong. "
           "Check the frames.",
           "", "## Transcript", ""]
     if lines:
