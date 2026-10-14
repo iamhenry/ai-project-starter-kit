@@ -66,8 +66,11 @@ they install with each project, not the machine.
 | --- | --- | --- |
 | `tmux` | Background processes, dev servers | `brew install tmux` |
 | `jq` | JSON processing in skill pipelines | ships with macOS (`/usr/bin/jq`) |
-| `ffmpeg` | Frame extraction, video verification (viral/remotion skills) | `brew install ffmpeg` |
+| `ffmpeg` | Frame extraction, video verification (viral/remotion/watch-video skills) | `brew install ffmpeg` |
 | `yt-dlp` | Video downloads (viral-research) | `brew install yt-dlp` |
+| `whisper-cli` | Speech transcript for watch-video | `brew install whisper-cpp` (may upgrade `sdl3`/`sdl2-compat`) |
+
+**watch-video** ([SKILL.md](.agents/skills/watch-video/SKILL.md)): local transcript + frame sheets from a screen recording with spoken commentary. Its Whisper models (~143 MB, cached in `~/.cache/whisper`) are not auto-downloaded; run the one-time setup in SKILL.md, which lists the SHA-256 checks.
 
 ### Apps (not CLIs)
 - **Xcode** — required by all iOS tooling above (simulators, signing).
