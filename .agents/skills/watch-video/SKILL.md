@@ -5,7 +5,7 @@ description: Review a local screen recording that has spoken commentary by pairi
 
 # Watch video
 
-Turn a narrated screen recording into a transcript and frame sheets, so you can match what the owner says to what is on screen. One command, no ML stack, runs in about 15 s for a 48 s clip.
+Turn a narrated screen recording into a transcript and frame sheets, so you can match what the owner says to what is on screen. One command, no ML stack, runs in about 18 s for a 48 s clip (macOS).
 
 ## When to use
 
@@ -33,10 +33,10 @@ python3 .agents/skills/watch-video/scripts/watch_video.py <video.mp4> --out <dir
 
 Output (prints the path of `index.md` at the end):
 
-- `index.md`: start here. Transcript table, then each moment with its heard words, motion peaks, and sheet paths.
+- `index.md`: start here. Transcript table, then each moment with its heard words, motion peaks, and sheet paths with frame time ranges.
 - `transcript.srt` and `transcript.json`: word-timed transcript.
 - `overview.jpg`: about 1 frame per 2 s across the whole video, timestamps on each cell.
-- `moments/mNN-<kind>-<start>-<end>/sheet-KK.jpg` plus `frames.tsv`: every native frame in the window, labelled `#frame t=seconds`, 60 per sheet.
+- `moments/mNN-<kind>-<start>-<end>/sheet-KK.jpg` plus `frames.tsv`: every native frame in the window, labelled `#frame t=seconds`, 60 per sheet, at most 1600 px wide.
 - `keyframes/motion-<t>s.jpg`: full-size frame at each kept motion peak.
 
 ## How to read the output
@@ -48,8 +48,13 @@ Output (prints the path of `index.md` at the end):
 
 ## One-time setup
 
+One code path for every OS: Python 3 with Pillow draws the sheets, and whisper.cpp does the transcript. No Swift or other compile step.
+
+macOS (tested):
+
 ```bash
-brew install whisper-cpp                      # provides whisper-cli, Metal on Apple Silicon
+brew install whisper-cpp ffmpeg               # whisper-cli, ffmpeg, ffprobe (Metal on Apple Silicon)
+python3 -m pip install --user pillow          # if pip refuses (externally managed Python), add --break-system-packages
 mkdir -p ~/.cache/whisper
 curl -fL -o ~/.cache/whisper/ggml-base.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin
 shasum -a 256 ~/.cache/whisper/ggml-base.bin  # expect 60ed5bc3dd14eea856493d334349b405782ddcaf0028d4b5df4088345fba2efe
@@ -57,15 +62,24 @@ curl -fL -o ~/.cache/whisper/ggml-silero-v5.1.2.bin https://huggingface.co/ggml-
 shasum -a 256 ~/.cache/whisper/ggml-silero-v5.1.2.bin  # expect 29940d98d42b91fbd05ce489f3ecf7c72f0a42f027e4875919a28fb4c04ea2cf
 ```
 
-`ffmpeg` and `ffprobe` must already be installed. The first run compiles a small Swift helper (`sheet-maker`) into `~/.cache/watch-video/` using `swiftc` from Xcode Command Line Tools. Nothing else is installed.
+Linux, Debian/Ubuntu (**untested**: the code is the same, but these steps have not been run on Linux):
 
-Known side effect: `brew install whisper-cpp` also upgraded `sdl3` and `sdl2-compat` (smoke test: sdl3 3.4.14 to 3.4.18, sdl2-compat 2.32.70 to 2.32.74). Other Homebrew packages that use SDL were not tested.
+```bash
+sudo apt install ffmpeg python3-pil          # or: python3 -m pip install --user pillow
+git clone https://github.com/ggml-org/whisper.cpp && cd whisper.cpp
+cmake -B build && cmake --build build -j --config Release   # needs cmake and a C++ compiler
+export PATH="$PWD/build/bin:$PATH"           # binary: build/bin/whisper-cli (whisper-cpp and main names also work)
+```
+
+Then the same two model downloads as macOS, using `sha256sum -c` or `sha256sum` instead of `shasum -a 256`. If your distro packages whisper.cpp, use that instead of building it.
+
+Known side effect (macOS): `brew install whisper-cpp` also upgraded `sdl3` and `sdl2-compat` (smoke test: sdl3 3.4.14 to 3.4.18, sdl2-compat 2.32.70 to 2.32.74). Other Homebrew packages that use SDL were not tested.
 
 ## Footprint
 
-- Install: whisper-cpp about 6 MB, its dependencies (sdl3, sdl2-compat, ggml) about 25 MB, base model 148 MB, VAD model 0.9 MB, helper 90 KB.
-- Per run: about 0.4 MB per 1 s of recording at default settings. The 48 s smoke clip produced 19.5 MB of sheets and key frames. Scratch audio and raw frames are removed at the end.
-- Speed and RAM: about 15 s wall for the 48 s clip; the largest child process (whisper-cli) peaks near 570 MB RSS with VAD.
+- Install: Pillow about 15 MB (installed size, Pillow 12.3.0 on macOS). Whisper.cpp about 30 MB on macOS with its dependencies (sdl3, sdl2-compat, ggml). Models about 143 MB (base 148 MB, VAD 0.9 MB). No ML Python stack.
+- Per run: about 0.3 MB per 1 s of recording at default settings. The 48 s smoke clip produced 13.4 MB of sheets and key frames. Scratch audio and raw frames are removed at the end.
+- Speed and RAM (macOS, one run): about 18 s wall for the 48 s clip; peak RSS 571 MB, mostly whisper-cli.
 
 ## Anti-patterns
 

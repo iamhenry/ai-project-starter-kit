@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """watch_video.py - timestamped speech transcript plus frame sheets for a narrated screen recording.
 
-Stdlib only. Needs ffmpeg/ffprobe, whisper-cli (brew install whisper-cpp), the ggml-base model
-at ~/.cache/whisper/ggml-base.bin, the Silero VAD model at ~/.cache/whisper/ggml-silero-v5.1.2.bin
-(unless --no-vad), and swiftc (Xcode CLT) for a one-time sheet helper.
+Needs Python 3 with Pillow (contact sheets), ffmpeg/ffprobe, whisper.cpp (whisper-cli on PATH), the ggml-base
+model at ~/.cache/whisper/ggml-base.bin, and the Silero VAD model at ~/.cache/whisper/ggml-silero-v5.1.2.bin
+(unless --no-vad). Same code on macOS and Linux. Setup: SKILL.md.
 
 Usage: watch_video.py <video> [--out DIR] [--window 1.5] [--max-bursts 12] [--scene 0.02]
 """
@@ -18,11 +18,20 @@ import tempfile
 import time
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
+try:
+    from PIL import Image, ImageDraw, ImageFont
+except ImportError:
+    sys.exit("[watch-video] ERROR: Pillow is missing. Install: python3 -m pip install --user pillow "
+             "(Debian/Ubuntu: sudo apt install python3-pil)")
+
 MODEL_DEFAULT = Path.home() / ".cache" / "whisper" / "ggml-base.bin"
 VAD_MODEL_DEFAULT = Path.home() / ".cache" / "whisper" / "ggml-silero-v5.1.2.bin"
 VAD_THRESHOLD_DEFAULT = 0.3
-HELPER_BIN = Path.home() / ".cache" / "watch-video" / "sheet-maker"
+WHISPER_NAMES = ("whisper-cli", "whisper-cpp", "main")  # Homebrew, Debian, and source builds name it differently
+LABEL_FONT_PX = 13
+LABEL_H = 20
+MAX_SHEET_W = 1600
+JPEG_QUALITY = 80
 OVERVIEW_MAX = 40
 OVERVIEW_COLS = 8
 DETAIL_COLS = 10
@@ -53,14 +62,12 @@ def run(cmd, what):
     return r
 
 
-def ensure_helper():
-    src = HERE / "sheet.swift"
-    if HELPER_BIN.exists() and HELPER_BIN.stat().st_mtime >= src.stat().st_mtime:
-        return
-    need("swiftc")
-    HELPER_BIN.parent.mkdir(parents=True, exist_ok=True)
-    log("compiling sheet helper once (about 20 s)")
-    run(["swiftc", "-O", str(src), "-o", str(HELPER_BIN)], "swiftc")
+def find_whisper():
+    for name in WHISPER_NAMES:
+        path = shutil.which(name)
+        if path:
+            return path
+    die("whisper.cpp not on PATH (looked for whisper-cli, whisper-cpp, main). One-time setup: see SKILL.md.")
 
 
 def probe(video):
@@ -117,7 +124,7 @@ def group_lines(words):
     return lines
 
 
-def transcribe(video, info, work, model, lang, vad_model):
+def transcribe(video, info, work, model, lang, vad_model, whisper_bin):
     if not info["has_audio"]:
         log("no audio stream: skipping transcript")
         return [], []
@@ -125,12 +132,12 @@ def transcribe(video, info, work, model, lang, vad_model):
     run(["ffmpeg", "-v", "error", "-y", "-i", str(video), "-vn", "-ac", "1", "-ar", "16000",
          "-c:a", "pcm_s16le", str(wav)], "audio extract")
     prefix = work / "words"
-    cmd = ["whisper-cli", "-m", str(model), "-f", str(wav), "-l", lang, "-ml", "1", "-sow",
+    cmd = [whisper_bin, "-m", str(model), "-f", str(wav), "-l", lang, "-ml", "1", "-sow",
            "-oj", "-of", str(prefix)]
     if vad_model is not None:
         # Silero VAD stops Whisper from placing words early after pauses (smoke test: up to 2 s late -> 0.3 s).
         cmd += ["--vad", "-vm", str(vad_model), "-vt", str(VAD_THRESHOLD_DEFAULT)]
-    run(cmd, "whisper-cli")
+    run(cmd, "whisper.cpp")
     data = json.loads(prefix.with_suffix(".json").read_text())
     words = []
     for seg in data.get("transcription", []):
@@ -206,11 +213,26 @@ def extract(video, indices, out_dir, width=None):
     return sorted(out_dir.glob("f_*.jpg"))
 
 
-def sheet(rows, out, cols, cell_w, work):
-    """rows: list of (image_path, label). Writes one labelled contact sheet via the Swift helper."""
-    manifest = work / f"manifest-{time.time_ns()}.tsv"
-    manifest.write_text("".join(f"{p}\t{lab}\n" for p, lab in rows))
-    run([str(HELPER_BIN), str(manifest), str(out), str(cols), str(cell_w)], "sheet-maker")
+def sheet(rows, out, cols, cell_w):
+    """rows: list of (image_path, label). One labelled contact sheet, cells row by row, label band above each image."""
+    cols = max(1, min(cols, MAX_SHEET_W // cell_w))
+    font = ImageFont.load_default(size=LABEL_FONT_PX)
+    thumbs, thumb_h = [], None
+    for path, label in rows:
+        with Image.open(path) as src:
+            im = src.convert("RGB")
+        if thumb_h is None:
+            thumb_h = round(cell_w * im.height / im.width)
+        thumbs.append((im.resize((cell_w, thumb_h), Image.LANCZOS), label))
+    cell_h = LABEL_H + thumb_h
+    canvas = Image.new("RGB", (cols * cell_w, -(-len(thumbs) // cols) * cell_h), (31, 31, 31))
+    draw = ImageDraw.Draw(canvas)
+    for i, (thumb, label) in enumerate(thumbs):
+        x, y = (i % cols) * cell_w, (i // cols) * cell_h
+        draw.rectangle([x, y, x + cell_w - 1, y + LABEL_H - 1], fill=(0, 0, 0))
+        draw.text((x + 4, y + 3), label, font=font, fill=(255, 235, 102))
+        canvas.paste(thumb, (x, y + LABEL_H))
+    canvas.save(out, "JPEG", quality=JPEG_QUALITY, optimize=True)
 
 
 def fmt_t(t):
@@ -245,7 +267,7 @@ def main():
         if not args.vad_model.is_file():
             die(f"VAD model missing: {args.vad_model}. One-time setup in SKILL.md (or pass --no-vad).")
         vad_model = args.vad_model
-    need("whisper-cli")
+    whisper_bin = find_whisper()
 
     out = (args.out or video.with_name(video.stem + ".watch")).expanduser().resolve()
     info = probe(video)
@@ -254,7 +276,6 @@ def main():
     log(f"video {info['width']}x{info['height']}, {info['duration']:.2f}s, ~{info['fps_avg']} fps, "
         f"audio={'yes' if info['has_audio'] else 'no'}")
 
-    ensure_helper()
     out.mkdir(parents=True, exist_ok=True)
     shutil.rmtree(out / "moments", ignore_errors=True)
     shutil.rmtree(out / "keyframes", ignore_errors=True)
@@ -263,8 +284,8 @@ def main():
         pts = frame_times(video)
         log(f"{len(pts)} frames")
 
-        log("transcribing (whisper-cli, base model" + (", Silero VAD)" if vad_model else ", no VAD)"))
-        lines, words = transcribe(video, info, work, args.model, args.lang, vad_model)
+        log("transcribing (whisper.cpp, base model" + (", Silero VAD)" if vad_model else ", no VAD)"))
+        lines, words = transcribe(video, info, work, args.model, args.lang, vad_model, whisper_bin)
         log(f"{len(lines)} speech lines")
 
         log("scanning for motion bursts")
@@ -277,7 +298,7 @@ def main():
                            for k in range(n_over)})
         over_files = extract(video, over_idx, work / "overview", width=180)
         over_rows = [(str(f), f"#{i} t={fmt_t(pts[i])}s") for f, i in zip(over_files, over_idx)]
-        sheet(over_rows, out / "overview.jpg", OVERVIEW_COLS, 180, work)
+        sheet(over_rows, out / "overview.jpg", OVERVIEW_COLS, 180)
         log(f"overview: {len(over_files)} frames")
 
         # Detail: every native frame inside each moment, labelled.
@@ -305,8 +326,8 @@ def main():
                     rows.append((str(files[start + pos]), f"#{fi} t={fmt_t(pts[fi])}s"))
                     tsv.append(f"{fi}\t{fmt_t(pts[fi])}\tsheet-{s_no:02d}.jpg\t{pos + 1}")
                 name = f"sheet-{s_no:02d}.jpg"
-                sheet(rows, mdir / name, DETAIL_COLS, args.thumb_width, work)
-                sheets_written.append(f"{mdir.name}/{name}")
+                sheet(rows, mdir / name, DETAIL_COLS, args.thumb_width)
+                sheets_written.append({"path": f"{mdir.name}/{name}", "t0": pts[chunk[0]], "t1": pts[chunk[-1]]})
             (mdir / "frames.tsv").write_text("\n".join(tsv) + "\n")
             detail_rows_total += len(idx)
             shutil.rmtree(work / f"m{mi:02d}", ignore_errors=True)
@@ -366,7 +387,7 @@ def write_index(out, video, info, lines, words, bursts, burst_total, moments, ov
             md.append("- Motion peaks: " + ", ".join(f"{b['peak_t']:.3f} s (score {b['peak_score']:.3f})"
                                                        for b in m["bursts"]))
         md.append(f"- Frame list: `moments/{m['dir']}/frames.tsv`")
-        md += [f"- Sheet: `moments/{s}`" for s in m["sheets"]]
+        md += [f"- Sheet: `moments/{s['path']}`, frames {s['t0']:.3f} to {s['t1']:.3f} s" for s in m["sheets"]]
         md.append("")
     kfs = sorted((out / "keyframes").glob("motion-*.jpg")) if (out / "keyframes").exists() else []
     if kfs:

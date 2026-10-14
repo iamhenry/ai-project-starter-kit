@@ -70,7 +70,7 @@ they install with each project, not the machine.
 | `yt-dlp` | Video downloads (viral-research) | `brew install yt-dlp` |
 | `whisper-cli` | Speech transcript for watch-video | `brew install whisper-cpp` (may upgrade `sdl3`/`sdl2-compat`) |
 
-**watch-video** ([SKILL.md](.agents/skills/watch-video/SKILL.md)): local transcript + frame sheets from a screen recording with spoken commentary. Its Whisper models (~143 MB, cached in `~/.cache/whisper`) are not auto-downloaded; run the one-time setup in SKILL.md, which lists the SHA-256 checks.
+**watch-video** ([SKILL.md](.agents/skills/watch-video/SKILL.md)): local transcript + frame sheets from a screen recording with spoken commentary. Needs Python Pillow (`python3 -m pip install --user pillow`, about 15 MB) and Whisper models (~143 MB, cached in `~/.cache/whisper`), which are not auto-downloaded; run the one-time setup in SKILL.md, which lists the SHA-256 checks. Linux: same code, setup untested (see SKILL.md).
 
 ### Apps (not CLIs)
 - **Xcode** — required by all iOS tooling above (simulators, signing).
