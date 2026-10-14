@@ -66,13 +66,13 @@ Load the tool's skill before use. Use what the project already has first.
 
 Report in five lines: Observed / Cause / Change / Proof / Risk.
 
-## Heuristics
+## Anti-patterns
 
-- The cheapest check that could change your mind beats a thorough one that can't.
-- Act on a guess once a check could have proved it wrong and didn't, even if it was your first guess.
-- One change per round, or you won't know which one worked.
-- If a round taught nothing, the next one should look somewhere different, not harder at the same spot.
-- Stay on the bug. Refactors and nearby cleanups wait.
-- Leave no trace: remove temporary logs and throwaway copies.
-- Parallel agents add cost, not insight, unless each looks from a different angle.
-- "Not found yet, here is what's ruled out" beats a confident story.
+- Avoid thorough checks that can't change your mind; pick the cheapest one that could.
+- Avoid acting on a guess no check could have proved wrong. Once one could and didn't, act, even on a first guess.
+- Avoid several changes in one round; you won't know which one worked.
+- Avoid digging harder at the same spot after a round taught nothing; look somewhere different.
+- Avoid refactors and nearby cleanups while on the bug.
+- Avoid leaving temporary logs or throwaway copies behind.
+- Avoid parallel agents that look from the same angle; they add cost, not insight.
+- Avoid a confident story when the cause isn't found; report what's ruled out instead.
