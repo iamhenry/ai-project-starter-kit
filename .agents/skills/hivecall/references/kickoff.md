@@ -88,7 +88,7 @@ The approved contract lives on the checklist page, not here.
 - Pick 3-5 regression journeys that cover the areas the run will touch; record them under Overrides.
 - Create `.hivecall/verification/`.
 - Hide noise from Git: add `.lanes/` and `.hivecall/verification/` to `.git/info/exclude`. Thousands of evidence files slow Git and BB.
-- If watchdog is on, follow [../README.md](../README.md#watchdog): name it `🐝 <orchestrator thread title>`, capture its automation id, write `watchdog: on, automation <id>` in the run card, pass `AUTOMATION_ID`, then start it live with `WATCH_SHADOW` unset.
+- If watchdog is on, follow [../README.md](../README.md#watchdog): name it `🐝 <orchestrator thread title>`, capture its automation id, write `watchdog: on, automation <id>` in the run card, pass `AUTOMATION_ID`, then start it live.
 
 ## 5. Keep the owner informed
 

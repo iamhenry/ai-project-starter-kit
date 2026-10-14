@@ -59,7 +59,6 @@ Each check takes 1–2 seconds of CPU. A failed read skips that check for the ru
 | `PROJECT_ID` | yes for self-management | BB project id; used for delete and for the legacy pause lookup |
 | `AUTOMATION_ID` | yes for automatic cleanup | Created automation id, used for pause and delete; if unset, pause falls back to the legacy name `hivecall watchdog <ORCH_THREAD>` and deletion is disabled |
 | `STATE_FILE` | no | Defaults to `$REPO/.lanes/watch-state.json` |
-| `WATCH_SHADOW` | no | Harness development and `--simulate` testing only; never use in a real run |
 | `LANE_ROOTS` | no | Extra folders (`:`-separated) a PROMISE `lane=` may live in. The repo and BB worktrees (`~/.bb/plugins/environment-git-worktree/host-data/worktrees`) are always allowed |
 
 Optional limits: `WATCH_LOAD_LIMIT` (150), `WATCH_DISK_FREE_GB` (10), `WATCH_LARGE_FILE_MB` (100), `WATCH_LARGE_FILE_MIN` (15), `WATCH_AGENT_STUCK_MIN` (10), `WATCH_AGENT_MAX_HOURS` (3), `WATCH_GHOST_MIN` (15), `WATCH_ORPHAN_MIN` (15), `WATCH_CONTINUE_MIN` (15).
@@ -139,8 +138,8 @@ Every message the watchdog sends ends with the one-row status table (Done · In 
 
 ### Offline checks
 
-`python3 watch.py --simulate <scenario>` runs deterministic built-in scenarios with no BB/OpenCode calls. Scenarios: stuck-agent, ghost-agent, ghost-agent-no-message, invisible-agent, high-load, disk-big-file, orphan-recorder, orphan-recorder-active, fail-under-load, unrecorded-pass, unrecorded-pass-reload, superseded-pass, server-down, combined-alerts, shadow-mode, continue, anti-spin, done, closed-delete, not-closed, read-failure, working-old-bb, resumed-idle-agent, off-track, on-track-timed, on-track-code, fast-jules, new-testers-old-results, no-promise, review, lane-drift, alert-once, repeat-fail, unclaimed, plateau, sim-idle-timer, regression, leftover-session, idle-helper, reopen. `REPO` must point at any temp folder.
+`python3 watch.py --simulate <scenario>` runs deterministic built-in scenarios with no BB/OpenCode calls. Scenarios: stuck-agent, ghost-agent, ghost-agent-no-message, invisible-agent, high-load, disk-big-file, orphan-recorder, orphan-recorder-active, fail-under-load, unrecorded-pass, unrecorded-pass-reload, superseded-pass, server-down, combined-alerts, continue, anti-spin, done, closed-delete, not-closed, read-failure, working-old-bb, resumed-idle-agent, off-track, on-track-timed, on-track-code, fast-jules, new-testers-old-results, no-promise, review, lane-drift, alert-once, repeat-fail, unclaimed, plateau, sim-idle-timer, regression, leftover-session, idle-helper, reopen. `REPO` must point at any temp folder.
 
 ### Rolling out a changed watchdog
 
-Use shadow mode only for harness development and `--simulate` testing; real runs never use it. Replay a real stuck run (must alarm) and real false alarms (must stay silent), then do a live drill. When an alarm is wrong, loosen or remove the check; never add a special case.
+Test harness changes with `--simulate` and `--dry-run`; the watchdog always runs live. Replay a real stuck run (must alarm) and real false alarms (must stay silent), then do a live drill. When an alarm is wrong, loosen or remove the check; never add a special case.

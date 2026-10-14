@@ -944,11 +944,8 @@ def summary_line(snapshot: dict, alert_tags: list[str]) -> str:
         agents = f"{visible if visible is not None else '?'}/{live if live is not None else '?'} agents visible"
     ledger = (f"{isa['pass']}/{isa['total']}" if not isa.get("error") and
               isa.get("pass") is not None and isa.get("total") is not None else "?/?")
-    if snapshot.get("shadow_mode"):
-        status = f"SHADOW {snapshot.get('shadow_alert_count', 0)} alerts"
-    else:
-        status = "OK" if not alert_tags else f"ALERT: {alert_tags[0]}" + (
-            f" +{len(alert_tags) - 1}" if len(alert_tags) > 1 else "")
+    status = "OK" if not alert_tags else f"ALERT: {alert_tags[0]}" + (
+        f" +{len(alert_tags) - 1}" if len(alert_tags) > 1 else "")
     return (f"load {load:.0f}" if load is not None else "load ?") + " · " + \
         (f"disk {free:.0f} GB" if free is not None else "disk ? GB") + \
         f" · {agents} · {ledger} · {status}"
@@ -1118,21 +1115,10 @@ def append_note(root: str, note: str, dry_run: bool) -> None:
         f.write(f"{dt.datetime.now().astimezone().isoformat(timespec='seconds')} {note}\n")
 
 
-def dispatch(thread_id: str, messages: list[str], dry_run: bool,
-             shadow_path: str | None = None, now: float | None = None) -> None:
+def dispatch(thread_id: str, messages: list[str], dry_run: bool) -> None:
     if not messages:
         return
     lines = [message.replace("\n", " ").strip() for message in messages]
-    if shadow_path:
-        stamp = dt.datetime.fromtimestamp(now or time.time()).astimezone().isoformat(timespec="seconds")
-        try:
-            os.makedirs(os.path.dirname(shadow_path), exist_ok=True)
-            with open(shadow_path, "a", encoding="utf-8") as f:
-                for line in lines:
-                    f.write(f"{stamp} {line}\n")
-        except OSError as exc:
-            print(f"WATCH ERROR: shadow log write failed: {exc}", file=sys.stderr)
-        return
     text = "\n".join(lines)
     if dry_run:
         print(f"DRY-RUN: would queue to {thread_id}:\n{text}")
@@ -1173,20 +1159,15 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
     root = env.get("REPO", "")
     thread_id = env.get("ORCH_THREAD", "")
     run_status = snapshot.get("run_status")
-    shadow = env.get("WATCH_SHADOW") == "1"
-    snapshot["shadow_mode"] = shadow
-    snapshot["shadow_alert_count"] = 0
-    shadow_path = os.path.join(root, ".lanes", "watch-shadow.log") if shadow else None
     messages: list[str] = []
     notes: list[str] = []
     alert_tags: list[str] = []
     conditions = state.setdefault("conditions", {})
 
     def emit() -> None:
-        snapshot["shadow_alert_count"] = len(messages) if shadow else 0
-        if messages and not shadow:
+        if messages:
             messages.extend(status_table(snapshot))
-        dispatch(thread_id, messages, dry_run, shadow_path, now)
+        dispatch(thread_id, messages, dry_run)
 
     review = state.setdefault("review", {"last_at": now, "alerts": {},
                                           "promise_agents": [], "other_agents": []})
@@ -1703,11 +1684,8 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
                             "Then take the next step per the hivecall loop and the run card, or set the run card status to "
                             "waiting-owner and tell the owner why if genuinely blocked.")
 
-    if shadow:
-        messages.extend(note for note in notes if not any(note in message for message in messages))
-    else:
-        for note in notes:
-            append_note(root, note, dry_run)
+    for note in notes:
+        append_note(root, note, dry_run)
     if sessions.get("valid", False):
         for sess in sessions.get("live", []):
             key = "promise_agents" if sess.get("promise") else "other_agents"
@@ -2056,27 +2034,6 @@ def simulate(name: str, state_path: str, env: dict[str, str]) -> None:
         print(text, end="")
         print("SIM combined-alerts: two alerts would be sent in one combined message.")
         print(summary_line(snap, alerts))
-        return
-    if name == "shadow-mode":
-        with tempfile.TemporaryDirectory() as directory:
-            shadow_env = dict(env, REPO=directory, ORCH_THREAD="shadow-fixture", WATCH_SHADOW="1")
-            state = {}
-            output = io.StringIO()
-            for i in range(2):
-                snap = synthetic("high-load", base + i * 60)
-                snap["host"].update(load=160.0, free_gb=4.0)
-                with redirect_stdout(output):
-                    alerts = evaluate(snap, state, shadow_env, False)
-            log = Path(directory) / ".lanes" / "watch-shadow.log"
-            lines = log.read_text(encoding="utf-8").splitlines()
-            if len(lines) != 2 or any(len(line.split(" ", 1)) != 2 for line in lines):
-                raise AssertionError(f"shadow log did not contain two timestamped alerts: {lines}")
-            if any("HOST " not in line for line in lines) or "would queue" in output.getvalue():
-                raise AssertionError(f"shadow mode sent a BB message or missed an alert: {output.getvalue()}")
-            if not summary_line(snap, alerts).endswith("SHADOW 2 alerts"):
-                raise AssertionError("shadow heartbeat did not report its alert count")
-            print("SIM shadow-mode: two alerts logged with timestamps; no BB message; heartbeat says SHADOW 2 alerts.")
-            print(summary_line(snap, alerts))
         return
     if name == "lane-drift":
         with tempfile.TemporaryDirectory() as directory:
@@ -2823,7 +2780,7 @@ def main() -> int:
                         help="print the newest top-level OpenCode session for REPO (the orchestrator's ORCH_SESSION)")
     parser.add_argument("--simulate", choices=("stuck-agent", "ghost-agent", "ghost-agent-no-message", "invisible-agent", "high-load",
         "disk-big-file", "orphan-recorder", "orphan-recorder-active", "fail-under-load", "unrecorded-pass", "unrecorded-pass-reload",
-        "superseded-pass", "server-down", "combined-alerts", "shadow-mode", "continue",
+        "superseded-pass", "server-down", "combined-alerts", "continue",
         "anti-spin", "done", "closed-delete", "not-closed", "read-failure", "working-old-bb", "resumed-idle-agent",
         "off-track", "on-track-timed", "on-track-code", "fast-jules", "new-testers-old-results",
         "no-promise", "review", "lane-drift", "alert-once", "repeat-fail", "unclaimed", "plateau", "sim-idle-timer",
@@ -2877,8 +2834,7 @@ def main() -> int:
         if state.get("done"):
             state_write(state_path, state)
             print(f"WATCH: run already done; {state.get('delete_result') or state.get('pause_result', 'automation lifecycle complete')}.")
-            print(summary_line({"shadow_mode": env.get("WATCH_SHADOW") == "1",
-                                "shadow_alert_count": 0}, []))
+            print(summary_line({}, []))
             return 0
     snapshot = collect(env)
     alerts = evaluate(snapshot, state, env, args.dry_run)

@@ -25,7 +25,7 @@ Read [HOW-TO-WORK.md](HOW-TO-WORK.md) first: the owner's constants for every run
 2. Show both. Ask "Watchdog on? (yes / no)". Wait for approval.
 3. Use the supplied ISA.html as the ledger, or create `.hivecall/checklist.html` from the template, with the approved contract on it.
 4. Write the run card `.hivecall/run.md` with `status: running`.
-5. If watchdog is on, set it up per [README.md](README.md#watchdog): name it `🐝 <orchestrator thread title>`, capture the automation id, write `watchdog: on, automation <id>` in the run card, pass `AUTOMATION_ID`, then start it live with `WATCH_SHADOW` unset.
+5. If watchdog is on, set it up per [README.md](README.md#watchdog): name it `🐝 <orchestrator thread title>`, capture the automation id, write `watchdog: on, automation <id>` in the run card, pass `AUTOMATION_ID`, then start it live.
 
 When resuming in a fresh thread, read HOW-TO-WORK.md, the run card and ledger first, then [watchdog/lessons.md](watchdog/lessons.md). Verify a handoff against git and the ledger before trusting it.
 
