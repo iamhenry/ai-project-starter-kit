@@ -46,7 +46,7 @@ Read at kickoff, and again after any context compaction or compression. Invarian
 - Attempt ladder (a guide, not a script): a new hypothesis or method → a different method → a stronger model or research agent → park. Skip a rung when the evidence already rules it out.
 - Debug loop: list 5-7 possible causes, keep the 1-2 likeliest, add 1-3 timestamped log lines, one quick rebuild, one gesture or request, read the log. Use `bugging-out` for stuck bugs.
 - Regression guard: 3-5 replayable user journeys, rerun after each merge, not a full re-pass.
-- Preflight: install, typecheck and build the starting branch once (a few minutes). If it fails, fixing it is the first item.
+- Preflight: install, typecheck and build the starting branch once (a few minutes). If it fails, fixing it is the first item; independent work may start meanwhile.
 - Checkpoint: a git commit to revert to before any risky change.
 - Backup model per agent, named at kickoff; on a credit cutoff, switch and report it in one line.
 - Every brief also carries: absolute paths, what is already done and still valid, what this change could break, its time box.

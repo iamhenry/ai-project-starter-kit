@@ -58,10 +58,10 @@ watchdog: on, automation auto_...
 started: <date>
 base: <branch> @ <commit> (preflight: install, typecheck, build passed)
 checkpoint: <commit to revert to>
+backup models: <agent> -> <provider/model#variant> (required; used on a credit cutoff)
 
 ## Overrides (only where this run differs from HOW-TO-WORK.md defaults)
 - machine: <e.g. 1 simulator, 1 native build, keep 5 GB free>
-- backup models: <agent> -> <provider/model#variant>
 - regression journeys: <3-5 replayable user journeys, each with its command or flow file>
 
 ## Owner decisions
@@ -84,7 +84,7 @@ The approved contract lives on the checklist page, not here.
 
 ## 4. Prepare the repo
 
-- **Preflight (a few minutes, once).** On the starting branch: install dependencies, typecheck, and run one build. Record the commit as `base` in the run card. If it fails, fixing the base becomes the first item; lanes start only after it passes. Commit a `checkpoint` to revert to.
+- **Preflight (a few minutes, once).** On the starting branch: install dependencies, typecheck, and run one build. Record the commit as `base` in the run card. If it fails, fixing the base becomes the first item; work that does not depend on the broken parts can start meanwhile. Commit a `checkpoint` to revert to.
 - Pick 3-5 regression journeys that cover the areas the run will touch; record them under Overrides.
 - Create `.hivecall/verification/`.
 - Hide noise from Git: add `.lanes/` and `.hivecall/verification/` to `.git/info/exclude`. Thousands of evidence files slow Git and BB.

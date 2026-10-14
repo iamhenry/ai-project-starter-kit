@@ -404,8 +404,12 @@ def parse_isa(path: str, root: str = "") -> dict:
     regressions = {normalize_ident(ident) for ident, (status, _) in latest.items()
                    if status == "FAIL" and normalize_ident(ident) in pass_history}
     latest_fail_ids = {normalize_ident(ident) for ident, (status, _) in latest.items() if status == "FAIL"}
-    done = (bool(criteria) and not (latest_fail_ids & {normalize_ident(ident) for ident in criteria}) and
-            all(ident in checked or ident in owner or ident in blocked for ident in criteria))
+    criteria_ids = {normalize_ident(ident) for ident in criteria}
+    checked_ids = {normalize_ident(ident) for ident in checked}
+    completion_parked = ({normalize_ident(ident) for ident in owner} |
+                         {normalize_ident(ident) for ident in blocked} | owner_only_ids) - checked_ids
+    done = (bool(criteria) and not (latest_fail_ids & (criteria_ids - completion_parked)) and
+            all(ident in checked_ids or ident in completion_parked for ident in criteria_ids))
     owner_done = sum(ident in checked for ident in owner)
     root_path = Path(root).resolve() if root else Path.cwd().resolve()
     enriched_fails = []
@@ -864,16 +868,11 @@ def collect(env: dict[str, str], now: float | None = None) -> dict:
                       if session.get("promise") and session["promise"].get("result_path")}
     evidence = load_results(env.get("VERIFY_DIR", ""), isa, now, promised_paths)
     lanes = load_lane_facts(sessions["live"])
-    head, head_error = command(["git", "-C", root, "rev-parse", "--short", "HEAD"], 2.0)
-    head_time_text, head_time_error = command(["git", "-C", root, "log", "-1", "--format=%ct"], 2.0)
-    try:
-        head_time = float(head_time_text.strip()) if not head_time_error else None
-    except ValueError:
-        head_time = None
+    head, head_error = command(["git", "-C", root, "rev-parse", "HEAD"], 2.0)
     return {"now": now, "host": host, "server": server, "sessions": sessions, "bb": bb,
             "isa": isa, "run_status": run_status, "run_card": run_card, "evidence": evidence,
-            "lanes": lanes, "head": head, "head_time": head_time,
-            "head_valid": bool(head and not head_error), "head_time_valid": head_time is not None,
+            "lanes": lanes, "head": head,
+            "head_valid": bool(head and not head_error),
             "head_error": head_error}
 
 
@@ -1279,6 +1278,10 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
         if leftover_sessions:
             leftover_ids = {sess["id"] for sess, _ in leftover_sessions}
             sessions["live"] = [sess for sess in all_live_sessions if sess["id"] not in leftover_ids]
+        active_leftovers = {"leftover-session:" + sess["id"] for sess, _ in leftover_sessions}
+        for key in list(conditions):
+            if key.startswith("leftover-session:") and key not in active_leftovers:
+                trigger(key, False, "", valid=True)
     for sess, child_thread in leftover_sessions:
         trigger("leftover-session:" + sess["id"], True,
                 f"LEFTOVER session {sess['id']} still running after its BB thread {child_thread} ended; "
@@ -1294,12 +1297,12 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
     free = host.get("free_gb")
     disk_limit = setting(env, "WATCH_DISK_FREE_GB", 10)
     disk_valid = host.get("df_valid", False)
-    critical_disk = free is not None and free < disk_limit and free < 5
+    critical_disk = free is not None and free < 5
     normal_disk = free is not None and free < disk_limit and not critical_disk
     if critical_disk:
         trigger("low-disk", False, "", valid=disk_valid)
         trigger("low-disk:critical", True,
-                f"🚦 HOST disk: only {free:.1f} GB free on / (<{disk_limit:g} GB); see df -h /.",
+                f"🚦 HOST disk: only {free:.1f} GB free on / (<5 GB); see df -h /.",
                 2, valid=disk_valid)
     else:
         trigger("low-disk:critical", False, "", valid=disk_valid)
@@ -1515,23 +1518,47 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
                 alerted_regressions.add(ident)
         state["regressions_alerted"] = sorted(alerted_regressions)
 
+        ledger_signature = hashlib.sha256(json.dumps({
+            "criteria": sorted(isa.get("criteria", [])),
+            "checked": sorted(isa.get("checked", [])),
+            "owner": sorted(isa.get("owner", [])),
+            "parked": sorted(isa.get("parked", [])),
+            "blocked": sorted(isa.get("blocked", [])),
+            "owner_only": sorted(isa.get("owner_only_ids", [])),
+            "latest_verdicts": isa.get("latest_verdicts", {}),
+            "verdict_count": isa.get("verdict_count", 0),
+        }, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
         run_card = snapshot.get("run_card", {})
-        if run_card.get("valid", False):
+        if (run_card.get("valid", False) and snapshot.get("head_valid", False) and
+                isa.get("ledger_mtime") is not None):
             waiting_text = run_card.get("waiting_text")
             waiting_note = state.get("unclaimed_waiting")
-            if not waiting_text:
-                state.pop("unclaimed_waiting", None)
-            elif not isinstance(waiting_note, dict) or waiting_note.get("text") != waiting_text:
-                state["unclaimed_waiting"] = {"text": waiting_text, "first_seen": now}
+            if (not isinstance(waiting_note, dict) or "text" not in waiting_note or
+                    "fresh" not in waiting_note or
+                    "ledger_signature" not in waiting_note or "head" not in waiting_note):
+                fresh = False  # first observation is a baseline, not proof the note is new
+            else:
+                identity_unchanged = (waiting_note.get("ledger_signature") == ledger_signature and
+                                      waiting_note.get("head") == snapshot.get("head"))
+                text_changed = waiting_note.get("text") != waiting_text
+                fresh = bool(waiting_text) and identity_unchanged and text_changed
+                if not text_changed and identity_unchanged:
+                    fresh = bool(waiting_text) and bool(waiting_note.get("fresh"))
+            state["unclaimed_waiting"] = {"text": waiting_text,
+                                           "ledger_signature": ledger_signature,
+                                           "head": snapshot.get("head"),
+                                           "fresh": fresh}
         session_promises_valid = all(sess.get("promise_read_valid", True)
                                      for sess in sessions.get("live", []))
         unclaimed_valid = (run_status == "running" and run_card.get("valid", False) and
                            sessions.get("valid", False) and session_promises_valid and
-                           snapshot.get("head_time_valid", False) and isa.get("ledger_mtime") is not None)
+                           snapshot.get("head_valid", False) and isa.get("ledger_mtime") is not None)
         waiting_note = state.get("unclaimed_waiting") or {}
-        waiting_is_current = (bool(waiting_note.get("text")) and unclaimed_valid and
-                              waiting_note.get("first_seen") is not None and
-                              waiting_note["first_seen"] > max(isa["ledger_mtime"], snapshot["head_time"]))
+        waiting_is_current = (bool(waiting_note.get("text")) and waiting_note.get("fresh", False) and
+                              unclaimed_valid and
+                              waiting_note.get("text") == run_card.get("waiting_text") and
+                              waiting_note.get("ledger_signature") == ledger_signature and
+                              waiting_note.get("head") == snapshot.get("head"))
         if unclaimed_valid:
             checked = {normalize_ident(ident) for ident in isa.get("checked", [])}
             parked = {normalize_ident(ident) for ident in isa.get("parked", [])}
@@ -1863,8 +1890,7 @@ def synthetic(name: str, now: float) -> dict:
             "isa": isa, "evidence": evidence,
             "run_status": "running" if name in ("done", "not-closed", "unclaimed", "reopen") else None,
             "run_card": {"valid": True, "status": None, "waiting_text": None},
-            "head": "fixture-head", "head_valid": True, "head_time": now - 200,
-            "head_time_valid": True}
+            "head": "fixture-head", "head_valid": True}
 
 
 def simulate(name: str, state_path: str, env: dict[str, str]) -> None:
@@ -2313,11 +2339,12 @@ def simulate(name: str, state_path: str, env: dict[str, str]) -> None:
     if name == "disk-big-file":
         state = {}
         output = io.StringIO()
+        disk_env = dict(env, WATCH_DISK_FREE_GB="10")
         for i, free in enumerate((8.0, 8.0, 4.0, 4.0)):
             snap = synthetic(name, base + i * 60)
             snap["host"]["free_gb"] = free
             with redirect_stdout(output):
-                alerts = evaluate(snap, state, env, True)
+                alerts = evaluate(snap, state, disk_env, True)
         disk_lines = [line for line in output.getvalue().splitlines() if "HOST disk:" in line]
         if len(disk_lines) != 2 or "🚦 HOST disk:" in disk_lines[0] or "🚦 HOST disk:" not in disk_lines[1]:
             raise AssertionError(f"disk escalation did not emit normal 8 GB then 🚦 4 GB alerts: {disk_lines}")
@@ -2327,11 +2354,23 @@ def simulate(name: str, state_path: str, env: dict[str, str]) -> None:
             calm = synthetic(name, base + 300 + i * 60)
             calm["host"]["free_gb"] = 6.0
             with redirect_stdout(calm_output):
-                evaluate(calm, calm_state, env, True)
+                evaluate(calm, calm_state, disk_env, True)
         calm_line = next((line for line in calm_output.getvalue().splitlines() if "HOST disk:" in line), "")
         if not calm_line or "🚦" in calm_line:
             raise AssertionError(f"6 GB disk alert changed unexpectedly: {calm_line!r}")
-        print("SIM disk-big-file: 8 GB alert escalated to a second 🚦 alert at 4 GB; 6 GB stayed unmarked.")
+        floor_state = {}
+        floor_output = io.StringIO()
+        for i in range(2):
+            floor = synthetic(name, base + 600 + i * 60)
+            floor["host"]["free_gb"] = 4.0
+            with redirect_stdout(floor_output):
+                floor_tags = evaluate(floor, floor_state, dict(env, WATCH_DISK_FREE_GB="3"), True)
+            if ("low disk" in floor_tags) != (i == 1):
+                raise AssertionError(f"4 GB disk floor did not alert after two checks: {floor_tags}")
+        floor_lines = [line for line in floor_output.getvalue().splitlines() if "HOST disk:" in line]
+        if len(floor_lines) != 1 or "🚦 HOST disk:" not in floor_lines[0] or "<5 GB" not in floor_lines[0]:
+            raise AssertionError(f"4 GB free with WATCH_DISK_FREE_GB=3 did not raise the independent floor alert: {floor_lines}")
+        print("SIM disk-big-file: normal 8 GB warning escalated at 4 GB; the <5 GB 🚦 floor also fired with WATCH_DISK_FREE_GB=3; 6 GB stayed unmarked.")
         print(summary_line(snap, alerts))
         return
     if name == "sim-idle-timer":
@@ -2415,32 +2454,57 @@ def simulate(name: str, state_path: str, env: dict[str, str]) -> None:
 
         waiting_state = {}
         for i in range(2):
-            quiet = synthetic(name, base + i * 60)
-            quiet["run_card"].update(waiting_text="owner review", mtime=quiet["now"] + 1000 * i)
-            if i:
-                quiet["isa"]["ledger_mtime"] = base - 100
-                quiet["head_time"] = base - 200
-            quiet_tags = evaluate(quiet, waiting_state, env, True)
-            if "unclaimed work" in quiet_tags or waiting_state["unclaimed_waiting"]["first_seen"] != base:
-                raise AssertionError("an unrelated run-card edit refreshed the first-seen waiting note")
+            existing = synthetic(name, base + i * 60)
+            existing["run_card"].update(waiting_text="owner review")
+            tags = evaluate(existing, waiting_state, env, True)
+            note = waiting_state.get("unclaimed_waiting", {})
+            if ("unclaimed work" in tags) != (i == 1) or note.get("fresh"):
+                raise AssertionError("an existing waiting line on fresh state silenced UNCLAIMED")
+
         changed_note = synthetic(name, base + 120)
-        changed_note["run_card"].update(waiting_text="waiting for the owner", mtime=base + 120)
-        changed_note["isa"]["ledger_mtime"] = base + 100
-        changed_note["head_time"] = base + 90
+        changed_note["run_card"].update(waiting_text="waiting for the owner")
         if "unclaimed work" in evaluate(changed_note, waiting_state, env, True):
-            raise AssertionError("a changed waiting-line text was not treated as newly written")
-        if waiting_state["unclaimed_waiting"]["first_seen"] != base + 120:
-            raise AssertionError("changed waiting-line text did not record its first-seen time")
+            raise AssertionError("a newly written waiting line with an unchanged identity did not silence UNCLAIMED")
+        if not waiting_state["unclaimed_waiting"].get("fresh"):
+            raise AssertionError("observed waiting-line text change was not marked fresh")
+        stable_note = synthetic(name, base + 180)
+        stable_note["run_card"].update(waiting_text="waiting for the owner")
+        if "unclaimed work" in evaluate(stable_note, waiting_state, env, True):
+            raise AssertionError("a fresh waiting line did not remain quiet while its identity stayed stable")
+        state_write(state_path, waiting_state)
+        waiting_state = state_read(state_path)  # watchdog restart preserves the old note identity
         for i in range(2):
-            stale_note = synthetic(name, base + 180 + i * 60)
-            stale_note["run_card"].update(waiting_text="waiting for the owner", mtime=stale_note["now"] + 1000)
-            stale_note["isa"]["ledger_mtime"] = base + 130
-            stale_note["head_time"] = base + 140
+            stale_note = synthetic(name, base + 240 + i * 60)
+            stale_note["run_card"].update(waiting_text="waiting for the owner")
+            stale_note["isa"].update(verdict_count=1,
+                                      latest_verdicts={"ISC-001": {"status": "PASS", "reason": "new work"}})
+            stale_note["head"] = "fixture-head-after-another-change"
             tags = evaluate(stale_note, waiting_state, env, True)
             if i == 0 and "unclaimed work" in tags:
-                raise AssertionError("stale waiting line alerted before its second check")
+                raise AssertionError("old waiting line alerted before its second check after a HEAD change")
             if i == 1 and "unclaimed work" not in tags:
-                raise AssertionError("mtime edit kept stale waiting line quiet")
+                raise AssertionError("old waiting line stayed quiet after ledger/HEAD identity changed")
+        fresh_waiting_state = waiting_state
+        for i in range(2):
+            fresh = synthetic(name, base + 360 + i * 60)
+            fresh["run_card"].update(waiting_text="new owner review")
+            fresh["isa"].update(verdict_count=1,
+                                latest_verdicts={"ISC-001": {"status": "PASS", "reason": "new work"}})
+            fresh["head"] = "fixture-head-after-another-change"
+            tags = evaluate(fresh, fresh_waiting_state, env, True)
+            if "unclaimed work" in tags:
+                raise AssertionError("new waiting text did not silence UNCLAIMED for the unchanged identity")
+
+        simultaneous_state = {}
+        first = synthetic(name, base)
+        evaluate(first, simultaneous_state, env, True)
+        same_check_change = synthetic(name, base + 60)
+        same_check_change["run_card"].update(waiting_text="new note")
+        same_check_change["head"] = "fixture-head-changed-with-note"
+        same_check_change["isa"].update(verdict_count=1,
+                                         latest_verdicts={"ISC-001": {"status": "PASS", "reason": "new work"}})
+        if "unclaimed work" not in evaluate(same_check_change, simultaneous_state, env, True):
+            raise AssertionError("waiting text changed with HEAD/ledger and incorrectly silenced UNCLAIMED")
 
         cycling_state = {}
         for i, rows in enumerate(("ISC-001", "ISC-002", "ISC-001", "ISC-001")):
@@ -2458,7 +2522,17 @@ def simulate(name: str, state_path: str, env: dict[str, str]) -> None:
             missing["sessions"]["valid"] = False
             if "unclaimed work" in evaluate(missing, missing_state, env, True):
                 raise AssertionError("unreadable sessions raised an unclaimed alert")
-        print("SIM unclaimed: alert required zero claims on the open set; claims, fresh waiting, missing data, and set changes stayed quiet.")
+        missing_head_state = {}
+        for i in range(2):
+            missing_head = synthetic(name, base + i * 60)
+            missing_head["run_card"].update(waiting_text="owner review")
+            if not i:
+                missing_head.update(head=None, head_valid=False)
+            if "unclaimed work" in evaluate(missing_head, missing_head_state, env, True):
+                raise AssertionError("an unreadable HEAD raised an unclaimed alert")
+        if "unclaimed_waiting" not in missing_head_state:
+            raise AssertionError("waiting note was not recorded when HEAD identity became readable")
+        print("SIM unclaimed: fresh-start notes stayed untrusted; rewritten notes silenced only across unchanged ledger/HEAD identity, while identity changes re-armed alerts.")
         print(summary_line(snap, alerts))
         return
     if name == "regression":
@@ -2489,12 +2563,29 @@ def simulate(name: str, state_path: str, env: dict[str, str]) -> None:
                     expected_alert = verdict == "FAIL" and check == 1
                     if ("regression" in tags) != expected_alert:
                         raise AssertionError(f"regression episode alert mismatch for {sequence}: {tags}")
+            ledger.write_text(
+                '<ul><li id="ISC-002"><input type="checkbox">Owner row</li></ul>'
+                '<table id="owner-verification-table"><tr><td>Owner</td>'
+                '<td><a href="#ISC-002">2</a></td></tr></table>'
+                '<section id="verification"><ul><li>ISC-002: FAIL - owner parked</li></ul></section>',
+                encoding="utf-8")
+            owner_parked = parse_isa(str(ledger), directory)
+            if not owner_parked.get("done"):
+                raise AssertionError(f"unchecked owner-parked FAIL blocked completion: {owner_parked}")
+            ledger.write_text(
+                '<ul><li id="ISC-003"><input type="checkbox">Owner-only row</li></ul>'
+                '<ul id="owner-only"><li>ISC-003: owner-only</li></ul>'
+                '<section id="verification"><ul><li>ISC-003: FAIL - owner-only</li></ul></section>',
+                encoding="utf-8")
+            owner_only = parse_isa(str(ledger), directory)
+            if not owner_only.get("done"):
+                raise AssertionError(f"unchecked owner-only FAIL blocked completion: {owner_only}")
         text = output.getvalue()
         regression_lines = [line for line in text.splitlines() if line.startswith("REGRESSION ISC-001:")]
         if len(regression_lines) != 2 or any("Revert the merge that broke it first" not in line
                                               for line in regression_lines):
             raise AssertionError(f"PASS→FAIL→PASS→FAIL did not re-alert with revert-first guidance: {text}")
-        print("SIM regression: checked-row FAIL beat completion; PASS re-armed the alert for a second failure episode.")
+        print("SIM regression: checked-row FAIL stayed open; unchecked owner-parked/owner-only FAILs did not block completion; PASS re-armed regression alerts.")
         print(summary_line(snap, tags))
         return
     if name == "plateau":
@@ -2572,20 +2663,28 @@ def simulate(name: str, state_path: str, env: dict[str, str]) -> None:
     if name == "leftover-session":
         state = {}
         output = io.StringIO()
-        for i in range(2):
+        statuses = ("failed", "active", "failed", "failed", "failed", "active", "failed", "failed")
+        expected_alerts = {3, 7}
+        for i, status in enumerate(statuses):
             snap = synthetic(name, base + i * 60)
+            snap["bb"]["by_id"]["thr-ended"]["status"] = status
             with redirect_stdout(output):
                 tags = evaluate(snap, state, env, True)
-            if ("leftover session" in tags) != (i == 1):
-                raise AssertionError(f"leftover session did not honor two-check alerting: {tags}")
+            if ("leftover session" in tags) != (i in expected_alerts):
+                raise AssertionError(f"leftover failed/healthy sequence mis-alerted at {status} step {i + 1}: {tags}")
+            if i == 0:
+                suppressed = ("OFF TRACK", "AGENT builder (ses-leftover)", "AGENT builder session ses-leftover",
+                              "BRIEF builder ses-leftover", "GHOST BB child thr-ended")
+                if any(marker in output.getvalue() for marker in suppressed):
+                    raise AssertionError(f"stale session raised additional alerts before recovery: {output.getvalue()}")
+            if status == "active":
+                rec = state.get("conditions", {}).get("leftover-session:ses-leftover", {})
+                if rec.get("streak") != 0 or rec.get("last_alert"):
+                    raise AssertionError(f"healthy session did not clear its LEFTOVER episode: {rec}")
         text = output.getvalue()
         leftover_lines = [line for line in text.splitlines() if line.startswith("LEFTOVER session ses-leftover")]
-        if len(leftover_lines) != 1 or "interrupt it before relaunching" not in leftover_lines[0]:
-            raise AssertionError(f"one stale session should produce one LEFTOVER line: {leftover_lines}")
-        suppressed = ("OFF TRACK", "AGENT builder (ses-leftover)", "AGENT builder session ses-leftover",
-                      "BRIEF builder ses-leftover", "GHOST BB child thr-ended")
-        if any(marker in text for marker in suppressed):
-            raise AssertionError(f"stale session raised additional session-specific alerts: {text}")
+        if len(leftover_lines) != 2 or any("interrupt it before relaunching" not in line for line in leftover_lines):
+            raise AssertionError(f"two separate stale-session episodes should each produce one LEFTOVER line: {leftover_lines}")
         if f"would queue to {env['ORCH_THREAD']}:" not in output.getvalue():
             raise AssertionError("leftover alert was not addressed to the orchestrator thread")
 
@@ -2605,13 +2704,7 @@ def simulate(name: str, state_path: str, env: dict[str, str]) -> None:
                 raise AssertionError("ended BB session remained an effective live claim")
         if not {"unclaimed work", "orphan process", "leftover session"}.issubset(stale_tags):
             raise AssertionError(f"ended helper suppressed unclaimed/orphan checks: {stale_tags}")
-        quiet_state = {}
-        for i in range(2):
-            quiet = synthetic(name, base + i * 60)
-            quiet["bb"]["by_id"]["thr-ended"]["status"] = "active"
-            if "leftover session" in evaluate(quiet, quiet_state, env, True):
-                raise AssertionError("active BB thread was falsely reported as leftover")
-        print("SIM leftover-session: failed BB thread alerted on check two; an active BB thread stayed quiet.")
+        print("SIM leftover-session: healthy checks reset LEFTOVER; failed/failed alerted once, and a recovered session re-armed it.")
         print(summary_line(snap, tags))
         return
     if name == "idle-helper":

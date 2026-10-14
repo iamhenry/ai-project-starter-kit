@@ -103,17 +103,17 @@ Pause: `bb automation pause <id>`. Remove: `bb automation delete <id> --project 
 ### How it ends
 
 - Run card `status: closed` → pauses its automation; after a successful pause, it deletes it on the next check. It sends nothing.
-- Ledger complete or parked-only while the card is not closed → one `WATCH DONE` message, then pauses. It does not delete until the card is closed.
+- Ledger complete or parked-only while the card is not closed → one `WATCH DONE` message, then pauses. Unchecked owner-parked and owner-only rows do not hold completion open, even with a latest FAIL; a checked row with a latest FAIL does. It does not delete until the card is closed.
 - If pausing fails, it retries until paused. If deletion fails, it stays paused and retries deletion on each later check. Ledger-only completion retries a failed pause as before.
 - `status: waiting-owner` / `waiting-usage` → no nudges; other checks continue.
 - An unchecked row whose latest verdict is FAIL after three FAILs since its latest PASS, not parked/BLOCKED → one `LOOP` message to park it with its exact unlock condition and move to other work.
-- Open, unchecked, non-owner rows with no live PROMISE claim at all → one `UNCLAIMED` message per stable open-row set after two checks. Any claimed open row suppresses it. A changed `waiting:` line stays fresh only from its first-seen time, and only until the ledger or HEAD changes.
+- Open, unchecked, non-owner rows with no live PROMISE claim at all → one `UNCLAIMED` message per stable open-row set after two checks. Any claimed open row suppresses it. A `waiting:` line silences the alert only after the watchdog observed its text change while the ledger signature and HEAD hash stayed unchanged, and only while those values stay unchanged; on a fresh start, an existing line is just a baseline, so rewrite it to silence the alert.
 - Three observed live PROMISE helpers end without a new ledger verdict → one `PLATEAU (heuristic)` message with the first-finish time. Helpers that finish between checks are not counted. Any new verdict resets the count.
 - A row that passed before and now fails → one `REGRESSION` message: revert the breaking merge first, then fix on the side. A later PASS rearms it; a latest FAIL keeps the ledger incomplete even if checked.
-- A busy OpenCode session whose bound BB thread failed, stopped or went idle → one `LEFTOVER` message to interrupt it before relaunching. That session is excluded from other per-session alerts, live claims and orphan suppression.
+- A busy OpenCode session whose bound BB thread failed, stopped or went idle on two consecutive checks → one `LEFTOVER` message to interrupt it before relaunching. A healthy check clears the streak so a later failure can alert again. That session is excluded from other per-session alerts, live claims and orphan suppression.
 - Orphan recorder, simulator-launch/spawn and log-stream processes are ignored while an effective agent is live; without agents, they need 15 minutes and two checks to alert. Simulator idle time only accrues while a simulator is booted and resets when none are booted. Idle or finished OpenCode helpers do not count as ghost or off-track agents.
-- If the run card returns to `running` while the ledger is incomplete, stale `done` and pause state is cleared so the watchdog resumes.
-- Disk below 5 GB escalates to a separate `🚦 HOST disk` alert, even after the normal low-disk alert, so the orchestrator relays it to the owner if cleanup cannot fix it.
+- If the run card returns to `running` while the ledger is incomplete, stale `done` and pause state is cleared on the next check. A paused automation does not run by itself: resume it with `bb automation resume <id> --project <id>` when reopening a run.
+- Disk below 5 GB always escalates to a separate `🚦 HOST disk` alert, regardless of `WATCH_DISK_FREE_GB`, so the orchestrator relays it to the owner if cleanup cannot fix it.
 - Three nudges with no ledger verdict change → one `🚦 WATCH STALLED` message, then no more nudges until the card goes from waiting back to running.
 - It never restarts a dead orchestrator. The only repair is at most one `bb plugin reload opencode` per hour when the OpenCode server is unreachable.
 
