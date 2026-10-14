@@ -13,7 +13,7 @@ Subagent A (5 Whys)
 - Every conclusion must include hard evidence.
 
 Subagent B (Debug Error)
-- Use `@_ai/prompts/analysis/debug_error.md` for the method.
+- Use `@.agents/skills/bugging-out/playbooks/hypothesis-funnel.md` for the method.
 - Generate 5-7 plausible causes, reduce to top 1-2 most likely.
 - Add targeted checks/log statements to validate assumptions.
 - Every conclusion must include hard evidence.

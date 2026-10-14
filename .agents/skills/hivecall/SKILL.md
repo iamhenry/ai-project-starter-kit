@@ -57,7 +57,7 @@ Re-plan on new evidence, not on activity.
 
 ## Park, don't loop
 
-- A failure gets one correction using a different approach.
+- A failure gets one correction using a different approach. If its cause is unclear, the correction brief names `bugging-out` and carries the failed evidence; the builder picks the next playbook, not a repeat.
 - A second failure of the same kind: park the item with its exact unlock condition and move to other work.
 - Owner-only items (physical device, human access) are parked from the start.
 - Parked items do not stop the run.
@@ -72,7 +72,7 @@ When every counted item is ticked or parked: set the run card to `status: closed
 
 ## Workflow skills
 
-`subagent-delegation` (briefs), `verification-gate` with `qa` (independent proof), `code-quality-gate` with `reviewer` (as risk warrants), `reproduce-bug` (bugs), `gather-context` with `atlas` / `voyager` (research), `git-commits` (local commits only). Platform skills as the project needs them, e.g. `xcodebuildmcp-cli` and `argent` for iOS, `agent-browser` for web.
+`subagent-delegation` (briefs), `verification-gate` with `qa` (independent proof), `code-quality-gate` with `reviewer` (as risk warrants), `reproduce-bug` (bugs), `bugging-out` (unclear cause or a failed fix), `gather-context` with `atlas` / `voyager` (research), `git-commits` (local commits only). Platform skills as the project needs them, e.g. `xcodebuildmcp-cli` and `argent` for iOS, `agent-browser` for web.
 
 ## Status footer
 
