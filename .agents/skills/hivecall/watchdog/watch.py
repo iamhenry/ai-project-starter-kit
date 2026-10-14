@@ -272,16 +272,15 @@ def read_run_status(path: str) -> str | None:
 
 
 def read_run_card(path: str) -> dict:
-    """Read only the run-card facts needed to decide whether unclaimed work is intentional."""
+    """Read the run-card lifecycle and any current waiting note."""
     try:
         source = Path(path).read_text(encoding="utf-8")
-        modified = Path(path).stat().st_mtime
     except OSError:
-        return {"valid": False, "status": None, "waiting": False, "mtime": None}
+        return {"valid": False, "status": None, "waiting_text": None}
     m = re.search(r"^\s*(?:[-*]\s*)?\**status\**:\s*`?([a-z-]+)", source, re.M | re.I)
+    waiting = re.search(r"^\s*waiting\s*:\s*(\S.*?)\s*$", source, re.M | re.I)
     return {"valid": True, "status": m.group(1).lower() if m else None,
-            "waiting": bool(re.search(r"^\s*waiting\s*:\s*\S", source, re.M | re.I)),
-            "mtime": modified}
+            "waiting_text": waiting.group(1).strip() if waiting else None}
 
 
 def pause_automation(env: dict[str, str], dry_run: bool) -> str:
@@ -393,6 +392,7 @@ def parse_isa(path: str, root: str = "") -> dict:
                 pass_lines += 1
                 pass_ids.add(ident)
                 pass_history.add(normalize_ident(ident))
+                fail_counts[normalize_ident(ident)] = 0
             if status == "FAIL":
                 fail_counts[normalize_ident(ident)] = fail_counts.get(normalize_ident(ident), 0) + 1
                 signature = hashlib.sha256(text.encode()).hexdigest()[:12]
@@ -403,7 +403,9 @@ def parse_isa(path: str, root: str = "") -> dict:
     parked = (set(owner) | blocked) - checked
     regressions = {normalize_ident(ident) for ident, (status, _) in latest.items()
                    if status == "FAIL" and normalize_ident(ident) in pass_history}
-    done = bool(criteria) and all(ident in checked or ident in owner or ident in blocked for ident in criteria)
+    latest_fail_ids = {normalize_ident(ident) for ident, (status, _) in latest.items() if status == "FAIL"}
+    done = (bool(criteria) and not (latest_fail_ids & {normalize_ident(ident) for ident in criteria}) and
+            all(ident in checked or ident in owner or ident in blocked for ident in criteria))
     owner_done = sum(ident in checked for ident in owner)
     root_path = Path(root).resolve() if root else Path.cwd().resolve()
     enriched_fails = []
@@ -1198,6 +1200,13 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
     review.setdefault("other_agents", [])
 
     isa_valid = not isa.get("error")
+    if isa_valid:
+        active_regressions = set(isa.get("regressions", []))
+        for key in list(conditions):
+            if key.startswith("regression:") and key.split(":", 1)[1] not in active_regressions:
+                conditions.pop(key, None)
+        alerted = set(state.get("regressions_alerted", []))
+        state["regressions_alerted"] = sorted(alerted & active_regressions)
     if run_status == "running" and isa_valid and not isa.get("done"):
         clear_done_state(state)
     if run_status == "closed":
@@ -1256,6 +1265,26 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
             review["alerts"][tag] = review["alerts"].get(tag, 0) + 1
         return due
 
+    all_live_sessions = list(sessions.get("live", []))
+    leftover_sessions = []
+    can_check_bindings = (sessions.get("valid", False) and bb.get("list_valid", False) and
+                          bb.get("binding_valid", False))
+    if can_check_bindings:
+        for sess in all_live_sessions:
+            child_thread = sess.get("thread_id")
+            thread = bb.get("by_id", {}).get(child_thread, {}) if child_thread else {}
+            status = thread.get("status")
+            if isinstance(status, str) and status.lower() in ("failed", "stopped", "idle"):
+                leftover_sessions.append((sess, child_thread))
+        if leftover_sessions:
+            leftover_ids = {sess["id"] for sess, _ in leftover_sessions}
+            sessions["live"] = [sess for sess in all_live_sessions if sess["id"] not in leftover_ids]
+    for sess, child_thread in leftover_sessions:
+        trigger("leftover-session:" + sess["id"], True,
+                f"LEFTOVER session {sess['id']} still running after its BB thread {child_thread} ended; "
+                "interrupt it before relaunching.",
+                valid=can_check_bindings)
+
     load = host.get("load")
     load_limit = setting(env, "WATCH_LOAD_LIMIT", 150)
     trigger("high-load", load is not None and load > load_limit,
@@ -1264,26 +1293,35 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
             int(load // load_limit) if load else 1, valid=host.get("uptime_valid", False))
     free = host.get("free_gb")
     disk_limit = setting(env, "WATCH_DISK_FREE_GB", 10)
-    trigger("low-disk", free is not None and free < disk_limit,
-            f"{'🚦 ' if free is not None and free < 5 else ''}HOST disk: only {free:.1f} GB free on / (<{disk_limit:g} GB); see df -h /."
-            if free is not None else "HOST disk: df reading unavailable.",
-            2 if free is not None and free < disk_limit / 2 else 1,
-            valid=host.get("df_valid", False))
+    disk_valid = host.get("df_valid", False)
+    critical_disk = free is not None and free < disk_limit and free < 5
+    normal_disk = free is not None and free < disk_limit and not critical_disk
+    if critical_disk:
+        trigger("low-disk", False, "", valid=disk_valid)
+        trigger("low-disk:critical", True,
+                f"🚦 HOST disk: only {free:.1f} GB free on / (<{disk_limit:g} GB); see df -h /.",
+                2, valid=disk_valid)
+    else:
+        trigger("low-disk:critical", False, "", valid=disk_valid)
+        trigger("low-disk", normal_disk,
+                f"HOST disk: only {free:.1f} GB free on / (<{disk_limit:g} GB); see df -h /."
+                if free is not None else "HOST disk: df reading unavailable.",
+                1, valid=disk_valid)
     for f in host.get("recent_big", []):
         age = minutes_since(f["created"], now) or 0
         size_mb = f["size"] / 1_048_576
         trigger("big-file:" + f["path"], True,
                 f"HOST large file: {f['path']} is {size_mb:.0f} MB, created {age:.0f} min ago.",
                 max(1, int(size_mb // 100)), valid=host.get("recent_big_valid", False))
-    sim_state = state.setdefault("sim_idle", {})
+    orphan_state = state.setdefault("orphan_idle", {})
     no_agent_elapsed = None
     if sessions.get("valid", False):
         if sessions.get("live"):
-            sim_state["no_agent_since"] = None
+            orphan_state["no_agent_since"] = None
         else:
-            if sim_state.get("no_agent_since") is None:
-                sim_state["no_agent_since"] = now
-            no_agent_elapsed = (now - sim_state["no_agent_since"]) / 60
+            if orphan_state.get("no_agent_since") is None:
+                orphan_state["no_agent_since"] = now
+            no_agent_elapsed = (now - orphan_state["no_agent_since"]) / 60
     no_agent_long_enough = (no_agent_elapsed is not None and
                             no_agent_elapsed >= setting(env, "WATCH_GHOST_MIN", 15))
     for proc in host.get("processes", []):
@@ -1378,15 +1416,6 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
                     f"AGENT {sess['agent']} session {sess['id']} is not bound to a visible active BB child; last message {idle:.0f} min ago.",
                     valid=(sessions.get("valid", False) and bb.get("list_valid", False) and
                            bb.get("binding_valid", False)))
-        child_thread = sess.get("thread_id")
-        thread = bb.get("by_id", {}).get(child_thread, {}) if child_thread else {}
-        thread_status = thread.get("status")
-        ended = isinstance(thread_status, str) and thread_status.lower() in ("failed", "stopped", "idle")
-        trigger("leftover-session:" + sess["id"], ended,
-                f"LEFTOVER session {sess['id']} still running after its BB thread {child_thread} ended; "
-                "interrupt it before relaunching.",
-                valid=(sessions.get("valid", False) and bb.get("list_valid", False) and
-                       bb.get("binding_valid", False) and bool(child_thread) and isinstance(thread_status, str)))
 
     for child in bb["children"]:
         ghost_key = "ghost-agent:" + str(child.get("id"))
@@ -1468,18 +1497,17 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
     # Three failed attempts are enough to park a row instead of repeating it.
     if isa_valid:
         checked = {normalize_ident(ident) for ident in isa.get("checked", [])}
+        parked = {normalize_ident(ident) for ident in isa.get("parked", [])}
+        parked |= {normalize_ident(ident) for ident in isa.get("blocked", [])}
         for ident, verdict in isa.get("latest_verdicts", {}).items():
             count = isa.get("fail_counts", {}).get(ident, 0)
             trigger("repeat-fail:" + ident,
-                    verdict.get("status") == "FAIL" and count >= 3 and ident not in checked,
+                    verdict.get("status") == "FAIL" and count >= 3 and ident not in checked and ident not in parked,
                     f"LOOP {ident}: {count} FAIL verdicts. After 3 different attempts, park it with its exact "
                     "unlock condition and move to other work.")
 
         active_regressions = set(isa.get("regressions", []))
         alerted_regressions = set(state.setdefault("regressions_alerted", []))
-        for key in list(conditions):
-            if key.startswith("regression:") and key.split(":", 1)[1] not in active_regressions:
-                trigger(key, False, "")
         for ident in sorted(active_regressions):
             due = trigger("regression:" + ident, ident not in alerted_regressions,
                           f"REGRESSION {ident}: passed before, now FAIL. Revert the merge that broke it first, fix on the side.")
@@ -1488,30 +1516,43 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
         state["regressions_alerted"] = sorted(alerted_regressions)
 
         run_card = snapshot.get("run_card", {})
+        if run_card.get("valid", False):
+            waiting_text = run_card.get("waiting_text")
+            waiting_note = state.get("unclaimed_waiting")
+            if not waiting_text:
+                state.pop("unclaimed_waiting", None)
+            elif not isinstance(waiting_note, dict) or waiting_note.get("text") != waiting_text:
+                state["unclaimed_waiting"] = {"text": waiting_text, "first_seen": now}
         session_promises_valid = all(sess.get("promise_read_valid", True)
                                      for sess in sessions.get("live", []))
         unclaimed_valid = (run_status == "running" and run_card.get("valid", False) and
                            sessions.get("valid", False) and session_promises_valid and
                            snapshot.get("head_time_valid", False) and isa.get("ledger_mtime") is not None)
-        waiting_is_current = (run_card.get("waiting", False) and unclaimed_valid and
-                              run_card.get("mtime") is not None and
-                              run_card["mtime"] > max(isa["ledger_mtime"], snapshot["head_time"]))
+        waiting_note = state.get("unclaimed_waiting") or {}
+        waiting_is_current = (bool(waiting_note.get("text")) and unclaimed_valid and
+                              waiting_note.get("first_seen") is not None and
+                              waiting_note["first_seen"] > max(isa["ledger_mtime"], snapshot["head_time"]))
         if unclaimed_valid:
             checked = {normalize_ident(ident) for ident in isa.get("checked", [])}
             parked = {normalize_ident(ident) for ident in isa.get("parked", [])}
             owner = {normalize_ident(ident) for ident in isa.get("owner", [])}
             owner_only = {normalize_ident(ident) for ident in isa.get("owner_only_ids", [])}
+            open_items = set(isa.get("criteria", [])) - checked - parked - owner - owner_only
+            open_rows = sorted(open_items)
+            if state.get("unclaimed_open_set") != open_rows:
+                for key in list(conditions):
+                    if key.startswith("unclaimed:"):
+                        trigger(key, False, "")
+                state["unclaimed_open_set"] = open_rows
             claimed = set()
             for sess in sessions.get("live", []):
                 promise = sess.get("promise") or {}
                 if promise.get("valid"):
                     claimed |= {normalize_ident(ident) for ident in promise.get("rows", set())}
-            open_unclaimed = (set(isa.get("criteria", [])) - checked - parked - owner - owner_only - claimed)
-            if run_status == "running" and open_unclaimed and not waiting_is_current:
-                rows = sorted(open_unclaimed)
-                key = "unclaimed:" + hashlib.sha256("\n".join(rows).encode()).hexdigest()[:12]
+            if open_items and not (open_items & claimed) and not waiting_is_current:
+                key = "unclaimed:" + hashlib.sha256("\n".join(open_rows).encode()).hexdigest()[:12]
                 trigger(key, True,
-                        f"UNCLAIMED: {len(rows)} open items have no agent ({', '.join(rows)}); "
+                        f"UNCLAIMED: {len(open_rows)} open items have no agent ({', '.join(open_rows)}); "
                         f"{len(sessions.get('live', []))} agents running. Start real work on one, or write a `waiting: <reason>` line in the run card.")
             else:
                 for key in list(conditions):
@@ -1521,6 +1562,7 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
             for key in list(conditions):
                 if key.startswith("unclaimed:"):
                     trigger(key, False, "")
+            state["unclaimed_open_set"] = None
 
     if isa_valid and sessions.get("valid", False):
         signature = [isa.get("verdict_count", 0),
@@ -1534,8 +1576,9 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
         changed = plateau.get("verdict_signature") is not None and plateau["verdict_signature"] != signature
         if changed:
             plateau["finish_count"] = 0
+            plateau["no_progress_since"] = None
         previous_active = set(plateau.get("active", []))
-        live_ids = {sess["id"] for sess in sessions.get("live", [])}
+        live_ids = {sess["id"] for sess in all_live_sessions}
         current_active = {sess["id"] for sess in sessions.get("live", [])
                           if (sess.get("promise") or {}).get("valid") and
                           (sess.get("promise") or {}).get("rows")}
@@ -1544,8 +1587,15 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
             plateau["finish_count"] = plateau.get("finish_count", 0) + len(previous_active - current_active)
         plateau.update(active=sorted(current_active), verdict_signature=signature)
         finish_count = plateau["finish_count"]
+        if finish_count and plateau.get("no_progress_since") is None:
+            plateau["no_progress_since"] = now
+        elif not finish_count:
+            plateau["no_progress_since"] = None
+        since = (dt.datetime.fromtimestamp(plateau["no_progress_since"]).astimezone().isoformat(timespec="minutes")
+                 if plateau.get("no_progress_since") is not None else "unknown time")
         trigger("plateau", finish_count >= 3,
-                "PLATEAU: 3 helpers finished with no new verdict; change approach (different method, stronger model or research) or park.",
+                f"PLATEAU (heuristic): 3 helpers ended with no new verdict since {since}. Helpers that finish between "
+                "checks are not counted. If the work is stuck, change approach or park.",
                 valid=isa_valid and sessions.get("valid", False))
 
     # OpenCode recovery is intentionally one reload per hour, followed by a user note if still down.
@@ -1572,12 +1622,18 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
                     notes.append(detail)
                     server_state["reload_pending_at"] = None
 
-    # Simulators are suspicious only after a full 15 minutes with no live agent.
+    # Only booted simulators accrue no-agent time.
     if sessions.get("valid", False) and host.get("sims_valid", False):
         if not sessions["live"] and host["booted_sims"]:
-            trigger("sim-without-agent", no_agent_long_enough,
-                    f"SIMULATOR: {len(host['booted_sims'])} booted simulator(s), no live agent for {no_agent_elapsed:.0f} min.")
+            sim_idle = state.setdefault("sim_idle", {})
+            if sim_idle.get("no_agent_since") is None:
+                sim_idle["no_agent_since"] = now
+            sim_elapsed = (now - sim_idle["no_agent_since"]) / 60
+            trigger("sim-without-agent", sim_elapsed >= setting(env, "WATCH_GHOST_MIN", 15),
+                    f"SIMULATOR: {len(host['booted_sims'])} booted simulator(s), no live agent for {sim_elapsed:.0f} min.",
+                    valid=sessions.get("valid", False) and host.get("sims_valid", False))
         else:
+            state.setdefault("sim_idle", {})["no_agent_since"] = None
             trigger("sim-without-agent", False, "")
 
     # A brief without TALK-BACK leaves a blocked worker silent until it finishes.
@@ -1681,12 +1737,6 @@ def synthetic(name: str, now: float) -> dict:
                                     "verdict_count": 1, "pending_wait": None, "builder": False})
         isa["latest_verdicts"] = {"ISC-013.1": {"status": "FAIL", "reason": "newer smoke failed"}}
         isa["ledger_mtime"] = now - 30 * 60
-    elif name == "repeat-fail":
-        isa["latest_verdicts"] = {"ISC-001": {"status": "FAIL", "reason": "swipe ignored again"},
-                                  "ISC-002": {"status": "PASS", "reason": "fixed"},
-                                  "ISC-003": {"status": "FAIL", "reason": "first failure"}}
-        isa["fail_counts"] = {"ISC-001": 3, "ISC-002": 3, "ISC-003": 1, "ISC-004": 2}
-        isa["latest_verdicts"]["ISC-004"] = {"status": "FAIL", "reason": "not yet parked"}
     elif name in ("orphan-recorder", "orphan-recorder-active"):
         host["processes"] = [{"pid": 123, "ppid": 1, "age": 1200,
                               "command": "recordVideo /fixture/out.mp4", "orphan": True}]
@@ -1709,7 +1759,7 @@ def synthetic(name: str, now: float) -> dict:
         isa.update(total=5, criteria=[f"ISC-{i:03d}" for i in range(1, 6)],
                    owner=["ISC-004"], owner_only_ids=["ISC-005"], parked=["ISC-003"],
                    latest_verdicts={"ISC-003": {"status": "BLOCKED"}})
-        promise = {"valid": True, "kind": "helper", "rows": {"ISC-002"}, "result_path": "/fixture/helper.md",
+        promise = {"valid": True, "kind": "helper", "rows": set(), "result_path": "/fixture/helper.md",
                    "pace": 20}
         sess = {"id": "ses-claimer", "agent": "helper", "created": now, "last_message": now,
                 "last_assistant": now, "time_idle": None, "idle_outcome": None,
@@ -1718,10 +1768,12 @@ def synthetic(name: str, now: float) -> dict:
         sessions.update(live=[sess], children=[sess])
         bb["by_id"] = {"thr-claimer": {"id": "thr-claimer", "title": "claimer"}}
     elif name == "leftover-session":
-        sess = {"id": "ses-leftover", "agent": "builder", "created": now - 60,
-                "last_message": now, "last_assistant": now, "time_idle": None,
-                "idle_outcome": None, "thread_id": "thr-ended", "visible": True,
-                "promise": None}
+        promise = {"valid": True, "kind": "helper", "rows": {"ISC-001"},
+                   "result_path": "/fixture/stale-result.md", "pace": 20}
+        sess = {"id": "ses-leftover", "agent": "builder", "created": now - 601 * 60,
+                "last_message": now - 601 * 60, "last_assistant": now - 601 * 60, "time_idle": None,
+                "idle_outcome": None, "thread_id": "thr-ended", "visible": False,
+                "promise": promise, "promise_read_valid": True, "talkback": False, "steers": []}
         sessions.update(live=[sess], children=[sess])
         bb["children"] = [{"id": "thr-ended", "status": "failed", "title": "ended helper",
                             "bound_sessions": [sess], "sessions": [sess]}]
@@ -1810,7 +1862,7 @@ def synthetic(name: str, now: float) -> dict:
     return {"now": now, "host": host, "server": server, "sessions": sessions, "bb": bb,
             "isa": isa, "evidence": evidence,
             "run_status": "running" if name in ("done", "not-closed", "unclaimed", "reopen") else None,
-            "run_card": {"valid": True, "status": None, "waiting": False, "mtime": now - 50},
+            "run_card": {"valid": True, "status": None, "waiting_text": None},
             "head": "fixture-head", "head_valid": True, "head_time": now - 200,
             "head_time_valid": True}
 
@@ -1821,7 +1873,7 @@ def simulate(name: str, state_path: str, env: dict[str, str]) -> None:
     if name in ("orphan-recorder", "orphan-recorder-active"):
         state = {}
         if name == "orphan-recorder":
-            state["sim_idle"] = {"no_agent_since": base - 15 * 60}
+            state["orphan_idle"] = {"no_agent_since": base - 15 * 60}
     if name in ("closed-delete", "done", "not-closed"):
         sim_env = dict(env, AUTOMATION_ID="auto-fixture", PROJECT_ID="project-fixture")
         state = {}
@@ -2259,20 +2311,81 @@ def simulate(name: str, state_path: str, env: dict[str, str]) -> None:
         print(summary_line(last_snapshot, alerts))
         return
     if name == "disk-big-file":
-        for free, marked in ((4.0, True), (6.0, False)):
-            case_state = {}
-            output = io.StringIO()
-            for i in range(2):
-                snap = synthetic(name, base + i * 60)
-                snap["host"]["free_gb"] = free
-                with redirect_stdout(output):
-                    alerts = evaluate(snap, case_state, env, True)
-            text = output.getvalue()
-            disk_line = next((line for line in text.splitlines() if "HOST disk:" in line), "")
-            if ("🚦 HOST disk:" in disk_line) != marked:
-                raise AssertionError(f"low-disk emoji mismatch at {free:.0f} GB: {disk_line!r}")
-            print(f"SIM disk-big-file: {free:.0f} GB message {'has' if marked else 'does not have'} the owner-relay emoji.")
+        state = {}
+        output = io.StringIO()
+        for i, free in enumerate((8.0, 8.0, 4.0, 4.0)):
+            snap = synthetic(name, base + i * 60)
+            snap["host"]["free_gb"] = free
+            with redirect_stdout(output):
+                alerts = evaluate(snap, state, env, True)
+        disk_lines = [line for line in output.getvalue().splitlines() if "HOST disk:" in line]
+        if len(disk_lines) != 2 or "🚦 HOST disk:" in disk_lines[0] or "🚦 HOST disk:" not in disk_lines[1]:
+            raise AssertionError(f"disk escalation did not emit normal 8 GB then 🚦 4 GB alerts: {disk_lines}")
+        calm_state = {}
+        calm_output = io.StringIO()
+        for i in range(2):
+            calm = synthetic(name, base + 300 + i * 60)
+            calm["host"]["free_gb"] = 6.0
+            with redirect_stdout(calm_output):
+                evaluate(calm, calm_state, env, True)
+        calm_line = next((line for line in calm_output.getvalue().splitlines() if "HOST disk:" in line), "")
+        if not calm_line or "🚦" in calm_line:
+            raise AssertionError(f"6 GB disk alert changed unexpectedly: {calm_line!r}")
+        print("SIM disk-big-file: 8 GB alert escalated to a second 🚦 alert at 4 GB; 6 GB stayed unmarked.")
         print(summary_line(snap, alerts))
+        return
+    if name == "sim-idle-timer":
+        state = {}
+        checks = ((0, False), (14 * 60, False), (20 * 60, True), (35 * 60, True),
+                  (36 * 60, False), (37 * 60, True), (52 * 60, True), (53 * 60, True))
+        for i, (elapsed, booted) in enumerate(checks):
+            snap = synthetic(name, base + elapsed)
+            snap["host"]["booted_sims"] = ["Fixture (Booted)"] if booted else []
+            tags = evaluate(snap, state, env, True)
+            since = state.get("sim_idle", {}).get("no_agent_since")
+            expected_since = base + (20 * 60 if i in (2, 3) else 37 * 60 if i >= 5 else 0) if booted else None
+            if since != expected_since:
+                raise AssertionError(f"simulator idle timer mismatch at check {i + 1}: {since} != {expected_since}")
+            expected_alert = i == len(checks) - 1
+            if ("idle simulator" in tags) != expected_alert:
+                raise AssertionError(f"simulator idle alert mismatch at check {i + 1}: {tags}")
+        print("SIM sim-idle-timer: no simulators accrued no-agent time; booting started a fresh timer; alert needed two checks.")
+        print(summary_line(snap, tags))
+        return
+    if name == "repeat-fail":
+        with tempfile.TemporaryDirectory() as directory:
+            ledger = Path(directory) / "ISA.html"
+            rows = "".join(f'<li id="ISC-{i:03d}"><input type="checkbox">{i}</li>'
+                           for i in range(1, 5))
+            ledger.write_text('<ul>' + rows + '</ul>'
+                              '<table id="owner-verification-table"><tr><td>Owner</td><td><a href="#ISC-004">4</a></td></tr></table>'
+                              '<section id="verification"><ul>'
+                              '<li>ISC-001: FAIL - first</li><li>ISC-001: FAIL - second</li>'
+                              '<li>ISC-001: PASS - recovered</li><li>ISC-001: FAIL - one after pass</li>'
+                              '<li>ISC-002: FAIL - one</li><li>ISC-002: FAIL - two</li><li>ISC-002: FAIL - three</li>'
+                              '<li>ISC-003: FAIL - one</li><li>ISC-003: FAIL - two</li><li>ISC-003: FAIL - three</li>'
+                              '<li>ISC-003: BLOCKED - parked</li>'
+                              '<li>ISC-004: FAIL - one</li><li>ISC-004: FAIL - two</li><li>ISC-004: FAIL - three</li>'
+                              '</ul></section>', encoding="utf-8")
+            isa = parse_isa(str(ledger), directory)
+        if isa.get("fail_counts", {}).get("ISC-001") != 1:
+            raise AssertionError(f"PASS did not reset repeat-fail count: {isa.get('fail_counts')}")
+        if "ISC-003" not in isa.get("blocked", []) or "ISC-004" not in isa.get("parked", []):
+            raise AssertionError(f"BLOCKED and owner-parked fixtures were not parsed: {isa}")
+        state = {}
+        output = io.StringIO()
+        for i in range(2):
+            snap = synthetic(name, base + i * 60)
+            snap["isa"] = isa
+            with redirect_stdout(output):
+                tags = evaluate(snap, state, env, True)
+            if ("repeat failure" in tags) != (i == 1):
+                raise AssertionError(f"repeat-fail did not honor two-check alerting: {tags}")
+        loop_lines = [line for line in output.getvalue().splitlines() if line.startswith("LOOP ISC-")]
+        if len(loop_lines) != 1 or not loop_lines[0].startswith("LOOP ISC-002:"):
+            raise AssertionError(f"only the eligible 3-FAIL row should raise LOOP: {loop_lines}")
+        print("SIM repeat-fail: 2 FAILs, post-PASS FAIL, BLOCKED and owner-parked rows stayed quiet; eligible 3 FAILs alerted.")
+        print(summary_line(snap, tags))
         return
     if name == "unclaimed":
         state = {}
@@ -2286,58 +2399,103 @@ def simulate(name: str, state_path: str, env: dict[str, str]) -> None:
             if i == 1 and "unclaimed work" not in alerts:
                 raise AssertionError("unclaimed set did not alert on its second check")
         text = output.getvalue()
-        if "UNCLAIMED: 1 open items have no agent (ISC-001); 1 agents running." not in text:
-            raise AssertionError(f"unclaimed alert did not list only the genuinely open row: {text}")
-        if state.get("conditions", {}).get("unclaimed:" + hashlib.sha256(b"ISC-001").hexdigest()[:12], {}).get("last_alert") != base + 60:
+        if "UNCLAIMED: 2 open items have no agent (ISC-001, ISC-002); 1 agents running." not in text:
+            raise AssertionError(f"unclaimed alert did not list all open rows: {text}")
+        open_key = "unclaimed:" + hashlib.sha256(b"ISC-001\nISC-002").hexdigest()[:12]
+        if state.get("conditions", {}).get(open_key, {}).get("last_alert") != base + 60:
             raise AssertionError("unclaimed set was not deduplicated by its sorted row set")
 
-        for label, waiting in (("claimed", False), ("recent-waiting", True)):
-            quiet_state = {}
-            for i in range(2):
-                quiet = synthetic(name, base + i * 60)
-                if waiting:
-                    quiet["run_card"].update(waiting=True, mtime=quiet["now"] - 10)
-                else:
-                    quiet["sessions"]["live"][0]["promise"]["rows"].add("ISC-001")
-                quiet_tags = evaluate(quiet, quiet_state, env, True)
-                if "unclaimed work" in quiet_tags:
-                    raise AssertionError(f"{label} open work was falsely reported: {quiet_tags}")
+        quiet_state = {}
+        for i in range(2):
+            quiet = synthetic(name, base + i * 60)
+            quiet["sessions"]["live"][0]["promise"]["rows"].add("ISC-001")
+            quiet_tags = evaluate(quiet, quiet_state, env, True)
+            if "unclaimed work" in quiet_tags:
+                raise AssertionError(f"one claimed open row did not suppress the alert: {quiet_tags}")
+
+        waiting_state = {}
+        for i in range(2):
+            quiet = synthetic(name, base + i * 60)
+            quiet["run_card"].update(waiting_text="owner review", mtime=quiet["now"] + 1000 * i)
+            if i:
+                quiet["isa"]["ledger_mtime"] = base - 100
+                quiet["head_time"] = base - 200
+            quiet_tags = evaluate(quiet, waiting_state, env, True)
+            if "unclaimed work" in quiet_tags or waiting_state["unclaimed_waiting"]["first_seen"] != base:
+                raise AssertionError("an unrelated run-card edit refreshed the first-seen waiting note")
+        changed_note = synthetic(name, base + 120)
+        changed_note["run_card"].update(waiting_text="waiting for the owner", mtime=base + 120)
+        changed_note["isa"]["ledger_mtime"] = base + 100
+        changed_note["head_time"] = base + 90
+        if "unclaimed work" in evaluate(changed_note, waiting_state, env, True):
+            raise AssertionError("a changed waiting-line text was not treated as newly written")
+        if waiting_state["unclaimed_waiting"]["first_seen"] != base + 120:
+            raise AssertionError("changed waiting-line text did not record its first-seen time")
+        for i in range(2):
+            stale_note = synthetic(name, base + 180 + i * 60)
+            stale_note["run_card"].update(waiting_text="waiting for the owner", mtime=stale_note["now"] + 1000)
+            stale_note["isa"]["ledger_mtime"] = base + 130
+            stale_note["head_time"] = base + 140
+            tags = evaluate(stale_note, waiting_state, env, True)
+            if i == 0 and "unclaimed work" in tags:
+                raise AssertionError("stale waiting line alerted before its second check")
+            if i == 1 and "unclaimed work" not in tags:
+                raise AssertionError("mtime edit kept stale waiting line quiet")
+
+        cycling_state = {}
+        for i, rows in enumerate(("ISC-001", "ISC-002", "ISC-001", "ISC-001")):
+            cycling = synthetic(name, base + i * 60)
+            cycling["isa"].update(criteria=[rows], total=1, parked=[], owner=[], owner_only_ids=[], checked=[])
+            cycling["sessions"]["live"][0]["promise"]["rows"].clear()
+            tags = evaluate(cycling, cycling_state, env, True)
+            if i < 3 and "unclaimed work" in tags:
+                raise AssertionError(f"open-set transition reused an earlier streak on step {i + 1}")
+            if i == 3 and "unclaimed work" not in tags:
+                raise AssertionError("stable open set did not alert on its second consecutive check")
         missing_state = {}
         for i in range(2):
             missing = synthetic(name, base + i * 60)
             missing["sessions"]["valid"] = False
             if "unclaimed work" in evaluate(missing, missing_state, env, True):
                 raise AssertionError("unreadable sessions raised an unclaimed alert")
-        print("SIM unclaimed: only ISC-001 alerted on check two; claimed, fresh waiting, and unreadable sessions stayed quiet.")
+        print("SIM unclaimed: alert required zero claims on the open set; claims, fresh waiting, missing data, and set changes stayed quiet.")
         print(summary_line(snap, alerts))
         return
     if name == "regression":
         with tempfile.TemporaryDirectory() as directory:
             ledger = Path(directory) / "ISA.html"
-            ledger.write_text('<ul><li id="ISC-001"><input type="checkbox">Row</li></ul>'
-                              '<section id="verification"><ul><li>ISC-001: PASS - worked</li>'
-                              '<li>ISC-001: FAIL - regressed</li></ul></section>', encoding="utf-8")
-            parsed = parse_isa(str(ledger), directory)
-        if parsed.get("regressions") != ["ISC-001"] or parsed.get("verdict_count") != 2:
-            raise AssertionError(f"PASS-to-FAIL history and verdict count were not parsed: {parsed}")
-        state = {}
-        output = io.StringIO()
-        snap = synthetic(name, base)
-        snap["isa"] = parsed
-        with redirect_stdout(output):
-            first = evaluate(snap, state, env, True)
-            snap = synthetic(name, base + 60)
-            snap["isa"] = parsed
-            second = evaluate(snap, state, env, True)
+            head = ('<ul><li id="ISC-001"><input type="checkbox" checked>Row</li></ul>'
+                    '<section id="verification"><ul>')
+            state = {}
+            output = io.StringIO()
+            sequence = []
+            for verdict in ("PASS", "FAIL", "PASS", "FAIL"):
+                sequence.append(verdict)
+                lines = ''.join(f'<li>ISC-001: {value} - step {i}</li>'
+                                for i, value in enumerate(sequence, 1))
+                ledger.write_text(head + lines + '</ul></section>', encoding="utf-8")
+                parsed = parse_isa(str(ledger), directory)
+                if parsed.get("verdict_count") != len(sequence):
+                    raise AssertionError(f"verdict history count was not parsed: {parsed}")
+                if verdict == "FAIL" and parsed.get("done"):
+                    raise AssertionError("latest FAIL on a checked criterion was treated as ledger completion")
+                checks = 2 if verdict == "FAIL" else 1
+                for check in range(checks):
+                    snap = synthetic(name, base + len(sequence) * 60 + check)
+                    snap["isa"] = parsed
+                    snap["run_status"] = "running"
+                    with redirect_stdout(output):
+                        tags = evaluate(snap, state, env, True)
+                    expected_alert = verdict == "FAIL" and check == 1
+                    if ("regression" in tags) != expected_alert:
+                        raise AssertionError(f"regression episode alert mismatch for {sequence}: {tags}")
         text = output.getvalue()
-        if "regression" in first or "regression" not in second or "Revert the merge that broke it first" not in text:
-            raise AssertionError(f"regression did not alert once with revert-first guidance: {first}, {second}, {text}")
-        snap = synthetic(name, base + 120)
-        snap["isa"] = parsed
-        if "regression" in evaluate(snap, state, env, True):
-            raise AssertionError("persistent regression alert repeated")
-        print("SIM regression: a parsed PASS-to-FAIL row alerted on check two with revert-first guidance, once.")
-        print(summary_line(snap, []))
+        regression_lines = [line for line in text.splitlines() if line.startswith("REGRESSION ISC-001:")]
+        if len(regression_lines) != 2 or any("Revert the merge that broke it first" not in line
+                                              for line in regression_lines):
+            raise AssertionError(f"PASS→FAIL→PASS→FAIL did not re-alert with revert-first guidance: {text}")
+        print("SIM regression: checked-row FAIL beat completion; PASS re-armed the alert for a second failure episode.")
+        print(summary_line(snap, tags))
         return
     if name == "plateau":
         state = {}
@@ -2373,7 +2531,10 @@ def simulate(name: str, state_path: str, env: dict[str, str]) -> None:
                            verdict_count=1)
         with redirect_stdout(output):
             tags = evaluate(snap, state, env, True)
-        if "plateau" not in tags or "PLATEAU: 3 helpers finished with no new verdict" not in output.getvalue():
+        since = dt.datetime.fromtimestamp(base + 60).astimezone().isoformat(timespec="minutes")
+        expected = (f"PLATEAU (heuristic): 3 helpers ended with no new verdict since {since}. Helpers that finish "
+                    "between checks are not counted. If the work is stuck, change approach or park.")
+        if "plateau" not in tags or expected not in output.getvalue():
             raise AssertionError(f"third unchanged helper finish did not alert after confirmation: {tags}")
         changed = synthetic(name, base + 3 * 120 + 120)
         changed["isa"].update(latest_verdicts={"ISC-001": {"status": "FAIL", "reason": "same failure"}},
@@ -2395,7 +2556,17 @@ def simulate(name: str, state_path: str, env: dict[str, str]) -> None:
         tags = evaluate(incomplete, incomplete_state, env, True)
         if "plateau" in tags or incomplete_state["plateau"].get("finish_count") != 2:
             raise AssertionError("unreadable PROMISE on a still-live helper counted as a finish")
-        print("SIM plateau: three finished PROMISE helpers alerted after two checks; a new verdict reset the count.")
+
+        between_state = {}
+        between = synthetic(name, base + 4 * 120)
+        completed = {"id": "ses-between", "agent": "helper", "created": base,
+                     "time_idle": base + 60, "idle_outcome": "completed",
+                     "promise": {"valid": True, "rows": {"ISC-001"}}}
+        between["sessions"]["children"] = [completed]
+        evaluate(between, between_state, env, True)
+        if between_state.get("plateau", {}).get("finish_count") != 0:
+            raise AssertionError("helper finishing between checks was counted")
+        print("SIM plateau: three observed helper finishes alerted with a timestamp; new verdicts and unobserved finishes did not count.")
         print(summary_line(changed, tags))
         return
     if name == "leftover-session":
@@ -2407,10 +2578,33 @@ def simulate(name: str, state_path: str, env: dict[str, str]) -> None:
                 tags = evaluate(snap, state, env, True)
             if ("leftover session" in tags) != (i == 1):
                 raise AssertionError(f"leftover session did not honor two-check alerting: {tags}")
-        if "interrupt it before relaunching" not in output.getvalue():
-            raise AssertionError("leftover alert omitted the interrupt-before-relaunch instruction")
+        text = output.getvalue()
+        leftover_lines = [line for line in text.splitlines() if line.startswith("LEFTOVER session ses-leftover")]
+        if len(leftover_lines) != 1 or "interrupt it before relaunching" not in leftover_lines[0]:
+            raise AssertionError(f"one stale session should produce one LEFTOVER line: {leftover_lines}")
+        suppressed = ("OFF TRACK", "AGENT builder (ses-leftover)", "AGENT builder session ses-leftover",
+                      "BRIEF builder ses-leftover", "GHOST BB child thr-ended")
+        if any(marker in text for marker in suppressed):
+            raise AssertionError(f"stale session raised additional session-specific alerts: {text}")
         if f"would queue to {env['ORCH_THREAD']}:" not in output.getvalue():
             raise AssertionError("leftover alert was not addressed to the orchestrator thread")
+
+        stale_state = {"orphan_idle": {"no_agent_since": base - 16 * 60}}
+        stale_tags = []
+        for i in range(2):
+            stale = synthetic(name, base + i * 60)
+            stale["run_status"] = "running"
+            stale["isa"].update(total=1, criteria=["ISC-001"], checked=[], owner=[], parked=[],
+                                owner_only_ids=[], latest_verdicts={})
+            stale["host"]["processes"] = [{"pid": 321, "ppid": 1, "age": 1200,
+                                           "command": "recordVideo /fixture/orphan.mp4", "orphan": True}]
+            stale["sessions"]["live"][0]["promise"]["rows"] = {"ISC-001"}
+            stale["run_card"]["status"] = "running"
+            stale_tags = evaluate(stale, stale_state, env, True)
+            if stale["sessions"]["live"]:
+                raise AssertionError("ended BB session remained an effective live claim")
+        if not {"unclaimed work", "orphan process", "leftover session"}.issubset(stale_tags):
+            raise AssertionError(f"ended helper suppressed unclaimed/orphan checks: {stale_tags}")
         quiet_state = {}
         for i in range(2):
             quiet = synthetic(name, base + i * 60)
@@ -2525,15 +2719,6 @@ def simulate(name: str, state_path: str, env: dict[str, str]) -> None:
         raise AssertionError("an old result file without a live session raised a stuck-agent alert")
     if name == "stuck-agent":
         print("SIM stuck-agent: finished-agent result file raised no no-progress alert.")
-    if name == "repeat-fail":
-        conditions = state.get("conditions", {})
-        alerted = sorted(key for key, rec in conditions.items()
-                         if key.startswith("repeat-fail:") and rec.get("last_alert"))
-        if alerted != ["repeat-fail:ISC-001"]:
-            raise AssertionError(f"repeat-fail alerted on the wrong items: {alerted}")
-        if conditions.get("repeat-fail:ISC-004", {}).get("streak") != 0:
-            raise AssertionError("repeat-fail threshold fired before three FAIL verdicts")
-        print("SIM repeat-fail: only the unparked item with three FAILs raised the LOOP alert; two stayed quiet.")
     print(summary_line(snap, alerts))
 
 
@@ -2548,7 +2733,7 @@ def main() -> int:
         "superseded-pass", "server-down", "combined-alerts", "shadow-mode", "continue",
         "anti-spin", "done", "closed-delete", "not-closed", "read-failure", "working-old-bb", "resumed-idle-agent",
         "off-track", "on-track-timed", "on-track-code", "fast-jules", "new-testers-old-results",
-        "no-promise", "review", "lane-drift", "alert-once", "repeat-fail", "unclaimed", "plateau",
+        "no-promise", "review", "lane-drift", "alert-once", "repeat-fail", "unclaimed", "plateau", "sim-idle-timer",
         "regression", "leftover-session", "idle-helper", "reopen"),
         help="run a deterministic offline scenario; always dry-run")
     args = parser.parse_args()

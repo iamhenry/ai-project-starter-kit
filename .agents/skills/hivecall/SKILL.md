@@ -51,7 +51,7 @@ Repeat until every item is done or parked:
 
 Use when parallel lanes would otherwise share a checkout. One lane = one visible BB child thread with its own worktree, branched from the orchestrator's branch: `bb thread spawn --parent-self --project <id> --new-environment worktree --visibility visible`.
 
-- Group work so no two live lanes touch the same files. Give each lane its own simulator clone.
+- Group work so no two live lanes touch the same files. Lanes share the run's machine limits (HOW-TO-WORK.md defaults or run card overrides); when a lane needs a device, it takes a free simulator within that limit.
 - Lanes never edit the ledger. They write evidence and result rows to the orchestrator's `VERIFY_DIR`; only the orchestrator ticks.
 - Limit live lanes to what disk allows (a native app worktree can need several GB).
 - **Merge after QA passes:** commit in the lane, then in the orchestrator's checkout `git merge --no-ff <lane-branch>`; rebuild and rerun the ledger's regression smoke checks on the merged build; tick; remove the worktree (`git worktree remove`) and stop the lane thread. A merge conflict or smoke failure reopens the item; never tick from the lane's build alone.
@@ -67,7 +67,7 @@ Re-plan on new evidence, not on activity.
 
 ## Park, don't loop
 
-- Up to three attempts, each a different approach: same method once more, then a different method, then a stronger model or research. Debug in tight, time-boxed log loops (HOW-TO-WORK.md, Defaults); use `bugging-out` for stuck bugs.
+- Up to three attempts, each meaningfully different from the last, for example a new hypothesis or method, then a stronger model or research. Use judgment on what counts as different; never rerun the same idea. Debug in tight, time-boxed log loops (HOW-TO-WORK.md, Defaults); use `bugging-out` for stuck bugs.
 - After the third failure, park the item with its exact unlock condition and move to other work.
 - Owner-only items (physical device, human access) are parked from the start.
 - Parked items do not stop the run.

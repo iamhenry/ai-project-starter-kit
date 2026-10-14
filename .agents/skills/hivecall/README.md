@@ -106,14 +106,14 @@ Pause: `bb automation pause <id>`. Remove: `bb automation delete <id> --project 
 - Ledger complete or parked-only while the card is not closed → one `WATCH DONE` message, then pauses. It does not delete until the card is closed.
 - If pausing fails, it retries until paused. If deletion fails, it stays paused and retries deletion on each later check. Ledger-only completion retries a failed pause as before.
 - `status: waiting-owner` / `waiting-usage` → no nudges; other checks continue.
-- An item whose latest verdict is FAIL after three FAIL verdicts, not ticked or parked → one `LOOP` message to park it with its exact unlock condition and move to other work.
-- Open, unchecked, non-owner rows with no live PROMISE claim → one `UNCLAIMED` message per distinct row set after two checks. A fresh `waiting:` line newer than both the ledger and HEAD change keeps it quiet.
-- Three live PROMISE helpers finish without a new ledger verdict → one `PLATEAU` message to change approach or park. Any new verdict resets the count.
-- A row that passed before and now fails → one `REGRESSION` message: revert the breaking merge first, then fix on the side.
-- A busy OpenCode session whose bound BB thread failed, stopped or went idle → one `LEFTOVER` message to interrupt it before relaunching.
-- Orphan recorder, simulator-launch/spawn and log-stream processes are ignored while an agent is live; without agents, they need 15 minutes and two checks to alert. Idle or finished OpenCode helpers do not count as ghost or off-track agents.
+- An unchecked row whose latest verdict is FAIL after three FAILs since its latest PASS, not parked/BLOCKED → one `LOOP` message to park it with its exact unlock condition and move to other work.
+- Open, unchecked, non-owner rows with no live PROMISE claim at all → one `UNCLAIMED` message per stable open-row set after two checks. Any claimed open row suppresses it. A changed `waiting:` line stays fresh only from its first-seen time, and only until the ledger or HEAD changes.
+- Three observed live PROMISE helpers end without a new ledger verdict → one `PLATEAU (heuristic)` message with the first-finish time. Helpers that finish between checks are not counted. Any new verdict resets the count.
+- A row that passed before and now fails → one `REGRESSION` message: revert the breaking merge first, then fix on the side. A later PASS rearms it; a latest FAIL keeps the ledger incomplete even if checked.
+- A busy OpenCode session whose bound BB thread failed, stopped or went idle → one `LEFTOVER` message to interrupt it before relaunching. That session is excluded from other per-session alerts, live claims and orphan suppression.
+- Orphan recorder, simulator-launch/spawn and log-stream processes are ignored while an effective agent is live; without agents, they need 15 minutes and two checks to alert. Simulator idle time only accrues while a simulator is booted and resets when none are booted. Idle or finished OpenCode helpers do not count as ghost or off-track agents.
 - If the run card returns to `running` while the ledger is incomplete, stale `done` and pause state is cleared so the watchdog resumes.
-- Disk below 5 GB prefixes its `HOST disk` alert with `🚦` so the orchestrator relays it to the owner if cleanup cannot fix it.
+- Disk below 5 GB escalates to a separate `🚦 HOST disk` alert, even after the normal low-disk alert, so the orchestrator relays it to the owner if cleanup cannot fix it.
 - Three nudges with no ledger verdict change → one `🚦 WATCH STALLED` message, then no more nudges until the card goes from waiting back to running.
 - It never restarts a dead orchestrator. The only repair is at most one `bb plugin reload opencode` per hour when the OpenCode server is unreachable.
 
@@ -139,7 +139,7 @@ Every message the watchdog sends ends with the one-row status table (Done · In 
 
 ### Offline checks
 
-`python3 watch.py --simulate <scenario>` runs deterministic built-in scenarios with no BB/OpenCode calls. Scenarios: stuck-agent, ghost-agent, ghost-agent-no-message, invisible-agent, high-load, disk-big-file, orphan-recorder, orphan-recorder-active, fail-under-load, unrecorded-pass, unrecorded-pass-reload, superseded-pass, server-down, combined-alerts, shadow-mode, continue, anti-spin, done, closed-delete, not-closed, read-failure, working-old-bb, resumed-idle-agent, off-track, on-track-timed, on-track-code, fast-jules, new-testers-old-results, no-promise, review, lane-drift, alert-once, repeat-fail, unclaimed, plateau, regression, leftover-session, idle-helper, reopen. `REPO` must point at any temp folder.
+`python3 watch.py --simulate <scenario>` runs deterministic built-in scenarios with no BB/OpenCode calls. Scenarios: stuck-agent, ghost-agent, ghost-agent-no-message, invisible-agent, high-load, disk-big-file, orphan-recorder, orphan-recorder-active, fail-under-load, unrecorded-pass, unrecorded-pass-reload, superseded-pass, server-down, combined-alerts, shadow-mode, continue, anti-spin, done, closed-delete, not-closed, read-failure, working-old-bb, resumed-idle-agent, off-track, on-track-timed, on-track-code, fast-jules, new-testers-old-results, no-promise, review, lane-drift, alert-once, repeat-fail, unclaimed, plateau, sim-idle-timer, regression, leftover-session, idle-helper, reopen. `REPO` must point at any temp folder.
 
 ### Rolling out a changed watchdog
 
