@@ -67,7 +67,7 @@ Re-plan on new evidence, not on activity.
 
 ## Park, don't loop
 
-- Up to three attempts, each meaningfully different from the last, for example a new hypothesis or method, then a stronger model or research. Use judgment on what counts as different; never rerun the same idea. Debug in tight, time-boxed log loops (HOW-TO-WORK.md, Defaults); use `bugging-out` for stuck bugs.
+- Up to three attempts, each meaningfully different from the last, for example a new hypothesis or method, then a stronger model or research. Use judgment on what counts as different; never rerun the same idea. Debug in tight, time-boxed log loops (HOW-TO-WORK.md, Defaults). If the cause is unclear, the correction brief names `bugging-out` and carries the failed evidence; the builder picks the next playbook, not a repeat.
 - After the third failure, park the item with its exact unlock condition and move to other work.
 - Owner-only items (physical device, human access) are parked from the start.
 - Parked items do not stop the run.
@@ -82,7 +82,7 @@ When every counted item is ticked or parked: set the run card to `status: closed
 
 ## Workflow skills
 
-`subagent-delegation` (briefs), `verification-gate` with `qa` (independent proof), `code-quality-gate` with `reviewer` (as risk warrants), `reproduce-bug` and `bugging-out` (bugs), `gather-context` with `atlas` / `voyager` (research), `git-commits` (local commits only). Platform skills as the project needs them, e.g. `xcodebuildmcp-cli` and `argent` for iOS, `agent-browser` for web.
+`subagent-delegation` (briefs), `verification-gate` with `qa` (independent proof), `code-quality-gate` with `reviewer` (as risk warrants), `reproduce-bug` (bugs), `bugging-out` (unclear cause or a failed fix), `gather-context` with `atlas` / `voyager` (research), `git-commits` (local commits only). Platform skills as the project needs them, e.g. `xcodebuildmcp-cli` and `argent` for iOS, `agent-browser` for web.
 
 ## Status footer
 
