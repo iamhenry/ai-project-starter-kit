@@ -1,4 +1,4 @@
-# Hivecall lessons (from the Journal iOS run, Oct 2026)
+# Hivecall lessons (from real runs)
 
 Universal rules learned the hard way. Project-specific traps belong in the run card's Lessons section.
 
@@ -25,7 +25,7 @@ Universal rules learned the hard way. Project-specific traps belong in the run c
 ## Machine
 15. Recorders and log streams need a hard time cap. Check for orphans after every tester.
 16. Watch disk. Evidence folders and build caches filled the disk three times; one forced a reboot.
-17. Heavy load makes timing and gesture checks fail. Re-check those under calm load before calling them bugs.
+17. Heavy load makes timing and gesture or animation checks fail. Re-check those under calm load before calling them bugs.
 18. Hide evidence and lane folders from Git (`.git/info/exclude`). Thousands of untracked files made BB lag.
 
 ## Watchdog

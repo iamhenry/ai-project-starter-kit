@@ -30,8 +30,8 @@ Read at kickoff, and again after any context compaction or compression. Invarian
 
 ### Machine
 
-13. Protect the machine: stay within the run's simulator, build and disk limits.
-14. Delete only from the allowlist: build output, saved app copies, merged worktrees inside the repo.
+13. Protect the machine: stay within the run's device, build and disk limits. Know the platform and environment you work in (iOS, web, other) and clean up what your work starts: simulators, emulators, browsers, dev servers, recorders, log streams.
+14. Delete only from the allowlist: build output, build artifacts and saved app or bundle copies, merged worktrees inside the repo.
 
 ### Agents
 
@@ -41,10 +41,10 @@ Read at kickoff, and again after any context compaction or compression. Invarian
 18. Stop a helper's BB thread as soon as its result arrives.
 
 ## Defaults (override per run in the run card)
-- Machine: one simulator, one native build at a time, native-architecture-only builds, at least 5 GB free.
+- Machine: one test device at a time (simulator, emulator or browser instance), one heavy build at a time, at least 5 GB free.
 - Debug box: about 15 minutes per attempt; stop after two loops with nothing new.
 - Attempt ladder (a guide, not a script): a new hypothesis or method → a different method → a stronger model or research agent → park. Skip a rung when the evidence already rules it out.
-- Debug loop: list 5-7 possible causes, keep the 1-2 likeliest, add 1-3 timestamped log lines, one quick rebuild, one gesture or request, read the log. Use `bugging-out` for stuck bugs.
+- Debug loop: list 5-7 possible causes, keep the 1-2 likeliest, add 1-3 timestamped log lines, one quick rebuild, one user action (tap, click, page load or request), read the log. Use `bugging-out` for stuck bugs.
 - Regression guard: 3-5 replayable user journeys, rerun after each merge, not a full re-pass.
 - Preflight: install, typecheck and build the starting branch once (a few minutes). If it fails, fixing it is the first item; independent work may start meanwhile.
 - Checkpoint: a git commit to revert to before any risky change.

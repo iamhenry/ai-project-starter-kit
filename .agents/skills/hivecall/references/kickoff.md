@@ -61,7 +61,7 @@ checkpoint: <commit to revert to>
 backup models: <agent> -> <provider/model#variant> (required; used on a credit cutoff)
 
 ## Overrides (only where this run differs from HOW-TO-WORK.md defaults)
-- machine: <e.g. 1 simulator, 1 native build, keep 5 GB free>
+- machine: <e.g. iOS: 1 simulator, 1 native build; web: 1 browser, 1 dev server; keep 5 GB free>
 - regression journeys: <3-5 replayable user journeys, each with its command or flow file>
 
 ## Owner decisions
