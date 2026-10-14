@@ -24,10 +24,10 @@ How the contract maps to the run:
 
 - **Verification** becomes one checklist item per check (`ISC-n`), each with its evidence. Evidence files go in `.hivecall/verification/`. A fresh `qa` runs the checks, never the builder.
 - **Definition of done** is the finish line the watchdog reads: every counted checklist item ticked with a PASS verdict, or parked.
-- **Exit criteria** is when the run stops early: set the run card to `waiting-owner`, report the one-line status, and stop. Items also park after the second failure of the same kind.
-- **Owner-only items** (physical device, accounts) go under OUT with a note "owner-only". They are not counted toward done.
-- Between items, pick the thinnest runnable slice next (see the hivecall loop).
-- **No check, no start.** Before any worker launches, every counted item names a check that can actually run on this machine (for example, an app that cannot be built here cannot be checked here). If any item lacks one, mark it owner-only or ask the owner how it will be proven. Do not launch workers until every counted item has a runnable check.
+- **Exit criteria** is when the run stops early: set the run card to `waiting-owner`, report the one-line status, and stop. Items also park after three failed attempts with different approaches.
+- **Owner-only items** (physical device, accounts) go under OUT with a note "owner-only". They are not counted toward done. Prefer a simulator or scripted check over owner-only whenever one can prove the behavior.
+- Between items, pick the cheapest move that can raise the score (see HOW-TO-WORK.md).
+- **Write the check first.** An item without a check that can run on this machine gets one written before its worker starts. If none is possible, mark it "judged against spec" and cite the spec line, or owner-only. Do not block other items on it. Example: an app that cannot be built here cannot be checked here, so say that in the contract before work starts.
 
 In the same message ask: **"Watchdog on? (yes / no)"**. Approval of the contract plus that answer starts the run.
 
@@ -56,6 +56,16 @@ verification: .hivecall/verification/
 orchestrator: thread thr_..., session ses_...
 watchdog: on, automation auto_...
 started: <date>
+base: <branch> @ <commit> (preflight: install, typecheck, build passed)
+checkpoint: <commit to revert to>
+
+## Overrides (only where this run differs from HOW-TO-WORK.md defaults)
+- machine: <e.g. 1 simulator, 1 native build, keep 5 GB free>
+- backup models: <agent> -> <provider/model#variant>
+- regression journeys: <3-5 replayable user journeys, each with its command or flow file>
+
+## Owner decisions
+<one line each: time, decision, reason; cite in verdict lines>
 
 ## Lessons
 <one line per surprise, failure, or false alarm: what happened → what to do instead>
@@ -74,6 +84,8 @@ The approved contract lives on the checklist page, not here.
 
 ## 4. Prepare the repo
 
+- **Preflight (a few minutes, once).** On the starting branch: install dependencies, typecheck, and run one build. Record the commit as `base` in the run card. If it fails, fixing the base becomes the first item; lanes start only after it passes. Commit a `checkpoint` to revert to.
+- Pick 3-5 regression journeys that cover the areas the run will touch; record them under Overrides.
 - Create `.hivecall/verification/`.
 - Hide noise from Git: add `.lanes/` and `.hivecall/verification/` to `.git/info/exclude`. Thousands of evidence files slow Git and BB.
 - If watchdog is on, follow [../README.md](../README.md#watchdog): name it `🐝 <orchestrator thread title>`, capture its automation id, write `watchdog: on, automation <id>` in the run card, pass `AUTOMATION_ID`, then start it live with `WATCH_SHADOW` unset.
@@ -81,6 +93,7 @@ The approved contract lives on the checklist page, not here.
 ## 5. Keep the owner informed
 
 - **Lessons log.** After any surprise, failure, or false alarm, add one line to the run card's Lessons section right away: what happened → what to do instead.
+- **Only real changes.** One line when an item passes, fails or parks. Hard blockers only, as a loud `🚦` line (HOW-TO-WORK.md). Confirm each owner steer in one line once applied.
 - **Status footer.** End every reply to the owner with a one-to-two-line summary and this one-row table, counted from the checklist page:
 
 | Done | In progress (likely to close) | Not started | Stuck | Owner-only |

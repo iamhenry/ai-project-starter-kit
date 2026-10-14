@@ -1,0 +1,63 @@
+# How to work (owner constants)
+
+Read at kickoff, and again after any context compaction or compression. Invariants hold for every run; only the owner changes them. Defaults may be overridden for one run in the run card.
+
+## Invariants
+
+### Honest
+
+1. Correct beats fast beats cheap. Never fake progress or evidence.
+2. The score is ledger items proven by independent evidence on the exact build. Activity is not progress.
+3. The specs decide (ledger, design docs, prototype, named screenshots). Small visual differences are fine. Record each decision and its reason in the run card.
+
+### Owner
+
+4. Only hard blockers reach the owner, as one loud `🚦` line: disk full after allowed cleanup, model credits out with no backup, push or any remote action, a delete outside the allowlist, a contradiction inside the spec.
+5. One status line per real change: an item passes, fails or parks. Silence means nothing changed.
+6. Confirm each owner steer in one line once it is applied.
+
+### Progress
+
+7. Always have an agent on an open item. Never busywork; never re-check a pass whose files did not change.
+8. Cheapest proof first: test a built fix → fix a known cause → debug an unknown cause → park.
+9. A merge that breaks a passed item is reverted first and fixed on the side, unless the cause is known and the repair is one small change (log why).
+10. Three different attempts, then park with an unlock condition. Never repeat the same idea.
+
+### Debugging
+
+11. Prove the cause with logs before changing code. Never patch a dependency on a theory.
+12. Tight, time-boxed loops; extend only while each loop teaches something new.
+
+### Machine
+
+13. Protect the machine: stay within the run's simulator, build and disk limits.
+14. Delete only from the allowlist: build output, saved app copies, merged worktrees inside the repo.
+
+### Agents
+
+15. Every running agent is visible in BB, briefed with a `PROMISE:` line and the full TALK-BACK block.
+16. Talk back early: stuck for 5 minutes or about to guess means a `QUESTION`.
+17. A talk-back line names the build it is about; a line about an older build is history.
+18. Stop a helper's BB thread as soon as its result arrives.
+
+## Defaults (override per run in the run card)
+- Machine: one simulator, one native build at a time, native-architecture-only builds, at least 5 GB free.
+- Debug box: about 15 minutes per attempt; stop after two loops with nothing new.
+- Attempt ladder: same method once more → different method → stronger model or research agent → park.
+- Debug loop: list 5-7 possible causes, keep the 1-2 likeliest, add 1-3 timestamped log lines, one quick rebuild, one gesture or request, read the log. Use `bugging-out` for stuck bugs.
+- Regression guard: 3-5 replayable user journeys, rerun after each merge, not a full re-pass.
+- Preflight: install, typecheck and build the starting branch once (a few minutes). If it fails, fixing it is the first item.
+- Checkpoint: a git commit to revert to before any risky change.
+- Backup model per agent, named at kickoff; on a credit cutoff, switch and report it in one line.
+- Every brief also carries: absolute paths, what is already done and still valid, what this change could break, its time box.
+
+## What the watchdog guarantees (from `watchdog/watch.py`)
+A plain script, run every 5 minutes. It never acts on the run. Work with it:
+- It judges each agent only against its own `PROMISE:` line.
+- Progress means a new ledger verdict with evidence.
+- It alerts on a real problem seen on two checks in a row, once per problem. Act on it, or record why it was a false alarm in the run lessons.
+- It never alarms on missing data and prefers removing a noisy check over special cases.
+- An agent running but not visible in BB is always reported.
+- It reports load, disk, huge files, and leftover recorders and log processes.
+- It nudges when work remains and nothing moves, stops after three nudges with no change, and never nudges while the run card says waiting.
+- It pauses when the ledger is done and deletes itself after the run card says closed.

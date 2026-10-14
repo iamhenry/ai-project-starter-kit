@@ -106,7 +106,14 @@ Pause: `bb automation pause <id>`. Remove: `bb automation delete <id> --project 
 - Ledger complete or parked-only while the card is not closed → one `WATCH DONE` message, then pauses. It does not delete until the card is closed.
 - If pausing fails, it retries until paused. If deletion fails, it stays paused and retries deletion on each later check. Ledger-only completion retries a failed pause as before.
 - `status: waiting-owner` / `waiting-usage` → no nudges; other checks continue.
-- An item whose latest verdict is FAIL after two or more FAIL lines, not ticked or parked → one `LOOP` message asking to park it as `BLOCKED` with its unlock condition. This catches one item looping while others keep moving.
+- An item whose latest verdict is FAIL after three FAIL verdicts, not ticked or parked → one `LOOP` message to park it with its exact unlock condition and move to other work.
+- Open, unchecked, non-owner rows with no live PROMISE claim → one `UNCLAIMED` message per distinct row set after two checks. A fresh `waiting:` line newer than both the ledger and HEAD change keeps it quiet.
+- Three live PROMISE helpers finish without a new ledger verdict → one `PLATEAU` message to change approach or park. Any new verdict resets the count.
+- A row that passed before and now fails → one `REGRESSION` message: revert the breaking merge first, then fix on the side.
+- A busy OpenCode session whose bound BB thread failed, stopped or went idle → one `LEFTOVER` message to interrupt it before relaunching.
+- Orphan recorder, simulator-launch/spawn and log-stream processes are ignored while an agent is live; without agents, they need 15 minutes and two checks to alert. Idle or finished OpenCode helpers do not count as ghost or off-track agents.
+- If the run card returns to `running` while the ledger is incomplete, stale `done` and pause state is cleared so the watchdog resumes.
+- Disk below 5 GB prefixes its `HOST disk` alert with `🚦` so the orchestrator relays it to the owner if cleanup cannot fix it.
 - Three nudges with no ledger verdict change → one `🚦 WATCH STALLED` message, then no more nudges until the card goes from waiting back to running.
 - It never restarts a dead orchestrator. The only repair is at most one `bb plugin reload opencode` per hour when the OpenCode server is unreachable.
 
@@ -132,7 +139,7 @@ Every message the watchdog sends ends with the one-row status table (Done · In 
 
 ### Offline checks
 
-`python3 watch.py --simulate <scenario>` runs deterministic built-in scenarios with no BB/OpenCode calls. Scenarios: stuck-agent, ghost-agent, ghost-agent-no-message, invisible-agent, high-load, disk-big-file, orphan-recorder, fail-under-load, unrecorded-pass, unrecorded-pass-reload, superseded-pass, server-down, combined-alerts, shadow-mode, continue, anti-spin, done, closed-delete, not-closed, read-failure, working-old-bb, resumed-idle-agent, off-track, on-track-timed, on-track-code, fast-jules, new-testers-old-results, no-promise, review, lane-drift, alert-once, repeat-fail. `REPO` must point at any temp folder.
+`python3 watch.py --simulate <scenario>` runs deterministic built-in scenarios with no BB/OpenCode calls. Scenarios: stuck-agent, ghost-agent, ghost-agent-no-message, invisible-agent, high-load, disk-big-file, orphan-recorder, orphan-recorder-active, fail-under-load, unrecorded-pass, unrecorded-pass-reload, superseded-pass, server-down, combined-alerts, shadow-mode, continue, anti-spin, done, closed-delete, not-closed, read-failure, working-old-bb, resumed-idle-agent, off-track, on-track-timed, on-track-code, fast-jules, new-testers-old-results, no-promise, review, lane-drift, alert-once, repeat-fail, unclaimed, plateau, regression, leftover-session, idle-helper, reopen. `REPO` must point at any temp folder.
 
 ### Rolling out a changed watchdog
 
