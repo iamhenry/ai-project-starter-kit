@@ -1,32 +1,78 @@
 ---
 name: bugging-out
-description: Pick the right playbook to find and fix a bug, sized to how hard it is. Use when a bug is hard to pin down, a fix did not hold, a check keeps failing, or someone says "use bugging-out", "we can't find this bug", or "squash this bug". Thin router over playbooks; reproduce-bug owns reproduction and verification-gate owns final proof.
+description: Find and fix a bug through cheap, evidence-backed rounds, picking a playbook that fits the bug. Use when a bug is hard to pin down, a fix did not hold, a check keeps failing, progress has plateaued, or someone says "use bugging-out", "we can't find this bug", or "squash this bug".
 ---
 
 # Bugging Out
 
-Find the cause from evidence, then fix it once. Pick a playbook by the bug's shape; step up when it stalls.
+Climb toward the cause in small rounds. Each round tests one guess with the cheapest check that could prove it wrong. Pick the playbook that fits what you see, and switch when it stops teaching you anything.
 
-## Pick a playbook
+## A round
 
-| Bug shape | Run |
+1. State the failure in one line: what the user does, what they expect, what they get.
+2. Make one guess. Pick the cheapest, most direct check that could prove it wrong: one command, one screen, one input, one log line.
+3. Change one thing. Run the check. Write down: guess, check, result, what is now ruled out.
+4. A round that rules nothing out is a stall.
+
+A check only counts if it fails on the broken code. Checks are throwaway probes (a command, script, log, screen action), not new unit or integration tests.
+
+## Playbooks
+
+Use judgment. Start with whichever fits; combine or switch freely.
+
+| Playbook | Fits when |
 |---|---|
-| Error or stack trace names the line | Fast lane: read it, fix it, prove it. No playbook. |
-| Cause unclear, several suspects | [hypothesis-funnel](playbooks/hypothesis-funnel.md) |
-| Fails somewhere between layers, or only sometimes | [trace-boundaries](playbooks/trace-boundaries.md) |
-| "It used to work" or "it works over there" | [compare-good-bad](playbooks/compare-good-bad.md) |
-| Failing spot found; fix keeps treating symptoms | [five-whys](playbooks/five-whys.md) |
-| Before any fix that is not the fast lane | [failing-check-first](playbooks/failing-check-first.md) |
+| [tight-loop](playbooks/tight-loop.md) | The cause seems near and checks are fast. Log, tweak, rerun. |
+| [hypothesis-funnel](playbooks/hypothesis-funnel.md) | Several suspects, no clear lead. Goes wide. |
+| [trace-boundaries](playbooks/trace-boundaries.md) | It breaks somewhere along a path, or only sometimes. |
+| [compare-good-bad](playbooks/compare-good-bad.md) | A working version exists: a commit, device, input, or setting. |
+| [five-whys](playbooks/five-whys.md) | The failing spot is known; the fix would only treat a symptom. Goes deep. |
 
-Usual order: see the bug (`reproduce-bug`) → funnel or compare → trace → five whys → failing check → fix → prove (`verification-gate`).
+## Evidence
 
-## Rules
+- Cite `file:line`, or the command run plus its key output.
+- Anything without evidence is a guess. Say "probable, not proven" until a check confirms it.
+- What the user would see outranks logs, source reading, or an agent's report.
 
-- Keep a short bug note: each hypothesis, the probe, what it showed, and `confirmed`, `refuted`, or `guess`.
-- Never call a guess a cause. Say "probable, not proven" until a probe confirms it.
-- Change one thing per probe. Remove temporary logs when done.
-- Ask the user before fixing only when the bug is hard or the fix is risky or hard to undo.
+## Tools
 
-## When stuck
+Load the tool's skill before use. Use what the project already has first.
 
-After 2-3 rounds with no new evidence, do not repeat the playbook. Switch to the next one. Or explain the code path step by step in writing, get a `second-opinion`, or hand the bug note to a fresh agent. If still stuck, park it with what was ruled out and what would unblock it.
+| Need | Use |
+|---|---|
+| Reproduce a full user flow | `reproduce-bug` skill |
+| Web or Electron: drive, console, network, screenshot | `agent-browser` |
+| iOS or Android: drive, replayable flows, record, screenshot diff | `argent` (`argent-metro-debugger` for JS logs, `argent-native-profiler` for hangs) |
+| Apple build, run, test, device logs | `xcodebuildmcp-cli` |
+| Native Mac app UI | `agent-device`; `cua-driver` as fallback |
+| Long-running server or log stream | `tmux` |
+| Find the change | `git log -p`, `git blame`, `git bisect`, `git diff good..bad` |
+| Read code, including dependencies | `rg`; read the library source in `node_modules` or vendored code |
+| A fresh outside view | `second-opinion` skill |
+| Final proof of the fix | `verification-gate` skill |
+
+## When it plateaus
+
+- About 2 stalled rounds: switch playbooks or look somewhere new.
+- About 2 playbooks with nothing new ruled out: run parallel agents, if you are allowed to delegate.
+
+**Parallel agents (expensive, at most 3).** Launch fresh agents in parallel, each with a different playbook. Give each the one-line failure, the cheap repro, and the round notes so far. They may run safe probes only: no production edits, no further agents. Merge their findings. Rank by evidence strength first, then by how many agree. Run the one fastest check that could prove the top answer wrong.
+
+## Stop
+
+- **Fixed:** the cause is confirmed and the same check now passes on a fresh run. Hand off to `verification-gate` for final proof.
+- **Blocked:** name what is missing and who can unblock it.
+- **Parked:** list what was ruled out and the next check worth running.
+
+Report in five lines: Observed / Cause / Change / Proof / Risk.
+
+## Heuristics
+
+- The cheapest check that could change your mind beats a thorough one that can't.
+- Act on a guess once a check could have proved it wrong and didn't, even if it was your first guess.
+- One change per round, or you won't know which one worked.
+- If a round taught nothing, the next one should look somewhere different, not harder at the same spot.
+- Stay on the bug. Refactors and nearby cleanups wait.
+- Leave no trace: remove temporary logs and throwaway copies.
+- Parallel agents add cost, not insight, unless each looks from a different angle.
+- "Not found yet, here is what's ruled out" beats a confident story.
