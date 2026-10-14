@@ -59,7 +59,7 @@ Each check takes 1–2 seconds of CPU. A failed read skips that check for the ru
 | `PROJECT_ID` | yes for self-management | BB project id; used for delete and for the legacy pause lookup |
 | `AUTOMATION_ID` | yes for automatic cleanup | Created automation id, used for pause and delete; if unset, pause falls back to the legacy name `hivecall watchdog <ORCH_THREAD>` and deletion is disabled |
 | `STATE_FILE` | no | Defaults to `$REPO/.lanes/watch-state.json` |
-| `WATCH_SHADOW` | no | `1` = log would-be messages to `.lanes/watch-shadow.log` instead of sending |
+| `LANE_ROOTS` | no | Extra folders (`:`-separated) a PROMISE `lane=` may live in. The repo and BB worktrees (`~/.bb/plugins/environment-git-worktree/host-data/worktrees`) are always allowed |
 
 Optional limits: `WATCH_LOAD_LIMIT` (150), `WATCH_DISK_FREE_GB` (10), `WATCH_LARGE_FILE_MB` (100), `WATCH_LARGE_FILE_MIN` (15), `WATCH_AGENT_STUCK_MIN` (10), `WATCH_AGENT_MAX_HOURS` (3), `WATCH_GHOST_MIN` (15), `WATCH_ORPHAN_MIN` (15), `WATCH_CONTINUE_MIN` (15).
 
@@ -80,29 +80,20 @@ python3 "$W" --dry-run       # prints messages instead of sending
 
 ```sh
 LAUNCHER=$'import os, runpy, sys\np = os.path.join(os.environ["REPO"], ".hivecall/watch.py")\nsys.argv = [p] + sys.argv[1:]\nrunpy.run_path(p, run_name="__main__")'
-export WATCH_SHADOW=1
 ORCH_TITLE="$(bb thread show "$ORCH_THREAD" --json | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("title") or (d.get("thread") or {}).get("title", ""))')"
-CREATE_ENV_JSON="$(python3 -c 'import json,os; keys=("ORCH_THREAD","ORCH_SESSION","REPO","LEDGER","VERIFY_DIR","PROJECT_ID","WATCH_SHADOW"); print(json.dumps({k:os.environ[k] for k in keys if os.environ.get(k)}))')"
+CREATE_ENV_JSON="$(python3 -c 'import json,os; keys=("ORCH_THREAD","ORCH_SESSION","REPO","LEDGER","VERIFY_DIR","PROJECT_ID"); print(json.dumps({k:os.environ[k] for k in keys if os.environ.get(k)}))')"
 AUTOMATION_ID="$(bb automation create --project "$PROJECT_ID" --name "🐝 $ORCH_TITLE" \
   --cron '*/5 * * * *' --timezone "$(readlink /etc/localtime | sed 's#.*/zoneinfo/##')" \
   --script "$LAUNCHER" --interpreter python3 --working-directory "$REPO" --disabled \
   --env-json "$CREATE_ENV_JSON" --json | python3 -c 'import json,sys; d=json.load(sys.stdin); print((d.get("automation") or d)["id"])')"
 export AUTOMATION_ID
-ENV_JSON="$(python3 -c 'import json,os; keys=("ORCH_THREAD","ORCH_SESSION","REPO","LEDGER","VERIFY_DIR","PROJECT_ID","WATCH_SHADOW","AUTOMATION_ID"); print(json.dumps({k:os.environ[k] for k in keys if os.environ.get(k)}))')"
+ENV_JSON="$(python3 -c 'import json,os; keys=("ORCH_THREAD","ORCH_SESSION","REPO","LEDGER","VERIFY_DIR","PROJECT_ID","AUTOMATION_ID"); print(json.dumps({k:os.environ[k] for k in keys if os.environ.get(k)}))')"
 # Write this exact value into .hivecall/run.md: watchdog: on, automation $AUTOMATION_ID
 bb automation update "$AUTOMATION_ID" --env-json "$ENV_JSON" --interpreter python3 \
   --working-directory "$REPO" --script "$LAUNCHER"
 ```
 
-3. `bb automation resume "$AUTOMATION_ID"`. After one or two checks, read `.lanes/watch-shadow.log` and the run history (`bb automation runs "$AUTOMATION_ID"`). The heartbeat line looks like `load 5 · disk 80 GB · 2 agents visible · 1/4 · OK`.
-4. Go live:
-
-```sh
-unset WATCH_SHADOW
-ENV_JSON="$(python3 -c 'import json,os; keys=("ORCH_THREAD","ORCH_SESSION","REPO","LEDGER","VERIFY_DIR","PROJECT_ID","AUTOMATION_ID"); print(json.dumps({k:os.environ[k] for k in keys if os.environ.get(k)}))')"
-bb automation update "$AUTOMATION_ID" --env-json "$ENV_JSON" --interpreter python3 \
-  --working-directory "$REPO" --script "$LAUNCHER"
-```
+3. `bb automation resume "$AUTOMATION_ID"` to start it live. After one or two checks, read the run history (`bb automation runs "$AUTOMATION_ID"`). The heartbeat line looks like `load 5 · disk 80 GB · 2 agents visible · 1/4 · OK`.
 
 `update` drops fields you don't pass, so always re-pass all of them.
 
@@ -111,9 +102,17 @@ Pause: `bb automation pause <id>`. Remove: `bb automation delete <id> --project 
 ### How it ends
 
 - Run card `status: closed` → pauses its automation; after a successful pause, it deletes it on the next check. It sends nothing.
-- Ledger complete or parked-only while the card is not closed → one `WATCH DONE` message, then pauses. It does not delete until the card is closed.
+- Ledger complete or parked-only while the card is not closed → one `WATCH DONE` message, then pauses. Unchecked owner-parked and owner-only rows do not hold completion open, even with a latest FAIL; a checked row with a latest FAIL does. It does not delete until the card is closed.
 - If pausing fails, it retries until paused. If deletion fails, it stays paused and retries deletion on each later check. Ledger-only completion retries a failed pause as before.
 - `status: waiting-owner` / `waiting-usage` → no nudges; other checks continue.
+- An unchecked row whose latest verdict is FAIL after three FAILs since its latest PASS, not parked/BLOCKED → one `LOOP` message to park it with its exact unlock condition and move to other work.
+- Open, unchecked, non-owner rows with no live PROMISE claim at all → one `UNCLAIMED` message per stable open-row set after two checks. Any claimed open row suppresses it. A `waiting:` line silences the alert only after the watchdog observed its text change while the ledger signature and HEAD hash stayed unchanged, and only while those values stay unchanged; on a fresh start, an existing line is just a baseline, so rewrite it to silence the alert.
+- Three observed live PROMISE helpers end without a new ledger verdict → one `PLATEAU (heuristic)` message with the first-finish time. Helpers that finish between checks are not counted. Any new verdict resets the count.
+- A row that passed before and now fails → one `REGRESSION` message: revert the breaking merge first, then fix on the side. A later PASS rearms it; a latest FAIL keeps the ledger incomplete even if checked.
+- A busy OpenCode session whose bound BB thread failed, stopped or went idle on two consecutive checks → one `LEFTOVER` message to interrupt it before relaunching. A healthy check clears the streak so a later failure can alert again. That session is excluded from other per-session alerts, live claims and orphan suppression.
+- Orphan recorder, simulator-launch/spawn and log-stream processes are ignored while an effective agent is live; without agents, they need 15 minutes and two checks to alert. Simulator idle time only accrues while a simulator is booted and resets when none are booted. Idle or finished OpenCode helpers do not count as ghost or off-track agents.
+- If the run card returns to `running` while the ledger is incomplete, stale `done` and pause state is cleared on the next check. A paused automation does not run by itself: resume it with `bb automation resume <id> --project <id>` when reopening a run.
+- Disk below 5 GB always escalates to a separate `🚦 HOST disk` alert, regardless of `WATCH_DISK_FREE_GB`, so the orchestrator relays it to the owner if cleanup cannot fix it.
 - Three nudges with no ledger verdict change → one `🚦 WATCH STALLED` message, then no more nudges until the card goes from waiting back to running.
 - It never restarts a dead orchestrator. The only repair is at most one `bb plugin reload opencode` per hour when the OpenCode server is unreachable.
 
@@ -131,14 +130,16 @@ Put one machine-readable line in each child's first message so the watchdog can 
 | code | Builder | 20 min | Any file in its lane changes |
 | helper | Reviewer or other answer-producing agent | 20 min | PASS/FAIL answer with evidence |
 
+For a worktree lane (see SKILL.md, Worktree lanes), `lane=` is that worktree's absolute path. `result=` stays a bare filename in the orchestrator's `VERIFY_DIR`, so testers in a worktree write results there.
+
 Result rows: `| ISC-n | PASS|FAIL|BLOCKED | observed | evidence file |`. A row counts only if it is PASS/FAIL, not a placeholder, and cites evidence. Testers write result files as they go, not at the end. Sessions without a valid promise still get the basic stuck/visible/ghost checks. A brief with no `TALK-BACK:` line (from `subagent-delegation`) raises one BRIEF alert for that agent.
 
 Every message the watchdog sends ends with the one-row status table (Done · In progress · Not started · Stuck · Owner-only). In progress = rows promised by live agents that are not yet done.
 
 ### Offline checks
 
-`python3 watch.py --simulate <scenario>` runs deterministic built-in scenarios with no BB/OpenCode calls. Scenarios: stuck-agent, ghost-agent, ghost-agent-no-message, invisible-agent, high-load, disk-big-file, orphan-recorder, fail-under-load, unrecorded-pass, unrecorded-pass-reload, superseded-pass, server-down, combined-alerts, shadow-mode, continue, anti-spin, done, closed-delete, not-closed, read-failure, working-old-bb, resumed-idle-agent, off-track, on-track-timed, on-track-code, fast-jules, new-testers-old-results, no-promise, review, lane-drift, alert-once. `REPO` must point at any temp folder.
+`python3 watch.py --simulate <scenario>` runs deterministic built-in scenarios with no BB/OpenCode calls. Scenarios: stuck-agent, ghost-agent, ghost-agent-no-message, invisible-agent, high-load, disk-big-file, orphan-recorder, orphan-recorder-active, fail-under-load, unrecorded-pass, unrecorded-pass-reload, superseded-pass, server-down, combined-alerts, continue, anti-spin, done, closed-delete, not-closed, read-failure, working-old-bb, resumed-idle-agent, off-track, on-track-timed, on-track-code, fast-jules, new-testers-old-results, no-promise, review, lane-drift, alert-once, repeat-fail, unclaimed, plateau, sim-idle-timer, regression, leftover-session, idle-helper, reopen. `REPO` must point at any temp folder.
 
 ### Rolling out a changed watchdog
 
-Shadow mode, then replay a real stuck run (must alarm) and real false alarms (must stay silent), then a live drill. When an alarm is wrong, loosen or remove the check; never add a special case.
+Test harness changes with `--simulate` and `--dry-run`; the watchdog always runs live. Replay a real stuck run (must alarm) and real false alarms (must stay silent), then do a live drill. When an alarm is wrong, loosen or remove the check; never add a special case.

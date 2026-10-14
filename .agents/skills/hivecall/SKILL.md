@@ -19,15 +19,15 @@ If the goal is missing, ask for it and stop.
 
 ## Kickoff
 
-Follow [references/kickoff.md](references/kickoff.md):
+Read [HOW-TO-WORK.md](HOW-TO-WORK.md) first: the owner's constants for every run. Re-read it and the run card after any context compaction or compression. Then follow [references/kickoff.md](references/kickoff.md):
 
 1. Draft the goal contract and plan from the user's input. Filter owner-only items out of the counted list.
 2. Show both. Ask "Watchdog on? (yes / no)". Wait for approval.
 3. Use the supplied ISA.html as the ledger, or create `.hivecall/checklist.html` from the template, with the approved contract on it.
 4. Write the run card `.hivecall/run.md` with `status: running`.
-5. If watchdog is on, set it up per [README.md](README.md#watchdog): name it `🐝 <orchestrator thread title>`, capture the automation id, write `watchdog: on, automation <id>` in the run card, pass `AUTOMATION_ID`, then use shadow first and live second.
+5. If watchdog is on, set it up per [README.md](README.md#watchdog): name it `🐝 <orchestrator thread title>`, capture the automation id, write `watchdog: on, automation <id>` in the run card, pass `AUTOMATION_ID`, then start it live.
 
-When resuming in a fresh thread, read the run card and ledger first, then [watchdog/lessons.md](watchdog/lessons.md).
+When resuming in a fresh thread, read HOW-TO-WORK.md, the run card and ledger first, then [watchdog/lessons.md](watchdog/lessons.md). Verify a handoff against git and the ledger before trusting it.
 
 ## Ledger rules
 
@@ -40,11 +40,21 @@ When resuming in a fresh thread, read the run card and ledger first, then [watch
 
 Repeat until every item is done or parked:
 
-1. **Pick** the thinnest slice a user could run end to end: 1-5 related items. Run lanes in parallel only when they touch different files and state.
+1. **Pick** the cheapest move that can raise the score (HOW-TO-WORK.md): test a built fix, fix a known cause, debug an unknown cause, or park. Slice 1-5 related items a user could run end to end. Run lanes in parallel only when they touch different files and state. Keep an agent on an open item whenever one is actionable.
 2. **Delegate** each slice as one bounded task. Load the `subagent-delegation` skill before the first delegation and follow it for every brief. Every brief carries its TALK-BACK block (one channel, filled with your real id) so workers can send BUG / BLOCKED / QUESTION mid-run. `build` or `general` implements. Add `reviewer` (`code-quality-gate`) and `qa` (`verification-gate`) as risk warrants, always in fresh agents, never the builder. Every brief says: do not spawn further subagents unless allowed. With the watchdog on, every brief also carries a `PROMISE:` line and a result filename (see README.md, Watchdog).
-3. **Tick** items proven by independent evidence. Commit the accepted work locally. Never push.
-4. **Log lessons.** After any surprise, failure, or false alarm, add one line to the run card's Lessons section.
-5. **Re-check** (below).
+3. **Tick** items proven by independent evidence. Commit the accepted work locally. Never push. For a worktree lane, merge it first (below). Stop the helper's BB thread once its result is in.
+4. **Guard old passes.** After each merge, rerun the run's regression journeys. If a passed item breaks, revert that merge first and fix on the side (HOW-TO-WORK.md).
+5. **Log lessons.** After any surprise, failure, or false alarm, add one line to the run card's Lessons section.
+6. **Re-check** (below).
+
+## Worktree lanes (optional)
+
+Use when parallel lanes would otherwise share a checkout. One lane = one visible BB child thread with its own worktree, branched from the orchestrator's branch: `bb thread spawn --parent-self --project <id> --new-environment worktree --visibility visible`.
+
+- Group work so no two live lanes touch the same files. Lanes share the run's machine limits (HOW-TO-WORK.md defaults or run card overrides); when a lane needs a test device, it takes a free one within that limit.
+- Lanes never edit the ledger. They write evidence and result rows to the orchestrator's `VERIFY_DIR`; only the orchestrator ticks.
+- Limit live lanes to what disk allows (a worktree with dependencies and builds can need several GB).
+- **Merge after QA passes:** commit in the lane, then in the orchestrator's checkout `git merge --no-ff <lane-branch>`; rebuild and rerun the ledger's regression smoke checks on the merged build; tick; remove the worktree (`git worktree remove`) and stop the lane thread. A merge conflict or smoke failure reopens the item; never tick from the lane's build alone.
 
 ## Re-check after every result
 
@@ -57,14 +67,14 @@ Re-plan on new evidence, not on activity.
 
 ## Park, don't loop
 
-- A failure gets one correction using a different approach. If its cause is unclear, the correction brief names `bugging-out` and carries the failed evidence; the builder picks the next playbook, not a repeat.
-- A second failure of the same kind: park the item with its exact unlock condition and move to other work.
+- Up to three attempts, each meaningfully different from the last, for example a new hypothesis or method, then a stronger model or research. Use judgment on what counts as different; never rerun the same idea. Debug in tight, time-boxed log loops (HOW-TO-WORK.md, Defaults). If the cause is unclear, the correction brief names `bugging-out` and carries the failed evidence; the builder picks the next playbook, not a repeat.
+- After the third failure, park the item with its exact unlock condition and move to other work.
 - Owner-only items (physical device, human access) are parked from the start.
 - Parked items do not stop the run.
 
 ## Stop and ask only for
 
-Missing authority or access, a contradictory ledger, or a destructive or remote action. Never push. Never fabricate evidence. While waiting on the user, set the run card to `waiting-owner`; after a usage limit, `waiting-usage`. Set it back to `running` when work resumes.
+The hard blockers in HOW-TO-WORK.md, sent as one `🚦` line: missing authority or access, a contradictory ledger, a destructive or remote action, disk full after allowed cleanup, or model credits out with no backup. Everything else is decided from the specs and recorded. Never push. Never fabricate evidence. While waiting on the user, set the run card to `waiting-owner`; after a usage limit, `waiting-usage`. Set it back to `running` when work resumes.
 
 ## End
 

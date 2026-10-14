@@ -1,4 +1,4 @@
-# Hivecall lessons (from the Journal iOS run, Oct 2026)
+# Hivecall lessons (from real runs)
 
 Universal rules learned the hard way. Project-specific traps belong in the run card's Lessons section.
 
@@ -14,7 +14,7 @@ Universal rules learned the hard way. Project-specific traps belong in the run c
 ## Briefs
 8. Every brief has: role, the items, the exact check, a `PROMISE:` line, the TALK-BACK block from the `subagent-delegation` skill (one channel, real parent id), a bare result filename, allowed folders, "do not spawn subagents", and "write results as you go". Without TALK-BACK a blocked worker stays silent until it finishes.
 9. Pick the promise kind that fits the work: `timed` for anything that waits, `helper` for reviewers.
-10. Before briefing a fix, check how many attempts the item already had. Second failure of the same kind means park it.
+10. Before briefing a fix, check how many attempts the item already had. After three failed attempts with different approaches, park it.
 11. Work on the difference. Re-verify only what a change could have affected.
 
 ## Proof
@@ -25,7 +25,7 @@ Universal rules learned the hard way. Project-specific traps belong in the run c
 ## Machine
 15. Recorders and log streams need a hard time cap. Check for orphans after every tester.
 16. Watch disk. Evidence folders and build caches filled the disk three times; one forced a reboot.
-17. Heavy load makes timing and gesture checks fail. Re-check those under calm load before calling them bugs.
+17. Heavy load makes timing and gesture or animation checks fail. Re-check those under calm load before calling them bugs.
 18. Hide evidence and lane folders from Git (`.git/info/exclude`). Thousands of untracked files made BB lag.
 
 ## Watchdog
