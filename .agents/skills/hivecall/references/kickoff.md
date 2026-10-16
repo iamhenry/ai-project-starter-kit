@@ -4,7 +4,7 @@ Read this at the start of every hivecall run, and again when resuming one.
 
 ## 1. Turn the owner's input into a goal contract
 
-The owner may give a free-form goal, a spec file, or an ISA.html. Draft this contract from it and show it with the plan. Do not start work until the owner approves.
+The owner may give a free-form goal, a spec file, or an ISA.html. For clear input, draft this contract and plan, then wait for owner approval. If the input cannot support a falsifiable check for every Verification line, use [discovery.md](discovery.md) instead; do not wait for owner contract/plan approval, and follow its judge gates.
 
 Use exactly this shape:
 
@@ -29,11 +29,11 @@ How the contract maps to the run:
 - Between items, pick the cheapest move that can raise the score (see HOW-TO-WORK.md).
 - **Write the check first.** An item without a check that can run on this machine gets one written before its worker starts. If none is possible, mark it "judged against spec" and cite the spec line, or owner-only. Do not block other items on it. Example: an app that cannot be built here cannot be checked here, so say that in the contract before work starts.
 
-In the same message ask: **"Watchdog on? (yes / no)"**. Approval of the contract plus that answer starts the run.
+Ask both questions in the same message: **"Watchdog on? (yes / no)"** and **"Open a PR at the end? (yes / no)"**. On the clear-task route, contract approval plus both answers starts the run; on discovery, the two answers authorize the run without owner approval of the contract or plan.
 
 ## 2. Pick the ledger
 
-- An ISA.html with checkbox criteria and a verification section: use it as-is. Set `LEDGER` to its path.
+- An ISA.html with checkbox criteria and a verification section: use it as the ledger. On discovery, add the Discovery items under their heading. Set `LEDGER` to its path.
 - Anything else (free-form goal, spec.md): copy [checklist-template.html](checklist-template.html) to `.hivecall/checklist.html` and fill it in. It is the owner's one page: progress panel at the top, the approved goal contract, the checklist grouped by feature, owner-only items, and verification lines. It must survive thread changes and compaction.
 
 Rules:
@@ -106,6 +106,6 @@ The owner may be away for hours; the footer must make the current state clear at
 
 When every counted item is ticked or parked:
 
-1. Set `status: closed` in the run card.
-2. Send the final report: confirmed (with evidence), parked (with unlock), owner-only items, uncertain.
+1. If PR authority was yes, confirm cited verification evidence files exist, then finish with `create-pr` to push the branch and open a PR; never merge. Otherwise, use local commits only and never push.
+2. Set `status: closed` in the run card, then send the final report: confirmed (with evidence), parked (with unlock), owner-only items, uncertain.
 3. The watchdog pauses after `closed`, then deletes its automation on the check after a successful pause. If pause fails, it retries; a complete ledger with a card that is not closed only pauses and sends `WATCH DONE` without deleting the automation.
