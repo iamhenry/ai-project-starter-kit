@@ -37,7 +37,8 @@ Useful user instructions include:
 - Query `asc apps list --output json` and discover current bundle-ID commands with `asc --help`.
 - Existing app: reuse its bundle ID and App Store Connect record.
 - New app: create the bundle ID if absent, then create the first App Store Connect record with `asc web apps create`.
-- If web authentication is missing, run `asc web auth login` interactively. Never request or print passwords, 2FA codes, API keys, private-key paths, or cached sessions.
+- A first TestFlight build needs neither the App Store Connect website nor the Xcode UI. `asc` covers every step: bundle ID, app record (`asc web apps create`), signing profile, archive, export, upload, and tester group.
+- If web authentication is missing, give the user `asc web auth login --apple-id <email>` to run in their own terminal (it prompts for password and 2FA there), then confirm with `asc web auth status`. Agent-run logins stall or cancel at 2FA. Never request or print passwords, 2FA codes, API keys, private-key paths, or cached sessions.
 - Keep the installed app name separate from the globally unique store listing name. Use `--auto-rename=false`; ask the user for another store name if Apple rejects it.
 
 ### 3. Set version and build
@@ -52,6 +53,7 @@ Useful user instructions include:
 - Regenerate ignored native output from canonical configuration only when the framework requires it.
 - Use `xcodebuildmcp` help-first project discovery to find the workspace, scheme, and Release settings. Prefer the workspace when CocoaPods created one.
 - Use Xcode-managed signing unless the repository defines another signing workflow.
+- If Xcode's signed-in account is missing or expired, skip it: create an `IOS_APP_STORE` profile with `asc profiles create` (API key), install it, and archive with manual signing set on the app target only. Use Xcode UI only as a last resort.
 - If signing requires Xcode UI, load `cua-driver` and follow its snapshot-before-action and snapshot-after-action loop. Do not use the App Store Connect website for operations supported by `asc`.
 
 ### 5. Archive and inspect
