@@ -44,8 +44,10 @@ Read at kickoff, and again after any context compaction or compression. Invarian
 - Machine: one test device at a time (simulator, emulator or browser instance), one heavy build at a time, at least 5 GB free.
 - Debug box: about 15 minutes per attempt; stop after two loops with nothing new.
 - Attempt ladder (a guide, not a script): a new hypothesis or method → a different method → a stronger model or research agent → park. Skip a rung when the evidence already rules it out.
+- When an attempt fails for an environment, platform, or tool reason, the next starts with reflection and an official-docs lookup, then a new angle—never a plain retry.
 - Debug loop: list 5-7 possible causes, keep the 1-2 likeliest, add 1-3 timestamped log lines, one quick rebuild, one user action (tap, click, page load or request), read the log. Use `bugging-out` for stuck bugs.
 - Regression guard: 3-5 replayable user journeys, rerun after each merge, not a full re-pass.
+- If the environment cannot produce a required condition, the orchestrator may choose a nearby environment (e.g. another OS/runtime, device, or browser) without changing the claim; name it in the check and put any unproven gap on the ledger as owner-only or parked. Verifiers never substitute on their own.
 - Preflight: install, typecheck and build the starting branch once (a few minutes). If it fails, fixing it is the first item; independent work may start meanwhile.
 - Checkpoint: a git commit to revert to before any risky change.
 - Backup model per agent, named at kickoff; on a credit cutoff, switch and report it in one line.
