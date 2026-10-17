@@ -33,3 +33,5 @@ Universal rules learned the hard way. Project-specific traps belong in the run c
 20. Watch the watchdog: once an hour, check its alerts matched reality. Note false alarms; loosen the check, never special-case it.
 21. Usage limits stop agents silently. Set the run card to `waiting-usage` so the watchdog stops nudging.
 22. A paused watchdog still clutters BB; delete its automation on the check after the run card closes.
+23. Pick agents from the system prompt's agent table at kickoff; never route work to a raw model. One off-table model choice cost a run about 35 minutes of rework.
+24. Smoke one item live before sending a batch. Files an agent must read need lines under 2,000 characters; the read tool truncates longer lines silently.
