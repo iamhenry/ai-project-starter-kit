@@ -39,6 +39,9 @@ Read at kickoff, and again after any context compaction or compression. Invarian
 16. Talk back early: stuck for 5 minutes or about to guess means a `QUESTION`.
 17. A talk-back line names the build it is about; a line about an older build is history.
 18. Stop a helper's BB thread as soon as its result arrives.
+19. One task, one checkable result, named in the brief (for example "baseline scores saved" or "batch 3 answered"). Group code tasks by the feature they change; no two live tasks touch the same files.
+20. Use only the dedicated agents from the system prompt's agent table; never pick a raw model or provider. Their model roles are tuned for price, intelligence and speed.
+21. Judges (`reviewer`, or `plan` when judging) only read and return a verdict; workers (`build`, `general`) write; `qa` proves.
 
 ## Defaults (override per run in the run card)
 - Machine: one test device at a time (simulator, emulator or browser instance), one heavy build at a time, at least 5 GB free.
@@ -51,6 +54,8 @@ Read at kickoff, and again after any context compaction or compression. Invarian
 - Preflight: install, typecheck and build the starting branch once (a few minutes). If it fails, fixing it is the first item; independent work may start meanwhile.
 - Checkpoint: a git commit to revert to before any risky change.
 - Backup model per agent, named at kickoff; on a credit cutoff, switch and report it in one line.
+- Task time box: 30-45 minutes. Split a task expected to run longer before launch; check one that passes 45 minutes with no result, then split or park it.
+- Model-answer work (labeling, judging, replay): batches of at most 20 items, at most 5 batches in parallel.
 - Every brief also carries: absolute paths, what is already done and still valid, what this change could break, its time box.
 
 ## What the watchdog guarantees (from `watchdog/watch.py`)
