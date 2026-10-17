@@ -1,0 +1,13 @@
+{
+  "target_behaviors": ["3. Never goes quiet while work is open"],
+  "owning_file": ".agents/skills/retro/references/hivecall/gate/rubric.md",
+  "proposed_edit": "Insert in rubric.md under Artifact ownership hints: 'Before waiting, the live orchestrator must assign each actionable open item to a worker.'",
+  "verification": "Replay the open-item waiting path and confirm the orchestrator assigns work or states the blocker.",
+  "trace_evidence": {
+    "source": "BB thread log",
+    "thread_id": "thr_55cgwjcgzk",
+    "moment": "Oct 9, 00:08-06:50",
+    "observations": "Items remained open while the orchestrator was idle for about 6.7 hours; the owner asked why agents were not working."
+  },
+  "cause_class": "execution_drift"
+}

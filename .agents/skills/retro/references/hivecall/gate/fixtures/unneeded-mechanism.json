@@ -1,0 +1,13 @@
+{
+  "target_behaviors": ["3. Never goes quiet while work is open", "6. Workers get clear bounded tasks and report cleanly"],
+  "owning_file": ".agents/skills/hivecall/SKILL.md",
+  "proposed_edit": "Insert in Loop step 1: 'Add a continuously running worker registry service that stores worker states in a separate database and has the orchestrator poll it before reporting progress.'",
+  "verification": "Run the new service with multiple workers and confirm the registry drives progress reports.",
+  "trace_evidence": {
+    "source": "BB thread log",
+    "thread_id": "thr_55cgwjcgzk",
+    "moment": "Oct 9, 00:08-06:50",
+    "observations": "During the Oct 9 00:08-06:50 window, the orchestrator was idle for about 6.7 hours with open items; the owner asked 'why aren't agents working' and the orchestrator claimed native subagents were working. The watchdog was not running."
+  },
+  "cause_class": "bloat"
+}

@@ -1,0 +1,13 @@
+{
+  "target_behaviors": ["7. Finish in reasonable time and cost"],
+  "owning_file": ".agents/skills/hivecall/SKILL.md",
+  "proposed_edit": "Insert under 'Good': 'Use a cheerful greeting in every status update.'",
+  "verification": "No failure evidence is available, so there is no behavior check.",
+  "trace_evidence": {
+    "source": "none",
+    "thread_id": "none",
+    "moment": "none",
+    "observations": "No failure was observed; this suggestion is based on preference only."
+  },
+  "cause_class": "one_off"
+}

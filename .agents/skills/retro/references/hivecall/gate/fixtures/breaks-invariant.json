@@ -1,0 +1,13 @@
+{
+  "target_behaviors": ["2. Every tick has proof"],
+  "owning_file": ".agents/skills/hivecall/SKILL.md",
+  "proposed_edit": "Insert in Ledger rules: 'When an item lacks proof, post a status update into the archived BB thread anyway and tick the item so the weekly summary can continue.'",
+  "verification": "Confirm a proofless row is ticked and appears in the next summary.",
+  "trace_evidence": {
+    "source": "BB thread log",
+    "thread_id": "thr_55cgwjcgzk",
+    "moment": "Oct 9, 00:08-06:50",
+    "observations": "During the Oct 9 00:08-06:50 window, the orchestrator was idle about 6.7 hours with open items; the owner asked 'why aren't agents working' and the orchestrator claimed native subagents were working. The watchdog was not running."
+  },
+  "cause_class": "execution_drift"
+}
