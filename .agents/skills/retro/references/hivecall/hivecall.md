@@ -51,7 +51,7 @@ mv "$t/hivecall-dataset.jsonl" .agents/skills/retro/references/hivecall/evals/da
   reopened or follow-up work); quiet gaps (30+ minutes with no orchestrator
   event); active time (duration minus quiet gaps with no BB worker running);
   peak concurrent workers; every watchdog alert line; and every child's final
-  report. Clef, Cloudflare's decision model on Ollama Cloud, labels each alert
+  report. Clef labels each alert
   `real` or `false`, each child `done`, `blocked`, `failed`, or `partial`, and
   each quiet gap `closed` (run already over), `owner` (waiting on the owner), or
   `stalled`. A stall is a gap labeled `stalled` with no BB worker running; it
@@ -66,7 +66,7 @@ mv "$t/hivecall-dataset.jsonl" .agents/skills/retro/references/hivecall/evals/da
 - `count-moments.py` reports stored moments for behaviors 1–7. The command
   `python3 .agents/skills/retro/references/hivecall/scripts/redact.py --scan
   .agents/skills/retro/references/hivecall/evals/dataset.jsonl` must report zero
-  hits before any dataset excerpt is sent to a cloud model or included in an
+  hits before any dataset excerpt is sent to a remote recipient or included in an
   issue/PR. Never send raw logs; `digest.py` redacts its Clef requests locally.
 
 Never open, message, or change a thread. `.hivecall/` files do not survive
@@ -147,23 +147,39 @@ Keep the parent's Diagnosis and Decision sections. A flawed week can still be
 Run this only as part of the weekly automation. When archived traces are
 readable, score the current skill for that week using the baseline route in
 `replay/README.md`; the runner appends one `kind: baseline` row. If no traces are
-readable, report `BLOCKED` and append no baseline row. Clef remains the direct
-first-pass client. Tested prompts go to the `plan` subagent
-(`anthropic/claude-opus-5-5`, the real orchestrator model); judge prompts go to
-the `reviewer` subagent (GPT family). The Python scripts never call either
-agent. The runner exports redacted JSONL with readable Markdown twins and prints
-both paths in `awaiting answers: <path>` without adding a partial result. Launch
-no more than five agent batches at a time (up to 20 prompts per batch). Multi-batch
-exports are numbered, and each twin lists shared system/skill text once with
-wrapped item prompts. For the
-reviewer, include `.agents/skills/retro/references/hivecall/judge-contract.md`
-in the brief. The reviewer returns exactly one JSONL line per item and no other
-text, in the strict importer format
-`{"id":"<exported 64-character id>","answer":"<raw answer text>"}`. For judge
-rows, `answer` contains the prompt-specific raw JSON judgment; tested rows
-contain plain-text hypothetical next actions. Import into the same cache and
-rerun the exact command. Replay export/import commands are documented in
-`replay/README.md`; for example:
+readable, report `BLOCKED` and append no baseline row. Clef remains the direct,
+cheap first pass. Use only the dedicated agents in the system prompt table:
+`plan` for
+tested replay items, `reviewer` for replay/gate judgments, `build` for the exact
+gate-approved edit in the temporary candidate, `general` for report/PR prose,
+and a fresh `qa` for evidence and the proposal PR's single-file proof. The
+scripts never call agents or make direct provider requests for tested/judge
+answers.
+
+The runner exports redacted JSONL with readable Markdown twins and prints each
+`awaiting answers: <path>` without adding a partial result. Each batch has at
+most 20 prompts; multi-batch paths use numbered `.bNN` suffixes. Smoke the first
+batch with one matching agent, import its answer lines into the same cache, and
+rerun the exact command. After that smoke import and rerun succeeds, process
+remaining batches in waves of at most five parallel agents, importing and
+rerunning until no answers are pending. Give each agent its matching `.md` file,
+not machine JSONL; for `reviewer`, include
+`.agents/skills/retro/references/hivecall/judge-contract.md`. Every brief must
+carry a filled `PROMISE:` line and one `TALK-BACK:` block with the live parent
+session ID. Use `kind=code` for `build` and `kind=helper` for other agents. Fill
+every other value from the run:
+
+```text
+PROMISE: kind=<helper|code> rows=<batch IDs or -> result=<bare filename in the run verification directory or -> lane=<assigned path or ->
+TALK-BACK: Reach the parent mid-run without stopping: opencode api post /api/session/<parent-ses-id>/prompt --data '{"text":"<msg>","delivery":"queue"}'.
+Send only BUG / BLOCKED / QUESTION, once per issue.
+```
+
+Each agent returns exactly one JSONL line per item and no other text, preserving
+the ID in `{"id":"<exported 64-character id>","answer":"<raw answer text>"}`.
+For judge rows, `answer` contains the prompt-specific raw JSON judgment; tested
+rows contain a plain-text hypothetical next action. Replay export/import commands
+are documented in `replay/README.md`; for example:
 
 ```sh
 HIVECALL_ALLOW_DATASET_CLOUD=1 python3 .agents/skills/retro/references/hivecall/replay/run.py baseline \
@@ -173,7 +189,6 @@ python3 .agents/skills/retro/references/hivecall/replay/run.py import \
   --answers .lanes/hivecall-handoff/answers.jsonl --cache-dir .lanes/replay-cache
 ```
 
-The tested and judge model families differ.
 If the baseline route fails or is incomplete, report `BLOCKED` and leave no
 baseline row; never substitute a rule-only PRECHECK row.
 
@@ -222,9 +237,12 @@ results row.
    scorecards, changed moments, judge/Clef disagreements, and the held-out
    note, and appends its result to
    `.agents/skills/retro/references/hivecall/evals/results.jsonl`. Do not treat
-   missing or untrusted scores as a win. A replay `REJECT` row has measured
-   scores; a replay `PASS` is `shipped` only after its separate proposal PR is
-   open. Never label a non-eval outcome as `rejected`.
+    missing or untrusted scores as a win. A replay `REJECT` row has measured
+    scores unless it says `REJECT (target not evaluable)`. For that floor case,
+    report exactly `not evaluable: behavior N has only M held-out moments`; open
+    no proposal PR and do not describe it as a measured regression. A replay
+    `PASS` is `shipped` only after its separate proposal PR is open. Never label
+    a non-eval outcome as `rejected`.
 3. Rebuild the offline dashboard every Monday after processing result rows,
    even when this run appends no row:
 

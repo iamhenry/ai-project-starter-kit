@@ -1,8 +1,8 @@
 # Weekly Hivecall retro automation
 
-Draft for `auto_rcepm5xwbyo`: Monday 06:00 America/Los_Angeles; OpenCode
-`openai/gpt-6.1-sol`, high reasoning, full permission, fresh worktree from
-`main`. This file is a prompt draft; do not change the automation configuration.
+Draft for `auto_rcepm5xwbyo`: Monday 06:00 America/Los_Angeles; OpenCode,
+full permission, fresh worktree from `main`. This file is a prompt draft; do not
+change the automation configuration.
 
 ## Owner's outcome
 
@@ -17,8 +17,10 @@ branch or `origin/main` if it does not exist. When history exists, merge
 Regenerate the dataset, append the week's result rows, write the report, rebuild
 the dashboard, then push only to the standing history branch. Replay currently
 evaluates only `.agents/skills/hivecall/SKILL.md`; any other owner receives the
-verdict “not evaluable yet” and cannot get a proposal PR. If an eligible eval passes, open a
-separate PR from `retro/hivecall-<date>` containing only that skill file. Its
+verdict “not evaluable yet” and cannot get a proposal PR. If an eligible eval
+passes, open a separate PR from `retro/hivecall-<date>` containing only that
+skill file. An eval that returns `REJECT (target not evaluable)` gets no proposal
+PR; report `not evaluable: behavior N has only M held-out moments`. Its
 body links to the week report on the history branch. The standing PR and its
 weekly report are the history record; do not create a separate weekly issue. The
 owner reviews and merges; you never merge. Read threads only through the
@@ -28,14 +30,14 @@ supplied read-only scripts.
 
 - Never open, message, stop, or change a BB thread. The trace helpers may read
   logs; do not use any other thread operation.
-- Never send raw or unredacted trace text to any cloud model, GitHub issue, or
-  PR. Use the local redaction helpers and require a zero-hit scan before sharing
-  dataset excerpts or report text. Clef remains the direct first-pass client.
+- Never send raw or unredacted trace text outside the repository, including to
+  Clef, an agent, a GitHub issue, or a PR. Use local redaction helpers and require
+  a zero-hit scan before sharing
+  dataset excerpts or report text. Clef remains the direct, cheap first pass.
   Tested and judge prompts are exported as redacted JSONL with readable Markdown
-  twins and answered by the
-  `plan` (tested) and `reviewer` (judge) subagents. The tested prompt is a
-  hypothetical, text-only replay. Never call their models directly or send the
-  prompts through `opencode run`.
+  twins and answered only by the dedicated `plan` (tested) and `reviewer`
+  (judge) agents. The tested prompt is a hypothetical, text-only replay. Never
+  bypass those agents with direct provider requests or `opencode run`.
 - On the dated proposal branch, the only source file you may edit is exactly
   `.agents/skills/hivecall/SKILL.md`; the replay currently reads only that file.
   Never edit another file in that tree or any other source file. The only other
@@ -58,28 +60,45 @@ supplied read-only scripts.
 
 ## Agent handoff
 
-The replay and gate scripts print every `awaiting answers: <path>` (both machine
-JSONL and readable Markdown) and exit successfully when an answer is missing.
-The exported JSONL contains a stable `id`, `role`, `system`, and redacted
-`prompt`. Each machine batch has a Markdown twin; multi-batch paths are numbered
+The replay and gate scripts never call prompt agents. They export redacted JSONL
+and readable Markdown twins, print each `awaiting answers: <path>`, and exit
+successfully while answers are missing.
+Each batch has at most 20 items. Multi-batch paths are numbered
 `<export-path-stem>.b01.jsonl` with matching `.b01.md`, `.b02.jsonl` with
-`.b02.md`, and so on. A single batch keeps the requested JSONL path and adds its
-`.md` twin. Launch a `plan` subagent for each `role: tested` batch;
-it uses `anthropic/claude-opus-5-5`, the same model as the real orchestrator.
-Launch a `reviewer` subagent for each `role: judge` batch; it is GPT-family.
-Run up to five batch subagents in parallel, then start the next batches as slots
-open. Give each subagent the numbered `.md` twin, not the machine JSONL: it
-contains numbered system/skill sections once at the top, one item per prompt,
-and wrapped lines no longer than 1,200 characters. Each item supplies the same
-stable ID used by the importer. For `reviewer`, include
-`.agents/skills/retro/references/hivecall/judge-contract.md` in the brief. Each
-agent returns exactly one JSONL line per item and no other text, in the importer
-format `{"id":"<exported 64-character id>","answer":"<raw answer text>"}`.
-For judge rows, `answer` contains the prompt-specific raw JSON object; for tested
-rows it contains plain-text hypothetical next action. Combine answer lines from
-all batches into one answers JSONL, import it into the same cache used by the
-producing command, then rerun that exact command. Replay export and
-import are:
+matching `.b02.md`, and so on. A single batch keeps the requested JSONL path and
+adds its `.md` twin. Give agents the matching Markdown file, not machine JSONL;
+it lists shared system/skill text once and wraps prompt lines to at most 1,200
+characters.
+Use only the dedicated agents in the system prompt table: `plan` answers tested
+replay items; `reviewer` answers replay and gate judgments; `build` makes only
+the gate-approved edit in the temporary candidate copy; `general` writes report
+and PR prose; a fresh `qa` verifies produced evidence and the proposal PR's
+single-file diff. `plan` and `reviewer` are read-only. The parent keeps final
+judgment and all branch/PR actions. Never bypass a named agent with a direct
+provider request.
+
+Before fanning out, smoke one batch with one matching agent: import its answer
+lines into the producing command's cache and rerun that exact command. Once the
+answers import and rerun without a malformed-answer error, launch remaining
+batches in waves of at most five parallel agents. Repeat import and the original
+command until it prints no `awaiting answers`. Give every brief a real promise
+and one talk-back channel. Use `kind=code` for `build` and `kind=helper` for
+other agents:
+
+```text
+PROMISE: kind=<helper|code> rows=<batch IDs or work item> result=<bare filename in the run verification directory> lane=<assigned lane path or ->
+TALK-BACK: Reach the parent mid-run without stopping: opencode api post /api/session/<parent-ses-id>/prompt --data '{"text":"<msg>","delivery":"queue"}'.
+Send only BUG / BLOCKED / QUESTION, once per issue. If the command fails, include it in the final result.
+```
+
+For each item, return exactly one JSONL line and no other text, preserving the
+exported ID: `{"id":"<exported 64-character id>","answer":"<raw answer text>"}`.
+For judge rows, `answer` is the prompt-specific raw JSON object as text; tested
+rows contain a plain-text hypothetical next action. Include
+`.agents/skills/retro/references/hivecall/judge-contract.md` in every
+`reviewer` brief. Combine lines into one answers JSONL and import it into the
+same cache as the command that exported those prompts. Replay export and import
+are:
 
 ```sh
 HIVECALL_ALLOW_DATASET_CLOUD=1 python3 .agents/skills/retro/references/hivecall/replay/run.py baseline \
@@ -165,8 +184,8 @@ fresh temporary output, count and scan it, then replace the existing dataset
 only when the scan has zero hits. This clean rebuild excludes both live runs
 and any older unarchived rows. Commit the regenerated dataset on the history
 branch with this week's results, report, and dashboard. If the redaction scan
-has any hits, do not send excerpts to a model or PR; report `BLOCKED` with
-counts only.
+has any hits, do not send excerpts to any remote recipient or PR; report
+`BLOCKED` with counts only.
 
 If no traces can be read, record `BLOCKED` and append no baseline row. Otherwise,
 score the current skill for this week's archived dataset before judging a
@@ -296,8 +315,11 @@ HIVECALL_ALLOW_DATASET_CLOUD=1 python3 .agents/skills/retro/references/hivecall/
   --export-prompts .lanes/hivecall-handoff/eval.jsonl
 ```
 
-Do not compare one file to itself or substitute another model route or weaken
-the replay rule. A complete replay `PASS` requires every targeted
+Do not compare one file to itself, substitute a different evaluation route, or
+weaken the replay rule. If the eval returns `REJECT (target not evaluable)`,
+report exactly `not evaluable: behavior N has only M held-out moments`; do not
+call it a measured regression or open a proposal PR. A complete replay `PASS`
+requires every targeted
 behavior to improve beyond the measured noise band and every other trusted
 behavior to be no worse. Otherwise the result is `REJECT`; incomplete coverage
 is not a pass.
