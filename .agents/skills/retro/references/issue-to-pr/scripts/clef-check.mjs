@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// Jev pre-check for the issue-to-PR retro. No dependencies (Node 22+).
-//   node jev-check.mjs <thread_id>          preview: writes evals/last-request.json, sends nothing
-//   node jev-check.mjs <thread_id> --send   asks Jev, prints findings, appends evals/results.jsonl
-// Code counts facts; Jev answers narrow yes/no checks; the LLM judge decides. Findings are hints.
+// Clef pre-check for the issue-to-PR retro (Cloudflare decision model on Ollama Cloud). No dependencies (Node 22+).
+//   node clef-check.mjs <thread_id>          preview: writes evals/last-request.json, sends nothing
+//   node clef-check.mjs <thread_id> --send   asks Clef, prints findings, appends evals/results.jsonl
+// Code counts facts; Clef answers narrow yes/no checks; the LLM judge decides. Findings are hints.
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -11,14 +11,14 @@ import { renderDashboard } from "./dashboard.mjs";
 
 const SKILL = join(import.meta.dirname, "..");
 const read = (p) => readFileSync(join(SKILL, p), "utf8");
-const cfg = JSON.parse(read("jev-questions.json"));
+const cfg = JSON.parse(read("clef-questions.json"));
 const cases = JSON.parse(read("evals/cases.json"));
 const [id, flag] = process.argv.slice(2);
 if (id === "--dashboard") { renderDashboard(); process.exit(0); }
-if (!/^thr_[a-z0-9]+$/.test(id ?? "")) throw new Error("usage: node jev-check.mjs <thread_id> [--send]");
+if (!/^thr_[a-z0-9]+$/.test(id ?? "")) throw new Error("usage: node clef-check.mjs <thread_id> [--send]");
 if (flag && flag !== "--send") throw new Error("Unknown flag; use --send only after reviewing the preview.");
 const hash = (value) => createHash("sha256").update(value).digest("hex");
-const definitionHash = hash(["../../SKILL.md", "issue-to-pr.md", "jev-questions.json", "scripts/jev-check.mjs"].map(read).join("\n"));
+const definitionHash = hash(["../../SKILL.md", "issue-to-pr.md", "clef-questions.json", "scripts/clef-check.mjs"].map(read).join("\n"));
 const caseHash = hash(JSON.stringify(cases[id] ?? null));
 
 // ---- drift guard: every question must still point at real rubric text ----
@@ -26,7 +26,7 @@ const sources = [cfg.routing._source, cfg.decision_question.source,
   ...Object.values(cfg.run_questions).map((q) => q.source), ...Object.values(cfg.helper_questions).map((q) => q.source)];
 for (const s of sources) {
   const [file, text] = s.split(/:\s(.+)/);
-  if (!read(file).replace(/\s+/g, " ").includes(text)) throw new Error(`Stale question: "${text}" no longer appears in ${file}. Update jev-questions.json.`);
+  if (!read(file).replace(/\s+/g, " ").includes(text)) throw new Error(`Stale question: "${text}" no longer appears in ${file}. Update clef-questions.json.`);
 }
 
 // ---- 1. read the run (plain code) ----
@@ -65,7 +65,7 @@ const helpers = (list.threads ?? list).filter((t) => t.parentThreadId === id).ma
   };
 });
 
-// ---- 2. build the two Jev requests ----
+// ---- 2. build the two Clef requests ----
 const decisions = read("issue-to-pr.md").split("\n").filter((l) => /^\| (Confirmed|Observed)/.test(l))
   .map((l) => l.split("|").map((c) => c.trim()).filter(Boolean));
 const strip = ({ source, ...q }) => q;
@@ -94,18 +94,20 @@ const tok = (o) => Math.round(JSON.stringify(o.state).length / 4);
 console.log(`preview: ${previewPath} · run state ~${tok(requests.run)} tok · helper state ~${tok(requests.helpers)} tok · ${Object.keys(requests.run.questions).length + Object.keys(requests.helpers.questions).length} questions`);
 if (flag !== "--send") process.exit(0);
 
-// ---- 3. ask Jev (two calls in parallel) ----
-if (!process.env.OPENROUTER_API_KEY && existsSync(join(SKILL, ".env"))) process.loadEnvFile(join(SKILL, ".env"));
-if (!process.env.OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY not set (env or .env in the skill folder)");
+// ---- 3. ask Clef (two calls in parallel) ----
+// Jev-compatible API on Ollama Cloud, reusing OpenCode's saved ollama-cloud login.
+const authFile = join(process.env.HOME, ".local/share/opencode/auth.json");
+const key = process.env.OLLAMA_API_KEY ?? (existsSync(authFile) ? JSON.parse(readFileSync(authFile, "utf8"))["ollama-cloud"]?.key : undefined);
+if (!key) throw new Error("No Ollama Cloud key: connect the ollama-cloud provider in OpenCode");
 const ask = async (body) => {
-  const res = await fetch("https://openrouter.ai/api/v1/systemone", {
+  const res = await fetch("https://ollama.com/v1/systemone", {
     method: "POST",
-    headers: { Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(60000),
   });
   const j = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(`Jev ${res.status}: ${JSON.stringify(j)}`);
+  if (!res.ok) throw new Error(`Clef ${res.status}: ${JSON.stringify(j)}`);
   for (const [key, question] of Object.entries(body.questions)) {
     const a = j.answers?.[key];
     if (a?.type !== question.type) throw new Error(`Missing or invalid answer: ${key}`);
@@ -128,7 +130,7 @@ const kinds = helpers.map((h, i) => {
   return { n: i + 1, agent: h.agent, kind: a.choice, sure: a.confidence >= 0.5, ok: allowed.includes(h.agent), allowed };
 });
 const bad = kinds.filter((k) => !k.ok);
-add("helpers_misrouted", bad.some((k) => k.sure) ? "yes" : bad.length ? "unsure" : "no", "code+jev",
+add("helpers_misrouted", bad.some((k) => k.sure) ? "yes" : bad.length ? "unsure" : "no", "code+clef",
   bad.map((k) => `#${k.n} ${k.kind} ran on ${k.agent}, expected ${k.allowed.join("/")}${k.sure ? "" : " (unsure kind)"}`).join("; "));
 const agents = new Set(helpers.map((h) => h.agent));
 add("review_or_qa_missing", agents.has("reviewer") && agents.has("qa") ? "no" : "yes", "code", `helper agents: ${[...agents].join(", ")}`);
@@ -139,8 +141,8 @@ add("manual_stops", run.events.filter((e) => e.startsWith("Stopped")).length, "c
 add("longest_stretch_minutes", Math.round(Math.max(0, ...run.worked) / 60), "code", "");
 const users = run.turns.filter((t) => t.role === "user").map((t) => t.text);
 add("repeated_user_messages", users.length - new Set(users).size, "code", "");
-for (const [k, a] of Object.entries(ra.answers)) add(k, yn(a.noul), "jev", a.noul.toFixed(2));
-kinds.forEach((k) => add(`helper_${k.n}_clean_handoff`, yn(answers[`helper_${k.n}_clean_handoff`].noul), "jev",
+for (const [k, a] of Object.entries(ra.answers)) add(k, yn(a.noul), "clef", a.noul.toFixed(2));
+kinds.forEach((k) => add(`helper_${k.n}_clean_handoff`, yn(answers[`helper_${k.n}_clean_handoff`].noul), "clef",
   answers[`helper_${k.n}_clean_handoff`].noul.toFixed(2)));
 
 for (const [k, f] of Object.entries(findings)) console.log(`${k.padEnd(30)} ${String(f.value).padEnd(7)} ${f.by.padEnd(9)} ${f.detail}`);

@@ -22,10 +22,10 @@ If the goal is missing, ask for it and stop.
 Read [HOW-TO-WORK.md](HOW-TO-WORK.md) first: the owner's constants for every run. Re-read it and the run card after any context compaction or compression. Then follow [references/kickoff.md](references/kickoff.md):
 
 1. If the input cannot yet support a falsifiable check for every Verification line (e.g., an ambiguous goal or raw bug report), follow [references/discovery.md](references/discovery.md) first; otherwise draft the goal contract and plan as today.
-2. On a clear-task route, show both and ask "Watchdog on? (yes / no)" and "Open a PR at the end? (yes / no)"; wait for contract approval. On discovery, those answers authorize the run; judges approve or revise the plan.
+2. On a clear-task route, show both and ask "Open a PR at the end? (yes / no)"; wait for contract approval. The watchdog is on by default; turn it off only when the owner says "no watchdog". On discovery, the PR answer authorizes the run; judges approve or revise the plan.
 3. Use the supplied ISA.html as the ledger, or create `.hivecall/checklist.html` from the template, with the approved contract or the Discovery items on it.
 4. Write the run card `.hivecall/run.md` with `status: running`.
-5. If watchdog is on, set it up per [README.md](README.md#watchdog): name it `🐝 <orchestrator thread title>`, capture the automation id, write `watchdog: on, automation <id>` in the run card, pass `AUTOMATION_ID`, then start it live.
+5. Unless the owner said "no watchdog", set it up per [README.md](README.md#watchdog): name it `🐝 <orchestrator thread title>`, capture the automation id, write `watchdog: on, automation <id>` in the run card, pass `AUTOMATION_ID`, then start it live.
 
 When resuming in a fresh thread, read HOW-TO-WORK.md, the run card and ledger first, then [watchdog/lessons.md](watchdog/lessons.md). Verify a handoff against git and the ledger before trusting it.
 

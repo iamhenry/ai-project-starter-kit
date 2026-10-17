@@ -93,21 +93,23 @@ Keep the Diagnosis and Decision sections from the parent report.
 A flawed run can still warrant `NO_CHANGE`. Missing material evidence warrants
 `BLOCKED`, not a confident proposal.
 
-## Judge rubric and optional Jev check
+## Judge rubric and optional Clef check
 
-By default, the LLM judge answers the `run_questions` in `jev-questions.json`
+By default, the LLM judge answers the `run_questions` in `clef-questions.json`
 itself, from the evidence. Before judging, compare the current issue-to-PR skill
 with those questions. If a difference could affect a finding, include the gap in
-the proposal and ask: **"Do you want to sync these changes into the Jev
+the proposal and ask: **"Do you want to sync these changes into the Clef
 workflow?"** Do not stop the analysis for this or edit anything.
 
-Run the Jev helper only when the user asks. Otherwise report
-`Jev check not run: not requested`. Jev answers are probabilistic hints; the LLM
-judge owns the verdict. It needs Node 22.16+, the BB CLI, and
-`OPENROUTER_API_KEY` in this module's ignored `.env`.
+Run the Clef check only when the user asks. Otherwise report
+`Clef check not run: not requested`. It calls Clef, Cloudflare's decision model
+(Jev-compatible API), on Ollama Cloud. Its answers are probabilistic hints; the LLM
+judge owns the verdict. It needs Node 22.16+, the BB CLI, and OpenCode's
+`ollama-cloud` provider connected (the script reuses that saved login; no
+separate key).
 
 1. From the repository root, generate the request:
-   `node .agents/skills/retro/references/issue-to-pr/scripts/jev-check.mjs THREAD_ID`
+   `node .agents/skills/retro/references/issue-to-pr/scripts/clef-check.mjs THREAD_ID`
 2. Inspect `evals/last-request.json` and remove any remaining sensitive
    information. Its `requests` field is exactly what leaves the machine. Automatic
    redaction is best-effort.
@@ -117,7 +119,7 @@ judge owns the verdict. It needs Node 22.16+, the BB CLI, and
    refresh `dashboard.html` from `evals/results.jsonl`. Approval is not proof of
    improvement.
 
-If redaction, a prerequisite, or the call fails, report `Jev check not run` with the
+If redaction, a prerequisite, or the call fails, report `Clef check not run` with the
 reason and continue. Never record or claim a result for a skipped or failed call.
 Scores measure agreement with saved cases in `evals/cases.json`, not pipeline
 quality; do not chart unmatched fingerprints as a trend. `design.md` styles the

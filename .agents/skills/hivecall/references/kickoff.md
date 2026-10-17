@@ -29,7 +29,7 @@ How the contract maps to the run:
 - Between items, pick the cheapest move that can raise the score (see HOW-TO-WORK.md).
 - **Write the check first.** An item without a check that can run on this machine gets one written before its worker starts. If none is possible, mark it "judged against spec" and cite the spec line, or owner-only. Do not block other items on it. Example: an app that cannot be built here cannot be checked here, so say that in the contract before work starts.
 
-Ask both questions in the same message: **"Watchdog on? (yes / no)"** and **"Open a PR at the end? (yes / no)"**. On the clear-task route, contract approval plus both answers starts the run; on discovery, the two answers authorize the run without owner approval of the contract or plan.
+Ask one question: **"Open a PR at the end? (yes / no)"**. The watchdog is on by default; do not ask about it. Turn it off only when the owner says "no watchdog". On the clear-task route, contract approval plus the PR answer starts the run; on discovery, the PR answer authorizes the run without owner approval of the contract or plan.
 
 ## 2. Pick the ledger
 
@@ -88,7 +88,7 @@ The approved contract lives on the checklist page, not here.
 - Pick 3-5 regression journeys that cover the areas the run will touch; record them under Overrides.
 - Create `.hivecall/verification/`.
 - Hide noise from Git: add `.lanes/` and `.hivecall/verification/` to `.git/info/exclude`. Thousands of evidence files slow Git and BB.
-- If watchdog is on, follow [../README.md](../README.md#watchdog): name it `🐝 <orchestrator thread title>`, capture its automation id, write `watchdog: on, automation <id>` in the run card, pass `AUTOMATION_ID`, then start it live.
+- Unless the owner said "no watchdog", follow [../README.md](../README.md#watchdog): name it `🐝 <orchestrator thread title>`, capture its automation id, write `watchdog: on, automation <id>` in the run card, pass `AUTOMATION_ID`, then start it live.
 
 ## 5. Keep the owner informed
 

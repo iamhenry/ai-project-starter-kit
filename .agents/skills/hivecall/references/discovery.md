@@ -24,4 +24,4 @@ Add this fixed template under a `Discovery` heading, using the normal ledger for
 - A judge's `ASK_USER` means one `🚦` question; park that item and continue other work. Do not ask the owner to approve the discovery contract or plan.
 - Evidence is scriptable: the reproduction result file contains its verdict, the cause write-up cites evidence paths, and the `Plan Judge` section in `plan.md` says `APPROVE_PLAN`.
 - On `APPROVE_PLAN`, convert the approved plan into the goal contract and append implementation items in the same ledger edit that ticks the plan item, or the watchdog sees a complete ledger and pauses. Use the reproduction steps as the contract's E2E smoke for before/after proof.
-- Start the watchdog at kickoff when selected; discovery needs no watchdog changes. Research and judge briefs use `PROMISE: kind=helper`.
+- Start the watchdog at kickoff unless the owner said "no watchdog"; discovery needs no watchdog changes. Research and judge briefs use `PROMISE: kind=helper`.

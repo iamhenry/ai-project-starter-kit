@@ -1,6 +1,6 @@
 {
-  "_about": "Jev pre-check for the issue-to-PR rubric. Source-text checks detect removed anchors, not semantic drift. Answers are probabilistic hints for the LLM judge, never the verdict. Routing is this module's review policy, not proof of runtime agent configuration.",
-  "model": "jev-1.13",
+  "_about": "Clef pre-check for the issue-to-PR rubric. Source-text checks detect removed anchors, not semantic drift. Answers are probabilistic hints for the LLM judge, never the verdict. Routing is this module's review policy, not proof of runtime agent configuration.",
+  "model": "clef",
   "yes_above": 0.65,
   "no_below": 0.35,
   "routing": {
