@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hivecall · Weekly improvement</title>
+<style>
+:root{color:#242424;background:#fff;font:15px/1.5 Inter,system-ui,sans-serif}
+*{box-sizing:border-box}body{margin:0}main{max-width:1240px;margin:auto;padding:56px 32px}header{margin-bottom:36px}.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#666}h1,h2{font-family:"Cal Sans",Inter,system-ui,sans-serif;font-weight:600;line-height:1.1}h1{font-size:42px;margin:12px 0}h2{font-size:24px;margin:0 0 8px}p{color:#646464;max-width:850px}.panel{background:#fff;border-radius:12px;padding:24px;margin-top:28px;box-shadow:0 1px 5px -4px rgba(19,19,22,.7),0 0 0 1px rgba(34,42,53,.08),0 4px 8px rgba(34,42,53,.05)}.notice{display:inline-block;margin:8px 0 0;padding:7px 11px;border-radius:7px;background:#f5f5f5;color:#242424;font-size:13px}.chart-wrap,.table-wrap{overflow:auto}.chart{display:block;width:100%;min-width:900px;height:auto;margin-top:12px}.note{font-size:13px}.key{display:flex;gap:20px;flex-wrap:wrap;color:#646464;font-size:13px;margin-top:10px}.key span{display:inline-flex;align-items:center;gap:7px}.key i{display:inline-block;width:12px;height:12px;border:2px solid #242424;border-radius:50%;background:#fff}.key b{font-size:17px;line-height:1}.key b.unscored{display:inline-flex;align-items:center;justify-content:center;width:21px;height:15px;border:1px solid #7a4b00;border-radius:3px;background:#fff4d6;color:#7a4b00;font-size:8px}table{width:100%;border-collapse:collapse;text-align:left;font-size:14px}th,td{padding:13px 12px;vertical-align:top;box-shadow:0 1px rgba(34,42,53,.1)}th{color:#646464;font-weight:500;white-space:nowrap}td:first-child{white-space:nowrap}a{color:#0969a2;text-decoration:underline;text-underline-offset:2px}.verdict{display:inline-block;padding:2px 8px;border-radius:999px;background:#f1f1f1;color:#242424;font-size:12px;white-space:nowrap}.verdict.shipped{background:#e8f1eb}.verdict.rejected{background:#f4eded}.empty{fill:#646464;font-size:14px}footer{margin-top:32px;color:#646464;font-size:13px}@media(max-width:640px){main{padding:32px 18px}h1{font-size:34px}.panel{padding:18px}}
+</style>
+<main>
+<header><div class="eyebrow">Retro / Hivecall</div><h1>Weekly improvement</h1><p>Track all seven behaviors week by week. Solid points are trusted; hollow points are scored but not trusted; NT marks a not-trusted result with no score; a gap means the behavior was not measured. Ship markers show weeks with a shipped change.</p><p class="notice" role="note">Sample fixture · illustrative scores only; this is not a real evaluation.</p></header>
+<section class="panel"><h2>Behavior trends</h2><p class="note">Scores use a 0–100 scale. Each lane shares the same scale. When a week has multiple rows, the chart shows that week’s latest row; the table keeps every result.</p><div class="chart-wrap"><svg id="chart" class="chart" role="img" aria-label="Weekly score trend for seven behaviors"></svg></div><div class="key"><span><i aria-hidden="true"></i> Not trusted score</span><span><b class="unscored" aria-hidden="true">NT</b> Not trusted (no score)</span><span><b aria-hidden="true">—</b> Not measured (no point; line breaks)</span><span><b aria-hidden="true">◆</b> A change shipped</span></div></section>
+<section class="panel"><h2>Evaluation history</h2><div class="table-wrap"><table><thead><tr><th>Date / week</th><th>What was tested</th><th>Verdict</th><th>Score change on targets</th><th>Report</th></tr></thead><tbody id="history"></tbody></table></div></section>
+<footer>Source: <code>fixture/results.jsonl</code> · Generated offline with Node.js; no network requests.</footer>
+</main>
+<script>
+const rows = [{"date":"2026-09-28T12:00:00Z","week":"2026-W40","kind":"baseline","tested":"Current hivecall skill on held-out baseline moments","verdict":"baseline","targets":[],"scores":{"1":68,"2":61,"3":55,"4":72,"5":80,"6":66,"7":58},"trust":{"1":"ok","2":"ok","3":"ok","4":"ok","5":"ok","6":"ok","7":"ok"},"deltas":{},"report":".agents/skills/retro/references/hivecall/dashboard/fixture/report.md#baseline","skill_commit":"a1b2c3d"},{"date":"2026-10-05T12:00:00Z","week":"2026-W41","kind":"eval","tested":"Watchdog alert wording and idle-stall handling","verdict":"rejected","targets":[3,5],"scores":{"1":68,"2":61,"3":null,"4":72,"5":null,"6":66,"7":58},"trust":{"1":"ok","2":"ok","3":"not-trusted","4":"ok","5":"not-measured","6":"ok","7":"ok"},"deltas":{"3":12,"5":8},"report":".agents/skills/retro/references/hivecall/dashboard/fixture/report.md#rejected-change","skill_commit":"e4f5a6b"},{"date":"2026-10-12T12:00:00Z","week":"2026-W42","kind":"eval","tested":"Shorter worker handoff checklist","verdict":"shipped","targets":[1,6],"scores":{"1":76,"2":64,"3":58,"4":72,"5":80,"6":74,"7":60},"trust":{"1":"ok","2":"ok","3":"ok","4":"ok","5":"ok","6":"ok","7":"ok"},"deltas":{"1":8,"6":8},"report":".agents/skills/retro/references/hivecall/dashboard/fixture/report.md#shipped-change","skill_commit":"c7d8e9f"}];
+const names = ["Finish or park every item with a reason","Every tick has proof","Never quiet while work is open","Parallel work without clashes","Watchdog: real alerts, no missed stalls","Clear tasks and clean reports","Reasonable time and cost"];
+const $ = id => document.getElementById(id);
+function svg(tag, attrs, text) { const node=document.createElementNS("http://www.w3.org/2000/svg",tag); for(const [key,value] of Object.entries(attrs))node.setAttribute(key,value); if(text!==undefined)node.textContent=text; return node; }
+function draw() {
+  const chart=$("chart"), weeks=[...new Set(rows.map(row=>row.week))].sort();
+  const left=350, right=80, top=40, lane=62, width=Math.max(1000,left+right+Math.max(1,weeks.length-1)*145), height=top+lane*7+38;
+  chart.replaceChildren(); chart.setAttribute("viewBox","0 0 "+width+" "+height); chart.setAttribute("aria-label",weeks.length?"Seven behavior trends across "+weeks.length+" weeks. Ship markers indicate shipped changes; hollow points are not-trusted scores; NT markers mean not trusted with no score; gaps are not measured.":"No weekly results yet");
+  if(!rows.length){chart.append(svg("text",{x:width/2,y:150,"text-anchor":"middle",class:"empty"},"No results yet. The weekly eval will appear here."));$("history").replaceChildren();return;}
+  const weekly=weeks.map(week=>{const records=rows.filter(row=>row.week===week).sort((a,b)=>Date.parse(a.date)-Date.parse(b.date));return {week,latest:records.at(-1),shipped:records.some(row=>row.verdict==="shipped")};});
+  const plotRight=width-right, plotWidth=plotRight-left;
+  const xAt=index=>weeks.length===1?left+plotWidth/2:left+plotWidth*index/(weeks.length-1);
+  weekly.forEach((item,index)=>{if(item.shipped){const x=xAt(index);chart.append(svg("line",{x1:x,x2:x,y1:top-9,y2:top+lane*7-7,stroke:"#242424","stroke-width":1,"stroke-dasharray":"4 5",opacity:.55}),svg("path",{d:"M "+x+" "+(top-14)+" l 5 5 -5 5 -5 -5 Z",fill:"#242424"}),svg("text",{x,y:top-19,"text-anchor":"middle",fill:"#242424","font-size":10,"font-weight":600},"SHIP"));}});
+  for(let behavior=1;behavior<=7;behavior++){
+    const rowTop=top+(behavior-1)*lane, scoreY=score=>rowTop+47-(score/100)*35;
+    chart.append(svg("text",{x:8,y:rowTop+31,fill:"#242424","font-size":13,"font-weight":500},behavior+". "+names[behavior-1]));
+    for(const [value,y] of [[100,rowTop+12],[50,rowTop+29.5],[0,rowTop+47]]){
+      chart.append(svg("line",{x1:left,x2:plotRight,y1:y,y2:y,stroke:"#e2e2e2","stroke-width":1,"stroke-dasharray":value===50?"3 4":"none"}));
+      chart.append(svg("text",{x:left-9,y:y+4,"text-anchor":"end",fill:"#777","font-size":10},String(value)));
+    }
+    const points=weekly.map((item,index)=>({x:xAt(index),y:typeof item.latest.scores[behavior]==="number"?scoreY(item.latest.scores[behavior]):null,trust:item.latest.trust[behavior],week:item.week,score:item.latest.scores[behavior]}));
+    for(let i=0;i<points.length-1;i++)if(points[i].trust==="ok"&&points[i+1].trust==="ok"&&points[i].y!==null&&points[i+1].y!==null)chart.append(svg("line",{x1:points[i].x,y1:points[i].y,x2:points[i+1].x,y2:points[i+1].y,stroke:"#3f3f3f","stroke-width":2.2,"stroke-linecap":"round"}));
+    for(const point of points){
+      if(point.y!==null){const hollow=point.trust==="not-trusted",circle=svg("circle",{cx:point.x,cy:point.y,r:hollow?5.2:4,fill:hollow?"#fff":"#242424",stroke:"#242424","stroke-width":hollow?2:1});circle.append(svg("title",{},"Behavior "+behavior+", "+point.week+": "+point.score+"/100"+(hollow?", not trusted":"")));chart.append(circle);}
+      else if(point.trust==="not-trusted"){
+        const y=rowTop+50,marker=svg("g",{});
+        marker.append(svg("rect",{x:point.x-10,y,width:20,height:12,rx:3,fill:"#fff4d6",stroke:"#7a4b00","stroke-width":1.2}),svg("text",{x:point.x,y:y+9,"text-anchor":"middle",fill:"#7a4b00","font-size":8,"font-weight":700},"NT"),svg("title",{},"Behavior "+behavior+", "+point.week+": not trusted; no score"));
+        chart.append(marker);
+      }
+    }
+  }
+  weekly.forEach((item,index)=>chart.append(svg("text",{x:xAt(index),y:height-8,"text-anchor":"middle",fill:"#646464","font-size":12},item.week)));
+  const history=$("history");history.replaceChildren();
+  [...rows].sort((a,b)=>Date.parse(b.date)-Date.parse(a.date)).forEach(row=>{
+    const tr=document.createElement("tr");
+    const date=document.createElement("td");date.textContent=new Date(row.date).toLocaleDateString()+" · "+row.week;tr.append(date);
+    const tested=document.createElement("td");tested.textContent=row.tested;tr.append(tested);
+    const verdict=document.createElement("td"),badge=document.createElement("span");badge.className="verdict "+row.verdict;badge.textContent=row.verdict;verdict.append(badge);tr.append(verdict);
+    const delta=document.createElement("td");delta.textContent=row.verdict==="baseline"?"Baseline":row.targets.length?row.targets.map(n=>{if(row.trust[n]==="not-measured")return "#"+n+" not measured";if(row.trust[n]==="not-trusted")return "#"+n+" not trusted";const value=row.deltas[n];return "#"+n+" "+(value===null?"not measured":(value>0?"+":"")+value+" pts");}).join(" · "):"No targets";tr.append(delta);
+    const report=document.createElement("td"),link=document.createElement("a"),[path,anchor]=row.report.split("#",2);link.href="../../../../../../"+path.split("/").map(encodeURIComponent).join("/")+(anchor?"#"+encodeURIComponent(anchor):"");link.textContent="Open report";report.append(link);tr.append(report);
+    history.append(tr);
+  });
+}
+window.addEventListener("resize",draw);draw();
+</script>
+</html>
