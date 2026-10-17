@@ -31,7 +31,8 @@ supplied read-only scripts.
 - Never send raw or unredacted trace text to any cloud model, GitHub issue, or
   PR. Use the local redaction helpers and require a zero-hit scan before sharing
   dataset excerpts or report text. Clef remains the direct first-pass client.
-  Tested and judge prompts are exported as redacted JSONL and answered by the
+  Tested and judge prompts are exported as redacted JSONL with readable Markdown
+  twins and answered by the
   `plan` (tested) and `reviewer` (judge) subagents. The tested prompt is a
   hypothetical, text-only replay. Never call their models directly or send the
   prompts through `opencode run`.
@@ -57,18 +58,27 @@ supplied read-only scripts.
 
 ## Agent handoff
 
-The replay and gate scripts print `awaiting answers: <path>` and exit successfully
-when an answer is missing. The exported JSONL contains a stable `id`, `role`,
-`system`, and redacted `prompt`. Launch a `plan` subagent for each `role: tested` batch;
+The replay and gate scripts print every `awaiting answers: <path>` (both machine
+JSONL and readable Markdown) and exit successfully when an answer is missing.
+The exported JSONL contains a stable `id`, `role`, `system`, and redacted
+`prompt`. Each machine batch has a Markdown twin; multi-batch paths are numbered
+`<export-path-stem>.b01.jsonl` with matching `.b01.md`, `.b02.jsonl` with
+`.b02.md`, and so on. A single batch keeps the requested JSONL path and adds its
+`.md` twin. Launch a `plan` subagent for each `role: tested` batch;
 it uses `anthropic/claude-opus-5-5`, the same model as the real orchestrator.
 Launch a `reviewer` subagent for each `role: judge` batch; it is GPT-family.
-Run at most five subagent batches at once. Give each subagent the batch path; for
-`reviewer`, include `.agents/skills/retro/references/hivecall/judge-contract.md`
-in the brief. The reviewer returns exactly one JSONL line per item and no other
-text, in the importer format `{"id":"<exported 64-character id>","answer":"<raw answer text>"}`.
+Run up to five batch subagents in parallel, then start the next batches as slots
+open. Give each subagent the numbered `.md` twin, not the machine JSONL: it
+contains numbered system/skill sections once at the top, one item per prompt,
+and wrapped lines no longer than 1,200 characters. Each item supplies the same
+stable ID used by the importer. For `reviewer`, include
+`.agents/skills/retro/references/hivecall/judge-contract.md` in the brief. Each
+agent returns exactly one JSONL line per item and no other text, in the importer
+format `{"id":"<exported 64-character id>","answer":"<raw answer text>"}`.
 For judge rows, `answer` contains the prompt-specific raw JSON object; for tested
-rows it contains plain-text hypothetical next action. Import into the same cache
-used by the producing command, then rerun that exact command. Replay export and
+rows it contains plain-text hypothetical next action. Combine answer lines from
+all batches into one answers JSONL, import it into the same cache used by the
+producing command, then rerun that exact command. Replay export and
 import are:
 
 ```sh
@@ -212,7 +222,7 @@ python3 .agents/skills/retro/references/hivecall/gate/run-gate.py \
   --export-prompts "$TMPDIR/hivecall-gate-prompts.jsonl" --batch-size 20
 ```
 
-If the gate says `awaiting answers`, hand the prompt to `reviewer`, import its
+If the gate says `awaiting answers`, hand the reviewer its `.md` twin, import its
 answer into `.lanes/gate-cache`, and rerun the same command before reading the
 verdict. A gate `ERROR` or missing verdict remains `BLOCKED`, not `REJECT`.
 

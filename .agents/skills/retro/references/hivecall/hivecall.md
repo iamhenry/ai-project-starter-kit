@@ -151,9 +151,11 @@ readable, report `BLOCKED` and append no baseline row. Clef remains the direct
 first-pass client. Tested prompts go to the `plan` subagent
 (`anthropic/claude-opus-5-5`, the real orchestrator model); judge prompts go to
 the `reviewer` subagent (GPT family). The Python scripts never call either
-agent. The runner exports redacted JSONL and prints `awaiting answers: <path>`
-without adding a partial result. Launch no more than five agent batches at a
-time (up to 20 prompts per batch). Give each subagent the batch path; for the
+agent. The runner exports redacted JSONL with readable Markdown twins and prints
+both paths in `awaiting answers: <path>` without adding a partial result. Launch
+no more than five agent batches at a time (up to 20 prompts per batch). Multi-batch
+exports are numbered, and each twin lists shared system/skill text once with
+wrapped item prompts. For the
 reviewer, include `.agents/skills/retro/references/hivecall/judge-contract.md`
 in the brief. The reviewer returns exactly one JSONL line per item and no other
 text, in the strict importer format

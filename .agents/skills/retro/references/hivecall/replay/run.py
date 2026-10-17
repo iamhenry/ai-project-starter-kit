@@ -107,10 +107,9 @@ class CallRuntime:
             self.stage_calls[stage] = self.stage_calls.get(stage, 0) + 1
             total = self.estimates.get(stage, "?")
             self.emit(f"[{stage}] {self.stage_calls[stage]}/{total} awaiting handoff {key[:12]}")
-            if len(self.pending) < self.batch_size:
-                self.pending.setdefault(key, {"id": key, "role": role,
-                                               "system": payload.get("system", ""),
-                                               "prompt": payload.get("user", "")})
+            self.pending.setdefault(key, {"id": key, "role": role,
+                                          "system": payload.get("system", ""),
+                                          "prompt": payload.get("user", "")})
             return ""
 
         if self.max_calls is not None and self.new_calls >= self.max_calls:
@@ -147,9 +146,11 @@ class CallRuntime:
         role = next((candidate for candidate in ("tested", "judge") if candidate in roles), "judge")
         path = self.export_path or ROOT / ".lanes/hivecall-handoff" / (
             f"{self.command}-{role}-{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%dT%H%M%SZ')}.jsonl")
-        result = write_prompt_batch(list(self.pending.values()), path, self.batch_size)
-        self.emit(f"awaiting answers: {result[0]}")
-        return result
+        outputs, _, _ = write_prompt_batch(list(self.pending.values()), path, self.batch_size)
+        for machine, readable in outputs:
+            self.emit(f"awaiting answers: {machine}")
+            self.emit(f"awaiting answers: {readable}")
+        return outputs
 
 
 def configure_call_estimates(estimates):
@@ -838,6 +839,16 @@ def parse_targets(value):
     return targets
 
 
+def parse_behaviors(value):
+    try:
+        behaviors = sorted({int(x.strip()) for x in value.split(",") if x.strip()})
+    except ValueError:
+        raise argparse.ArgumentTypeError("behaviors must be comma-separated behavior numbers 1-7") from None
+    if not behaviors or any(x not in range(1, 8) for x in behaviors):
+        raise argparse.ArgumentTypeError("behaviors must contain behavior numbers 1-7")
+    return behaviors
+
+
 def parse_report_tag(value):
     if not re.fullmatch(r"[a-z0-9][a-z0-9-]{0,63}", value):
         raise argparse.ArgumentTypeError("report tag must be a lowercase filename-safe label")
@@ -941,11 +952,13 @@ def skill_file_from_dir(path, option):
     return skill_file
 
 
-def append_result(kind, tested, verdict, targets, scores, trust, deltas, report, revision):
+def append_result(kind, tested, verdict, targets, scores, trust, deltas, report, revision,
+                  control_only=False):
     RESULTS.parent.mkdir(parents=True, exist_ok=True)
     now = dt.datetime.now(dt.timezone.utc)
     row = {"date": now.isoformat(), "week": now.strftime("%G-W%V"), "kind": kind,
-           "tested": tested, "verdict": verdict, "targets": sorted(set(targets)),
+           "tested": tested, "control_only": control_only, "verdict": verdict,
+           "targets": sorted(set(targets)),
            "scores": {str(i): scores.get(str(i)) for i in range(1, 8)},
            "trust": {str(i): trust.get(str(i), "not-measured") for i in range(1, 8)},
            "deltas": deltas, "report": str(report.relative_to(ROOT)), "skill_commit": revision}
@@ -1048,17 +1061,23 @@ def render_baseline(scorecard, totals, raw_totals, args, time_summary, incomplet
 
 
 def run_eval(args):
+    behaviors = set(getattr(args, "behaviors", range(1, 8)))
+    missing_targets = sorted(set(args.targets) - behaviors)
+    if missing_targets:
+        raise SystemExit(f"--targets must be included in --behaviors; missing: {','.join(map(str, missing_targets))}")
     report, detail_file, borderline_file = eval_report_paths(args)
     validate_excluded_runs(args.exclude_run_id)
     records = [r for r in read_records(args.dataset) if r.get("runId") not in args.exclude_run_id]
-    source_moments = all_moments(records)
-    try:
-        b3_moments, b3_totals, inspected_runs = b3_replay.reanchor_records(
-            records, args.exclude_run_id)
-    except (OSError, RuntimeError, ValueError) as exc:
-        completion_report(report, "BLOCKED", f"B3 local turn-end anchor unavailable: {exc}")
-        raise SystemExit(f"B3 local turn-end anchor unavailable: {exc}") from None
-    moments = [m for m in source_moments if m.get("behavior") != 3] + b3_moments
+    source_moments = [m for m in all_moments(records)
+                      if m.get("behavior") in behaviors and m.get("behavior") != 3]
+    b3_moments = []
+    if 3 in behaviors:
+        try:
+            b3_moments, _, _ = b3_replay.reanchor_records(records, args.exclude_run_id)
+        except (OSError, RuntimeError, ValueError) as exc:
+            completion_report(report, "BLOCKED", f"B3 local turn-end anchor unavailable: {exc}")
+            raise SystemExit(f"B3 local turn-end anchor unavailable: {exc}") from None
+    moments = source_moments + b3_moments
     current_path = skill_file_from_dir(args.current, "--current")
     proposed_path = skill_file_from_dir(args.proposed, "--proposed")
     current = current_path.read_text(encoding="utf-8")
@@ -1066,7 +1085,7 @@ def run_eval(args):
     tested_family, judge_family = "claude", "gpt"
     if tested_family == judge_family:
         raise SystemExit("judge must be from a different model family than the tested model")
-    eligible = [m for m in moments if replayable_moment(m)]
+    eligible = [m for m in moments if m.get("behavior") in behaviors and replayable_moment(m)]
     selected, counts, heldout_n = select_heldout(eligible, args.build_week, args.per_behavior, args.seed)
     _, all_counts = select_sample(eligible, args.per_behavior, args.seed)
     shortfalls = eval_count_shortfalls(args.targets, all_counts, counts)
@@ -1110,10 +1129,11 @@ def run_eval(args):
     clef_drift = {b: False for b in range(1, 8)}
 
     try:
-        examples = {b: examples_for(moments, b, args.build_week, selected, args.report_tag)
+        examples = {b: (examples_for(moments, b, args.build_week, selected, args.report_tag)
+                        if b in behaviors else [])
                     for b in range(1, 8)}
         for behavior in range(1, 8):
-            if behavior == 7:
+            if behavior == 7 or behavior not in behaviors:
                 continue
             for moment in per_behavior[behavior]:
                 current_id = call_identity(args.report_tag, "current", moment)
@@ -1183,6 +1203,14 @@ def run_eval(args):
     candidate_scores, trust, paired = {}, {}, {}
     identity_pass = True
     for behavior in range(1, 8):
+        if behavior not in behaviors:
+            candidate_scores[str(behavior)] = {"current": None, "changed": None}
+            trust[str(behavior)] = "not-measured"
+            paired[str(behavior)] = {
+                "currentVsChanged": {"deltaPoints": None, "ci95": [None, None], "n": 0},
+                "identicalSkillNoise": {"deltaPoints": None, "ci95": [None, None], "n": 0},
+            }
+            continue
         rows = [r for r in main_rows if r["behavior"] == behavior]
         cur = [r["labels"]["current"] for r in rows]
         changed_labels = [r["labels"]["changed"] for r in rows]
@@ -1216,14 +1244,21 @@ def run_eval(args):
 
     weak_score = score_labels([r["labels"]["changed"] for r in control_rows])
     b2_current = candidate_scores.get("2", {}).get("current")
-    positive_control_pass = weak_score is not None and b2_current is not None and weak_score < b2_current
+    positive_control_pass = (weak_score is not None and b2_current is not None and weak_score < b2_current
+                             if 2 in behaviors else None)
     targets = args.targets
     decision_reasons = []
-    if not positive_control_pass:
+    filtered_behaviors = sorted(set(range(1, 8)) - behaviors)
+    if filtered_behaviors:
+        decision_reasons.append(
+            "filtered behavior set is control only; excluded behaviors cannot be checked for regressions")
+    if positive_control_pass is False:
         decision_reasons.append("positive control did not score worse on behavior 2")
     if not identity_pass:
         decision_reasons.append("identical-skill control exceeded its measured noise band")
     for behavior in range(1, 8):
+        if behavior not in behaviors or behavior == 7:
+            continue
         current_score = candidate_scores[str(behavior)]["current"]
         changed_score = candidate_scores[str(behavior)]["changed"]
         if current_score is None or changed_score is None or trust[str(behavior)] != "ok":
@@ -1239,6 +1274,8 @@ def run_eval(args):
         if behavior not in targets and delta < -noise:
             decision_reasons.append(f"non-target behavior {behavior} regressed beyond the noise band")
     verdict = "PASS (would PR)" if not decision_reasons else "REJECT"
+    if filtered_behaviors:
+        verdict = "REJECT (control only)"
     result_verdict = "shipped" if not decision_reasons else "rejected"
     report.parent.mkdir(parents=True, exist_ok=True)
     detail_file.write_text(json.dumps(redact_value({"main": main_rows, "identical": identity_rows,
@@ -1265,7 +1302,7 @@ def run_eval(args):
                 "noiseMarginPoints": margin,
                 "withinNoiseBand": delta is not None and abs(delta) <= margin,
             }
-    missing_examples = [b for b in range(1, 7) if not examples[b]]
+    missing_examples = [b for b in range(1, 7) if b in behaviors and not examples[b]]
     report.write_text(render_eval(args, counts, heldout_n, candidate_scores, trust, paired,
                                   weak_score, positive_control_pass, identity_pass, week_rows,
                                   disagreements, flips, verdict, decision_reasons,
@@ -1277,7 +1314,7 @@ def run_eval(args):
     scenario = args.report_tag or "eval"
     append_result("eval", f"{scenario}: current vs proposed hivecall skill; tested agent `plan` (`anthropic/claude-opus-5-5`); judge agent `reviewer` (GPT family)", result_verdict,
                   targets, {k: v["changed"] for k, v in candidate_scores.items()}, trust,
-                  deltas, report, skill_revision(proposed_path))
+                  deltas, report, skill_revision(proposed_path), control_only=bool(filtered_behaviors))
     print(report.read_text(encoding="utf-8"))
 
 
@@ -1285,18 +1322,25 @@ def render_eval(args, counts, heldout_n, scores, trust, paired, weak_score,
                 positive_control_pass, identity_pass, week_rows, disagreements,
                 flips, verdict, reasons, detail_path, b3_sample_counts,
                 identical_candidate, identical_ties, missing_examples):
+    behaviors = set(getattr(args, "behaviors", range(1, 8)))
+    b3_summary = (f"- B3 sample classes: {b3_sample_counts['zeroWorker']} zero-worker failure-side / {b3_sample_counts['liveWorkerControl']} live-worker wait moments; both count toward the 10-moment floor. Only {b3_sample_counts['zeroWorker']} are failure-side, so B3 power is low."
+                  if 3 in behaviors else "- B3 sample classes: not evaluated (filtered).")
     lines = ["# Hivecall held-out replay", "", f"**Verdict: {verdict}**", "",
              f"- Run tag: `{args.report_tag or 'untagged'}`.",
              "- Tested agent: `plan` (`anthropic/claude-opus-5-5`); judge agent: `reviewer` (GPT family). The families differ.",
              f"- Held-out rule: weeks before `{args.build_week}`; eligible moments: {heldout_n}.",
-              f"- Sample: up to {args.per_behavior} per behavior; seed {args.seed}.",
+              f"- Behavior filter: {', '.join(map(str, sorted(behaviors)))}.",
+              f"- Sample: up to {args.per_behavior} per selected replayable behavior; seed {args.seed}.",
               f"- Clef/judge few-shot examples use only the build-week partition (weeks ≥ `{args.build_week}`); none available for behaviors: {', '.join(map(str, missing_examples)) if missing_examples else 'none'}.",
               "- UNKNOWN answers are excluded from score denominators and reported separately; missing or unparseable answers never count as PASS.",
-              f"- B3 sample classes: {b3_sample_counts['zeroWorker']} zero-worker failure-side / {b3_sample_counts['liveWorkerControl']} live-worker wait moments; both count toward the 10-moment floor. Only {b3_sample_counts['zeroWorker']} are failure-side, so B3 power is low.",
+              b3_summary,
               "- Only redacted moment context and skill text went to the tested model; no agent/repository instructions or tools.",
               "", "| Behavior | Current | Changed | Unknown current/changed | Delta (points) | Noise band (95% paired bootstrap) | Trust |",
               "|---|---:|---:|---:|---:|---:|---|"]
     for b in range(1, 8):
+        if b not in behaviors:
+            lines.append(f"| {b}. {BEHAVIORS[b]} | not evaluated (filtered) | not evaluated (filtered) | not evaluated (filtered) | not evaluated (filtered) | not evaluated (filtered) | not evaluated (filtered) |")
+            continue
         cur = scores[str(b)]["current"]
         changed = scores[str(b)]["changed"]
         unknown_current = sum(unknown_count(data[str(b)]["current"])
@@ -1308,7 +1352,9 @@ def render_eval(args, counts, heldout_n, scores, trust, paired, weak_score,
         fmt = lambda x: "not measured" if x is None else f"{x}%"
         band = "not measured" if not ci or ci == [None, None] else f"[{ci[0]}, {ci[1]}]"
         lines.append(f"| {b}. {BEHAVIORS[b]} | {fmt(cur)} | {fmt(changed)} | {unknown_current}/{unknown_changed} | {d if d is not None else '—'} | {band} | {trust[str(b)]} |")
-    lines += ["", "## Controls", "", f"- Weakened proof rule: behavior 2 score {weak_score}%; current score {scores['2']['current']}%; positive control {'PASS' if positive_control_pass else 'FAIL'}.",
+    positive_status = ("not evaluated (filtered)" if positive_control_pass is None
+                       else "PASS" if positive_control_pass else "FAIL")
+    lines += ["", "## Controls", "", f"- Weakened proof rule: behavior 2 score {weak_score}%; current score {scores['2']['current']}%; positive control {positive_status}.",
               f"- Repeated-current noise control: {'within measured noise' if identity_pass else 'outside measured noise'}.",
               f"- Candidate skill is identical to current: {'yes' if identical_candidate else 'no'}."]
     for behavior, result in identical_ties.items():
@@ -1414,6 +1460,8 @@ def main():
     e.add_argument("--current", required=True, help="current skill directory containing SKILL.md")
     e.add_argument("--proposed", required=True, help="proposed skill directory containing SKILL.md")
     e.add_argument("--targets", type=parse_targets, required=True, help="comma-separated behavior numbers targeted by the proposal")
+    e.add_argument("--behaviors", type=parse_behaviors, default=list(range(1, 8)),
+                   help="comma-separated behaviors to evaluate (default: all)")
     e.add_argument("--build-week", default=dt.datetime.now(dt.timezone.utc).strftime("%G-W%V"))
     e.add_argument("--per-behavior", type=int, default=30)
     e.add_argument("--seed", type=int, default=20261016)

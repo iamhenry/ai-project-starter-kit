@@ -17,6 +17,7 @@ function validate(row, line) {
   if (typeof row.week !== "string" || !/^\d{4}-W(?:0[1-9]|[1-4]\d|5[0-3])$/.test(row.week)) invalid(row, line, "week must be YYYY-Www");
   if (!(["baseline", "eval"].includes(row.kind))) invalid(row, line, "kind must be baseline or eval");
   if (!(typeof row.tested === "string" && row.tested.trim())) invalid(row, line, "tested must be a non-empty string");
+  if (typeof row.control_only !== "boolean") invalid(row, line, "control_only must be a boolean");
   if (!( ["baseline", "shipped", "rejected"].includes(row.verdict))) invalid(row, line, "verdict must be baseline, shipped, or rejected");
   if ((row.kind === "baseline") !== (row.verdict === "baseline")) invalid(row, line, "baseline kind and verdict must match");
   if (!Array.isArray(row.targets) || row.targets.some(n => !Number.isInteger(n) || n < 1 || n > 7) || new Set(row.targets).size !== row.targets.length) invalid(row, line, "targets must be unique behavior numbers 1–7");
@@ -69,7 +70,7 @@ const html = `<!doctype html>
 </style>
 <main>
 <header><div class="eyebrow">Retro / Hivecall</div><h1>Weekly improvement</h1><p>Track all seven behaviors week by week. Solid points are trusted; hollow points are scored but not trusted; NT marks a not-trusted result with no score; a gap means the behavior was not measured. Ship markers show weeks with a shipped change.</p>${fixtureNotice}</header>
-<section class="panel"><h2>Behavior trends</h2><p class="note">Scores use a 0–100 scale. Each lane shares the same scale. When a week has multiple rows, the chart shows that week’s latest row; the table keeps every result.</p><div class="chart-wrap"><svg id="chart" class="chart" role="img" aria-label="Weekly score trend for seven behaviors"></svg></div><div class="key"><span><i aria-hidden="true"></i> Not trusted score</span><span><b class="unscored" aria-hidden="true">NT</b> Not trusted (no score)</span><span><b aria-hidden="true">—</b> Not measured (no point; line breaks)</span><span><b aria-hidden="true">◆</b> A change shipped</span></div></section>
+<section class="panel"><h2>Behavior trends</h2><p class="note">Scores use a 0–100 scale. Each lane shares the same scale. Control-only runs stay in the table but do not count toward trends. If a week has multiple full rows, the chart shows the latest; the table keeps every result.</p><div class="chart-wrap"><svg id="chart" class="chart" role="img" aria-label="Weekly score trend for seven behaviors"></svg></div><div class="key"><span><i aria-hidden="true"></i> Not trusted score</span><span><b class="unscored" aria-hidden="true">NT</b> Not trusted (no score)</span><span><b aria-hidden="true">—</b> Not measured (no point; line breaks)</span><span><b aria-hidden="true">◆</b> A change shipped</span></div></section>
 <section class="panel"><h2>Evaluation history</h2><div class="table-wrap"><table><thead><tr><th>Date / week</th><th>What was tested</th><th>Verdict</th><th>Score change on targets</th><th>Report</th></tr></thead><tbody id="history"></tbody></table></div></section>
 <footer>Source: <code>${source.replaceAll("&", "&amp;").replaceAll("<", "&lt;")}</code> · Generated offline with Node.js; no network requests.</footer>
 </main>
@@ -79,11 +80,13 @@ const names = ["Finish or park every item with a reason","Every tick has proof",
 const $ = id => document.getElementById(id);
 function svg(tag, attrs, text) { const node=document.createElementNS("http://www.w3.org/2000/svg",tag); for(const [key,value] of Object.entries(attrs))node.setAttribute(key,value); if(text!==undefined)node.textContent=text; return node; }
 function draw() {
-  const chart=$("chart"), weeks=[...new Set(rows.map(row=>row.week))].sort();
+  const chart=$("chart"), trendRows=rows.filter(row=>!row.control_only), weeks=[...new Set(trendRows.map(row=>row.week))].sort();
   const left=350, right=80, top=40, lane=62, width=Math.max(1000,left+right+Math.max(1,weeks.length-1)*145), height=top+lane*7+38;
   chart.replaceChildren(); chart.setAttribute("viewBox","0 0 "+width+" "+height); chart.setAttribute("aria-label",weeks.length?"Seven behavior trends across "+weeks.length+" weeks. Ship markers indicate shipped changes; hollow points are not-trusted scores; NT markers mean not trusted with no score; gaps are not measured.":"No weekly results yet");
   if(!rows.length){chart.append(svg("text",{x:width/2,y:150,"text-anchor":"middle",class:"empty"},"No results yet. The weekly eval will appear here."));$("history").replaceChildren();return;}
-  const weekly=weeks.map(week=>{const records=rows.filter(row=>row.week===week).sort((a,b)=>Date.parse(a.date)-Date.parse(b.date));return {week,latest:records.at(-1),shipped:records.some(row=>row.verdict==="shipped")};});
+  if(!trendRows.length){chart.append(svg("text",{x:width/2,y:150,"text-anchor":"middle",class:"empty"},"No full evaluation results yet."));}
+  else {
+  const weekly=weeks.map(week=>{const records=trendRows.filter(row=>row.week===week).sort((a,b)=>Date.parse(a.date)-Date.parse(b.date));return {week,latest:records.at(-1),shipped:records.some(row=>row.verdict==="shipped")};});
   const plotRight=width-right, plotWidth=plotRight-left;
   const xAt=index=>weeks.length===1?left+plotWidth/2:left+plotWidth*index/(weeks.length-1);
   weekly.forEach((item,index)=>{if(item.shipped){const x=xAt(index);chart.append(svg("line",{x1:x,x2:x,y1:top-9,y2:top+lane*7-7,stroke:"#242424","stroke-width":1,"stroke-dasharray":"4 5",opacity:.55}),svg("path",{d:"M "+x+" "+(top-14)+" l 5 5 -5 5 -5 -5 Z",fill:"#242424"}),svg("text",{x,y:top-19,"text-anchor":"middle",fill:"#242424","font-size":10,"font-weight":600},"SHIP"));}});
@@ -106,11 +109,12 @@ function draw() {
     }
   }
   weekly.forEach((item,index)=>chart.append(svg("text",{x:xAt(index),y:height-8,"text-anchor":"middle",fill:"#646464","font-size":12},item.week)));
+  }
   const history=$("history");history.replaceChildren();
   [...rows].sort((a,b)=>Date.parse(b.date)-Date.parse(a.date)).forEach(row=>{
     const tr=document.createElement("tr");
     const date=document.createElement("td");date.textContent=new Date(row.date).toLocaleDateString()+" · "+row.week;tr.append(date);
-    const tested=document.createElement("td");tested.textContent=row.tested;tr.append(tested);
+    const tested=document.createElement("td");tested.textContent=(row.control_only?"CONTROL ONLY · ":"")+row.tested;tr.append(tested);
     const verdict=document.createElement("td"),badge=document.createElement("span");badge.className="verdict "+row.verdict;badge.textContent=row.verdict;verdict.append(badge);tr.append(verdict);
     const delta=document.createElement("td");delta.textContent=row.verdict==="baseline"?"Baseline":row.targets.length?row.targets.map(n=>{if(row.trust[n]==="not-measured")return "#"+n+" not measured";if(row.trust[n]==="not-trusted")return "#"+n+" not trusted";const value=row.deltas[n];return "#"+n+" "+(value===null?"not measured":(value>0?"+":"")+value+" pts");}).join(" · "):"No targets";tr.append(delta);
     const report=document.createElement("td"),link=document.createElement("a"),[path,anchor]=row.report.split("#",2);link.href="../../../../../../"+path.split("/").map(encodeURIComponent).join("/")+(anchor?"#"+encodeURIComponent(anchor):"");link.textContent="Open report";report.append(link);tr.append(report);

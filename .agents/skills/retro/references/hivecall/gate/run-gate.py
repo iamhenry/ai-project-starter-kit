@@ -282,11 +282,13 @@ def main() -> int:
         if not found:
             request = {"id": answer_id, "role": "judge", "system": "", "prompt": prompt}
             try:
-                batch = write_prompt_batch([request], args.export_prompts, args.batch_size)
+                outputs, _, _ = write_prompt_batch([request], args.export_prompts, args.batch_size)
             except OSError as exc:
                 print(f"Gate prompt export blocked locally: {exc}", file=sys.stderr)
                 return 2
-            print(f"awaiting answers: {batch[0]}")
+            for machine, readable in outputs:
+                print(f"awaiting answers: {machine}")
+                print(f"awaiting answers: {readable}")
             return 0
 
         args.output.parent.mkdir(parents=True, exist_ok=True)

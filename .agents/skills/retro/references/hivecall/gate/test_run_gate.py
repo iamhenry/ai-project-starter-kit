@@ -133,6 +133,13 @@ class RetryTests(unittest.TestCase):
             status, output, cache, batch, stdout, _ = self.run_gate(directory)
             self.assertEqual(status, 0)
             self.assertIn("awaiting answers:", stdout)
+            readable = batch.with_suffix(".md")
+            self.assertTrue(readable.exists())
+            self.assertIn(str(readable), stdout)
+            markdown = readable.read_text(encoding="utf-8")
+            exported_id = json.loads(batch.read_text(encoding="utf-8").splitlines()[0])["id"]
+            self.assertEqual(markdown.count(exported_id), 1)
+            self.assertLessEqual(max(map(len, markdown.splitlines())), 1500)
             self.import_answer(cache, batch, directory, '{"api_key":"sk-fixtureSecret123456"')
             status, output, cache, batch, _, _ = self.run_gate(directory)
             self.assertEqual(status, 0)

@@ -14,9 +14,9 @@ Clef HTTP 429 and 5xx responses are retried up to five attempts per request. The
 
 ## Tested and judge agent handoff
 
-The scripts never call the tested or judge agent. Missing prompts are exported as redacted JSONL; the command exits successfully with `awaiting answers: <path>` and writes no partial result. Each batch contains one role (`tested` or `judge`) and at most 20 prompts by default. Change the limit with `--batch-size N`. The default export path is under `.lanes/hivecall-handoff/`; pass `--export-prompts PATH` to choose a stable path.
+The scripts never call the tested or judge agent. Missing prompts are exported as redacted JSONL plus an agent-readable Markdown twin; the command exits successfully with `awaiting answers: <path>` and writes no partial result. Each batch contains one role (`tested` or `judge`) and at most 20 prompts by default. Change the limit with `--batch-size N`. When a role has more prompts, all are written in order to `<export-path-stem>.b01.jsonl` and matching `.b01.md`, `.b02.jsonl` and `.b02.md`, and so on; every path is printed. A single batch keeps the exact JSONL export path and also writes its `.md` twin. The default export path is under `.lanes/hivecall-handoff/`; pass `--export-prompts PATH` to choose a stable path.
 
-Launch a `plan` subagent for each `tested` batch and a `reviewer` subagent for each `judge` batch. `plan` is the tested role and runs `anthropic/claude-opus-5-5`, matching the real orchestrator model; `reviewer` is the GPT-family judge. Run no more than five subagent batches at once. Give each subagent the batch path; for `reviewer`, also give the judge contract path below. The plan prompt itself contains the simulation-only boundary. The reviewer must follow the contract and return one answer line per item, with no other text. Save the returned JSONL as the answers file, import into the same cache, and rerun the exact original command. Repeat until it produces the report and result row:
+Launch a `plan` subagent for each `tested` batch and a `reviewer` subagent for each `judge` batch. `plan` is the tested role and runs `anthropic/claude-opus-5-5`, matching the real orchestrator model; `reviewer` is the GPT-family judge. Run up to five batch subagents in parallel, then launch the next batches as slots open. Give each subagent its numbered `.md` twin, not the machine JSONL; the Markdown lists each shared system/skill section once, references those sections by number, and wraps prompt lines to 1,200 characters. For `reviewer`, also give the judge contract path below. The plan prompt itself contains the simulation-only boundary. Each agent must return one importer-format answer line per item, preserving its ID, with no other text. Combine the returned answer lines from all batches into one answers JSONL, import it into the same cache, and rerun the exact original command. Repeat until it produces the report and result row:
 
 ```text
 Judge contract: .agents/skills/retro/references/hivecall/judge-contract.md
@@ -99,15 +99,19 @@ TARGETS=2
   HIVECALL_ALLOW_DATASET_CLOUD=1 python3 .agents/skills/retro/references/hivecall/replay/run.py eval \
   --current "$CURRENT_SKILL_DIR" --proposed "$WEAKENED_SKILL_DIR" \
   --build-week "$BUILD_WEEK" --targets "$TARGETS" \
+  --behaviors 2 \
   --report-tag weakened-vs-current --per-behavior 30 --seed 20261016 \
   --batch-size 20 --export-prompts .lanes/hivecall-handoff/weakened.jsonl
 
   HIVECALL_ALLOW_DATASET_CLOUD=1 python3 .agents/skills/retro/references/hivecall/replay/run.py eval \
   --current "$CURRENT_SKILL_DIR" --proposed "$IDENTICAL_SKILL_DIR" \
   --build-week "$BUILD_WEEK" --targets "$TARGETS" \
+  --behaviors 2 \
   --report-tag identical-vs-current --per-behavior 30 --seed 20261016 \
   --batch-size 20 --export-prompts .lanes/hivecall-handoff/identical.jsonl
 ```
+
+`--behaviors` accepts a comma-separated behavior list and defaults to all behaviors. These B2 controls use `--behaviors 2` to sample and score only proof behavior; their reports and dashboard rows are tagged **control only**, and cannot produce a PR-eligible PASS because excluded behaviors are not checked for regressions.
 
 ## Local-only diagnostics
 
