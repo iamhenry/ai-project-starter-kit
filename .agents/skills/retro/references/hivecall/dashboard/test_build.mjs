@@ -14,16 +14,20 @@ const scores = value => Object.fromEntries(Array.from({ length: 7 }, (_, i) => [
 const trust = Object.fromEntries(Array.from({ length: 7 }, (_, i) => [String(i + 1), i ? "not-measured" : "ok"]));
 const row = (date, tested, control_only, score) => ({
   date, week: "2026-W42", kind: "eval", tested, control_only, verdict: "rejected",
-  targets: [1], scores: scores(score), trust, deltas: { 1: 0 },
+  targets: [1], scores: scores(score), trust: { ...trust }, deltas: { 1: 0 },
   report: ".agents/skills/retro/references/hivecall/dashboard/fixture/report.md",
   skill_commit: "fixture",
 });
 
 try {
   writeFileSync(build, readFileSync(join(directory, "build.mjs")));
+  const notEvaluable = row("2026-10-14T12:00:00Z", "Filtered Pia evaluation", true, null);
+  notEvaluable.trust["1"] = "not-evaluable";
+  notEvaluable.deltas["1"] = null;
   writeFileSync(input, [
     row("2026-10-12T12:00:00Z", "Full evaluation", false, 75),
     row("2026-10-13T12:00:00Z", "Filtered B2 control", true, 5),
+    notEvaluable,
   ].map(JSON.stringify).join("\n") + "\n");
   const result = spawnSync("node", [build, input], { encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr);
@@ -51,11 +55,14 @@ try {
   const chartTitles = descendants(elements.chart).filter(node => node.tag === "title").map(node => node.textContent);
   assert.ok(chartTitles.some(title => title.includes("75/100")), "chart keeps the older full score");
   assert.ok(!chartTitles.some(title => /: 5\/100/.test(title)), "newer control score is excluded from trends");
-  assert.equal(elements.history.children.length, 2, "both full and control rows remain listed");
+  assert.equal(elements.history.children.length, 3, "full and filtered rows remain listed");
   assert.ok(elements.history.children.some(row =>
-    /^CONTROL ONLY · Filtered B2 control$/.test(row.children[1].textContent)), "control row stays labeled in the table");
+    /^PARTIAL \(filtered\) · Filtered B2 control$/.test(row.children[1].textContent)), "filtered control row stays labeled in the table");
+  assert.ok(elements.history.children.some(row =>
+    row.children[1].textContent === "PARTIAL (filtered) · Filtered Pia evaluation" && row.children[3].textContent === "#1 not evaluable"),
+  "not-evaluable results render without a score gain");
 } finally {
   rmSync(temporary, { recursive: true, force: true });
 }
 
-console.log("Dashboard control-only trend test passed.");
+console.log("Dashboard filtered and not-evaluable result test passed.");

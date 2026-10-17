@@ -32,11 +32,11 @@ One JSON object per line. Keep these fields on every row:
 | `verdict` | `baseline`, `shipped`, or `rejected` | Outcome; baseline rows use `baseline`, eval rows use `shipped` or `rejected` |
 | `targets` | array of unique behavior numbers `1`–`7` | Behaviors the change aimed to improve |
 | `scores` | object with keys `1`–`7`; each value `0`–`100` or `null` | Per-behavior score; `null` means no score was measured |
-| `trust` | object with keys `1`–`7`; each value `ok`, `not-trusted`, or `not-measured` | Whether that behavior's score can be relied on |
+| `trust` | object with keys `1`–`7`; each value `ok`, `not-trusted`, `not-measured`, or `not-evaluable` | Whether that behavior's score can be relied on |
 | `deltas` | object keyed by targeted behavior; values are score points or `null` | Change against baseline; positive and negative values are points, not percentages |
 | `report` | repository-relative path, optionally followed by `#anchor` | Report opened by the table link |
 | `skill_commit` | string | Skill revision evaluated |
 
-`ok` requires a numeric score. `not-measured` requires a `null` score. A numeric `not-trusted` score is shown as a hollow point and is not connected to the trend line; a `null` `not-trusted` score is shown as an `NT` marker outside the score scale, never as a score or gap. A `null` `not-measured` score has no point and breaks the line; it is never converted to zero. Deltas for `not-trusted` and `not-measured` targets are ignored in the table, which shows the trust state instead of a gain. Control-only rows remain in the history table with a `CONTROL ONLY` label, but do not affect chart trends or ship markers. The chart uses the latest non-control row for each week, while the table retains every row.
+`ok` requires a numeric score. `not-measured` and `not-evaluable` require a `null` score. A numeric `not-trusted` score is shown as a hollow point and is not connected to the trend line; a `null` `not-trusted` score is shown as an `NT` marker outside the score scale, never as a score or gap. `not-measured` and `not-evaluable` have no point and break the line; neither is converted to zero. Deltas for `not-trusted`, `not-measured`, and `not-evaluable` targets are ignored in the table, which shows the trust state instead of a gain. Filtered rows remain in the history table with a `PARTIAL (filtered)` label, but do not affect chart trends or ship markers. The chart uses the latest non-filtered row for each week, while the table retains every row.
 
 `fixture/results.jsonl` contains one baseline, one rejected eval, and one shipped eval. Their report links open `fixture/report.md`, which labels all sample values as invented.
