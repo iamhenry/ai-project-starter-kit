@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """List archived BB threads that explicitly invoked the hivecall skill.
 
-Usage: find-runs.py [--days 7] [--skill hivecall]
+Usage: find-runs.py [--days 7 | --all] [--skill hivecall]
 Prints one JSON object: window, scanned count, and runs with their
-children. A thread counts only when its log has a completed skill tool
-call named exactly `hivecall`, or a user turn carrying the injected
-skill body (a slash command). Titles, mentions and plain file reads of
-SKILL.md do not count. Read-only: it only runs `bb thread list/log`.
+children. Only archived threads count; unarchived (live) runs never do.
+A thread counts only when its log has a completed skill tool call named
+exactly `hivecall`, or a user turn carrying the injected skill body (a
+slash command). Titles, mentions and plain file reads of SKILL.md do not
+count. Read-only: it only runs `bb thread list/log`.
 """
 import argparse, json, re, subprocess, time
 from concurrent.futures import ThreadPoolExecutor
@@ -52,28 +53,32 @@ def scan(t, skill):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--days", type=float, default=7)
+    p.add_argument("--all", action="store_true", help="scan every archived thread, regardless of age")
     p.add_argument("--skill", default="hivecall")
     o = p.parse_args()
     now = time.time() * 1000
     since = now - o.days * 86400000
     archived = bb("thread", "list", "--archived", "--include-hidden", "--json")
-    window = [t for t in archived if (t.get("archivedAt") or 0) >= since]
+    threads = bb("thread", "list", "--include-hidden", "--json")
+    window = [t for t in archived if o.all or (t.get("archivedAt") or 0) >= since]
     children = {}
-    for t in archived:
+    for t in threads:
         if t.get("parentThreadId"):
             children.setdefault(t["parentThreadId"], []).append(t["id"])
     runs, errors = [], []
     with ThreadPoolExecutor(8) as pool:
-        for t, hit, err in pool.map(lambda t: scan(t, o.skill), window):
-            if err:
-                errors.append({"id": t["id"], "error": err})
-            elif hit:
-                runs.append({"id": t["id"], "title": t.get("title"),
-                             "projectId": t.get("projectId"),
-                             "parentThreadId": t.get("parentThreadId"),
-                             "archivedAt": t.get("archivedAt"), **hit,
-                             "children": children.get(t["id"], [])})
-    print(json.dumps({"skill": o.skill, "days": o.days, "since": int(since),
+        results = list(pool.map(lambda t: scan(t, o.skill), window))
+    for t, hit, err in results:
+        if err:
+            errors.append({"id": t["id"], "error": err})
+        elif hit and t.get("archivedAt"):
+            runs.append({"id": t["id"], "title": t.get("title"), "inclusion": "archived",
+                         "projectId": t.get("projectId"),
+                         "parentThreadId": t.get("parentThreadId"),
+                         "archivedAt": t.get("archivedAt"), **hit,
+                         "children": children.get(t["id"], [])})
+    print(json.dumps({"skill": o.skill, "days": "all" if o.all else o.days,
+                      "since": None if o.all else int(since),
                       "scanned": len(window), "runs": runs,
                       "unreadable": errors}, indent=2))
 

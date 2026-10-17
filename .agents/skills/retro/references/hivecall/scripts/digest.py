@@ -11,7 +11,9 @@ counts only when Clef is confident; otherwise it is "can't tell". Labels are
 hints for the retro judge, not verdicts. Read-only for BB threads.
 """
 import json, os, re, subprocess, sys, urllib.request
+import argparse
 from concurrent.futures import ThreadPoolExecutor
+from redact import redact_value
 
 SURE = 0.8  # confidence needed before a label counts
 GAP_MS = 30 * 60 * 1000
@@ -37,11 +39,17 @@ def ollama_key():
 
 
 KEY = None
+PREVIEW = False
+PREVIEW_REQUESTS = []
 
 
 def clef(state, question):
-    body = json.dumps({"model": "clef", "state": state,
-                       "questions": {"q": question}}).encode()
+    payload = redact_value({"model": "clef", "state": state,
+                            "questions": {"q": question}})
+    if PREVIEW:
+        PREVIEW_REQUESTS.append(payload)
+        return {"error": "preview only"}
+    body = json.dumps(payload).encode()
     req = urllib.request.Request("https://ollama.com/v1/systemone", body, {
         "Authorization": "Bearer " + KEY, "Content-Type": "application/json"})
     for _ in range(3):
@@ -178,12 +186,21 @@ def run_digest(run, pool):
 
 
 def main():
-    global KEY
-    KEY = ollama_key()
-    found = json.load(open(sys.argv[1]) if len(sys.argv) > 1 else sys.stdin)
+    global KEY, PREVIEW
+    p = argparse.ArgumentParser()
+    p.add_argument("input", nargs="?", help="find-runs JSON; defaults to stdin")
+    p.add_argument("--preview", action="store_true", help="print redacted Clef payloads without sending")
+    o = p.parse_args()
+    PREVIEW = o.preview
+    if not PREVIEW:
+        KEY = ollama_key()
+    found = json.load(open(o.input) if o.input else sys.stdin)
     with ThreadPoolExecutor(8) as pool:
         runs = [run_digest(r, pool) for r in found["runs"]]
-    print(json.dumps({"sure": SURE, "runs": runs, "unreadable": found.get("unreadable", [])}, indent=1))
+    if PREVIEW:
+        print(json.dumps({"preview": True, "requests": PREVIEW_REQUESTS}, indent=1))
+    else:
+        print(json.dumps({"sure": SURE, "runs": runs, "unreadable": found.get("unreadable", [])}, indent=1))
 
 
 if __name__ == "__main__":
