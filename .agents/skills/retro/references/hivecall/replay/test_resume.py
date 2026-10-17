@@ -48,6 +48,66 @@ class RetryServer(BaseHTTPRequestHandler):
 
 
 class ReplayCheckpointTests(unittest.TestCase):
+    def test_skipped_short_target_preserves_later_behavior_judge_payloads(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            dataset = root / "dataset.jsonl"
+            moments = [{
+                "runId": "fixture", "momentId": "b1-0", "behavior": 1,
+                "week": "2026-W41", "context": "context-b1-0",
+                "actualNextAction": {"text": "fixture action"}, "fixedCheck": {},
+            }]
+            moments.extend({
+                "runId": "fixture", "momentId": f"b2-{index}", "behavior": 2,
+                "week": "2026-W41", "context": f"context-b2-{index}",
+                "actualNextAction": {"text": "fixture action"}, "fixedCheck": {},
+            } for index in range(10))
+            dataset.write_text(json.dumps({"recordType": "run", "runId": "fixture",
+                                           "week": "2026-W41", "moments": moments}) + "\n",
+                               encoding="utf-8")
+            current, proposed = root / "current", root / "proposed"
+            current.mkdir()
+            proposed.mkdir()
+            skill = ("- Only the orchestrator ticks items, and only on independent proof: QA evidence.\n"
+                     "3. **Tick** items proven by independent evidence. Commit locally.\n")
+            (current / "SKILL.md").write_text(skill, encoding="utf-8")
+            (proposed / "SKILL.md").write_text(skill, encoding="utf-8")
+            old_values = (replay.ROOT, replay.HERE, replay.RESULTS, replay.RUN_LOCK, replay.RUNTIME)
+            replay.ROOT = root
+            replay.HERE = root / "replay"
+            replay.RESULTS = root / "results.jsonl"
+            replay.RUN_LOCK = root / "replay-run.lock"
+
+            def run_case(targets, name):
+                args = argparse.Namespace(
+                    behaviors=[1, 2], targets=targets, exclude_run_id=[], dataset=str(dataset),
+                    current=str(current), proposed=str(proposed), build_week="2026-W42",
+                    per_behavior=30, seed=20261016, report_tag="rng-stability")
+                export = root / f"{name}.jsonl"
+                runtime = replay.CallRuntime(root / f"cache-{name}", batch_size=200,
+                                             export_path=export)
+                replay.RUNTIME = runtime
+                with patch.object(replay, "require_dataset_cloud_approval"), \
+                        patch.object(replay, "tested_model",
+                                     side_effect=lambda _skill, _context, identity: f"output::{identity}"), \
+                        patch.object(replay, "clef_label", return_value=("PASS", 0.5)), \
+                        patch.object(replay, "examples_for", return_value=[]), \
+                        patch.object(replay, "skill_revision", return_value="fixture-revision"), \
+                        redirect_stdout(StringIO()), redirect_stderr(StringIO()):
+                    with replay.exclusive_run_lock():
+                        replay.run_eval(args)
+                return sorted((key, replay.hashlib.sha256(request["prompt"].encode()).hexdigest())
+                              for key, request in runtime.pending.items()
+                              if request["role"] == "judge" and '"context": "context-b2-' in request["prompt"])
+
+            try:
+                evaluated_first = run_case([2], "evaluated-first")
+                skipped_first = run_case([1], "skipped-first")
+                self.assertEqual(len(evaluated_first), 30)
+                self.assertEqual(skipped_first, evaluated_first)
+            finally:
+                replay.ROOT, replay.HERE, replay.RESULTS, replay.RUN_LOCK, replay.RUNTIME = old_values
+
     def test_filtered_eval_exports_only_selected_behavior_and_is_control_only(self):
         self.assertEqual(replay.parse_behaviors("2, 1,2"), [1, 2])
         with self.assertRaises(argparse.ArgumentTypeError):
@@ -185,6 +245,174 @@ class ReplayCheckpointTests(unittest.TestCase):
                              ([(single_export, root / "single.md")], "judge", 1))
             self.assertTrue(single_export.exists())
             self.assertTrue((root / "single.md").exists())
+
+    def test_short_target_writes_reject_report_and_scores_other_behaviors(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            dataset = root / "dataset.jsonl"
+            moments = []
+            for behavior in (1, 2):
+                for index in range(10):
+                    moments.append({
+                        "runId": "fixture", "momentId": f"b{behavior}-{index}",
+                        "behavior": behavior, "week": "2026-W41", "context": "fixture context",
+                        "actualNextAction": {"text": "fixture action"},
+                        "fixedCheck": {"label": "tick" if behavior == 1 else "proof_present"},
+                    })
+            dataset.write_text(json.dumps({"recordType": "run", "runId": "fixture",
+                                           "week": "2026-W41", "moments": moments}) + "\n",
+                               encoding="utf-8")
+            b3_moments = [{
+                "runId": "fixture", "momentId": f"b3-{index}", "behavior": 3,
+                "week": "2026-W41", "context": "fixture B3 context",
+                "replayAnchor": "b3_pre_final_message",
+                "actualNextAction": {"kind": "agentMessage", "eventType": "item/completed",
+                                     "text": "fixture B3 action"},
+                "fixedCheck": {"anchor": "before-final-orchestrator-message", "label": "open",
+                               "liveWorkerCount": 0, "gapMinutes": 45},
+            } for index in range(11)]
+            for index, moment in enumerate(b3_moments):
+                moment["week"] = "2026-W41" if index < 6 else "2026-W42"
+            current, proposed = root / "current", root / "proposed"
+            current.mkdir()
+            proposed.mkdir()
+            skill = ("- Only the orchestrator ticks items, and only on independent proof: QA evidence.\n"
+                     "3. **Tick** items proven by independent evidence. Commit locally.\n")
+            (current / "SKILL.md").write_text(skill, encoding="utf-8")
+            (proposed / "SKILL.md").write_text(skill, encoding="utf-8")
+            args = argparse.Namespace(
+                behaviors=[1, 2, 3], targets=[3], exclude_run_id=[], dataset=str(dataset),
+                current=str(current), proposed=str(proposed), build_week="2026-W42",
+                per_behavior=30, seed=20261016, report_tag="short-target")
+            old_values = (replay.ROOT, replay.HERE, replay.RESULTS, replay.RUN_LOCK, replay.RUNTIME)
+            replay.ROOT = root
+            replay.HERE = root / "replay"
+            replay.RESULTS = root / "results.jsonl"
+            replay.RUN_LOCK = root / "replay-run.lock"
+            replay.RUNTIME = replay.CallRuntime(root / "cache")
+            model_identities = []
+
+            def tested_model(_skill, _context, identity):
+                model_identities.append(identity)
+                return "fixture model output"
+
+            def compare_outputs(_moment, _behavior, _current, _changed, _examples, _rng,
+                               *_identities):
+                return ({"current": "PASS", "changed": "PASS"}, {
+                    "disagreement": None,
+                    "clef": {"currentConfidence": 0.99, "changedConfidence": 0.99},
+                    "judge": None,
+                }, [])
+
+            try:
+                with patch.object(replay, "require_dataset_cloud_approval"), \
+                        patch.object(replay, "weaken_proof_skill", return_value="weakened"), \
+                        patch.object(replay, "examples_for", return_value=[
+                            {"context": "fixture", "output": "fixture", "label": "PASS"},
+                            {"context": "fixture", "output": "fixture", "label": "FAIL"}]), \
+                        patch.object(replay, "tested_model", side_effect=tested_model), \
+                        patch.object(replay, "compare_outputs", side_effect=compare_outputs), \
+                        patch.object(replay, "skill_revision", return_value="fixture-revision"), \
+                        patch.object(replay.b3_replay, "reanchor_records",
+                                     return_value=(b3_moments, [], [])), \
+                        redirect_stdout(StringIO()):
+                    with replay.exclusive_run_lock():
+                        replay.run_eval(args)
+
+                report = (replay.HERE / "reports/eval-short-target.md").read_text(encoding="utf-8")
+                self.assertIn("**Verdict: REJECT (target not evaluable)**", report)
+                self.assertIn("not evaluable (6 held-out moments)", report)
+                self.assertIn("target behavior 3 has only 6 held-out moments; need 10", report)
+                self.assertEqual(len(model_identities), 70)
+                self.assertTrue(all("|moment=b1-" in identity or "|moment=b2-" in identity
+                                    for identity in model_identities))
+                self.assertIn("report=short-target|role=current|run=fixture|moment=b1-0",
+                              model_identities)
+                self.assertIn("report=short-target|role=current|run=fixture|moment=b2-0",
+                              model_identities)
+                result = json.loads(replay.RESULTS.read_text(encoding="utf-8").splitlines()[0])
+                self.assertEqual(result["verdict"], "rejected")
+                self.assertIsNone(result["scores"]["3"])
+                self.assertIsNone(result["deltas"]["3"])
+                self.assertEqual(result["trust"]["3"], "not-evaluable")
+            finally:
+                replay.ROOT, replay.HERE, replay.RESULTS, replay.RUN_LOCK, replay.RUNTIME = old_values
+
+    def test_baseline_b7_scores_runs_from_active_time_and_ledger_ticks(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            records = []
+            cases = [
+                ("run-a", 180, 90, 2),
+                ("run-b", 120, None, 2),
+                ("run-c", 90, 60, 3),
+                ("run-d", 180, None, 4),
+                ("run-e", 60, None, 1),
+            ]
+            for index, (run_id, duration, active, finished_items) in enumerate(cases):
+                facts = {"durationMinutes": duration, "tokenUsage": {"totalTokens": 100 + index}}
+                if active is not None:
+                    facts["activeMinutes"] = active
+                b7_moment = {"runId": run_id, "momentId": f"{run_id}-b7", "behavior": 7,
+                             "week": "2026-W42", "fixedCheck": facts}
+                if run_id == "run-a":
+                    b7_moment["fixedCheck"] = {"durationMinutes": 30, "tokenUsage": facts["tokenUsage"]}
+                moments = [b7_moment]
+                for item in range(finished_items):
+                    moments.append({
+                        "runId": run_id, "momentId": f"{run_id}-b1-{item}", "behavior": 1,
+                        "week": "2026-W42", "itemId": None if run_id == "run-e" else f"ISC-{item}",
+                        "fixedCheck": {"label": "tick"},
+                    })
+                records.append({"recordType": "run", "runId": run_id,
+                                "week": "2026-W42", "moments": moments})
+                if run_id == "run-a":
+                    records.append({"recordType": "runUpdate", "runId": run_id,
+                                    "week": "2026-W42", "moments": [{
+                                        "runId": run_id, "momentId": f"{run_id}-b7-latest",
+                                        "behavior": 7, "week": "2026-W42",
+                                        "fixedCheck": {"durationMinutes": 120,
+                                                       "tokenUsage": facts["tokenUsage"]},
+                                    }]})
+            dataset = root / "dataset.jsonl"
+            dataset.write_text("".join(json.dumps(row) + "\n" for row in records), encoding="utf-8")
+            args = argparse.Namespace(dataset=str(dataset), exclude_run_id=[], per_behavior=30,
+                                      seed=4, skill=str(root / "unused-skill"))
+            old_values = (replay.ROOT, replay.HERE, replay.RESULTS, replay.RUN_LOCK, replay.RUNTIME)
+            replay.ROOT = root
+            replay.HERE = root / "replay"
+            replay.RESULTS = root / "results.jsonl"
+            replay.RUN_LOCK = root / "replay-run.lock"
+            replay.RUNTIME = replay.CallRuntime(root / "cache")
+            try:
+                with self.assertRaises(SystemExit) as stopped, redirect_stdout(StringIO()), \
+                        redirect_stderr(StringIO()), replay.exclusive_run_lock():
+                    replay.run_baseline(args)
+                self.assertIn("baseline incomplete: behavior 2", str(stopped.exception))
+                report = (replay.HERE / "reports/baseline.md").read_text(encoding="utf-8")
+                self.assertIn("| 7. Use reasonable time and cost (measured at run level, not by replay). | 50% | 0 / 5 / 5 / 5 | 2 / 2 / 1 | ok |", report)
+                facts_text = report.split("## Behavior 7 run-level facts\n\n```json\n", 1)[1].split("\n```", 1)[0]
+                summary = json.loads(facts_text)
+                b7 = summary["behavior7"]
+                self.assertEqual((b7["score"], b7["trust"], b7["scoredRuns"],
+                                  b7["replayableRuns"], b7["PASS"], b7["FAIL"], b7["UNKNOWN"]),
+                                 (50, "ok", 5, 5, 2, 2, 1))
+                evidence = {row["runId"]: row for row in b7["evidence"]}
+                self.assertEqual((evidence["run-a"]["minutesPerItem"],
+                                  evidence["run-a"]["activeMinutes"],
+                                  evidence["run-a"]["activeMinutesSource"],
+                                  evidence["run-a"]["label"]),
+                                 (60, 120, "durationMinutes (digest active time unavailable)", "FAIL"))
+                self.assertEqual((evidence["run-b"]["minutesPerItem"],
+                                  evidence["run-b"]["activeMinutesSource"]),
+                                 (60, "durationMinutes (digest active time unavailable)"))
+                self.assertEqual(evidence["run-e"]["label"], "UNKNOWN")
+                self.assertIsNone(summary["costUsd"])
+                self.assertEqual(summary["medianTokens"], 102)
+                self.assertEqual(replay.behavior7_summary(records[:4])["behavior7"]["trust"],
+                                 "not-trusted")
+            finally:
+                replay.ROOT, replay.HERE, replay.RESULTS, replay.RUN_LOCK, replay.RUNTIME = old_values
 
     def test_baseline_cli_blocks_a_concurrent_run_before_creating_cache(self):
         with tempfile.TemporaryDirectory() as directory:

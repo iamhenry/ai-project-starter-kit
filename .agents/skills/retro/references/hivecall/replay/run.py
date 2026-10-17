@@ -595,9 +595,9 @@ def select_sample(moments, per_behavior, seed):
 
 
 def eval_count_shortfalls(targets, totals, heldout_totals):
-    shortfalls = [f"target behavior {b} has only {totals[b]} replayable moments"
+    shortfalls = [f"target behavior {b} has only {totals[b]} replayable moments; need 10"
                   for b in targets if totals[b] < 10]
-    shortfalls.extend(f"target behavior {b} has only {heldout_totals[b]} held-out moments"
+    shortfalls.extend(f"target behavior {b} has only {heldout_totals[b]} held-out moments; need 10"
                       for b in targets if heldout_totals[b] < 10)
     return shortfalls
 
@@ -912,19 +912,104 @@ def behavior7_summary(records):
     runs = moments_by_run(records)
     durations = []
     tokens = []
-    for run in runs.values():
-        for m in run["moments"].values():
-            if m.get("behavior") != 7:
+    active_times, digest_active_times, evidence = [], [], []
+    record_facts = {row.get("runId"): row for row in records if row.get("runId")}
+    latest_b7 = {}
+    for record in records:
+        run_id = record.get("runId")
+        for moment in record.get("moments", []):
+            if run_id and moment.get("behavior") == 7:
+                latest_b7[run_id] = moment
+    counts = {"PASS": 0, "FAIL": 0, "UNKNOWN": 0}
+
+    def valid_minutes(value):
+        return (isinstance(value, (int, float)) and not isinstance(value, bool)
+                and math.isfinite(value) and value >= 0)
+
+    for run_id, run in runs.items():
+        run_moments = list(run["moments"].values())
+        b7 = latest_b7.get(run_id, {})
+        check = b7.get("fixedCheck") or {}
+        raw = record_facts.get(run_id, {})
+        duration = check.get("durationMinutes")
+        if not valid_minutes(duration):
+            duration = raw.get("durationMinutes")
+        if valid_minutes(duration):
+            durations.append(duration)
+        usage = check.get("tokenUsage") or raw.get("tokenUsage") or {}
+        if isinstance(usage.get("totalTokens"), (int, float)) and not isinstance(usage.get("totalTokens"), bool):
+            tokens.append(usage["totalTokens"])
+
+        active = check.get("activeMinutes")
+        if not valid_minutes(active):
+            active = raw.get("activeMinutes")
+        active_source = "digest activeMinutes"
+        if valid_minutes(active):
+            digest_active_times.append(active)
+        else:
+            active = duration
+            active_source = "durationMinutes (digest active time unavailable)"
+        if valid_minutes(active):
+            active_times.append(active)
+        else:
+            active = None
+            active_source = "unavailable"
+
+        ledger_rows = [m for m in run_moments if m.get("behavior") == 1]
+        item_ids = set()
+        item_count_known = bool(ledger_rows)
+        for moment in ledger_rows:
+            label = str((moment.get("fixedCheck") or {}).get("label") or "").lower()
+            if label not in ("tick", "pass"):
                 continue
-            check = m.get("fixedCheck") or {}
-            if isinstance(check.get("durationMinutes"), (int, float)):
-                durations.append(check["durationMinutes"])
-            usage = check.get("tokenUsage") or {}
-            if isinstance(usage.get("totalTokens"), (int, float)):
-                tokens.append(usage["totalTokens"])
-    return {"runsWithDuration": len(durations), "medianDurationMinutes": median(durations),
+            item_id = moment.get("itemId")
+            if not isinstance(item_id, str) or not item_id.strip():
+                item_count_known = False
+            else:
+                item_ids.add(item_id.strip())
+        finished_items = len(item_ids) if item_count_known else None
+        minutes_per_item = (active / finished_items
+                            if active is not None and finished_items else None)
+        if finished_items is None:
+            label, reason = "UNKNOWN", "finished item count unavailable from ledger-edit evidence"
+        elif active is None:
+            label, reason = "UNKNOWN", "active minutes unavailable"
+        elif finished_items == 0:
+            label, reason = "FAIL", "no finished checklist items"
+        else:
+            label = "PASS" if minutes_per_item <= 45 else "FAIL"
+            reason = None
+        counts[label] += 1
+        evidence.append({
+            "runId": run_id,
+            "activeMinutes": active,
+            "activeMinutesSource": active_source,
+            "finishedItems": finished_items,
+            "minutesPerItem": round(minutes_per_item, 2) if minutes_per_item is not None else None,
+            "label": label,
+            **({"reason": reason} if reason else {}),
+        })
+
+    known_runs = counts["PASS"] + counts["FAIL"]
+    score = round(100 * counts["PASS"] / known_runs) if known_runs else None
+    b7 = {
+        "rule": "PASS when active minutes per finished checklist item are at most 45; zero finished items FAIL.",
+        "activeMinutesSource": "digest activeMinutes when present; otherwise durationMinutes",
+        "finishedItemsSource": "distinct itemIds from behavior 1 ledger-edit moments labeled tick or pass",
+        "score": score,
+        "trust": "not-trusted" if len(runs) < 5 or not known_runs else "ok",
+        "scoredRuns": len(runs),
+        "replayableRuns": len(runs),
+        "knownRuns": known_runs,
+        **counts,
+        "evidence": evidence,
+    }
+    return {"runs": len(runs), "runsWithDuration": len(durations), "medianDurationMinutes": median(durations),
+            "runsWithActiveMinutes": len(active_times), "runsWithDigestActiveMinutes": len(digest_active_times),
+            "medianActiveMinutes": median(active_times),
             "runsWithTokens": len(tokens), "medianTokens": median(tokens),
-            "costUsd": None, "costNote": "provider logs do not include USD cost"}
+            "costUsd": None, "costNote": "provider logs do not include USD cost",
+            "behavior7": b7}
 
 
 def median(values):
@@ -1023,10 +1108,16 @@ def run_baseline(args):
     if RUNTIME is not None and RUNTIME.pending:
         RUNTIME.export_pending()
         return
+    time_summary = behavior7_summary(records)
+    b7 = time_summary["behavior7"]
+    scorecard["7"] = {"score": b7["score"], "trust": b7["trust"],
+                       "moments": b7["scoredRuns"], "pass": b7["PASS"], "fail": b7["FAIL"],
+                       "unknown": b7["UNKNOWN"], "calibrationMoments": 0,
+                       "evidence": b7["evidence"]}
     for b, entry in scorecard.items():
-        entry["totalMoments"] = totals[int(b)]
-        entry["rawMoments"] = raw_totals[int(b)]
-    report.write_text(render_baseline(scorecard, totals, raw_totals, args, behavior7_summary(records), incomplete, agreement, examples), encoding="utf-8")
+        entry["totalMoments"] = b7["replayableRuns"] if b == "7" else totals[int(b)]
+        entry["rawMoments"] = b7["replayableRuns"] if b == "7" else raw_totals[int(b)]
+    report.write_text(render_baseline(scorecard, totals, raw_totals, args, time_summary, incomplete, agreement, examples), encoding="utf-8")
     (report_dir / "baseline-labels.json").write_text(json.dumps(labels, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     (report_dir / "borderline-moments.json").write_text(json.dumps(borderline[:10], indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     (report_dir / "baseline-examples.json").write_text(json.dumps(examples, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
@@ -1049,6 +1140,7 @@ def render_baseline(scorecard, totals, raw_totals, args, time_summary, incomplet
                 "- ISC-6 behavior 3 replay uses a separate turn-end anchor: context before the final orchestrator message, open work, and a later gap over 30 minutes. Both zero-worker progress moments and live-worker wait moments count toward the 10-moment floor. Only zero-worker moments are failure-side; a small count means low B3 power.",
              "- Tier 1 owner wording is not distinguishable in this dataset (speaker attribution was discarded); only explicit tier 2 rules are counted as ground truth.",
               "- Unknown answers are excluded from the score denominator and counted separately; missing evidence never counts as PASS.",
+              "- Behavior 7 scores runs PASS when active minutes per distinct finished ledger item (behavior 1 `tick`/`pass` evidence) are at most 45; digest `activeMinutes` is preferred, then `durationMinutes`; zero finished items FAIL and unknown item counts are excluded.",
               "- Each completed baseline uses a fixed-seed calibration partition disjoint from scored moments; the table reports calibration / scored / replayable / raw counts.",
               "- Behavior 5 scores alert handling only (not missed-stall recall); behavior 6 scores bounded briefs only (not final reports); both are partial and not-trusted.",
                "", "| Behavior | Score | Calibration / scored / replayable / raw | Pass / fail / unknown | Trust |", "|---|---:|---:|---:|---|"]
@@ -1091,12 +1183,20 @@ def run_eval(args):
     selected, counts, heldout_n = select_heldout(eligible, args.build_week, args.per_behavior, args.seed)
     _, all_counts = select_sample(eligible, args.per_behavior, args.seed)
     shortfalls = eval_count_shortfalls(args.targets, all_counts, counts)
+    unevaluable_targets = {b for b in args.targets
+                           if all_counts[b] < 10 or counts[b] < 10}
     if shortfalls:
         detail = "; ".join(shortfalls)
-        message = (f"Replay incomplete: {detail}. The requested target behaviors require at least 10 "
-                   "replayable moments overall and in the held-out weeks.")
-        completion_report(report, "BLOCKED", message)
-        raise SystemExit(message)
+        evaluable_behaviors = {b for b in behaviors.difference(unevaluable_targets)
+                               if all_counts[b] >= 10 and counts[b] >= 10}
+        if not evaluable_behaviors:
+            message = (f"Replay incomplete: {detail}. The requested target behaviors require at least 10 "
+                       "replayable moments overall and in the held-out weeks.")
+            completion_report(report, "BLOCKED", message)
+            raise SystemExit(message)
+    skipped_by_behavior = {b: [m for m in selected if m.get("behavior") == b]
+                           for b in unevaluable_targets}
+    selected = [m for m in selected if m.get("behavior") not in unevaluable_targets]
     b3_sample_counts = {
         "zeroWorker": sum((m.get("fixedCheck") or {}).get("liveWorkerCount") == 0
                            for m in selected if m.get("behavior") == 3),
@@ -1132,10 +1232,17 @@ def run_eval(args):
 
     try:
         examples = {b: (examples_for(moments, b, args.build_week, selected, args.report_tag)
-                        if b in behaviors else [])
+                        if b in behaviors and b not in unevaluable_targets else [])
                     for b in range(1, 8)}
         for behavior in range(1, 8):
             if behavior == 7 or behavior not in behaviors:
+                continue
+            if behavior in unevaluable_targets:
+                # Preserve later A/B randomization exactly as if these comparisons ran.
+                for _moment in skipped_by_behavior[behavior]:
+                    for _ in range(3 if behavior == 2 else 2):
+                        rng.random()
+                        rng.getrandbits(1)
                 continue
             for moment in per_behavior[behavior]:
                 current_id = call_identity(args.report_tag, "current", moment)
@@ -1205,6 +1312,14 @@ def run_eval(args):
     candidate_scores, trust, paired = {}, {}, {}
     identity_pass = True
     for behavior in range(1, 8):
+        if behavior in unevaluable_targets:
+            candidate_scores[str(behavior)] = {"current": None, "changed": None}
+            trust[str(behavior)] = "not-evaluable"
+            paired[str(behavior)] = {
+                "currentVsChanged": {"deltaPoints": None, "ci95": [None, None], "n": 0},
+                "identicalSkillNoise": {"deltaPoints": None, "ci95": [None, None], "n": 0},
+            }
+            continue
         if behavior not in behaviors:
             candidate_scores[str(behavior)] = {"current": None, "changed": None}
             trust[str(behavior)] = "not-measured"
@@ -1251,6 +1366,7 @@ def run_eval(args):
     targets = args.targets
     decision_reasons = []
     filtered_behaviors = sorted(set(range(1, 8)) - behaviors)
+    decision_reasons.extend(shortfalls)
     if filtered_behaviors:
         decision_reasons.append(
             "filtered behavior set is control only; excluded behaviors cannot be checked for regressions")
@@ -1260,6 +1376,8 @@ def run_eval(args):
         decision_reasons.append("identical-skill control exceeded its measured noise band")
     for behavior in range(1, 8):
         if behavior not in behaviors or behavior == 7:
+            continue
+        if behavior in unevaluable_targets:
             continue
         current_score = candidate_scores[str(behavior)]["current"]
         changed_score = candidate_scores[str(behavior)]["changed"]
@@ -1276,7 +1394,9 @@ def run_eval(args):
         if behavior not in targets and delta < -noise:
             decision_reasons.append(f"non-target behavior {behavior} regressed beyond the noise band")
     verdict = "PASS (would PR)" if not decision_reasons else "REJECT"
-    if filtered_behaviors:
+    if unevaluable_targets:
+        verdict = "REJECT (target not evaluable)"
+    elif filtered_behaviors:
         verdict = "REJECT (control only)"
     result_verdict = "shipped" if not decision_reasons else "rejected"
     report.parent.mkdir(parents=True, exist_ok=True)
@@ -1296,6 +1416,8 @@ def run_eval(args):
     identical_ties = {}
     if identical_candidate:
         for behavior in args.targets:
+            if behavior in unevaluable_targets:
+                continue
             comparison = paired[str(behavior)]["currentVsChanged"]
             margin = paired[str(behavior)]["noiseMarginPoints"]
             delta = comparison["deltaPoints"]
@@ -1304,12 +1426,14 @@ def run_eval(args):
                 "noiseMarginPoints": margin,
                 "withinNoiseBand": delta is not None and abs(delta) <= margin,
             }
-    missing_examples = [b for b in range(1, 7) if b in behaviors and not examples[b]]
+    missing_examples = [b for b in range(1, 7)
+                        if b in behaviors and b not in unevaluable_targets and not examples[b]]
     report.write_text(render_eval(args, counts, heldout_n, candidate_scores, trust, paired,
                                   weak_score, positive_control_pass, identity_pass, week_rows,
                                   disagreements, flips, verdict, decision_reasons,
                                   detail_file.relative_to(ROOT), b3_sample_counts,
-                                  identical_candidate, identical_ties, missing_examples), encoding="utf-8")
+                                  identical_candidate, identical_ties, missing_examples,
+                                  {b: counts[b] for b in unevaluable_targets}), encoding="utf-8")
     deltas = {str(b): (candidate_scores[str(b)]["changed"] - candidate_scores[str(b)]["current"]
                        if candidate_scores[str(b)]["changed"] is not None and candidate_scores[str(b)]["current"] is not None else None)
               for b in targets}
@@ -1323,9 +1447,12 @@ def run_eval(args):
 def render_eval(args, counts, heldout_n, scores, trust, paired, weak_score,
                 positive_control_pass, identity_pass, week_rows, disagreements,
                 flips, verdict, reasons, detail_path, b3_sample_counts,
-                identical_candidate, identical_ties, missing_examples):
+                identical_candidate, identical_ties, missing_examples, not_evaluable=None):
     behaviors = set(getattr(args, "behaviors", range(1, 8)))
-    b3_summary = (f"- B3 sample classes: {b3_sample_counts['zeroWorker']} zero-worker failure-side / {b3_sample_counts['liveWorkerControl']} live-worker wait moments; both count toward the 10-moment floor. Only {b3_sample_counts['zeroWorker']} are failure-side, so B3 power is low."
+    not_evaluable = not_evaluable or {}
+    b3_summary = (f"- B3 sample classes: not evaluable ({not_evaluable[3]} held-out moments)."
+                  if 3 in not_evaluable else
+                  f"- B3 sample classes: {b3_sample_counts['zeroWorker']} zero-worker failure-side / {b3_sample_counts['liveWorkerControl']} live-worker wait moments; both count toward the 10-moment floor. Only {b3_sample_counts['zeroWorker']} are failure-side, so B3 power is low."
                   if 3 in behaviors else "- B3 sample classes: not evaluated (filtered).")
     lines = ["# Hivecall held-out replay", "", f"**Verdict: {verdict}**", "",
              f"- Run tag: `{args.report_tag or 'untagged'}`.",
@@ -1342,6 +1469,10 @@ def render_eval(args, counts, heldout_n, scores, trust, paired, weak_score,
     for b in range(1, 8):
         if b not in behaviors:
             lines.append(f"| {b}. {BEHAVIORS[b]} | not evaluated (filtered) | not evaluated (filtered) | not evaluated (filtered) | not evaluated (filtered) | not evaluated (filtered) | not evaluated (filtered) |")
+            continue
+        if b in not_evaluable:
+            status = f"not evaluable ({not_evaluable[b]} held-out moments)"
+            lines.append(f"| {b}. {BEHAVIORS[b]} | {status} | {status} | not evaluated | — | not measured | not-evaluable |")
             continue
         cur = scores[str(b)]["current"]
         changed = scores[str(b)]["changed"]
@@ -1416,7 +1547,7 @@ def self_check():
     assert b3_counts[3] == 2 and {m["fixedCheck"]["liveWorkerCount"] for m in b3_sample} == {0, 1}
     assert not eval_count_shortfalls([2], {1: 0, 2: 126, 3: 11}, {1: 0, 2: 120, 3: 6})
     assert eval_count_shortfalls([3], {1: 0, 2: 126, 3: 11}, {1: 0, 2: 120, 3: 6}) == [
-        "target behavior 3 has only 6 held-out moments"]
+        "target behavior 3 has only 6 held-out moments; need 10"]
     assert not replayable_moment({"behavior": 3, "context": "work is open", "fixedCheck": {"gapMinutes": 45}})
     assert baseline_moment({"behavior": 3, "context": "no visible gap", "fixedCheck": {"gapMinutes": 45}})
     assert not baseline_moment({"behavior": 3, "fixedCheck": {"gapMinutes": 29}})
