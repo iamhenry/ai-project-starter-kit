@@ -3,27 +3,49 @@
 Use for an explicitly requested retro of runs that invoked `hivecall`, including
 the weekly automation. The parent retro skill owns cause classification,
 verdicts, minimal-change ordering, redaction, and the report. This module adds
-run selection, the facts to gather, a weekly grade, and report tables.
+run selection, the facts to gather, a weekly grade, report tables, and the
+proposal-gate → replay-eval → dashboard path used by the weekly loop.
 
 Rule of thumb: scripts count, Clef labels, you judge. Ask only what the logs can
 answer. "Can't tell" is a valid answer; report it with a reason, never guess.
 
 ## Gather the facts
 
-From the repository root:
+From the repository root, inspect the last week's archived runs and build/update
+the all-time replay dataset. Archived threads are the only runs counted. The
+helpers read thread logs; they never change threads.
 
 ```
 d=.agents/skills/retro/references/hivecall/scripts
 t=${TMPDIR:-/tmp}
-python3 $d/find-runs.py --days 7 > $t/hivecall-runs.json
-python3 $d/digest.py $t/hivecall-runs.json > $t/hivecall-digest.json
+python3 "$d/find-runs.py" > "$t/hivecall-runs.json"
+python3 "$d/digest.py" "$t/hivecall-runs.json" > "$t/hivecall-digest.json"
 ```
 
-- `find-runs.py` scans threads archived in the past 7 days, in all projects. A
-  thread counts only when its log has a completed skill tool call named exactly
-  `hivecall`, or a user turn carrying the injected skill body. Titles, mentions,
-  and plain reads of `SKILL.md` do not count. It lists each run's archived direct
-  children.
+Build/update the all-time dataset using its archived-only default, then scan it:
+
+```sh
+python3 "$d/build-dataset.py" --output "$t/hivecall-dataset.jsonl"
+python3 "$d/count-moments.py" "$t/hivecall-dataset.jsonl"
+python3 "$d/redact.py" --scan "$t/hivecall-dataset.jsonl"
+```
+
+Only after the scan reports zero hits, replace the old dataset with this fresh
+archived-only output:
+
+```sh
+mv "$t/hivecall-dataset.jsonl" .agents/skills/retro/references/hivecall/evals/dataset.jsonl
+```
+
+- Only archived threads count. `find-runs.py` uses its default recent window and
+  scans archived threads across projects. A thread counts only when its log has a
+  completed skill tool call named exactly `hivecall`, or a user turn carrying
+  the injected skill body. Titles, mentions, and plain reads of `SKILL.md` do
+  not count. It lists each run's direct children. Never include an unarchived
+  thread, regardless of its activity or reported status.
+- The dataset builder uses archived threads only. It appends to an existing
+  dataset, so build to a fresh temporary output and replace the old file as
+  shown above; this ensures no old live-run records remain.
 - `digest.py` reads the logs and reports per run: duration (skill invocation to
   the first `WATCH DONE`, else the last orchestrator event, so it can include
   reopened or follow-up work); quiet gaps (30+ minutes with no orchestrator
@@ -40,6 +62,12 @@ python3 $d/digest.py $t/hivecall-runs.json > $t/hivecall-digest.json
   reuses OpenCode's `ollama-cloud` login; no separate key.
 - If a script fails, report that part as `not measured` with the error and
   continue with the rest.
+
+- `count-moments.py` reports stored moments for behaviors 1–7. The command
+  `python3 .agents/skills/retro/references/hivecall/scripts/redact.py --scan
+  .agents/skills/retro/references/hivecall/evals/dataset.jsonl` must report zero
+  hits before any dataset excerpt is sent to a cloud model or included in an
+  issue/PR. Never send raw logs; `digest.py` redacts its Clef requests locally.
 
 Never open, message, or change a thread. `.hivecall/` files do not survive
 archive; the logs (`bb thread log <id> --json --all`) are the only evidence.
@@ -113,3 +141,67 @@ parent's headings. Then:
 
 Keep the parent's Diagnosis and Decision sections. A flawed week can still be
 `NO_CHANGE` when the cause is `one_off`, `input`, or `environment`.
+
+## Weekly change loop
+
+Run this only as part of the weekly automation. When archived traces are
+readable, score the current skill for that week using the baseline route in
+`replay/README.md`; the runner appends one `kind: baseline` row. If no traces are
+readable, report `BLOCKED` and append no baseline row. Use the code's redaction
+and direct-client routes for Clef, the judge, and the tested model. If the
+baseline route fails or is incomplete, report `BLOCKED` and leave no baseline
+row; never substitute a rule-only PRECHECK row.
+
+Then finish the retro report and make at most one evidence-backed proposal for
+its owning file. No proposal means `NO_CHANGE`; missing evidence that prevents
+diagnosis means `BLOCKED`. Those outcomes add no eval row.
+
+The replay currently reads only `SKILL.md` from each supplied skill directory
+(`replay/run.py:875-882,994-997`), so only the exact owner
+`.agents/skills/hivecall/SKILL.md` is evaluable. For any other owner, still run
+the proposal gate and write the proposal plus its gate verdict in the weekly
+report as `not evaluable yet`. Do not run replay, open a proposal PR, or append
+an eval row—even for gate `REJECT`; the weekly baseline, if any, is the only
+results row.
+
+1. Read `gate/rubric.md`, write the exact proposed change and its evidence as
+   the gate's JSON input, then run the proposal gate from the repository root:
+
+   ```sh
+   python3 .agents/skills/retro/references/hivecall/gate/run-gate.py \
+     --proposal .hivecall/verification/proposal.json \
+     --output .hivecall/verification/gate-result.json
+   ```
+
+   Gate `PASS` means only “worth evaluating” for the exact
+   `.agents/skills/hivecall/SKILL.md` owner. On gate `REJECT` for that eligible
+   owner, append one
+   `kind: eval`, `verdict: rejected` row with null scores, `not-measured` trust,
+   and `gate` in its `tested` text (the schema has no separate note field); do
+   not run replay. A gate `ERROR` is `BLOCKED`, not a rejection and not an eval
+   row. Do not apply a rejected proposal.
+ 2. For a gate `PASS` on the exact eligible skill file, run the replay eval per
+   `.agents/skills/retro/references/hivecall/replay/README.md`. The replay
+   compares the current and proposed skill on held-out trace moments, includes
+   scorecards, changed moments, judge/Clef disagreements, and the held-out
+   note, and appends its result to
+   `.agents/skills/retro/references/hivecall/evals/results.jsonl`. Do not treat
+   missing or untrusted scores as a win. A replay `REJECT` row has measured
+   scores; a replay `PASS` is `shipped` only after its separate proposal PR is
+   open. Never label a non-eval outcome as `rejected`.
+3. Rebuild the offline dashboard every Monday after processing result rows,
+   even when this run appends no row:
+
+   ```sh
+   node .agents/skills/retro/references/hivecall/dashboard/build.mjs
+   ```
+
+   The dashboard reads
+   `.agents/skills/retro/references/hivecall/evals/results.jsonl` and writes
+    `.agents/skills/retro/references/hivecall/dashboard/dashboard.html`. The
+    weekly automation maintains one standing history branch and draft PR,
+    updating it every Monday. It opens an additional change PR only for a
+    gate-approved replay `PASS` on `.agents/skills/hivecall/SKILL.md`; that PR
+    contains only this file. Dataset, results, report, and dashboard stay on the
+    history branch. Never merge a PR or force-push. `NO_CHANGE` and `BLOCKED` add
+    no eval row; if there are no readable traces, they add no baseline row.
