@@ -13,7 +13,7 @@ Start only when all are true:
 
 - The user explicitly invoked hivecall in this conversation.
 - A goal or task description is supplied: free-form text, a spec file, or an ISA.html ledger. Raw bug reports use discovery.
-- On a clear-task route, the owner approved the goal contract and answered both kickoff questions; on discovery, the owner's answers authorize the run and judges approve/revise the plan. This replaces the orchestrator's IMPLEMENTATION GATE for this run only. (See Kickoff.)
+- On a clear-task route, the owner approved the goal contract and answered the single kickoff question; on discovery, the PR answer authorizes the run and judges approve/revise the plan. This replaces the orchestrator's IMPLEMENTATION GATE for this run only. (See Kickoff.)
 
 If the goal is missing, ask for it and stop.
 
