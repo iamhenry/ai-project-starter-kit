@@ -17,7 +17,6 @@ def forbid_network(*_args, **_kwargs):
 
 
 urllib.request.urlopen = forbid_network
-replay.judge_client.judge = forbid_network
 
 
 def source_event_type(moment):
@@ -115,7 +114,7 @@ def run(args):
               (f"- Source mode: archive-only dataset contract; {len(filtered_records)} archived run records remain."
                if args.archive_only else
                f"- Named live-run exclusions: {excluded_run_count} of {len(args.exclude_run_id)} were present in the current source file; {filtered['liveRunMoments']} moments removed; {len(filtered_records)} run records remain."),
-              "- Planned tested model for any later replay: `ollama-cloud/deepseek-v4-pro` (differs from production orchestrator `openai/gpt-6.1-sol`; not invoked).",
+               "- Planned tested agent for any later replay: OpenCode `plan` (`anthropic/claude-opus-5-5`); the `reviewer` judge is GPT-family.",
               f"- B4/B6 completions excluded: {filtered['completionMoments']}; source event type is present and {filtered['untypedDelegationMoments']} events were untyped or not pending starts.",
               "- B3 baseline eligibility uses evaluator-only `fixedCheck.gapMinutes` (at least 30); that metadata is not sent to a tested model.",
               "- Scores are rule-only lower bounds: rule-undecidable actions count as failures. Numeric scores are `not-trusted` because Clef/judge review was not run.",

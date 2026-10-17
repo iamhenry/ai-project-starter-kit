@@ -1,0 +1,28 @@
+{
+  "sourceCommit": "6bd2b7e05f58ff2a41890d25013213e160dfcfe8",
+  "controlsDirectory": ".lanes/replay-controls (outside .agents/skills discovery)",
+  "buildWeek": "2026-W42",
+  "heldOutWeeks": [
+    "2026-W41"
+  ],
+  "targets": [
+    2
+  ],
+  "testedAgent": "OpenCode plan subagent (anthropic/claude-opus-5-5)",
+  "judgeAgent": "OpenCode reviewer (GPT family)",
+  "skillFileSha256": {
+    "current": "eb6e6fc37116dfba3f9807c18b6f3d724e1dc0f94526c263876389c82fe11521",
+    "weakened": "faa40bf6efbcf734e0ab8d93f3b6b3b557c9529a0c4b6b4f93f599d348b92ad7",
+    "identical": "eb6e6fc37116dfba3f9807c18b6f3d724e1dc0f94526c263876389c82fe11521"
+  },
+  "directoryFileCounts": {
+    "current": 8,
+    "weakened": 8,
+    "identical": 8
+  },
+  "weakenedEdits": [
+    "Removed the Ledger rules bullet beginning: Only the orchestrator ticks items, and only on independent proof.",
+    "Removed the matching Loop step wording: 3. **Tick** items proven by independent evidence."
+  ],
+  "controlInputCheck": "current and identical copies match byte-for-byte; weakened differs only in SKILL.md"
+}

@@ -6,7 +6,7 @@ import sys
 import tempfile
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
-from io import BytesIO, StringIO
+from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 
@@ -15,7 +15,6 @@ RUNNER = Path(__file__).with_name("run-gate.py")
 SPEC = importlib.util.spec_from_file_location("hivecall_run_gate", RUNNER)
 run_gate = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(run_gate)
-import judge as judge_client
 
 
 class ParseJudgmentTests(unittest.TestCase):
@@ -94,19 +93,33 @@ class PreviewRedactionTests(unittest.TestCase):
         self.assertIn("[private-url]", result.stdout)
         self.assertIn("[secret]", result.stdout)
         self.assertIn("<proposal-json>", result.stdout)
+        self.assertIn("Return exactly one compact JSONL line per input row", result.stdout)
+        self.assertIn("every hard gate passes and the score is at least 80", result.stdout)
 
 
 class RetryTests(unittest.TestCase):
-    def run_gate(self, replies, directory):
+    def run_gate(self, directory):
         proposal = Path(__file__).with_name("fixtures") / "no-observed-failure.json"
         output = Path(directory) / "gate-test.json"
+        cache = Path(directory) / "cache"
+        batch = Path(directory) / "pending.jsonl"
         stdout = StringIO()
         stderr = StringIO()
-        with patch.object(run_gate, "judge", side_effect=replies) as mock_judge:
-            with patch.object(sys, "argv", [str(RUNNER), "--proposal", str(proposal), "--output", str(output)]):
-                with redirect_stdout(stdout), redirect_stderr(stderr):
-                    status = run_gate.main()
-        return status, output, stdout.getvalue(), stderr.getvalue(), mock_judge.call_count
+        argv = [str(RUNNER), "--proposal", str(proposal), "--output", str(output),
+                "--cache-dir", str(cache), "--export-prompts", str(batch)]
+        with patch.object(sys, "argv", argv):
+            with redirect_stdout(stdout), redirect_stderr(stderr):
+                status = run_gate.main()
+        return status, output, cache, batch, stdout.getvalue(), stderr.getvalue()
+
+    def import_answer(self, cache, batch, directory, answer):
+        answer_file = Path(directory) / "answers.jsonl"
+        request = json.loads(batch.read_text(encoding="utf-8").splitlines()[0])
+        answer_file.write_text(json.dumps({"id": request["id"], "answer": answer}) + "\n",
+                               encoding="utf-8")
+        with patch.object(sys, "argv", [str(RUNNER), "import", "--answers", str(answer_file),
+                                         "--cache-dir", str(cache)]), redirect_stdout(StringIO()):
+            self.assertEqual(run_gate.main(), 0)
 
     def test_malformed_output_retries_once_and_saves_redacted_replies(self):
         valid_reject = json.dumps({
@@ -117,45 +130,36 @@ class RetryTests(unittest.TestCase):
             "rubric_scores": {},
         })
         with tempfile.TemporaryDirectory() as directory:
-            status, output, _, _, calls = self.run_gate(
-                ['{"api_key":"sk-fixtureSecret123456"', valid_reject], directory
-            )
+            status, output, cache, batch, stdout, _ = self.run_gate(directory)
+            self.assertEqual(status, 0)
+            self.assertIn("awaiting answers:", stdout)
+            self.import_answer(cache, batch, directory, '{"api_key":"sk-fixtureSecret123456"')
+            status, output, cache, batch, _, _ = self.run_gate(directory)
+            self.assertEqual(status, 0)
+            self.import_answer(cache, batch, directory, valid_reject)
+            status, output, _, _, _, _ = self.run_gate(directory)
             first_reply = output.with_name("gate-test-reply-1.json")
             second_reply = output.with_name("gate-test-reply-2.json")
             self.assertEqual(status, 0)
-            self.assertEqual(calls, 2)
             self.assertEqual(json.loads(output.read_text())["verdict"], "REJECT")
             self.assertNotIn("sk-fixtureSecret123456", first_reply.read_text())
             self.assertTrue(second_reply.exists())
 
     def test_two_malformed_replies_write_error_not_pass(self):
         with tempfile.TemporaryDirectory() as directory:
-            status, output, _, _, calls = self.run_gate(["not-json", '{"verdict":"PASS"'], directory)
+            status, output, cache, batch, _, _ = self.run_gate(directory)
+            self.assertEqual(status, 0)
+            self.import_answer(cache, batch, directory, "not-json")
+            status, output, cache, batch, _, _ = self.run_gate(directory)
+            self.assertEqual(status, 0)
+            self.import_answer(cache, batch, directory, '{"verdict":"PASS"')
+            status, output, _, _, _, _ = self.run_gate(directory)
             result = json.loads(output.read_text())
             self.assertEqual(status, 2)
-            self.assertEqual(calls, 2)
             self.assertEqual(result["verdict"], "ERROR")
             self.assertNotEqual(result["verdict"], "PASS")
             self.assertTrue(output.with_name("gate-test-reply-1.json").exists())
             self.assertTrue(output.with_name("gate-test-reply-2.json").exists())
-
-
-class JudgeClientTests(unittest.TestCase):
-    def test_returns_final_content_without_using_reasoning(self):
-        response = json.dumps({
-            "choices": [{
-                "message": {
-                    "content": '{"verdict":"REJECT"}',
-                    "reasoning": "not the verdict",
-                    "reasoning_content": "also not the verdict",
-                },
-                "finish_reason": "stop",
-            }]
-        }).encode()
-        with patch.dict(os.environ, {"OLLAMA_API_KEY": "fixture-key"}):
-            with patch.object(judge_client.urllib.request, "urlopen", return_value=BytesIO(response)):
-                result = judge_client.judge("", "redacted prompt", "kimi-k3")
-        self.assertEqual(result, '{"verdict":"REJECT"}')
 
 
 if __name__ == "__main__":

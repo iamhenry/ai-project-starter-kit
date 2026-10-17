@@ -41,8 +41,8 @@ Verification must state an observable outcome and a check. Evidence must name
 its source and moment and state the concrete event/count.
 "No failure observed" is not evidence for a change. A thread ID or a model's
 assertion alone is not evidence. Never include secrets, personal data, or home
-paths. The runner redacts the complete judge payload locally before sending any
-proposal text to a model; use `--preview` to inspect that redacted payload.
+paths. The runner redacts the complete judge payload locally before exporting it
+to the `reviewer` OpenCode agent; use `--preview` to inspect that prompt.
 
 ## Judgment
 
@@ -117,11 +117,31 @@ Run it from the repository root with:
 ```sh
 python3 .agents/skills/retro/references/hivecall/gate/run-gate.py \
   --proposal .lanes/proposal.json \
-  --output .hivecall/verification/gate-result.json
+  --output .hivecall/verification/gate-result.json \
+  --cache-dir .lanes/gate-cache --batch-size 20 \
+  --export-prompts .lanes/hivecall-handoff/gate-reviewer.jsonl
 ```
 
-The default judge is `kimi-k3` on Ollama Cloud. The runner sends only the locally
-redacted prompt through the direct chat API; it does not attach agent context or
-tools. `--model` accepts another non-GPT Ollama model. Malformed output gets one
-retry; each raw reply is saved locally after redaction beside the verdict, and a
-second malformed reply writes an `ERROR` verdict rather than `PASS`.
+The gate hands its redacted prompt to the `reviewer` subagent (GPT family). Replay
+tested prompts go to the `plan` subagent (`anthropic/claude-opus-5-5`), so the
+tested and judge model families differ. The script never calls either agent
+directly. When it prints `awaiting answers: <path>`, launch the reviewer on that
+batch with a brief containing the contract file and batch path. Run no more than
+five agent batches at once. The reviewer returns exactly one JSONL answer row
+per item and no other text, following
+`.agents/skills/retro/references/hivecall/judge-contract.md`. The outer row is
+`{"id":"<exported id>","answer":"<raw JSON judgment as a string>"}`; the
+inner judgment is the object above. Import and rerun the exact gate command:
+
+```sh
+python3 .agents/skills/retro/references/hivecall/gate/run-gate.py import \
+  --answers .lanes/hivecall-handoff/gate-answers.jsonl --cache-dir .lanes/gate-cache
+```
+
+Use the same `--cache-dir` on the export and import commands. The gate export
+command above writes the batch to
+`.lanes/hivecall-handoff/gate-reviewer.jsonl`; batches contain at most 20 prompts
+by default. The default cache is `.lanes/gate-cache`. Malformed output gets one
+retry as a second exported prompt; each raw reply is saved locally after
+redaction beside the verdict. A second malformed reply writes an `ERROR` verdict,
+never `PASS`.

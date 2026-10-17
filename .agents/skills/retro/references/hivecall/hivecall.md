@@ -147,10 +147,33 @@ Keep the parent's Diagnosis and Decision sections. A flawed week can still be
 Run this only as part of the weekly automation. When archived traces are
 readable, score the current skill for that week using the baseline route in
 `replay/README.md`; the runner appends one `kind: baseline` row. If no traces are
-readable, report `BLOCKED` and append no baseline row. Use the code's redaction
-and direct-client routes for Clef, the judge, and the tested model. If the
-baseline route fails or is incomplete, report `BLOCKED` and leave no baseline
-row; never substitute a rule-only PRECHECK row.
+readable, report `BLOCKED` and append no baseline row. Clef remains the direct
+first-pass client. Tested prompts go to the `plan` subagent
+(`anthropic/claude-opus-5-5`, the real orchestrator model); judge prompts go to
+the `reviewer` subagent (GPT family). The Python scripts never call either
+agent. The runner exports redacted JSONL and prints `awaiting answers: <path>`
+without adding a partial result. Launch no more than five agent batches at a
+time (up to 20 prompts per batch). Give each subagent the batch path; for the
+reviewer, include `.agents/skills/retro/references/hivecall/judge-contract.md`
+in the brief. The reviewer returns exactly one JSONL line per item and no other
+text, in the strict importer format
+`{"id":"<exported 64-character id>","answer":"<raw answer text>"}`. For judge
+rows, `answer` contains the prompt-specific raw JSON judgment; tested rows
+contain plain-text hypothetical next actions. Import into the same cache and
+rerun the exact command. Replay export/import commands are documented in
+`replay/README.md`; for example:
+
+```sh
+HIVECALL_ALLOW_DATASET_CLOUD=1 python3 .agents/skills/retro/references/hivecall/replay/run.py baseline \
+  --cache-dir .lanes/replay-cache --batch-size 20 \
+  --export-prompts .lanes/hivecall-handoff/baseline.jsonl
+python3 .agents/skills/retro/references/hivecall/replay/run.py import \
+  --answers .lanes/hivecall-handoff/answers.jsonl --cache-dir .lanes/replay-cache
+```
+
+The tested and judge model families differ.
+If the baseline route fails or is incomplete, report `BLOCKED` and leave no
+baseline row; never substitute a rule-only PRECHECK row.
 
 Then finish the retro report and make at most one evidence-backed proposal for
 its owning file. No proposal means `NO_CHANGE`; missing evidence that prevents
@@ -168,10 +191,20 @@ results row.
    the gate's JSON input, then run the proposal gate from the repository root:
 
    ```sh
-   python3 .agents/skills/retro/references/hivecall/gate/run-gate.py \
+    python3 .agents/skills/retro/references/hivecall/gate/run-gate.py \
      --proposal .hivecall/verification/proposal.json \
-     --output .hivecall/verification/gate-result.json
-   ```
+     --output .hivecall/verification/gate-result.json \
+     --cache-dir .lanes/gate-cache \
+     --export-prompts .lanes/hivecall-handoff/gate-reviewer.jsonl --batch-size 20
+    ```
+
+     When the gate prints `awaiting answers: <path>`, launch a `reviewer`
+     subagent with the judge-contract path and batch path; return exactly one
+     importer-format JSONL row per item and no other text. Then run
+    `gate/run-gate.py import --answers <answers.jsonl> --cache-dir .lanes/gate-cache`
+    and rerun the exact gate command. It emits a second reviewer batch only if
+    the first answer is malformed; after two invalid answers the verdict is
+    `ERROR`, never `PASS`.
 
    Gate `PASS` means only “worth evaluating” for the exact
    `.agents/skills/hivecall/SKILL.md` owner. On gate `REJECT` for that eligible
@@ -180,8 +213,9 @@ results row.
    and `gate` in its `tested` text (the schema has no separate note field); do
    not run replay. A gate `ERROR` is `BLOCKED`, not a rejection and not an eval
    row. Do not apply a rejected proposal.
- 2. For a gate `PASS` on the exact eligible skill file, run the replay eval per
-   `.agents/skills/retro/references/hivecall/replay/README.md`. The replay
+  2. For a gate `PASS` on the exact eligible skill file, run the replay eval per
+    `.agents/skills/retro/references/hivecall/replay/README.md`, including its
+    export → dedicated-agent → import → rerun loop. The replay
    compares the current and proposed skill on held-out trace moments, includes
    scorecards, changed moments, judge/Clef disagreements, and the held-out
    note, and appends its result to

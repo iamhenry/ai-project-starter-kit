@@ -1,0 +1,84 @@
+{
+  "1": [
+    {
+      "context": "swipe, wire Settings to the permission helper, then verify the notification journey.\n---\n---\n…[trimmed]rge adds the hold menu, reactions, reminders, and sounds and taps.\n2. Then pinch between Daily, Weekly and Monthly.\n3. Then applying the Theme setting to every screen.\n4. Then photo places on maps.\n\n`Closed 24/337 · parked 30 (owner sessions on your iPhone) · next: Monthly and Settings test results, merged build`\n\nNothing needed from you.\n---\n[bb system]\n\n@thread:thr_4es6e72v5t completed:\n\nPASS",
+      "output": "y Email, Settings showing after dismiss; evidence $V/ISC-223-s3-feedback-alert-ax-redacted.json, ISC-223-s3-feedback-address-check.txt; $W\nISC-224: PASS - $B; observed clipboard equals the feedback address (hash match yes); evidence $V/ISC-224-s3-clipboard-check.txt, S3-feedback-address-comparisons.txt; $W\nEOF\npython3 $T/ledger.py $T/s3.txt && bash $T/pgcheck.sh | head -2 | cut -c1-200 [completed]",
+      "label": "PASS"
+    },
+    {
+      "context": " rebuilt app, then a visible tester on the first free simulator\n\nNothing needed from you.\n---\n…[trimmed]uild: 13m 54s · Free disk after cleanup: 14 GiB. Requested intermediates and `.build/int7-test` were removed.  \n**Risks:** Xcode warned that the `search` and `snapshotter` captures were unused. The build passed, but I did not verify their runtime-retention effect.  \n**Next:** The built app is ready at the path above; no simulator was run.\n---\nNow committing int-4 and recording its proven rows.",
+      "output": "en].py $L && bash /[long-token].sh | head -3 | cut -c1-400; for f in ISC-191-int4-settings-confirm-us.png ISC-211-int4-palette-check.txt ISC-212-int4-pixel-check.txt ISC-214-int4-daily-after-relaunch.png ISC-019-int4-double-tap.json ISC-169-int4-frame-timestamps.txt ISC-200-int4-frame-timestamps.txt ISC-001-int4-ax.json ISC-261-int4-counts.txt; do test -f $V/$f || echo MISSING $f; done [completed]",
+      "label": "PASS"
+    },
+    {
+      "context": "swipe, wire Settings to the permission helper, then verify the notification journey.\n---\n---\n…[trimmed]rge adds the hold menu, reactions, reminders, and sounds and taps.\n2. Then pinch between Daily, Weekly and Monthly.\n3. Then applying the Theme setting to every screen.\n4. Then photo places on maps.\n\n`Closed 24/337 · parked 30 (owner sessions on your iPhone) · next: Monthly and Settings test results, merged build`\n\nNothing needed from you.\n---\n[bb system]\n\n@thread:thr_4es6e72v5t completed:\n\nPASS",
+      "output": "y Email, Settings showing after dismiss; evidence $V/ISC-223-s3-feedback-alert-ax-redacted.json, ISC-223-s3-feedback-address-check.txt; $W\nISC-224: PASS - $B; observed clipboard equals the feedback address (hash match yes); evidence $V/ISC-224-s3-clipboard-check.txt, S3-feedback-address-comparisons.txt; $W\nEOF\npython3 $T/ledger.py $T/s3.txt && bash $T/pgcheck.sh | head -2 | cut -c1-200 [completed]",
+      "label": "PASS"
+    }
+  ],
+  "2": [
+    {
+      "context": "ummary>Details</summary>\n\n- `ISC-013.1-int19a-send-action.json` and `-post-send.png` both have the timestamp 00:49:12. The screenshot shows the keyboard up, the composer empty, and the Aug 11 photo as the last visible entry.\n\n</details>\n---\nISC-013.1 retest on fresh SAMPLE: exact AX Buy oats pre-send; screenshot request scheduled tap+1000 ms shows it as the latest Daily entry (file timestamp +1250 ms), and tap+3000 ms frame also shows it. Updated INT19-A-result.md to PASS; continuing fixed rows.",
+      "output": "send.json, $V/ISC-013.1-int19a-retest-1s.png, $V/ISC-013.1-int19a-retest-1s-ax.json, $V/ISC-013.1-int19a-retest-timing.txt; verifier Noor (qa); 2026-10-10\nEOF\npython3 .lanes/tools/ledger.py .lanes/tmp/int19-0131.txt | tail -1; bash .lanes/tools/pgcheck.sh 2>/dev/null | grep ^WARN; git commit -q -m \"docs(isa): record ISC-013.1 PASS on int-19\" -- _ai/docs/ISA.html && git log --oneline -1 [completed]",
+      "label": "PASS"
+    },
+    {
+      "context": "…[trimmed]t down, keeping us within the 2-simulator limit.\n\nOnce these checks pass, I'll commit the Daily notes slice and merge it into the main branch.\n\nStill running: the launch-screen fix and the Settings slice.\n\n`Closed 11/337 · parked 29 (owner sessions on your iPhone) · next: tester results for the Daily notes slice`\n\nNothing needed from you.\n---\n[bb system]\n\n@thread:thr_zxrv9rmqan completed:\n\nBLOCKED",
+      "output": " \"a\" and \"b\" on two lines, 0 entries added; evidence $V/ISC-017-field.png, ISC-017-ax.json; $W\nISC-018: PASS - $B; observed bubble text exactly \"hi\"; evidence $V/ISC-018-after.png; $W\nISC-261: PASS - $B; observed all seven sample-day counts equal the seed; evidence $V/ISC-261-count-comparison.txt, ISC-261-sample.png; $W\nEOF\npython3 $T/ledger.py $T/s2.txt && bash $T/pgcheck.sh | head -3 [completed]",
+      "label": "PASS"
+    },
+    {
+      "context": "…[trimmed]t down, keeping us within the 2-simulator limit.\n\nOnce these checks pass, I'll commit the Daily notes slice and merge it into the main branch.\n\nStill running: the launch-screen fix and the Settings slice.\n\n`Closed 11/337 · parked 29 (owner sessions on your iPhone) · next: tester results for the Daily notes slice`\n\nNothing needed from you.\n---\n[bb system]\n\n@thread:thr_zxrv9rmqan completed:\n\nBLOCKED",
+      "output": " \"a\" and \"b\" on two lines, 0 entries added; evidence $V/ISC-017-field.png, ISC-017-ax.json; $W\nISC-018: PASS - $B; observed bubble text exactly \"hi\"; evidence $V/ISC-018-after.png; $W\nISC-261: PASS - $B; observed all seven sample-day counts equal the seed; evidence $V/ISC-261-count-comparison.txt, ISC-261-sample.png; $W\nEOF\npython3 $T/ledger.py $T/s2.txt && bash $T/pgcheck.sh | head -3 [completed]",
+      "label": "PASS"
+    }
+  ],
+  "3": [
+    {
+      "context": "y for 30 minutes, those checks come back as \"not run yet\", not as failures.\n- Kai's simulator is shut down, keeping us within the 2-simulator limit.\n\nOnce these checks pass, I'll commit the Daily notes slice and merge it into the main branch.\n\nStill running: the launch-screen fix and the Settings slice.\n\n`Closed 11/337 · parked 29 (owner sessions on your iPhone) · next: tester results for the Daily notes slice`\n\nNothing needed from you.\n---\n[bb system]\n\n@thread:thr_zxrv9rmqan completed:\n\nBLOCKED",
+      "output": "command: cd [long-token] && cat S2-result.md 2>/dev/null | head -120; ls -t | head -30 [completed]",
+      "label": "FAIL"
+    },
+    {
+      "context": "ikely small.\n3. Make the release keep your finger's speed (ISC-320–324, 347).\n\nNothing needed from you.\n\n| Done | In progress | Not started | Stuck | Owner-only |\n|---|---|---|---|---|\n| 359/367 | 0 (run closed) | 0 | 7 parked (305, 320, 321, 322, 324, 345, 348) | ISC-347 glide feel (your manual test) |\n---\nok cool so i'd be able to use this branch on my other machine and install the latest version on my phone with all the changes we made? anything that hasnt gotten commited to make that happen?",
+      "output": "command: git status --short | head -20; echo ---; git branch -vv | grep '^\\*'; git remote -v | head -2; echo ---; git ls-files patches | head; grep -n patchedDependencies -A4 package.json; git check-ignore -v ios android 2>/dev/null | head [completed]",
+      "label": "FAIL"
+    }
+  ],
+  "4": [
+    {
+      "context": "ependency.\n\n</details>\n---\nYour job is to finish the ISA and if the agents have blockers unblock them and continue to make progress. If that mean web search or other ways to get new info then do so. Genuinely hard blockers get tallied to the end for me to review but most of this is doable we just need to do some adjustments to our approach by reading docs etc\n---\n[bb system]\n\nChild thread updates:\n\n- @thread:thr_kjz9pu8t5c failed.\n- @thread:thr_bripq6743r failed.\n- @thread:thr_abh395dxd6 failed.",
+      "output": "delegation {\"label\": \"Task\", \"background\": false, \"presentation\": {\"label\": {\"pending\": \"Running subagent\", \"completed\": \"Subagent finished\"}, \"icon\": {\"glyph\": \"Bot\"}}}",
+      "label": "FAIL"
+    },
+    {
+      "context": "oken]  -`\n\nNo exact probe strings or gesture code were changed. The remaining risk is that visual rendering has not been verified on a simulator.\n---\n…[trimmed] Daily; reply-count thresholds could not be observed. |\n| 074 | PASS | The Aug 7 date label stayed at the same position after the recorded open/close flow. |\n\n**Files:** [INT14-C-result.md]([path]/.[long-token].md) · [INT14-C-identity.txt]([path]/.[long-token].txt)\n\nThe other rows were left unmarked for the fresh int-15 run, as requested.",
+      "output": "delegation {\"label\": \"Task\", \"background\": false, \"presentation\": {\"label\": {\"pending\": \"Running subagent\", \"completed\": \"Subagent finished\"}, \"icon\": {\"glyph\": \"Bot\"}}}",
+      "label": "FAIL"
+    },
+    {
+      "context": "build; round 1 builder; tester | ISC-320, 305 blocked (measuring/setup); ISC-321 failed (fix in round 1) | ISC-347 glide feel (recording ready) |\n---\n…[trimmed]dex` (138M).\n- Kept: `fix-header-3/.build/debug/Build/Products` (1.0G), everything else in fix-header-3, and all of `pinch-v2` (`journal-test` at 5.8G).\n- Metro pid 5957 was not running when I checked, so I didn't touch it. Nothing was blocked, so I sent no talk-back.\n- Report: `[long-token].md` has the before/after `df` output and sizes.",
+      "output": "delegation {\"label\": \"Task\", \"background\": false, \"presentation\": {\"label\": {\"pending\": \"Running subagent\", \"completed\": \"Subagent finished\"}, \"icon\": {\"glyph\": \"Bot\"}}}",
+      "label": "FAIL"
+    }
+  ],
+  "5": [],
+  "6": [
+    {
+      "context": "11 old entries, not real work + ~19 items waiting for the quiet-Mac window + ISC-311 fix built, awaiting retest + ISC-304 rerun in progress | 0 |\n---\n…[trimmed]op-0s.png` shows `001`; `FIX/clip-4s-counter-centered-crop-2s.png` shows `061`. Both are 360×360.\n- **README line added:** `- \\`clip-4s-counter-centered.mp4\\` — 4 seconds, H.264 640×360 at 30 fps, per-frame counter 001–120 sized to fit a center-cropped square.`\n\nSkipped app-level import testing; the requested video and crop checks passed.",
+      "output": "delegation {\"label\": \"Task\", \"background\": false, \"presentation\": {\"label\": {\"pending\": \"Running subagent\", \"completed\": \"Subagent finished\"}, \"icon\": {\"glyph\": \"Bot\"}}}",
+      "label": "FAIL"
+    },
+    {
+      "context": "ommitted, waiting to merge | One combined build, then a fresh tester for the pinch, header and bubble items | 0 | Try the build after the fixes |\n---\n…[trimmed]am --level=debug.\nWATCH REVIEW: 10 alerts since last review by type (large file 8, low disk 1, orphan process 1); PROMISE agents 9, without 0; check alerts matched reality, note false alarms in the run card's lessons section.\n| Done | In progress | Not started | Stuck | Owner-only |\n|---|---|---|---|---|\n| 357/367 (97%) | 6 | 0 | 12 | 0 |",
+      "output": "delegation {\"label\": \"Task\", \"background\": false, \"presentation\": {\"label\": {\"pending\": \"Running subagent\", \"completed\": \"Subagent finished\"}, \"icon\": {\"glyph\": \"Bot\"}}}",
+      "label": "FAIL"
+    },
+    {
+      "context": " sheets. No frame jumped more than 60 pt.\n- Anti-row ISC-053 now has its control: the same Argent tool's 30% drag switched the photo.\n\n</details>\n---\n…[trimmed]use their slots overlap by 37 pt and the photo draws above it. `bunx tsc --noEmit`, `bunx biome check src`, and `bun test` passed (11 tests). Final lane diff SHA: `[long-token]`.  \n**Risks:** No build or simulator run, as instructed; the UI outcome remains unverified on-device.  \n**Next:** Replay ISC-298 on the integrated candidate.  \n---",
+      "output": "delegation {\"label\": \"Task\", \"background\": false, \"presentation\": {\"label\": {\"pending\": \"Running subagent\", \"completed\": \"Subagent finished\"}, \"icon\": {\"glyph\": \"Bot\"}}}",
+      "label": "FAIL"
+    }
+  ],
+  "7": []
+}

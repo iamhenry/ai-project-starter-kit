@@ -30,9 +30,11 @@ supplied read-only scripts.
   logs; do not use any other thread operation.
 - Never send raw or unredacted trace text to any cloud model, GitHub issue, or
   PR. Use the local redaction helpers and require a zero-hit scan before sharing
-  dataset excerpts or report text. Redacted trace text may go to Clef, the
-  separate judge, and the tested model through their direct clients. Never send
-  real trace context through OpenCode.
+  dataset excerpts or report text. Clef remains the direct first-pass client.
+  Tested and judge prompts are exported as redacted JSONL and answered by the
+  `plan` (tested) and `reviewer` (judge) subagents. The tested prompt is a
+  hypothetical, text-only replay. Never call their models directly or send the
+  prompts through `opencode run`.
 - On the dated proposal branch, the only source file you may edit is exactly
   `.agents/skills/hivecall/SKILL.md`; the replay currently reads only that file.
   Never edit another file in that tree or any other source file. The only other
@@ -52,6 +54,52 @@ supplied read-only scripts.
   complete eval `PASS`, also push `retro/hivecall-<date>` for its proposal PR.
   Do not push any other branch, create a separate weekly issue, or change
   automation settings.
+
+## Agent handoff
+
+The replay and gate scripts print `awaiting answers: <path>` and exit successfully
+when an answer is missing. The exported JSONL contains a stable `id`, `role`,
+`system`, and redacted `prompt`. Launch a `plan` subagent for each `role: tested` batch;
+it uses `anthropic/claude-opus-5-5`, the same model as the real orchestrator.
+Launch a `reviewer` subagent for each `role: judge` batch; it is GPT-family.
+Run at most five subagent batches at once. Give each subagent the batch path; for
+`reviewer`, include `.agents/skills/retro/references/hivecall/judge-contract.md`
+in the brief. The reviewer returns exactly one JSONL line per item and no other
+text, in the importer format `{"id":"<exported 64-character id>","answer":"<raw answer text>"}`.
+For judge rows, `answer` contains the prompt-specific raw JSON object; for tested
+rows it contains plain-text hypothetical next action. Import into the same cache
+used by the producing command, then rerun that exact command. Replay export and
+import are:
+
+```sh
+HIVECALL_ALLOW_DATASET_CLOUD=1 python3 .agents/skills/retro/references/hivecall/replay/run.py baseline \
+  --cache-dir .lanes/replay-cache --batch-size 20 \
+  --export-prompts .lanes/hivecall-handoff/baseline.jsonl
+python3 .agents/skills/retro/references/hivecall/replay/run.py import \
+  --answers "$TMPDIR/hivecall-answers.jsonl" --cache-dir .lanes/replay-cache
+```
+
+Gate import is:
+
+```sh
+python3 .agents/skills/retro/references/hivecall/gate/run-gate.py import \
+  --answers "$TMPDIR/hivecall-answers.jsonl" --cache-dir .lanes/gate-cache
+```
+
+Gate export is:
+
+```sh
+python3 .agents/skills/retro/references/hivecall/gate/run-gate.py \
+  --proposal .hivecall/verification/proposal.json \
+  --output .hivecall/verification/gate-result.json \
+  --cache-dir .lanes/gate-cache --batch-size 20 \
+  --export-prompts .lanes/hivecall-handoff/gate-reviewer.jsonl
+```
+
+Do not append results or write a verdict while a command is awaiting answers.
+The importer validates the answer file before caching it; an empty or invalid
+answer remains UNKNOWN in replay, and a malformed gate answer can never become
+PASS.
 
 ## Observe
 
@@ -118,13 +166,14 @@ baseline for this Monday. Run the baseline command exactly as documented in
 reuse flags. Record its baseline report at `$BASELINE_REPORT` and its completed
 baseline row in `$RESULTS`.
 
-The runner appends the baseline row on success. If the route fails or exits
+The runner appends the baseline row on success. If it prints `awaiting answers`,
+follow the handoff loop above; this is not a failure. If the route fails or exits
 incomplete, report `BLOCKED` and ensure no baseline row from that attempt
 remains. Skip the proposal gate and replay for this week; continue with the
 report and history-only update. Never substitute a rule-only PRECHECK row or
-invent scores. Redacted
-trace context is authorized for Clef, the judge, and tested model through the
-direct clients; never send it through OpenCode.
+invent scores. Redacted excerpts go to Clef through its existing direct client.
+Tested and judge prompts use the agent-handoff procedure above; the Python
+scripts do not call those agents.
 
 Invoke the `retro` skill and follow its workflow and report template. Read the
 thread facts through the scripts, spot-check Clef labels against their source
@@ -159,8 +208,13 @@ and cause class. Run the gate using a local temporary proposal and verdict path:
 OWNING_FILE="<the proposal's one owning file>"
 python3 .agents/skills/retro/references/hivecall/gate/run-gate.py \
   --proposal "$TMPDIR/hivecall-proposal.json" \
-  --output "$TMPDIR/hivecall-gate-result.json"
+  --output "$TMPDIR/hivecall-gate-result.json" \
+  --export-prompts "$TMPDIR/hivecall-gate-prompts.jsonl" --batch-size 20
 ```
+
+If the gate says `awaiting answers`, hand the prompt to `reviewer`, import its
+answer into `.lanes/gate-cache`, and rerun the same command before reading the
+verdict. A gate `ERROR` or missing verdict remains `BLOCKED`, not `REJECT`.
 
 For the eligible `SKILL.md` owner, gate `PASS` only authorizes replay. On
 `REJECT`, leave the file unchanged and append exactly one eval row with
@@ -217,7 +271,7 @@ test -f "$PROPOSED_SKILL_DIR/SKILL.md"
 
 Apply only the proposed source edit at `$PROPOSED_SKILL_FILE`. Choose `BUILD_WEEK`
 and `TARGETS` from the trace weeks and the proposal's behavior numbers, following
-the held-out rules in `replay/README.md`. Use the README's models, sample size,
+the held-out rules in `replay/README.md`. Use the README's agent roles, sample size,
 and seed; the documented eval report tag below writes
 `replay/reports/eval-$REPORT_TAG.md`:
 
@@ -228,8 +282,8 @@ HIVECALL_ALLOW_DATASET_CLOUD=1 python3 .agents/skills/retro/references/hivecall/
   --current "$CURRENT_SKILL_DIR" --proposed "$PROPOSED_SKILL_DIR" \
   --build-week "$BUILD_WEEK" --targets "$TARGETS" \
   --report-tag "$REPORT_TAG" \
-  --model deepseek-v4-pro --judge-model kimi-k3 \
-  --per-behavior 30 --seed 20261016
+  --per-behavior 30 --seed 20261016 --batch-size 20 \
+  --export-prompts .lanes/hivecall-handoff/eval.jsonl
 ```
 
 Do not compare one file to itself or substitute another model route or weaken
