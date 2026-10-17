@@ -1,0 +1,177 @@
+[
+  {
+    "runId": "thr_55cgwjcgzk",
+    "eventId": "evt_svie8fuf5y",
+    "momentId": "81032050d29b6b2ee2f7",
+    "week": "2026-W41",
+    "behavior": 2,
+    "context": "…[trimmed]nalGestureToFail` docs: \"until all gestures … fail (or don't begin at all)\").\n- Photo-follow: use the official pattern (pan-gesture doc \"Example\" section): Reanimated shared value updated in `.onUpdate()`, `useAnimatedStyle` transform — callbacks auto-run as UI-thread worklets when Reanimated is installed (VERI\n\n[... output truncated ...]\n---\n…[trimmed] its source at `RNPanHandler.m:335-342`.\n  - Photo stack: gesture-handler 2.x composition docs (gallery example) and maintainer answer #2328.\n  - Nearby: Expo Router modals docs, and react-native-screens `RNSScreen.mm:1460`.\n- Kai: thr_abh395dxd6, working copy `.lanes/journal-s27`. He won't edit SwipeToReply or PinchNavigator.\n\n</details>\n---\nYes I agree with your loop\n---\nSaved. The loop is now invariant 23 in lessons.md, so every new brief follows it.\n\nClosed 136/337 · parked 37 · next: Max's Nearby and flick loops, Kai's photo-stack fix, Jules' screen checks\n\n<details><summary>Details</summary>\n\n- lessons.md commit 267a531.\n\n</details>\n---\nLEDGER ISC-020: PASS in [path]/.[long-token].md is not in a newer ledger entry; record it.",
+    "current": "Do not tick ISC-020 just because the watchdog flagged it, since the watchdog only reports. Open the cited result file and check that it is a fresh qa result that ran ISC-020's exact check on the exact candidate. Also confirm that a fresh reviewer's code-quality-gate passed if source code changed, and, for a worktree lane, that the lane was merged and the regression smoke checks passed on the merged build. If all of that holds, tick ISC-020 in the ledger without editing its text, update the progress count, and commit locally. If not, leave it open and send a fresh qa brief for the exact check. Then re-check the plan and report with the status footer.",
+    "changed": "Verify the watchdog's claim before recording anything, because the watchdog only reports. Open the cited ISC-020 result file and confirm it is a real, independent qa pass of ISC-020's exact check on the exact candidate, not a builder's self-report or green tests. Confirm a code-quality-gate review passed for any source change, and, if it came from a lane, that it was merged and passed the regression smoke checks on the merged build. If it holds, record the pass for ISC-020 in the ledger without editing its text, update the progress count, and commit locally. Otherwise leave it open and dispatch a fresh qa run. Then re-check the plan and send the status footer.",
+    "clef": {
+      "current": "FAIL",
+      "currentConfidence": 0.9449,
+      "changed": null,
+      "changedConfidence": 0.7657
+    },
+    "rule": {
+      "current": null,
+      "changed": "PASS"
+    },
+    "judge": {
+      "A": "PASS",
+      "B": "PASS",
+      "reason": "Both condition the ISC-020 tick on independent QA evidence for its exact check and candidate, not the watchdog alert."
+    }
+  },
+  {
+    "runId": "thr_55cgwjcgzk",
+    "eventId": "evt_n5w7aed52h",
+    "momentId": "9f399d13cd218ce9179f",
+    "week": "2026-W41",
+    "behavior": 2,
+    "context": "…[trimmed] UI flow and fixture import were not run; the CODE-ONLY lane forbids simulator use. `WeeklyScreen.tsx` has a minimal day-key change; coordinate it with Sam’s work.\n**Next:** Verifier should import the GPS and no-location fixtures, open a map, answer each prompt option, and confirm persistence, marker placement, and large-view context.\n---\n---\n…[trimmed]mbined build, together with Noor's crash fix.\n\nStill running: Noor (the crash fix), Sam (photos flying during a pinch), Mia (testing the Monthly view) and Max (the midnight run, for information only).\n\nClosed 32/337 · parked 30 (owner sessions on your iPhone) · next: crash fix, then test the second combined build\n\nNothing needed from you.\n---\n[bb system]\n\n@thread:thr_37k7fehvta completed:\n\nThe single locked Release build is still running. Typecheck, Biome, and all 7 tests passed. I’m pausing without a result packet and will continue when the build finishes.\n---\n…[trimmed]eports the cause, the fix, and that quick check that the app opens.\n\nStill running: Sam (photos flying during a pinch), Mia (testing the Monthly view) and Max (the midnight run, for information only).\n\nClosed 32/337 · parked 30 (owner sessions on your iPhone) · next: crash fix, then test the second combined build\n\nNothing needed from you.\n---\n[bb system]\n\n@thread:thr_yu82vfua5t completed:\n\nFAIL",
+    "current": "Read the FAIL result packet and evidence from that thread to find which rows failed and why. Tick nothing from it. Stop that helper thread. Send a correction brief to the builder that carries the failed evidence, naming bugging-out if the cause is unclear, and count it as one attempt toward the park limit. Do not treat the other thread's passing typecheck and tests as proof; wait for its Release build and a fresh qa run. Re-check whether the failure blocks the second combined build, re-plan in one line if so, and post the status footer.",
+    "changed": "Read the FAIL thread's result and evidence to find the failing rows and the cause. Record nothing as passed. Stop that helper thread. Send a correction brief with the failure evidence to a builder, naming bugging-out if the cause is unclear, and count it as one attempt. Keep waiting for the other thread's Release build; green typecheck and tests are not proof. Re-check whether the failure affects the second combined build, re-plan in one line if needed, and post the status footer.",
+    "clef": {
+      "current": "PASS",
+      "currentConfidence": 0.9696,
+      "changed": null,
+      "changedConfidence": 0.7113
+    },
+    "rule": {
+      "current": "PASS",
+      "changed": "PASS"
+    },
+    "judge": {
+      "A": "PASS",
+      "B": "PASS",
+      "reason": "Both record no passes from the failed thread and explicitly reject green mechanical checks as proof."
+    }
+  },
+  {
+    "runId": "thr_55cgwjcgzk",
+    "eventId": "evt_hfuxqngp64",
+    "momentId": "a7421b4446def66b3aed",
+    "week": "2026-W41",
+    "behavior": 2,
+    "context": "…[trimmed]t down, keeping us within the 2-simulator limit.\n\nOnce these checks pass, I'll commit the Daily notes slice and merge it into the main branch.\n\nStill running: the launch-screen fix and the Settings slice.\n\n`Closed 11/337 · parked 29 (owner sessions on your iPhone) · next: tester results for the Daily notes slice`\n\nNothing needed from you.\n---\n[bb system]\n\n@thread:thr_zxrv9rmqan completed:\n\nBLOCKED",
+    "current": "Read the BLOCKED tester's result to learn exactly what blocked the Daily notes slice. Do not commit, merge, or tick that slice. If the blocker can be fixed inside the run (a simulator, build, or setup issue), fix it and re-dispatch a fresh qa tester on the same candidate within the 2-simulator limit. If it is a hard blocker such as missing access or authority, send one 🚦 line and set the run card to waiting-owner. Log a lesson and post the status footer.",
+    "changed": "Read the BLOCKED tester's result for the exact blocker. Hold the Daily notes commit and merge, and record nothing as passed. If the blocker can be fixed inside the run, fix it and re-dispatch a fresh qa tester within the 2-simulator limit. If it is a hard blocker, send one 🚦 line and set the run card to waiting-owner. Log a lesson and post the status footer.",
+    "clef": {
+      "current": "PASS",
+      "currentConfidence": 0.9624,
+      "changed": null,
+      "changedConfidence": 0.7017
+    },
+    "rule": {
+      "current": null,
+      "changed": null
+    },
+    "judge": {
+      "A": "PASS",
+      "B": "PASS",
+      "reason": "Both leave the blocked Daily notes slice unpassed and route it back to a fresh QA tester."
+    }
+  },
+  {
+    "runId": "thr_55cgwjcgzk",
+    "eventId": "evt_r798msifwq",
+    "momentId": "e1980811c656b64d5edc",
+    "week": "2026-W41",
+    "behavior": 2,
+    "context": "…[trimmed]s there, the builder fixes the first real error, with up to 3 tries.\n\n**Still running:**\n- the Monthly and Settings testers\n- the hold menu and reminders builder, code only; it joins the next merge\n\n`Closed 24/337 · parked 30 (owner sessions on your iPhone) · next: Monthly and Settings test results, merged build`\n\nNothing needed from you.\n---\n…[trimmed]tion, per instruction. Notification delivery, permission prompts, tap routing, and blur still need integration testing; both added packages require the native build.\n**Next:** Integration step should build the candidate, connect the wrapper to replies/swipe, wire Settings to the permission helper, then verify the notification journey.\n---\n---\n…[trimmed]rge adds the hold menu, reactions, reminders, and sounds and taps.\n2. Then pinch between Daily, Weekly and Monthly.\n3. Then applying the Theme setting to every screen.\n4. Then photo places on maps.\n\n`Closed 24/337 · parked 30 (owner sessions on your iPhone) · next: Monthly and Settings test results, merged build`\n\nNothing needed from you.\n---\n[bb system]\n\n@thread:thr_4es6e72v5t completed:\n\nPASS",
+    "current": "Read thr_4es6e72v5t's result packet and evidence files to confirm it is a fresh qa run of each item's exact check on the exact merged candidate. If confirmed, tick exactly those items in the ledger and update the progress count. Commit locally (merging the lane first if needed), rerun the regression journeys, and stop the thread. Re-check whether this unblocks the next merge, then post the updated count with the status footer while the other tester and the code-only builder keep running.",
+    "changed": "Open thr_4es6e72v5t's PASS result and its cited evidence. Check that an independent qa ran the exact item checks on the exact candidate build, not a builder's self-report or green tests. If it holds, update the ledger and the progress count for only those items. Commit locally and rerun the regression journeys. Stop the finished thread. Re-check the plan and report the new count with the status footer.",
+    "clef": {
+      "current": null,
+      "currentConfidence": 0.5647,
+      "changed": "PASS",
+      "changedConfidence": 0.9637
+    },
+    "rule": {
+      "current": "PASS",
+      "changed": "PASS"
+    },
+    "judge": {
+      "A": "PASS",
+      "B": "PASS",
+      "reason": "Both require checking fresh independent QA evidence for each exact item and candidate before ticking only those proven items."
+    }
+  },
+  {
+    "runId": "thr_55cgwjcgzk",
+    "eventId": "evt_7sz2mpb37t",
+    "momentId": "eda0ecf2dc2896775ac8",
+    "week": "2026-W41",
+    "behavior": 2,
+    "context": "…[trimmed]ndow width (DailyScreen.tsx:114; Weekly :180; Monthly cells stretch :563). iPad and all orientations are allowed (app.config.ts:10, 24). | iPad Air 11-inch (M3), iOS 18.6, portrait and landscape (rotate with the simulator keyboard shortcut). Screenshot Daily, Weekly, Monthly, Settings. Composer and grids must b\n\n[... output truncated ...]\n---\n…[trimmed]es. A tester will run it first. If it fails only on that Apple text, you'll get a question at the end on whether that counts as the app's text.\n\n**Running:** Jules and Mia testing int-15 on the two simulators, and Noor (builder).\n\nClosed 145/337 · parked 37 · next: int-15 check-in results, visual checks on int-16 when a simulator frees up\n---\nBUG ISC-124 (check-in): first Check in showed Nearby but “Couldn’t load places” with no rows, persisting until manual Try again; retry then loaded rows. Evidence: [long-token].png. Stopped check-in group; moving on to pile/swipe.\n---\n…[trimmed]checks he taps \"Try again\" as preparation and judges the check itself. The location states and photo places checks don't depend on it at all.\n\n**Running:** Jules and Mia testing int-15, Noor (motion fixes), Max (Nearby first try).\n\nClosed 145/337 · parked 37 · next: int-15 pile/swipe and check-in results, then int-17 with the newest fixes\n---\nOFF TRACK Mia (qa): int-15 large view + reminders (qa) thr_i87xp2i45k: no real answer for 24 min (expected ~15); 0/30 rows answered; 0 placeholders; 0 messages not acted on.",
+    "current": "Handle the OFF TRACK alert. Check Mia's thread (thr_i87xp2i45k), which has answered 0 of 30 rows in 24 minutes. If she is stuck, stop her thread and give her 30 int-15 large-view and reminder rows to a fresh QA tester on the freed simulator. That tester's brief carries the TALK-BACK block, a PROMISE line, and a result filename. Tick nothing from Mia. Keep the ISC-124 bug with Max's first-try Nearby fix. Log a one-line lesson about the stall, re-check the plan, and send a short status update with the footer.",
+    "changed": "Act on the OFF TRACK alert for Mia (thr_i87xp2i45k), who has answered 0 of 30 rows in 24 minutes. Check her thread. If she is stalled, stop it and send her int-15 large-view and reminder rows to a fresh QA tester on that simulator, with the TALK-BACK block, a PROMISE line, and a result filename. Record no progress for those rows. Leave ISC-124 with Max's Nearby fix. Log the stall as a lesson, re-check the plan, and post the status footer.",
+    "clef": {
+      "current": null,
+      "currentConfidence": 0.7498,
+      "changed": null,
+      "changedConfidence": 0.6306
+    },
+    "rule": {
+      "current": null,
+      "changed": null
+    },
+    "judge": {
+      "A": "PASS",
+      "B": "PASS",
+      "reason": "Both withhold all progress from Mia's unanswered rows and transfer them to a fresh QA tester."
+    }
+  },
+  {
+    "runId": "thr_55cgwjcgzk",
+    "eventId": "evt_r798msifwq",
+    "momentId": "f33817e7c419a8520c8a",
+    "week": "2026-W41",
+    "behavior": 2,
+    "context": "…[trimmed]s there, the builder fixes the first real error, with up to 3 tries.\n\n**Still running:**\n- the Monthly and Settings testers\n- the hold menu and reminders builder, code only; it joins the next merge\n\n`Closed 24/337 · parked 30 (owner sessions on your iPhone) · next: Monthly and Settings test results, merged build`\n\nNothing needed from you.\n---\n…[trimmed]tion, per instruction. Notification delivery, permission prompts, tap routing, and blur still need integration testing; both added packages require the native build.\n**Next:** Integration step should build the candidate, connect the wrapper to replies/swipe, wire Settings to the permission helper, then verify the notification journey.\n---\n---\n…[trimmed]rge adds the hold menu, reactions, reminders, and sounds and taps.\n2. Then pinch between Daily, Weekly and Monthly.\n3. Then applying the Theme setting to every screen.\n4. Then photo places on maps.\n\n`Closed 24/337 · parked 30 (owner sessions on your iPhone) · next: Monthly and Settings test results, merged build`\n\nNothing needed from you.\n---\n[bb system]\n\n@thread:thr_4es6e72v5t completed:\n\nPASS",
+    "current": "Do not tick anything from the bare PASS notice alone. Open thr_4es6e72v5t's result rows and evidence files in the verify folder. Confirm that this fresh QA tester (Monthly or Settings) ran each item's exact check on the exact merged build, with a screenshot for every row. Tick only the rows that are backed by that evidence, update the count, commit locally, and stop the tester's thread. Then re-check: start the next merged build with the hold menu, reactions, and reminders work, and give the free simulator to the next slice. Send the status footer.",
+    "changed": "Read thr_4es6e72v5t's actual result rows and evidence before recording anything. A bare PASS is not proof, and done means a run proved it. Confirm that the rows ran on the exact merged build and that their evidence files exist. Record only the rows that are backed, update the progress count, commit locally, and stop the thread. Then re-check the plan: move on to the next merge with the hold menu, reactions, and reminders, and put the next tester on the freed simulator. Post the status footer.",
+    "clef": {
+      "current": "PASS",
+      "currentConfidence": 0.9374,
+      "changed": null,
+      "changedConfidence": 0.7237
+    },
+    "rule": {
+      "current": null,
+      "changed": "PASS"
+    },
+    "judge": {
+      "A": "PASS",
+      "B": "PASS",
+      "reason": "Both reject the bare PASS and require checking the independent tester's item-level evidence on the exact merged build before ticking only supported rows."
+    }
+  },
+  {
+    "runId": "thr_55cgwjcgzk",
+    "eventId": "evt_r798msifwq",
+    "momentId": "fcb9afb4b10df049acbb",
+    "week": "2026-W41",
+    "behavior": 2,
+    "context": "…[trimmed]s there, the builder fixes the first real error, with up to 3 tries.\n\n**Still running:**\n- the Monthly and Settings testers\n- the hold menu and reminders builder, code only; it joins the next merge\n\n`Closed 24/337 · parked 30 (owner sessions on your iPhone) · next: Monthly and Settings test results, merged build`\n\nNothing needed from you.\n---\n…[trimmed]tion, per instruction. Notification delivery, permission prompts, tap routing, and blur still need integration testing; both added packages require the native build.\n**Next:** Integration step should build the candidate, connect the wrapper to replies/swipe, wire Settings to the permission helper, then verify the notification journey.\n---\n---\n…[trimmed]rge adds the hold menu, reactions, reminders, and sounds and taps.\n2. Then pinch between Daily, Weekly and Monthly.\n3. Then applying the Theme setting to every screen.\n4. Then photo places on maps.\n\n`Closed 24/337 · parked 30 (owner sessions on your iPhone) · next: Monthly and Settings test results, merged build`\n\nNothing needed from you.\n---\n[bb system]\n\n@thread:thr_4es6e72v5t completed:\n\nPASS",
+    "current": "Treat the bare PASS from thr_4es6e72v5t as unconfirmed until its evidence is checked. Read its result rows and evidence files, and confirm a fresh QA run of each exact check on the exact merged build. Tick only the rows that are backed, update the count, commit locally, and stop the thread. Then re-check the plan, start the next merge with the hold menu, reactions, and reminders, give the free simulator to the next slice, and send the status footer.",
+    "changed": "Inspect thr_4es6e72v5t's result file and evidence before recording progress. A one-word PASS is not proof that a run happened. Confirm the rows ran on the exact merged build with evidence. Record only the rows that are proven, update the count, commit locally, and stop the thread. Re-check the plan, move on to the next merged build with the hold menu, reactions, and reminders, and send the status footer.",
+    "clef": {
+      "current": null,
+      "currentConfidence": 0.7637,
+      "changed": null,
+      "changedConfidence": 0.6244
+    },
+    "rule": {
+      "current": "PASS",
+      "changed": "PASS"
+    },
+    "judge": {
+      "A": "PASS",
+      "B": "PASS",
+      "reason": "Both require inspecting the tester's result rows and evidence before recording only proven rows on the exact merged build. A states fresh QA explicitly; B uses the independent tester identified in context."
+    }
+  }
+]

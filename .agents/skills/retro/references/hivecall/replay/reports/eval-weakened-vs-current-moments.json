@@ -1,0 +1,3464 @@
+{
+  "main": [
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_56vgbgy3nv",
+      "momentId": "1649379f56c40fb801f3",
+      "itemId": "ISC-101.1",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "…[trimmed]install, and Argent is already one of the tools the ISA's checks use.\n2. **Try simfleet's dashboard after this run,** if live visibility into the simulators matters to you.\n3. **Leave simslim off our test simulators.** It can switch off the services our checks rely on.\n\nReply 1 and I'll add replay-flow recording to the next tester briefs.\n---\n[bb system]\n\n@thread:thr_rc4syv49ry failed.\n\nReview the thread before deciding next steps.\n---\n[bb system]\n\nChild thread updates:\n\n- @thread:thr_2s7gszycq7 failed.\n- @thread:thr_ee8w9rwem9 failed.",
+      "current": "Check the three failed child threads (thr_rc4syv49ry, thr_2s7gszycq7, thr_ee8w9rwem9) against their result files, git, and the ledger. Tick nothing from them. Reopen their items and count each as one failed attempt. Add one line to Lessons. Then send each item a meaningfully different correction brief: name bugging-out if the cause is unclear, include the failed evidence, add the PROMISE line and result file, and use a fresh reviewer then a fresh qa. Park any item that has now failed three times, with its unlock condition. Keep the Argent tool suggestion as an open option that does not block the run.",
+      "changed": "Check the three failed child threads (thr_rc4syv49ry, thr_2s7gszycq7, thr_ee8w9rwem9) against their result files, git, and the ledger. Record nothing as done from failed or self-reported work. Count each as one failed attempt and add one line to Lessons. Re-delegate each item with a meaningfully different brief: use bugging-out with the failed evidence when the cause is unclear, add the PROMISE line and result file, and use a fresh reviewer then a fresh qa. Park any item on its third failure, with its unlock condition. Do not block on the owner's open choice about the Argent tool.",
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "current",
+        "B": "changed"
+      },
+      "clef": {
+        "current": "PASS",
+        "currentConfidence": 0.9714,
+        "changed": "PASS",
+        "changedConfidence": 0.975
+      },
+      "rule": {
+        "current": null,
+        "changed": null
+      },
+      "judge": null,
+      "judgeCalled": false,
+      "randomJudgeSample": false,
+      "final": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_294zb7yhvt",
+      "momentId": "17de7059ede89ffb4afa",
+      "itemId": "ISC-011",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "",
+      "current": "The trace is empty, so the next step is the start check. Confirm the user explicitly invoked hivecall and gave a goal. If no goal was given, ask for it and stop. If this resumes an earlier run, read HOW-TO-WORK.md, the run card, the ledger, and watchdog/lessons.md, and check any handoff against git before trusting it. If this is a new run, draft the goal contract and plan, then ask the one kickoff question: Open a PR at the end? (yes / no).",
+      "changed": "The trace is empty, so the next step is the start check. Confirm the user explicitly invoked hivecall and gave a goal. If no goal was given, ask for it and stop. If this resumes an earlier run, read HOW-TO-WORK.md, the run card, the ledger, and watchdog/lessons.md, and check any handoff against git before trusting it. If this is a new run, draft the goal contract and plan, then ask the one kickoff question: Open a PR at the end? (yes / no).",
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "changed",
+        "B": "current"
+      },
+      "clef": {
+        "current": "PASS",
+        "currentConfidence": 0.952,
+        "changed": "PASS",
+        "changedConfidence": 0.952
+      },
+      "rule": {
+        "current": null,
+        "changed": null
+      },
+      "judge": null,
+      "judgeCalled": false,
+      "randomJudgeSample": false,
+      "final": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_265af4d9z9",
+      "momentId": "19c55e50f4a64b2c191f",
+      "itemId": "ISC-169",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "…[trimmed]ng now:**\n- **Noor:** rebuilding the app with the spinner fix.\n- **Tester 1:** on its last row.\n- **Tester 2:** stalled. Its rows move to the next tester.\n\nClosed 74/337 · parked 34 (30 owner sessions on your iPhone + 4 second-finger gestures) · next: rebuilt app, then a visible tester on the first free simulator\n\nNothing needed from you.\n---\n…[trimmed]uild: 13m 54s · Free disk after cleanup: 14 GiB. Requested intermediates and `.build/int7-test` were removed.  \n**Risks:** Xcode warned that the `search` and `snapshotter` captures were unused. The build passed, but I did not verify their runtime-retention effect.  \n**Next:** The built app is ready at the path above; no simulator was run.\n---\nNow committing int-4 and recording its proven rows.",
+      "current": "Commit int-4 locally and tick only the rows that have a fresh qa pass on that exact build. Update the progress count. Rerun the regression smoke checks after the merge. Do not tick anything for the rebuilt spinner-fix app: it only compiled and was never run on a simulator. Next, send a fresh visible qa tester to the first free simulator to run the spinner-fix rows and the stalled Tester 2's rows on that build. Note the unused-capture warning as a risk.",
+      "changed": "Commit int-4 locally and record only the rows backed by a fresh qa pass on that exact build. Rerun the regression smoke checks after the merge. Do not count the rebuilt spinner-fix app as proof: it only compiled and was never run on a simulator, and the skill forbids ticking from builder reports or green tests. Next, send a fresh visible qa tester to the first free simulator to verify the spinner-fix rows and the stalled Tester 2's rows on that build. Note the unused-capture warning as a risk.",
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "changed",
+        "B": "current"
+      },
+      "clef": {
+        "current": "PASS",
+        "currentConfidence": 0.9783,
+        "changed": "PASS",
+        "changedConfidence": 0.9859
+      },
+      "rule": {
+        "current": null,
+        "changed": null
+      },
+      "judge": null,
+      "judgeCalled": false,
+      "randomJudgeSample": false,
+      "final": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_n5w7aed52h",
+      "momentId": "2407ffe6d8e9441a106a",
+      "itemId": "ISC-202",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "…[trimmed] UI flow and fixture import were not run; the CODE-ONLY lane forbids simulator use. `WeeklyScreen.tsx` has a minimal day-key change; coordinate it with Sam’s work.\n**Next:** Verifier should import the GPS and no-location fixtures, open a map, answer each prompt option, and confirm persistence, marker placement, and large-view context.\n---\n---\n…[trimmed]mbined build, together with Noor's crash fix.\n\nStill running: Noor (the crash fix), Sam (photos flying during a pinch), Mia (testing the Monthly view) and Max (the midnight run, for information only).\n\nClosed 32/337 · parked 30 (owner sessions on your iPhone) · next: crash fix, then test the second combined build\n\nNothing needed from you.\n---\n[bb system]\n\n@thread:thr_37k7fehvta completed:\n\nThe single locked Release build is still running. Typecheck, Biome, and all 7 tests passed. I’m pausing without a result packet and will continue when the build finishes.\n---\n…[trimmed]eports the cause, the fix, and that quick check that the app opens.\n\nStill running: Sam (photos flying during a pinch), Mia (testing the Monthly view) and Max (the midnight run, for information only).\n\nClosed 32/337 · parked 30 (owner sessions on your iPhone) · next: crash fix, then test the second combined build\n\nNothing needed from you.\n---\n[bb system]\n\n@thread:thr_yu82vfua5t completed:\n\nFAIL",
+      "current": "Read thr_yu82vfua5t's FAIL result and its evidence. Tick nothing. Keep the affected items open and count this as one failed attempt. Add one line to Lessons. Send a correction brief with the failing evidence: name bugging-out if the cause is unclear, and require a fresh reviewer then a fresh qa. Park the item if this was its third failure. Do not treat thr_37k7fehvta's passing typecheck and unit tests as proof. That builder paused without a result packet, so leave it running and test its build with a fresh qa once it finishes. Keep the other lanes going.",
+      "changed": "Read thr_yu82vfua5t's FAIL result and its evidence. Do not record those items as done. Count this as one failed attempt and add one line to Lessons. Send a correction brief with the failing evidence: use bugging-out if the cause is unclear, and require a fresh reviewer then a fresh qa. Park the item on its third failure. Do not count thr_37k7fehvta's passing typecheck and unit tests as proof. That builder paused without a result packet, so wait for its build and then verify it with a fresh qa. Keep the other lanes going.",
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "current",
+        "B": "changed"
+      },
+      "clef": {
+        "current": "PASS",
+        "currentConfidence": 0.9787,
+        "changed": "PASS",
+        "changedConfidence": 0.9382
+      },
+      "rule": {
+        "current": null,
+        "changed": null
+      },
+      "judge": null,
+      "judgeCalled": false,
+      "randomJudgeSample": false,
+      "final": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_265af4d9z9",
+      "momentId": "2d3d22253a37b53f9fd1",
+      "itemId": "ISC-212",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "…[trimmed]ng now:**\n- **Noor:** rebuilding the app with the spinner fix.\n- **Tester 1:** on its last row.\n- **Tester 2:** stalled. Its rows move to the next tester.\n\nClosed 74/337 · parked 34 (30 owner sessions on your iPhone + 4 second-finger gestures) · next: rebuilt app, then a visible tester on the first free simulator\n\nNothing needed from you.\n---\n…[trimmed]uild: 13m 54s · Free disk after cleanup: 14 GiB. Requested intermediates and `.build/int7-test` were removed.  \n**Risks:** Xcode warned that the `search` and `snapshotter` captures were unused. The build passed, but I did not verify their runtime-retention effect.  \n**Next:** The built app is ready at the path above; no simulator was run.\n---\nNow committing int-4 and recording its proven rows.",
+      "current": "Commit int-4 locally and tick only the rows that have a fresh qa pass on that exact build. Update the progress count. Rerun the regression smoke checks after the merge. Do not tick anything for the rebuilt spinner-fix app: it only compiled and was never run on a simulator. Next, send a fresh visible qa tester to the first free simulator to run the spinner-fix rows and the stalled Tester 2's rows on that build. Note the unused-capture warning as a risk.",
+      "changed": "Commit int-4 locally and record only the rows backed by a fresh qa pass on that exact build. Rerun the regression smoke checks after the merge. Do not count the rebuilt spinner-fix app as proof: it only compiled and was never run on a simulator, and the skill forbids ticking from builder reports or green tests. Next, send a fresh visible qa tester to the first free simulator to verify the spinner-fix rows and the stalled Tester 2's rows on that build. Note the unused-capture warning as a risk.",
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "changed",
+        "B": "current"
+      },
+      "clef": {
+        "current": "PASS",
+        "currentConfidence": 0.9783,
+        "changed": "PASS",
+        "changedConfidence": 0.9859
+      },
+      "rule": {
+        "current": null,
+        "changed": null
+      },
+      "judge": null,
+      "judgeCalled": false,
+      "randomJudgeSample": false,
+      "final": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_hfuxqngp64",
+      "momentId": "355bf26cbefa6350561d",
+      "itemId": "ISC-013.1",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "…[trimmed]t down, keeping us within the 2-simulator limit.\n\nOnce these checks pass, I'll commit the Daily notes slice and merge it into the main branch.\n\nStill running: the launch-screen fix and the Settings slice.\n\n`Closed 11/337 · parked 29 (owner sessions on your iPhone) · next: tester results for the Daily notes slice`\n\nNothing needed from you.\n---\n[bb system]\n\n@thread:thr_zxrv9rmqan completed:\n\nBLOCKED",
+      "current": "Read the output of tester thread thr_zxrv9rmqan to find out exactly why it was blocked. Do not commit, merge or tick the Daily notes slice, because no tester result has proven it. Fix the blocker if the run can, for example by freeing a simulator within the 2-simulator limit or correcting the build or brief. Then start a fresh tester on the exact Daily notes build with a changed approach and count it as one attempt. Add a lesson line to the run card and stop that thread. Keep the launch-screen and Settings lanes running, and send a 🚦 line only if the blocker is missing authority or access.",
+      "changed": "Read the output of tester thread thr_zxrv9rmqan to find out why it was blocked. Treat the Daily notes slice as unproven: do not commit, merge or tick it, since a lane's build alone is never enough to tick. Clear the blocker if it is within the run's reach, such as simulator capacity or a build or brief problem. Then send a fresh tester at the exact candidate with a different approach, counted as one attempt. Log a lesson line and stop the blocked thread. Keep the other lanes going, and escalate with a 🚦 line only for missing authority or access.",
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "current",
+        "B": "changed"
+      },
+      "clef": {
+        "current": "PASS",
+        "currentConfidence": 0.9763,
+        "changed": "PASS",
+        "changedConfidence": 0.9701
+      },
+      "rule": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "judge": null,
+      "judgeCalled": false,
+      "randomJudgeSample": false,
+      "final": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_56vgbgy3nv",
+      "momentId": "365c326de0dea2fbbeac",
+      "itemId": "ISC-157",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "…[trimmed]install, and Argent is already one of the tools the ISA's checks use.\n2. **Try simfleet's dashboard after this run,** if live visibility into the simulators matters to you.\n3. **Leave simslim off our test simulators.** It can switch off the services our checks rely on.\n\nReply 1 and I'll add replay-flow recording to the next tester briefs.\n---\n[bb system]\n\n@thread:thr_rc4syv49ry failed.\n\nReview the thread before deciding next steps.\n---\n[bb system]\n\nChild thread updates:\n\n- @thread:thr_2s7gszycq7 failed.\n- @thread:thr_ee8w9rwem9 failed.",
+      "current": "Read the logs of the three failed threads (thr_rc4syv49ry, thr_2s7gszycq7, thr_ee8w9rwem9) to find out why each one failed, for example a usage limit, a crash or the environment. Tick nothing from them. If a usage limit caused it, set the run card to waiting-usage, or switch to a backup model if one exists. Otherwise give each item a new, meaningfully different brief, counted as one more attempt, or park it after three failures. Add a lesson line to the run card and stop the failed threads. Re-plan in one line if this changes the critical path, and do not let the open simfleet/Argent question hold up the run.",
+      "changed": "Read the logs of thr_rc4syv49ry, thr_2s7gszycq7 and thr_ee8w9rwem9 to find out why each failed, and do not commit or tick anything from them. If credits or a usage limit are the cause, set the run card to waiting-usage. Otherwise re-delegate each affected slice with a meaningfully different approach, or park it after three failures with its exact unlock condition. Log a lesson line and stop the failed threads. Send one 're-planned' line if the critical path moved, and keep going without waiting for the owner's reply about the tools.",
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "current",
+        "B": "changed"
+      },
+      "clef": {
+        "current": "PASS",
+        "currentConfidence": 0.973,
+        "changed": "PASS",
+        "changedConfidence": 0.9714
+      },
+      "rule": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "judge": null,
+      "judgeCalled": false,
+      "randomJudgeSample": false,
+      "final": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_56vgbgy3nv",
+      "momentId": "3b56c489155ed5ed6330",
+      "itemId": "ISC-027",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "…[trimmed]install, and Argent is already one of the tools the ISA's checks use.\n2. **Try simfleet's dashboard after this run,** if live visibility into the simulators matters to you.\n3. **Leave simslim off our test simulators.** It can switch off the services our checks rely on.\n\nReply 1 and I'll add replay-flow recording to the next tester briefs.\n---\n[bb system]\n\n@thread:thr_rc4syv49ry failed.\n\nReview the thread before deciding next steps.\n---\n[bb system]\n\nChild thread updates:\n\n- @thread:thr_2s7gszycq7 failed.\n- @thread:thr_ee8w9rwem9 failed.",
+      "current": "Review thr_rc4syv49ry first, as the notice asks, then thr_2s7gszycq7 and thr_ee8w9rwem9, and work out which items each failure affects. Tick nothing. Relaunch the affected work with a changed approach, counted as one attempt, or set waiting-usage if a usage limit caused it. Log a lesson line, stop the dead threads, and continue the loop.",
+      "changed": "Review thr_rc4syv49ry first, then thr_2s7gszycq7 and thr_ee8w9rwem9, and work out which items each failure affects. Do not commit or tick anything. Relaunch the affected work with a changed approach, counted as one attempt, or set waiting-usage if a usage limit caused it. Log a lesson line, stop the failed threads, and continue the loop.",
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "current",
+        "B": "changed"
+      },
+      "clef": {
+        "current": "PASS",
+        "currentConfidence": 0.973,
+        "changed": "PASS",
+        "changedConfidence": 0.9459
+      },
+      "rule": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "judge": null,
+      "judgeCalled": false,
+      "randomJudgeSample": false,
+      "final": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_6b5x4wsmkw",
+      "momentId": "3d038f76234192847649",
+      "itemId": "ISC-062",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "…[trimmed]act:** `.lanes/journal-s28/.[long-token].app`\n- **Evidence:** `load-sample=1`; `transparentModal=1`; executable SHA-1 `[long-token]`\n- **Final diff SHA:** `[long-token]`\n- **Disk after cleanup:** 11 GiB available. `Intermediates.noindex` and `Index.noindex` removed.\n\nNo commit or simulator interaction. Runtime behavior remains unverified.\n---\n…[trimmed]soon as Jules returns\n\n<details><summary>Details</summary>\n\n- int-15 = 91ff008 + `.lanes/journal-s28`, diff `d5872f7d…`. App at `.lanes/journal-s28/.[long-token].app`, executable SHA-1 `b33c8998…`. Built in 204 s; 11 GB disk free.\n- Kai's design-fix lane (`s29`) was created from s28 after the merge, so it includes these fixes.\n\n</details>\n---\n[bb system]\n\n@thread:thr_wkf9fqpnsz completed:\n\nBLOCKED\n---\n…[trimmed]s); `bun test` passed (10 tests, 0 failures, 31 assertions); `bunx expo install --check` reported dependencies up to date; `git diff --check` passed.\n\n**Final `git diff HEAD | shasum`:** `[long-token]  -`\n\nNo exact probe strings or gesture code were changed. The remaining risk is that visual rendering has not been verified on a simulator.\n---\n…[trimmed] Daily; reply-count thresholds could not be observed. |\n| 074 | PASS | The Aug 7 date label stayed at the same position after the recorded open/close flow. |\n\n**Files:** [INT14-C-result.md]([path]/.[long-token].md) · [INT14-C-identity.txt]([path]/.[long-token].txt)\n\nThe other rows were left unmarked for the fresh int-15 run, as requested.",
+      "current": "Read the output of thr_wkf9fqpnsz to find out why it was blocked. Do not tick any int-15 rows: the builder only produced a compiled build and passing tests, with runtime behavior unverified. Do not carry the int-14 PASS result for row 074 over to int-15. Next, start a fresh tester on the exact int-15 candidate (91ff008 plus journal-s28, matching diff and executable fingerprint) to run the items' exact checks and the regression journeys. Fix whatever caused the block first if it is fixable. Log a lesson line and stop the blocked thread.",
+      "changed": "Read the output of thr_wkf9fqpnsz to find the cause of the block. Hold off on ticking int-15, because a build and passing tests are not proof and the int-14 results do not cover int-15. Fix the blocker, then start a fresh tester on the exact int-15 candidate (91ff008 plus journal-s28, matching fingerprints) to run the item checks and regression journeys. Log a lesson line and stop the blocked thread.",
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "current",
+        "B": "changed"
+      },
+      "clef": {
+        "current": "PASS",
+        "currentConfidence": 0.9827,
+        "changed": "PASS",
+        "changedConfidence": 0.9891
+      },
+      "rule": {
+        "current": null,
+        "changed": null
+      },
+      "judge": null,
+      "judgeCalled": false,
+      "randomJudgeSample": false,
+      "final": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_hfuxqngp64",
+      "momentId": "50489e282c0fec97837e",
+      "itemId": "ISC-013.2",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "…[trimmed]t down, keeping us within the 2-simulator limit.\n\nOnce these checks pass, I'll commit the Daily notes slice and merge it into the main branch.\n\nStill running: the launch-screen fix and the Settings slice.\n\n`Closed 11/337 · parked 29 (owner sessions on your iPhone) · next: tester results for the Daily notes slice`\n\nNothing needed from you.\n---\n[bb system]\n\n@thread:thr_zxrv9rmqan completed:\n\nBLOCKED",
+      "current": "Open thr_zxrv9rmqan's result to find the specific blocker. Keep the Daily notes slice unticked and unmerged. Fix the blocker if it is in scope, then send a fresh tester to the exact candidate as a changed attempt. Log a lesson line, stop the thread, and continue the launch-screen and Settings lanes.",
+      "changed": "Open thr_zxrv9rmqan's result to find the blocker. Keep the Daily notes slice uncommitted, unmerged and unticked. Fix the blocker if it is in scope, then send a fresh tester to the exact candidate as a changed attempt. Log a lesson line, stop the thread, and keep the other lanes running.",
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "current",
+        "B": "changed"
+      },
+      "clef": {
+        "current": "PASS",
+        "currentConfidence": 0.9813,
+        "changed": "PASS",
+        "changedConfidence": 0.9714
+      },
+      "rule": {
+        "current": null,
+        "changed": null
+      },
+      "judge": null,
+      "judgeCalled": false,
+      "randomJudgeSample": false,
+      "final": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_hfuxqngp64",
+      "momentId": "59f6851e0680e7421421",
+      "itemId": "ISC-007",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "…[trimmed]t down, keeping us within the 2-simulator limit.\n\nOnce these checks pass, I'll commit the Daily notes slice and merge it into the main branch.\n\nStill running: the launch-screen fix and the Settings slice.\n\n`Closed 11/337 · parked 29 (owner sessions on your iPhone) · next: tester results for the Daily notes slice`\n\nNothing needed from you.\n---\n[bb system]\n\n@thread:thr_zxrv9rmqan completed:\n\nBLOCKED",
+      "current": "Treat the tester's BLOCKED result as not proven. Do not tick, commit or merge the Daily notes slice. Read that thread's output and log to find the exact blocker, then check the candidate against git and the ledger. If the blocker can be fixed (for example a simulator or setup problem within the 2-simulator limit), send a fresh, meaningfully different brief to a new qa tester that runs the item's exact check on the exact candidate. If it needs the owner, park it with its exact unlock condition. Add one line to the run card's Lessons section, stop the finished thread, re-check whether the plan changed, keep the launch-screen and Settings lanes going, and end with the status footer.",
+      "changed": "Do not commit, merge or tick the Daily notes slice, because the tester did not pass it and the skill only merges after QA passes. Read the BLOCKED thread's output and log to find the exact blocker, and check the candidate against git and the ledger. Then either send a fresh, meaningfully different brief to a new qa tester that runs the exact check on the exact candidate, or, if the blocker needs the owner, park the item with its unlock condition. Add a Lessons line, stop the finished thread, re-check the plan, keep the launch-screen and Settings lanes running, and end with the status footer.",
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "changed",
+        "B": "current"
+      },
+      "clef": {
+        "current": "PASS",
+        "currentConfidence": 0.9836,
+        "changed": "PASS",
+        "changedConfidence": 0.9668
+      },
+      "rule": {
+        "current": null,
+        "changed": null
+      },
+      "judge": null,
+      "judgeCalled": false,
+      "randomJudgeSample": false,
+      "final": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_b6qxikxqvb",
+      "momentId": "5a53eb6242d7e86ee25c",
+      "itemId": "ISC-013.1",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "ok great. at a highe lvel tell me what the script does and what it's for. use a list format\n---\n…[trimmed]ue.\n- It won't nudge me in circles. After 3 nudges with no progress, it stops and leaves you a note.\n- When the ISA is complete, or only parked items remain, it sends \"done\" once and switches itself off.\n\n**What it never does**\n- It doesn't fix anything, stop agents or record results. It only tells me, and I check the facts before acting.\n---\n…[trimmed]o thirty minutes or was that something else? Anyways, I think this two hour reminder is too long. If we already have a thirty minute reminder that we would discuss earlier and that applies here, let's do that here as well. Otherwise reducing it to one hour is enough too. That's assuming that we would have two different types of reminders.\n---\ni think jules is stuck with the simulator i see that it hasnt passed the checkin popup and has been there for a while. go check plz\n---\n[bb system]\n\n@thread:thr_bcvnk7is8u was interrupted.\n\nReview the thread before deciding next steps.",
+      "current": "Review the interrupted thread thr_bcvnk7is8u (Jules) before doing anything else: read its log and output, look at the current simulator screen, and check its claims against git and the ledger. Tick nothing from that thread. If it really is stuck on the check-in popup, add a Lessons line and send a fresh, bounded brief with a meaningfully different method (for example, dismiss or pre-seed the check-in popup before running the check), staying within the simulator limit. Name bugging-out if the cause is unclear. Then reply to the user with what was found, the open answer about the reminder interval, and the status footer.",
+      "changed": "Review the interrupted thread thr_bcvnk7is8u (Jules) first: read its log and output, look at the simulator, and check its work against git and the ledger. Treat nothing from it as proven. If it is stuck on the check-in popup, add a Lessons line and send a fresh, bounded brief with a meaningfully different method for getting past the popup, within the simulator limit. Name bugging-out if the cause is unclear. Then tell the user what was found, answer the reminder-interval question, and end with the status footer.",
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "changed",
+        "B": "current"
+      },
+      "clef": {
+        "current": "PASS",
+        "currentConfidence": 0.9585,
+        "changed": "PASS",
+        "changedConfidence": 0.9531
+      },
+      "rule": {
+        "current": "PASS",
+        "changed": null
+      },
+      "judge": null,
+      "judgeCalled": false,
+      "randomJudgeSample": false,
+      "final": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_294zb7yhvt",
+      "momentId": "63e40688832bd0cbe29c",
+      "itemId": "ISC-004",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "",
+      "current": "With no trace, the start conditions are not met: there is no explicit hivecall invocation and no goal in the conversation. So do not start the run, write a ledger or run card, or delegate. Ask the user for the goal or task description, and confirm they want a hivecall run, then stop.",
+      "changed": "With no trace, there is no explicit hivecall invocation and no goal, so the run cannot start. Do not create a ledger or run card, and do not delegate. Ask the user for the goal or task description, and confirm the explicit hivecall invocation, then stop.",
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "changed",
+        "B": "current"
+      },
+      "clef": {
+        "current": "PASS",
+        "currentConfidence": 0.9744,
+        "changed": "PASS",
+        "changedConfidence": 0.9714
+      },
+      "rule": {
+        "current": null,
+        "changed": null
+      },
+      "judge": null,
+      "judgeCalled": false,
+      "randomJudgeSample": false,
+      "final": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_p3npdfisj8",
+      "momentId": "6c4d7334cd05cee7d6c1",
+      "itemId": "ISC-261",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "…[trimmed] file it blames is another note that Noor saved while testing. Kai is fixing this exact flaw right now, and the live script still runs the old version until I reload it after his fix, so one or two more of these may show up. I'll treat them as noise until then.\n\nAre we addressing this in the patches that are being worked on at the moment?\n---\n…[trimmed]- The opposite scenario: the builder edits app code outside its working copy. It must still raise an alarm.\n- One real dry run of the script, which must show no false \"off track\" for anyone.\n\nUntil I reload it, the old version may send one or two more of these. Each problem only alerts once, so they won't repeat.\n\nNothing needed from you.\n---\nframe the problem i want to make sure i understand and that our solution is not rigid\n---\n…[trimmed]top and wait for this frame. I keep the current false alarms for now; each problem alerts only once, so it's mild noise.\n   - b) Let him finish as a stopgap, and replace it later.\n\nReply e.g. \"1a 2a 3a, invariants ok\", and I'll save this frame to the task folder before we shape any fix. Nothing loads into the live watch until you confirm.\n---\n[bb system]\n\nChild thread updates:\n\n- @thread:thr_spza34dn92 failed.\n- @thread:thr_szyejvnqv8 failed.\n- @thread:thr_k8scp4jcne failed.",
+      "current": "Inspect the three failed child threads (thr_spza34dn92, thr_szyejvnqv8, thr_k8scp4jcne): read their logs and outputs, and check what they actually left against git and the ledger. Tick nothing from them. Stop the threads and add Lessons lines. Keep the planning frame open: do not shape or start any new fix for the watchdog false-alarm problem until the user answers the frame questions. For failed items unrelated to the frame, re-check the plan and send fresh, meaningfully different briefs, or park them after the third failure. Send the user one short note on what failed and why, restate that the frame still needs their reply, and end with the status footer.",
+      "changed": "Review the three failed child threads (thr_spza34dn92, thr_szyejvnqv8, thr_k8scp4jcne): read their logs and outputs, and verify their state against git and the ledger. Accept or tick nothing from them. Stop the threads and log the lessons. Do not start shaping or loading any watchdog fix while the user's frame confirmation is pending. For unrelated failed items, re-plan in chat and send meaningfully different briefs, or park them with their unlock conditions. Tell the user briefly what failed and that the frame still awaits their answer, with the status footer.",
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "current",
+        "B": "changed"
+      },
+      "clef": {
+        "current": "PASS",
+        "currentConfidence": 0.9645,
+        "changed": "PASS",
+        "changedConfidence": 0.9761
+      },
+      "rule": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "judge": null,
+      "judgeCalled": false,
+      "randomJudgeSample": false,
+      "final": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_svie8fuf5y",
+      "momentId": "81032050d29b6b2ee2f7",
+      "itemId": "ISC-041",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "…[trimmed]nalGestureToFail` docs: \"until all gestures … fail (or don't begin at all)\").\n- Photo-follow: use the official pattern (pan-gesture doc \"Example\" section): Reanimated shared value updated in `.onUpdate()`, `useAnimatedStyle` transform — callbacks auto-run as UI-thread worklets when Reanimated is installed (VERI\n\n[... output truncated ...]\n---\n…[trimmed] its source at `RNPanHandler.m:335-342`.\n  - Photo stack: gesture-handler 2.x composition docs (gallery example) and maintainer answer #2328.\n  - Nearby: Expo Router modals docs, and react-native-screens `RNSScreen.mm:1460`.\n- Kai: thr_abh395dxd6, working copy `.lanes/journal-s27`. He won't edit SwipeToReply or PinchNavigator.\n\n</details>\n---\nYes I agree with your loop\n---\nSaved. The loop is now invariant 23 in lessons.md, so every new brief follows it.\n\nClosed 136/337 · parked 37 · next: Max's Nearby and flick loops, Kai's photo-stack fix, Jules' screen checks\n\n<details><summary>Details</summary>\n\n- lessons.md commit 267a531.\n\n</details>\n---\nLEDGER ISC-020: PASS in [path]/.[long-token].md is not in a newer ledger entry; record it.",
+      "current": "Do not tick ISC-020 just because the watchdog flagged it, since the watchdog only reports. Open the cited result file and check that it is a fresh qa result that ran ISC-020's exact check on the exact candidate. Also confirm that a fresh reviewer's code-quality-gate passed if source code changed, and, for a worktree lane, that the lane was merged and the regression smoke checks passed on the merged build. If all of that holds, tick ISC-020 in the ledger without editing its text, update the progress count, and commit locally. If not, leave it open and send a fresh qa brief for the exact check. Then re-check the plan and report with the status footer.",
+      "changed": "Verify the watchdog's claim before recording anything, because the watchdog only reports. Open the cited ISC-020 result file and confirm it is a real, independent qa pass of ISC-020's exact check on the exact candidate, not a builder's self-report or green tests. Confirm a code-quality-gate review passed for any source change, and, if it came from a lane, that it was merged and passed the regression smoke checks on the merged build. If it holds, record the pass for ISC-020 in the ledger without editing its text, update the progress count, and commit locally. Otherwise leave it open and dispatch a fresh qa run. Then re-check the plan and send the status footer.",
+      "labels": {
+        "current": "FAIL",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "changed",
+        "B": "current"
+      },
+      "clef": {
+        "current": "FAIL",
+        "currentConfidence": 0.9449,
+        "changed": null,
+        "changedConfidence": 0.7657
+      },
+      "rule": {
+        "current": null,
+        "changed": "PASS"
+      },
+      "judge": {
+        "A": "PASS",
+        "B": "PASS",
+        "reason": "Both condition the ISC-020 tick on independent QA evidence for its exact check and candidate, not the watchdog alert."
+      },
+      "judgeCalled": true,
+      "randomJudgeSample": false,
+      "final": {
+        "current": "FAIL",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_7sz2mpb37t",
+      "momentId": "8abaa566e0119db50ef0",
+      "itemId": "ISC-050",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "…[trimmed]ndow width (DailyScreen.tsx:114; Weekly :180; Monthly cells stretch :563). iPad and all orientations are allowed (app.config.ts:10, 24). | iPad Air 11-inch (M3), iOS 18.6, portrait and landscape (rotate with the simulator keyboard shortcut). Screenshot Daily, Weekly, Monthly, Settings. Composer and grids must b\n\n[... output truncated ...]\n---\n…[trimmed]es. A tester will run it first. If it fails only on that Apple text, you'll get a question at the end on whether that counts as the app's text.\n\n**Running:** Jules and Mia testing int-15 on the two simulators, and Noor (builder).\n\nClosed 145/337 · parked 37 · next: int-15 check-in results, visual checks on int-16 when a simulator frees up\n---\nBUG ISC-124 (check-in): first Check in showed Nearby but “Couldn’t load places” with no rows, persisting until manual Try again; retry then loaded rows. Evidence: [long-token].png. Stopped check-in group; moving on to pile/swipe.\n---\n…[trimmed]checks he taps \"Try again\" as preparation and judges the check itself. The location states and photo places checks don't depend on it at all.\n\n**Running:** Jules and Mia testing int-15, Noor (motion fixes), Max (Nearby first try).\n\nClosed 145/337 · parked 37 · next: int-15 pile/swipe and check-in results, then int-17 with the newest fixes\n---\nOFF TRACK Mia (qa): int-15 large view + reminders (qa) thr_i87xp2i45k: no real answer for 24 min (expected ~15); 0/30 rows answered; 0 placeholders; 0 messages not acted on.",
+      "current": "Check Mia's thread and result file for int-15 (large view and reminders). If she has truly stalled with 0 of 30 rows answered, stop her thread. Hand her unanswered rows to a fresh qa tester on that simulator, using the same exact int-15 build, and give the tester a full brief with talk-back and PROMISE lines. Leave the ISC-124 Nearby first-load bug with Max. Tick nothing from Mia's lane until a fresh qa result proves each row. Add one line to Lessons about the stall, then post the status footer.",
+      "changed": "Check Mia's thread and result file for int-15. If 0 of 30 rows are still answered, stop her thread. Reassign those rows to a fresh qa tester on the same simulator and int-15 build, with a full brief including talk-back and PROMISE lines. Keep Max on the ISC-124 Nearby first-load bug. Record no result for Mia's rows without real evidence; tick only from a tester's actual proof, never a claim. Add the stall to Lessons, then post the status footer.",
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "changed",
+        "B": "current"
+      },
+      "clef": {
+        "current": "PASS",
+        "currentConfidence": 0.8843,
+        "changed": "PASS",
+        "changedConfidence": 0.8888
+      },
+      "rule": {
+        "current": null,
+        "changed": null
+      },
+      "judge": null,
+      "judgeCalled": false,
+      "randomJudgeSample": false,
+      "final": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_asgvj6urxk",
+      "momentId": "8e0d8b19e9b96f16fac7",
+      "itemId": "ISC-261",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "…[trimmed]les and Mia (wrapping up)\n\n<details><summary>Details</summary>\n\n- `INT15-B-result.md` was updated at 00:35:03. Her newest evidence is `ISC-110-int18b-axe-touch-*.json/png`: the AXe tap, then touch down and up as separate steps.\n- The \"5 messages not acted on\" count includes my steers from the last hour, which she has acted on.\n\n</details>\n---\n…[trimmed]e-on.json]([path]/.[long-token].json). Identity receipts: [int-18]([path]/.[long-token].txt), [int-15]([path]/.[long-token].txt).\n\n**Cleanup:** No recorder or build process started by me remains. Simulator A038 is booted with Journal terminated; I did not touch the other tester’s simulator. A fresh tester can resume from the handoff list.\n---\n…[trimmed]esult replaces the fail now in the ledger.\n\nClosed 184/337 · parked 37 · running: Jules (wrapping up), Sam (reminders, sim 2)\n\n<details><summary>Details</summary>\n\n- Ledger commit f0bec16 records ISC-052 FAIL on int-18. Warnings: none.\n- Sam's result file is `verification/INT19-B-result.md`. He runs only on simulator A038CADD.\n\n</details>\n---\n…[trimmed] row appears to assign Aug 6’s two replies to Aug 7; inspect its retained evidence before correcting it. Also, `build.md` says there are no test switches, unlike the supplied instructions, so verify the authorized route before controlled-switch probes. Argent’s v0.28.0 update notice was not acted on.\n\nNo rows beyond this handoff were run.",
+      "current": "Check the tester's handoff against git and the ledger. Confirm commit f0bec16 records ISC-052 as FAIL on int-18. Then inspect the retained evidence for the row that seems to put Aug 6's two replies on Aug 7, before correcting that recorded result; never edit the item's own text or check. Settle the test-switch conflict from the specs and the build notes before any switch-based probes. Then start a fresh qa tester on the freed simulator to resume the handoff list, leaving Sam's simulator alone. Route ISC-052's failure evidence to a builder as a fix attempt, and tick only from fresh qa proof on the exact build.",
+      "changed": "Check the handoff against git and the ledger, including commit f0bec16 and its ISC-052 FAIL. Inspect the retained evidence for the row that seems to assign Aug 6's replies to Aug 7 before correcting any recorded result; leave item text and checks unchanged. Settle the test-switch route from the specs before any switch-based probes. Start a fresh qa tester on the freed simulator to resume the remaining handoff rows, leaving Sam's simulator alone. Send ISC-052's failure evidence to a builder as the next fix attempt. Record results only from that tester's evidence.",
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "changed",
+        "B": "current"
+      },
+      "clef": {
+        "current": "PASS",
+        "currentConfidence": 0.9745,
+        "changed": "PASS",
+        "changedConfidence": 0.9645
+      },
+      "rule": {
+        "current": "PASS",
+        "changed": null
+      },
+      "judge": null,
+      "judgeCalled": false,
+      "randomJudgeSample": false,
+      "final": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_n5w7aed52h",
+      "momentId": "9f399d13cd218ce9179f",
+      "itemId": "ISC-001",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "…[trimmed] UI flow and fixture import were not run; the CODE-ONLY lane forbids simulator use. `WeeklyScreen.tsx` has a minimal day-key change; coordinate it with Sam’s work.\n**Next:** Verifier should import the GPS and no-location fixtures, open a map, answer each prompt option, and confirm persistence, marker placement, and large-view context.\n---\n---\n…[trimmed]mbined build, together with Noor's crash fix.\n\nStill running: Noor (the crash fix), Sam (photos flying during a pinch), Mia (testing the Monthly view) and Max (the midnight run, for information only).\n\nClosed 32/337 · parked 30 (owner sessions on your iPhone) · next: crash fix, then test the second combined build\n\nNothing needed from you.\n---\n[bb system]\n\n@thread:thr_37k7fehvta completed:\n\nThe single locked Release build is still running. Typecheck, Biome, and all 7 tests passed. I’m pausing without a result packet and will continue when the build finishes.\n---\n…[trimmed]eports the cause, the fix, and that quick check that the app opens.\n\nStill running: Sam (photos flying during a pinch), Mia (testing the Monthly view) and Max (the midnight run, for information only).\n\nClosed 32/337 · parked 30 (owner sessions on your iPhone) · next: crash fix, then test the second combined build\n\nNothing needed from you.\n---\n[bb system]\n\n@thread:thr_yu82vfua5t completed:\n\nFAIL",
+      "current": "Read the FAIL result packet and evidence from that thread to find which rows failed and why. Tick nothing from it. Stop that helper thread. Send a correction brief to the builder that carries the failed evidence, naming bugging-out if the cause is unclear, and count it as one attempt toward the park limit. Do not treat the other thread's passing typecheck and tests as proof; wait for its Release build and a fresh qa run. Re-check whether the failure blocks the second combined build, re-plan in one line if so, and post the status footer.",
+      "changed": "Read the FAIL thread's result and evidence to find the failing rows and the cause. Record nothing as passed. Stop that helper thread. Send a correction brief with the failure evidence to a builder, naming bugging-out if the cause is unclear, and count it as one attempt. Keep waiting for the other thread's Release build; green typecheck and tests are not proof. Re-check whether the failure affects the second combined build, re-plan in one line if needed, and post the status footer.",
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "current",
+        "B": "changed"
+      },
+      "clef": {
+        "current": "PASS",
+        "currentConfidence": 0.9696,
+        "changed": null,
+        "changedConfidence": 0.7113
+      },
+      "rule": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "judge": {
+        "A": "PASS",
+        "B": "PASS",
+        "reason": "Both record no passes from the failed thread and explicitly reject green mechanical checks as proof."
+      },
+      "judgeCalled": true,
+      "randomJudgeSample": false,
+      "final": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_hfuxqngp64",
+      "momentId": "a7421b4446def66b3aed",
+      "itemId": "ISC-014.2",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "…[trimmed]t down, keeping us within the 2-simulator limit.\n\nOnce these checks pass, I'll commit the Daily notes slice and merge it into the main branch.\n\nStill running: the launch-screen fix and the Settings slice.\n\n`Closed 11/337 · parked 29 (owner sessions on your iPhone) · next: tester results for the Daily notes slice`\n\nNothing needed from you.\n---\n[bb system]\n\n@thread:thr_zxrv9rmqan completed:\n\nBLOCKED",
+      "current": "Read the BLOCKED tester's result to learn exactly what blocked the Daily notes slice. Do not commit, merge, or tick that slice. If the blocker can be fixed inside the run (a simulator, build, or setup issue), fix it and re-dispatch a fresh qa tester on the same candidate within the 2-simulator limit. If it is a hard blocker such as missing access or authority, send one 🚦 line and set the run card to waiting-owner. Log a lesson and post the status footer.",
+      "changed": "Read the BLOCKED tester's result for the exact blocker. Hold the Daily notes commit and merge, and record nothing as passed. If the blocker can be fixed inside the run, fix it and re-dispatch a fresh qa tester within the 2-simulator limit. If it is a hard blocker, send one 🚦 line and set the run card to waiting-owner. Log a lesson and post the status footer.",
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "current",
+        "B": "changed"
+      },
+      "clef": {
+        "current": "PASS",
+        "currentConfidence": 0.9624,
+        "changed": null,
+        "changedConfidence": 0.7017
+      },
+      "rule": {
+        "current": null,
+        "changed": null
+      },
+      "judge": {
+        "A": "PASS",
+        "B": "PASS",
+        "reason": "Both leave the blocked Daily notes slice unpassed and route it back to a fresh QA tester."
+      },
+      "judgeCalled": true,
+      "randomJudgeSample": false,
+      "final": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_265af4d9z9",
+      "momentId": "ab2a04a25761387022b3",
+      "itemId": "ISC-001",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "…[trimmed]ng now:**\n- **Noor:** rebuilding the app with the spinner fix.\n- **Tester 1:** on its last row.\n- **Tester 2:** stalled. Its rows move to the next tester.\n\nClosed 74/337 · parked 34 (30 owner sessions on your iPhone + 4 second-finger gestures) · next: rebuilt app, then a visible tester on the first free simulator\n\nNothing needed from you.\n---\n…[trimmed]uild: 13m 54s · Free disk after cleanup: 14 GiB. Requested intermediates and `.build/int7-test` were removed.  \n**Risks:** Xcode warned that the `search` and `snapshotter` captures were unused. The build passed, but I did not verify their runtime-retention effect.  \n**Next:** The built app is ready at the path above; no simulator was run.\n---\nNow committing int-4 and recording its proven rows.",
+      "current": "Commit int-4 locally. Tick only the int-4 rows that have a fresh qa result on the exact int-4 candidate, and update the progress count. Do not tick any int-7 rows from the builder's report; that build passed, but no simulator was run. Next, start a visible fresh qa tester on the first free simulator against the rebuilt app. Give it tester 2's stalled rows and the unused-capture warning as a risk to check. Then re-check and post the status footer.",
+      "changed": "Commit int-4 locally and record as passed only the rows backed by real tester evidence on that build, updating the progress count. Do not count the int-7 build report as proof, because no simulator was run. Start a visible fresh qa tester on the first free simulator against the rebuilt app. Give it tester 2's stalled rows and the unused-capture warning as a risk. Then re-check and post the status footer.",
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "changed",
+        "B": "current"
+      },
+      "clef": {
+        "current": "PASS",
+        "currentConfidence": 0.9734,
+        "changed": "PASS",
+        "changedConfidence": 0.9774
+      },
+      "rule": {
+        "current": null,
+        "changed": "PASS"
+      },
+      "judge": null,
+      "judgeCalled": false,
+      "randomJudgeSample": false,
+      "final": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_p3npdfisj8",
+      "momentId": "bae57a477f9e583f6adc",
+      "itemId": "ISC-075",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "…[trimmed] file it blames is another note that Noor saved while testing. Kai is fixing this exact flaw right now, and the live script still runs the old version until I reload it after his fix, so one or two more of these may show up. I'll treat them as noise until then.\n\nAre we addressing this in the patches that are being worked on at the moment?\n---\n…[trimmed]- The opposite scenario: the builder edits app code outside its working copy. It must still raise an alarm.\n- One real dry run of the script, which must show no false \"off track\" for anyone.\n\nUntil I reload it, the old version may send one or two more of these. Each problem only alerts once, so they won't repeat.\n\nNothing needed from you.\n---\nframe the problem i want to make sure i understand and that our solution is not rigid\n---\n…[trimmed]top and wait for this frame. I keep the current false alarms for now; each problem alerts only once, so it's mild noise.\n   - b) Let him finish as a stopgap, and replace it later.\n\nReply e.g. \"1a 2a 3a, invariants ok\", and I'll save this frame to the task folder before we shape any fix. Nothing loads into the live watch until you confirm.\n---\n[bb system]\n\nChild thread updates:\n\n- @thread:thr_spza34dn92 failed.\n- @thread:thr_szyejvnqv8 failed.\n- @thread:thr_k8scp4jcne failed.",
+      "current": "Do not tick anything and do not load any fix into the live watch. Open the logs of the three failed child threads (thr_spza34dn92, thr_szyejvnqv8, thr_k8scp4jcne) to find out why each one failed. Add one line per surprise to the run card's Lessons section. Re-check whether the failures unblock, break, or reorder anything. Then tell the owner in one short line that the three helpers failed and why, note that the frame still waits for their '1a 2a 3a, invariants ok' style reply, and end with the status footer.",
+      "changed": "Do not mark any item done and do not load anything into the live watch. Inspect the logs of the three failed child threads (thr_spza34dn92, thr_szyejvnqv8, thr_k8scp4jcne) to learn the cause of each failure. Count each as a failed attempt and log a one-line lesson on the run card. Re-check the plan. Briefly tell the owner what failed and why, keep waiting for their answer on the frame before shaping or relaunching any fix, and end with the status footer.",
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "current",
+        "B": "changed"
+      },
+      "clef": {
+        "current": "PASS",
+        "currentConfidence": 0.9841,
+        "changed": "PASS",
+        "changedConfidence": 0.9869
+      },
+      "rule": {
+        "current": null,
+        "changed": null
+      },
+      "judge": null,
+      "judgeCalled": false,
+      "randomJudgeSample": false,
+      "final": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_56vgbgy3nv",
+      "momentId": "c2a33a4d0940f6108595",
+      "itemId": "ISC-213",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "…[trimmed]install, and Argent is already one of the tools the ISA's checks use.\n2. **Try simfleet's dashboard after this run,** if live visibility into the simulators matters to you.\n3. **Leave simslim off our test simulators.** It can switch off the services our checks rely on.\n\nReply 1 and I'll add replay-flow recording to the next tester briefs.\n---\n[bb system]\n\n@thread:thr_rc4syv49ry failed.\n\nReview the thread before deciding next steps.\n---\n[bb system]\n\nChild thread updates:\n\n- @thread:thr_2s7gszycq7 failed.\n- @thread:thr_ee8w9rwem9 failed.",
+      "current": "Review thr_rc4syv49ry first, as the system asked, then thr_2s7gszycq7 and thr_ee8w9rwem9. Read their logs and results to learn why each failed. Tick nothing. For each affected item, decide whether to send a meaningfully different correction brief (naming bugging-out with the failed evidence if the cause is unclear) or to park it with its unlock condition after a third failure. Log a lesson line, re-plan in one line if the critical path moved, and keep the simulator-tool recommendation waiting for the owner's 'Reply 1'.",
+      "changed": "Inspect the failed threads (thr_rc4syv49ry, then thr_2s7gszycq7 and thr_ee8w9rwem9) to find each cause, and stop them. Record no progress. Count each as an attempt on its item. Relaunch only with a meaningfully different approach, or with bugging-out if the cause is unclear, or park the item after three failures. Add a lesson line, re-check the plan, and leave the owner's tool-choice question open with the status footer.",
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "changed",
+        "B": "current"
+      },
+      "clef": {
+        "current": "PASS",
+        "currentConfidence": 0.9846,
+        "changed": "PASS",
+        "changedConfidence": 0.9659
+      },
+      "rule": {
+        "current": "PASS",
+        "changed": null
+      },
+      "judge": {
+        "A": "PASS",
+        "B": "PASS",
+        "reason": "Both explicitly record no progress from the failed threads; neither authorizes an unsupported tick."
+      },
+      "judgeCalled": true,
+      "randomJudgeSample": true,
+      "final": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_n5w7aed52h",
+      "momentId": "d7fdac7c90d2af3e5120",
+      "itemId": "ISC-195",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "…[trimmed] UI flow and fixture import were not run; the CODE-ONLY lane forbids simulator use. `WeeklyScreen.tsx` has a minimal day-key change; coordinate it with Sam’s work.\n**Next:** Verifier should import the GPS and no-location fixtures, open a map, answer each prompt option, and confirm persistence, marker placement, and large-view context.\n---\n---\n…[trimmed]mbined build, together with Noor's crash fix.\n\nStill running: Noor (the crash fix), Sam (photos flying during a pinch), Mia (testing the Monthly view) and Max (the midnight run, for information only).\n\nClosed 32/337 · parked 30 (owner sessions on your iPhone) · next: crash fix, then test the second combined build\n\nNothing needed from you.\n---\n[bb system]\n\n@thread:thr_37k7fehvta completed:\n\nThe single locked Release build is still running. Typecheck, Biome, and all 7 tests passed. I’m pausing without a result packet and will continue when the build finishes.\n---\n…[trimmed]eports the cause, the fix, and that quick check that the app opens.\n\nStill running: Sam (photos flying during a pinch), Mia (testing the Monthly view) and Max (the midnight run, for information only).\n\nClosed 32/337 · parked 30 (owner sessions on your iPhone) · next: crash fix, then test the second combined build\n\nNothing needed from you.\n---\n[bb system]\n\n@thread:thr_yu82vfua5t completed:\n\nFAIL",
+      "current": "Read the result packet and evidence from thr_yu82vfua5t to see which check failed and on which build. Tick nothing and do not commit or merge that candidate. Keep the related items open. Send a correction brief carrying the failed evidence to the owning builder, naming bugging-out if the cause is unclear, and count it as an attempt. Keep waiting for thr_37k7fehvta's Release build, which has no result packet yet. Log a lesson, re-plan in one line if the critical path moved, and end with the status footer.",
+      "changed": "Inspect thr_yu82vfua5t's FAIL report and evidence to identify the failing check and its cause. Do not record progress or merge. Treat it as a failed attempt. Route a meaningfully different correction brief with the failed evidence to the responsible builder, or start bugging-out if the cause is unclear. Treat thr_37k7fehvta as still in progress, since its build has not finished and it has no result packet. Log the lesson and update the owner with the status footer.",
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "changed",
+        "B": "current"
+      },
+      "clef": {
+        "current": "PASS",
+        "currentConfidence": 0.9701,
+        "changed": "PASS",
+        "changedConfidence": 0.9611
+      },
+      "rule": {
+        "current": "PASS",
+        "changed": null
+      },
+      "judge": {
+        "A": "PASS",
+        "B": "PASS",
+        "reason": "Both keep failed items open and treat the unfinished build without a result packet as no basis for progress."
+      },
+      "judgeCalled": true,
+      "randomJudgeSample": true,
+      "final": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_r798msifwq",
+      "momentId": "e1980811c656b64d5edc",
+      "itemId": "ISC-215",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "…[trimmed]s there, the builder fixes the first real error, with up to 3 tries.\n\n**Still running:**\n- the Monthly and Settings testers\n- the hold menu and reminders builder, code only; it joins the next merge\n\n`Closed 24/337 · parked 30 (owner sessions on your iPhone) · next: Monthly and Settings test results, merged build`\n\nNothing needed from you.\n---\n…[trimmed]tion, per instruction. Notification delivery, permission prompts, tap routing, and blur still need integration testing; both added packages require the native build.\n**Next:** Integration step should build the candidate, connect the wrapper to replies/swipe, wire Settings to the permission helper, then verify the notification journey.\n---\n---\n…[trimmed]rge adds the hold menu, reactions, reminders, and sounds and taps.\n2. Then pinch between Daily, Weekly and Monthly.\n3. Then applying the Theme setting to every screen.\n4. Then photo places on maps.\n\n`Closed 24/337 · parked 30 (owner sessions on your iPhone) · next: Monthly and Settings test results, merged build`\n\nNothing needed from you.\n---\n[bb system]\n\n@thread:thr_4es6e72v5t completed:\n\nPASS",
+      "current": "Read thr_4es6e72v5t's result packet and evidence files to confirm it is a fresh qa run of each item's exact check on the exact merged candidate. If confirmed, tick exactly those items in the ledger and update the progress count. Commit locally (merging the lane first if needed), rerun the regression journeys, and stop the thread. Re-check whether this unblocks the next merge, then post the updated count with the status footer while the other tester and the code-only builder keep running.",
+      "changed": "Open thr_4es6e72v5t's PASS result and its cited evidence. Check that an independent qa ran the exact item checks on the exact candidate build, not a builder's self-report or green tests. If it holds, update the ledger and the progress count for only those items. Commit locally and rerun the regression journeys. Stop the finished thread. Re-check the plan and report the new count with the status footer.",
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "current",
+        "B": "changed"
+      },
+      "clef": {
+        "current": null,
+        "currentConfidence": 0.5647,
+        "changed": "PASS",
+        "changedConfidence": 0.9637
+      },
+      "rule": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "judge": {
+        "A": "PASS",
+        "B": "PASS",
+        "reason": "Both require checking fresh independent QA evidence for each exact item and candidate before ticking only those proven items."
+      },
+      "judgeCalled": true,
+      "randomJudgeSample": false,
+      "final": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_hfuxqngp64",
+      "momentId": "e51e268d874309a97b20",
+      "itemId": "ISC-009",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "…[trimmed]t down, keeping us within the 2-simulator limit.\n\nOnce these checks pass, I'll commit the Daily notes slice and merge it into the main branch.\n\nStill running: the launch-screen fix and the Settings slice.\n\n`Closed 11/337 · parked 29 (owner sessions on your iPhone) · next: tester results for the Daily notes slice`\n\nNothing needed from you.\n---\n[bb system]\n\n@thread:thr_zxrv9rmqan completed:\n\nBLOCKED",
+      "current": "Read thr_zxrv9rmqan's BLOCKED result to learn exactly what blocked the Daily notes test. Do not tick, commit, or merge the Daily notes slice. If the blocker is a fixable prerequisite, such as a build or simulator problem within the 2-simulator limit, make one narrow recovery and relaunch a fresh qa. If it is owner-only access or authority, park the item or send one 🚦 line. Log the lesson, re-check the plan, and end with the status footer.",
+      "changed": "Inspect thr_zxrv9rmqan's BLOCKED report to find its cause. Hold the Daily notes commit and merge, and record no progress. Fix the prerequisite once (for example free a simulator, or rebuild the candidate) and send a fresh qa. If the blocker needs the owner, park the item with its unlock condition or raise one 🚦 line. Log a lesson and report with the status footer.",
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "current",
+        "B": "changed"
+      },
+      "clef": {
+        "current": "PASS",
+        "currentConfidence": 0.9867,
+        "changed": "PASS",
+        "changedConfidence": 0.9542
+      },
+      "rule": {
+        "current": null,
+        "changed": null
+      },
+      "judge": null,
+      "judgeCalled": false,
+      "randomJudgeSample": false,
+      "final": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_265af4d9z9",
+      "momentId": "ea3ba42c2ac18b08d75d",
+      "itemId": "ISC-211",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "…[trimmed]ng now:**\n- **Noor:** rebuilding the app with the spinner fix.\n- **Tester 1:** on its last row.\n- **Tester 2:** stalled. Its rows move to the next tester.\n\nClosed 74/337 · parked 34 (30 owner sessions on your iPhone + 4 second-finger gestures) · next: rebuilt app, then a visible tester on the first free simulator\n\nNothing needed from you.\n---\n…[trimmed]uild: 13m 54s · Free disk after cleanup: 14 GiB. Requested intermediates and `.build/int7-test` were removed.  \n**Risks:** Xcode warned that the `search` and `snapshotter` captures were unused. The build passed, but I did not verify their runtime-retention effect.  \n**Next:** The built app is ready at the path above; no simulator was run.\n---\nNow committing int-4 and recording its proven rows.",
+      "current": "Commit the accepted int-4 work locally. In the same ledger edit, tick only the int-4 rows that have a fresh QA result from running the exact check on the exact int-4 build, and update the progress count. Do not tick anything from the new build report: it only says the app compiled, no simulator ran, and the unused-capture warnings are unverified. Next, move stalled Tester 2's rows to a fresh QA tester and send that tester, with a PROMISE line, to test the rebuilt app on the first free simulator. Log the stalled tester as a lesson on the run card, then re-check the plan and end with the status footer.",
+      "changed": "Commit the accepted int-4 work locally. Record only the int-4 rows that a test run actually proved, and update the progress count. Done means a run proved it, and ticking from a builder's report or a passing build is an anti-pattern. The new build report proves nothing, because no simulator ran. Next, send a fresh QA tester, with a PROMISE line, to test the rebuilt app on the first free simulator, and move stalled Tester 2's rows to that tester. Log the stall as a lesson, re-check the plan, and end with the status footer.",
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "changed",
+        "B": "current"
+      },
+      "clef": {
+        "current": "PASS",
+        "currentConfidence": 0.9726,
+        "changed": "PASS",
+        "changedConfidence": 0.9317
+      },
+      "rule": {
+        "current": null,
+        "changed": "PASS"
+      },
+      "judge": null,
+      "judgeCalled": false,
+      "randomJudgeSample": false,
+      "final": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_7sz2mpb37t",
+      "momentId": "eda0ecf2dc2896775ac8",
+      "itemId": "ISC-051",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "…[trimmed]ndow width (DailyScreen.tsx:114; Weekly :180; Monthly cells stretch :563). iPad and all orientations are allowed (app.config.ts:10, 24). | iPad Air 11-inch (M3), iOS 18.6, portrait and landscape (rotate with the simulator keyboard shortcut). Screenshot Daily, Weekly, Monthly, Settings. Composer and grids must b\n\n[... output truncated ...]\n---\n…[trimmed]es. A tester will run it first. If it fails only on that Apple text, you'll get a question at the end on whether that counts as the app's text.\n\n**Running:** Jules and Mia testing int-15 on the two simulators, and Noor (builder).\n\nClosed 145/337 · parked 37 · next: int-15 check-in results, visual checks on int-16 when a simulator frees up\n---\nBUG ISC-124 (check-in): first Check in showed Nearby but “Couldn’t load places” with no rows, persisting until manual Try again; retry then loaded rows. Evidence: [long-token].png. Stopped check-in group; moving on to pile/swipe.\n---\n…[trimmed]checks he taps \"Try again\" as preparation and judges the check itself. The location states and photo places checks don't depend on it at all.\n\n**Running:** Jules and Mia testing int-15, Noor (motion fixes), Max (Nearby first try).\n\nClosed 145/337 · parked 37 · next: int-15 pile/swipe and check-in results, then int-17 with the newest fixes\n---\nOFF TRACK Mia (qa): int-15 large view + reminders (qa) thr_i87xp2i45k: no real answer for 24 min (expected ~15); 0/30 rows answered; 0 placeholders; 0 messages not acted on.",
+      "current": "Handle the OFF TRACK alert. Check Mia's thread (thr_i87xp2i45k), which has answered 0 of 30 rows in 24 minutes. If she is stuck, stop her thread and give her 30 int-15 large-view and reminder rows to a fresh QA tester on the freed simulator. That tester's brief carries the TALK-BACK block, a PROMISE line, and a result filename. Tick nothing from Mia. Keep the ISC-124 bug with Max's first-try Nearby fix. Log a one-line lesson about the stall, re-check the plan, and send a short status update with the footer.",
+      "changed": "Act on the OFF TRACK alert for Mia (thr_i87xp2i45k), who has answered 0 of 30 rows in 24 minutes. Check her thread. If she is stalled, stop it and send her int-15 large-view and reminder rows to a fresh QA tester on that simulator, with the TALK-BACK block, a PROMISE line, and a result filename. Record no progress for those rows. Leave ISC-124 with Max's Nearby fix. Log the stall as a lesson, re-check the plan, and post the status footer.",
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "current",
+        "B": "changed"
+      },
+      "clef": {
+        "current": null,
+        "currentConfidence": 0.7498,
+        "changed": null,
+        "changedConfidence": 0.6306
+      },
+      "rule": {
+        "current": null,
+        "changed": null
+      },
+      "judge": {
+        "A": "PASS",
+        "B": "PASS",
+        "reason": "Both withhold all progress from Mia's unanswered rows and transfer them to a fresh QA tester."
+      },
+      "judgeCalled": true,
+      "randomJudgeSample": false,
+      "final": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_r798msifwq",
+      "momentId": "f33817e7c419a8520c8a",
+      "itemId": "ISC-223",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "…[trimmed]s there, the builder fixes the first real error, with up to 3 tries.\n\n**Still running:**\n- the Monthly and Settings testers\n- the hold menu and reminders builder, code only; it joins the next merge\n\n`Closed 24/337 · parked 30 (owner sessions on your iPhone) · next: Monthly and Settings test results, merged build`\n\nNothing needed from you.\n---\n…[trimmed]tion, per instruction. Notification delivery, permission prompts, tap routing, and blur still need integration testing; both added packages require the native build.\n**Next:** Integration step should build the candidate, connect the wrapper to replies/swipe, wire Settings to the permission helper, then verify the notification journey.\n---\n---\n…[trimmed]rge adds the hold menu, reactions, reminders, and sounds and taps.\n2. Then pinch between Daily, Weekly and Monthly.\n3. Then applying the Theme setting to every screen.\n4. Then photo places on maps.\n\n`Closed 24/337 · parked 30 (owner sessions on your iPhone) · next: Monthly and Settings test results, merged build`\n\nNothing needed from you.\n---\n[bb system]\n\n@thread:thr_4es6e72v5t completed:\n\nPASS",
+      "current": "Do not tick anything from the bare PASS notice alone. Open thr_4es6e72v5t's result rows and evidence files in the verify folder. Confirm that this fresh QA tester (Monthly or Settings) ran each item's exact check on the exact merged build, with a screenshot for every row. Tick only the rows that are backed by that evidence, update the count, commit locally, and stop the tester's thread. Then re-check: start the next merged build with the hold menu, reactions, and reminders work, and give the free simulator to the next slice. Send the status footer.",
+      "changed": "Read thr_4es6e72v5t's actual result rows and evidence before recording anything. A bare PASS is not proof, and done means a run proved it. Confirm that the rows ran on the exact merged build and that their evidence files exist. Record only the rows that are backed, update the progress count, commit locally, and stop the thread. Then re-check the plan: move on to the next merge with the hold menu, reactions, and reminders, and put the next tester on the freed simulator. Post the status footer.",
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "changed",
+        "B": "current"
+      },
+      "clef": {
+        "current": "PASS",
+        "currentConfidence": 0.9374,
+        "changed": null,
+        "changedConfidence": 0.7237
+      },
+      "rule": {
+        "current": null,
+        "changed": "PASS"
+      },
+      "judge": {
+        "A": "PASS",
+        "B": "PASS",
+        "reason": "Both reject the bare PASS and require checking the independent tester's item-level evidence on the exact merged build before ticking only supported rows."
+      },
+      "judgeCalled": true,
+      "randomJudgeSample": false,
+      "final": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_7b73djecdb",
+      "momentId": "fa13c99320aae9b45e82",
+      "itemId": "ISC-001",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "i had to kill the simulator is was causing the machine to slow down and lag\n---\n…[trimmed]ay.\n- **Jules keeps the one remaining simulator.**\n\nLoad should drop sharply within a few minutes of Noor's shutdown.\n\n**Want it lighter still?** Tell me and I'll also pause Jules, so no simulators run until you're done using the Mac.\n\nClosed 132/337 · parked 34 · next: Noor returns and shuts down, Jules continues alone, Kai's watch fixes\n---\n…[trimmed]he agents directly, as I am now.\n\nOkay, I think pausing was a good move, but what is the new version that you updated Kai instruction with? I want to understand, so I know what to expect, and I don't have to bother you incorrectly. What is the narrow version that you're referring to? And what is the one hour mention that you have in here?\n---\n…[trimmed] expect from me:** no watch-script alerts in this chat during the silent hour. The next thing you'll see about the script is that report.\n\n**When it's worth messaging me yourself:** only if you see something on the Mac that the watch can't, like the machine lagging (as you just did) or an agent visibly stuck in BB. Nothing else needs you.\n---\n…[trimmed]Host load peaked at 267.59; ISC-124’s timing threshold was not validly tested. ISC-120 diagnostic cases 1 and 2 failed to open Settings (`-10814`, screenshots stayed on Home); case 3 was not run.  \n**Next:** Rerun the 51 paused rows on one simulator; investigate Settings routing for ISC-120/218 first. Target simulator was shut down.  \n---",
+      "current": "Tick nothing from this report. Peak host load was 267.59, so ISC-124's timing was not validly tested, and ISC-120 cases 1 and 2 failed with -10814 while case 3 never ran. Log a lesson and set the run card's machine limit to one simulator. Send ISC-120 and ISC-218 Settings routing to a builder as a debugging brief that names bugging-out and carries the failed screenshots. Once host load is back to normal, rerun the 51 paused rows with one fresh QA tester on one simulator. Tell the owner the plan in one short update with the status footer.",
+      "changed": "Record none of these rows as done. The overload made the ISC-124 timing check invalid, and ISC-120 cases 1 and 2 failed (-10814) while case 3 never ran. Log a lesson and cap the run at one simulator. Send a builder to debug ISC-120 and ISC-218 Settings routing using bugging-out and the failed evidence. When load is normal, rerun the 51 paused rows with a single fresh QA tester on one simulator. Send the owner a brief update with the status footer.",
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "current",
+        "B": "changed"
+      },
+      "clef": {
+        "current": "PASS",
+        "currentConfidence": 0.98,
+        "changed": "PASS",
+        "changedConfidence": 0.9867
+      },
+      "rule": {
+        "current": null,
+        "changed": null
+      },
+      "judge": null,
+      "judgeCalled": false,
+      "randomJudgeSample": false,
+      "final": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_r798msifwq",
+      "momentId": "fcb9afb4b10df049acbb",
+      "itemId": "ISC-221",
+      "week": "2026-W41",
+      "behavior": 2,
+      "context": "…[trimmed]s there, the builder fixes the first real error, with up to 3 tries.\n\n**Still running:**\n- the Monthly and Settings testers\n- the hold menu and reminders builder, code only; it joins the next merge\n\n`Closed 24/337 · parked 30 (owner sessions on your iPhone) · next: Monthly and Settings test results, merged build`\n\nNothing needed from you.\n---\n…[trimmed]tion, per instruction. Notification delivery, permission prompts, tap routing, and blur still need integration testing; both added packages require the native build.\n**Next:** Integration step should build the candidate, connect the wrapper to replies/swipe, wire Settings to the permission helper, then verify the notification journey.\n---\n---\n…[trimmed]rge adds the hold menu, reactions, reminders, and sounds and taps.\n2. Then pinch between Daily, Weekly and Monthly.\n3. Then applying the Theme setting to every screen.\n4. Then photo places on maps.\n\n`Closed 24/337 · parked 30 (owner sessions on your iPhone) · next: Monthly and Settings test results, merged build`\n\nNothing needed from you.\n---\n[bb system]\n\n@thread:thr_4es6e72v5t completed:\n\nPASS",
+      "current": "Treat the bare PASS from thr_4es6e72v5t as unconfirmed until its evidence is checked. Read its result rows and evidence files, and confirm a fresh QA run of each exact check on the exact merged build. Tick only the rows that are backed, update the count, commit locally, and stop the thread. Then re-check the plan, start the next merge with the hold menu, reactions, and reminders, give the free simulator to the next slice, and send the status footer.",
+      "changed": "Inspect thr_4es6e72v5t's result file and evidence before recording progress. A one-word PASS is not proof that a run happened. Confirm the rows ran on the exact merged build with evidence. Record only the rows that are proven, update the count, commit locally, and stop the thread. Re-check the plan, move on to the next merged build with the hold menu, reactions, and reminders, and send the status footer.",
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "blindLabels": {
+        "A": "current",
+        "B": "changed"
+      },
+      "clef": {
+        "current": null,
+        "currentConfidence": 0.7637,
+        "changed": null,
+        "changedConfidence": 0.6244
+      },
+      "rule": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "judge": {
+        "A": "PASS",
+        "B": "PASS",
+        "reason": "Both require inspecting the tester's result rows and evidence before recording only proven rows on the exact merged build. A states fresh QA explicitly; B uses the independent tester identified in context."
+      },
+      "judgeCalled": true,
+      "randomJudgeSample": false,
+      "final": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "disagreement": null
+    }
+  ],
+  "identical": [
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_56vgbgy3nv",
+      "momentId": "1649379f56c40fb801f3",
+      "itemId": "ISC-101.1",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9714,
+          "changed": "PASS",
+          "changedConfidence": 0.9714
+        },
+        "rule": {
+          "current": null,
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      }
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_294zb7yhvt",
+      "momentId": "17de7059ede89ffb4afa",
+      "itemId": "ISC-011",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.952,
+          "changed": "PASS",
+          "changedConfidence": 0.952
+        },
+        "rule": {
+          "current": null,
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      }
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_265af4d9z9",
+      "momentId": "19c55e50f4a64b2c191f",
+      "itemId": "ISC-169",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9783,
+          "changed": "PASS",
+          "changedConfidence": 0.9783
+        },
+        "rule": {
+          "current": null,
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      }
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_n5w7aed52h",
+      "momentId": "2407ffe6d8e9441a106a",
+      "itemId": "ISC-202",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9787,
+          "changed": "PASS",
+          "changedConfidence": 0.9787
+        },
+        "rule": {
+          "current": null,
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      }
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_265af4d9z9",
+      "momentId": "2d3d22253a37b53f9fd1",
+      "itemId": "ISC-212",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9783,
+          "changed": "PASS",
+          "changedConfidence": 0.9783
+        },
+        "rule": {
+          "current": null,
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      }
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_hfuxqngp64",
+      "momentId": "355bf26cbefa6350561d",
+      "itemId": "ISC-013.1",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9763,
+          "changed": "PASS",
+          "changedConfidence": 0.9812
+        },
+        "rule": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      }
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_56vgbgy3nv",
+      "momentId": "365c326de0dea2fbbeac",
+      "itemId": "ISC-157",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.973,
+          "changed": "PASS",
+          "changedConfidence": 0.972
+        },
+        "rule": {
+          "current": "PASS",
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      }
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_56vgbgy3nv",
+      "momentId": "3b56c489155ed5ed6330",
+      "itemId": "ISC-027",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.973,
+          "changed": "PASS",
+          "changedConfidence": 0.9746
+        },
+        "rule": {
+          "current": "PASS",
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      }
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_6b5x4wsmkw",
+      "momentId": "3d038f76234192847649",
+      "itemId": "ISC-062",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9827,
+          "changed": "PASS",
+          "changedConfidence": 0.9739
+        },
+        "rule": {
+          "current": null,
+          "changed": "PASS"
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      }
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_hfuxqngp64",
+      "momentId": "50489e282c0fec97837e",
+      "itemId": "ISC-013.2",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9813,
+          "changed": "PASS",
+          "changedConfidence": 0.977
+        },
+        "rule": {
+          "current": null,
+          "changed": "PASS"
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      }
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_hfuxqngp64",
+      "momentId": "59f6851e0680e7421421",
+      "itemId": "ISC-007",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9836,
+          "changed": "PASS",
+          "changedConfidence": 0.9721
+        },
+        "rule": {
+          "current": null,
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      }
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_b6qxikxqvb",
+      "momentId": "5a53eb6242d7e86ee25c",
+      "itemId": "ISC-013.1",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9585,
+          "changed": "PASS",
+          "changedConfidence": 0.9826
+        },
+        "rule": {
+          "current": "PASS",
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      }
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_294zb7yhvt",
+      "momentId": "63e40688832bd0cbe29c",
+      "itemId": "ISC-004",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9744,
+          "changed": "PASS",
+          "changedConfidence": 0.9712
+        },
+        "rule": {
+          "current": null,
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      }
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_p3npdfisj8",
+      "momentId": "6c4d7334cd05cee7d6c1",
+      "itemId": "ISC-261",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9645,
+          "changed": "PASS",
+          "changedConfidence": 0.9655
+        },
+        "rule": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      }
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_svie8fuf5y",
+      "momentId": "81032050d29b6b2ee2f7",
+      "itemId": "ISC-041",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "FAIL",
+        "changed": "FAIL"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": "FAIL",
+          "currentConfidence": 0.9449,
+          "changed": "FAIL",
+          "changedConfidence": 0.8973
+        },
+        "rule": {
+          "current": null,
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "FAIL",
+          "changed": "FAIL"
+        },
+        "disagreement": null
+      }
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_7sz2mpb37t",
+      "momentId": "8abaa566e0119db50ef0",
+      "itemId": "ISC-050",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.8843,
+          "changed": null,
+          "changedConfidence": 0.5299
+        },
+        "rule": {
+          "current": null,
+          "changed": null
+        },
+        "judge": {
+          "A": "PASS",
+          "B": "PASS",
+          "reason": "Both withhold progress from Mia's unanswered rows and require fresh QA proof on the exact int-15 candidate."
+        },
+        "judgeCalled": true,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      }
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_asgvj6urxk",
+      "momentId": "8e0d8b19e9b96f16fac7",
+      "itemId": "ISC-261",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9745,
+          "changed": "PASS",
+          "changedConfidence": 0.9655
+        },
+        "rule": {
+          "current": "PASS",
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      }
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_n5w7aed52h",
+      "momentId": "9f399d13cd218ce9179f",
+      "itemId": "ISC-001",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9696,
+          "changed": "PASS",
+          "changedConfidence": 0.9695
+        },
+        "rule": {
+          "current": "PASS",
+          "changed": null
+        },
+        "judge": {
+          "A": "PASS",
+          "B": "PASS",
+          "reason": "Both tick nothing from the failure and require fresh QA rather than relying on the other thread's green checks."
+        },
+        "judgeCalled": true,
+        "randomJudgeSample": true,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      }
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_hfuxqngp64",
+      "momentId": "a7421b4446def66b3aed",
+      "itemId": "ISC-014.2",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9624,
+          "changed": "PASS",
+          "changedConfidence": 0.9602
+        },
+        "rule": {
+          "current": null,
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      }
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_265af4d9z9",
+      "momentId": "ab2a04a25761387022b3",
+      "itemId": "ISC-001",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9734,
+          "changed": "PASS",
+          "changedConfidence": 0.9765
+        },
+        "rule": {
+          "current": null,
+          "changed": "PASS"
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      }
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_p3npdfisj8",
+      "momentId": "bae57a477f9e583f6adc",
+      "itemId": "ISC-075",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9841,
+          "changed": "PASS",
+          "changedConfidence": 0.9813
+        },
+        "rule": {
+          "current": null,
+          "changed": "PASS"
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      }
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_56vgbgy3nv",
+      "momentId": "c2a33a4d0940f6108595",
+      "itemId": "ISC-213",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9846,
+          "changed": "PASS",
+          "changedConfidence": 0.97
+        },
+        "rule": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      }
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_n5w7aed52h",
+      "momentId": "d7fdac7c90d2af3e5120",
+      "itemId": "ISC-195",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9701,
+          "changed": "PASS",
+          "changedConfidence": 0.9597
+        },
+        "rule": {
+          "current": "PASS",
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      }
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_r798msifwq",
+      "momentId": "e1980811c656b64d5edc",
+      "itemId": "ISC-215",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": null,
+          "currentConfidence": 0.5647,
+          "changed": "FAIL",
+          "changedConfidence": 0.8155
+        },
+        "rule": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "judge": {
+          "A": "PASS",
+          "B": "PASS",
+          "reason": "Both make ticks conditional on fresh QA evidence covering the exact item checks and candidate."
+        },
+        "judgeCalled": true,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": {
+          "candidate": "changed",
+          "rule": "PASS",
+          "clef": "FAIL"
+        }
+      }
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_hfuxqngp64",
+      "momentId": "e51e268d874309a97b20",
+      "itemId": "ISC-009",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9867,
+          "changed": "PASS",
+          "changedConfidence": 0.9533
+        },
+        "rule": {
+          "current": null,
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      }
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_265af4d9z9",
+      "momentId": "ea3ba42c2ac18b08d75d",
+      "itemId": "ISC-211",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9726,
+          "changed": "PASS",
+          "changedConfidence": 0.9649
+        },
+        "rule": {
+          "current": null,
+          "changed": "PASS"
+        },
+        "judge": {
+          "A": "PASS",
+          "B": "PASS",
+          "reason": "Both limit int-4 ticks to exact-build, exact-check fresh QA results and explicitly exclude the build-only report."
+        },
+        "judgeCalled": true,
+        "randomJudgeSample": true,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      }
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_7sz2mpb37t",
+      "momentId": "eda0ecf2dc2896775ac8",
+      "itemId": "ISC-051",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": null,
+          "currentConfidence": 0.7498,
+          "changed": "PASS",
+          "changedConfidence": 0.9644
+        },
+        "rule": {
+          "current": null,
+          "changed": null
+        },
+        "judge": {
+          "A": "PASS",
+          "B": "PASS",
+          "reason": "Both explicitly tick nothing from the stalled lane and arrange fresh independent QA for its rows."
+        },
+        "judgeCalled": true,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      }
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_r798msifwq",
+      "momentId": "f33817e7c419a8520c8a",
+      "itemId": "ISC-223",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9374,
+          "changed": "PASS",
+          "changedConfidence": 0.9543
+        },
+        "rule": {
+          "current": null,
+          "changed": "PASS"
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      }
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_7b73djecdb",
+      "momentId": "fa13c99320aae9b45e82",
+      "itemId": "ISC-001",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.98,
+          "changed": "PASS",
+          "changedConfidence": 0.9827
+        },
+        "rule": {
+          "current": null,
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      }
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_r798msifwq",
+      "momentId": "fcb9afb4b10df049acbb",
+      "itemId": "ISC-221",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": null,
+          "currentConfidence": 0.7637,
+          "changed": "FAIL",
+          "changedConfidence": 0.9356
+        },
+        "rule": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "judge": {
+          "A": "PASS",
+          "B": "PASS",
+          "reason": "Both require item-specific evidence from a fresh QA run of each exact check on the exact merged candidate before ticking supported rows."
+        },
+        "judgeCalled": true,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": {
+          "candidate": "changed",
+          "rule": "PASS",
+          "clef": "FAIL"
+        }
+      }
+    }
+  ],
+  "positiveControl": [
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_56vgbgy3nv",
+      "momentId": "1649379f56c40fb801f3",
+      "itemId": "ISC-101.1",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9714,
+          "changed": "PASS",
+          "changedConfidence": 0.975
+        },
+        "rule": {
+          "current": null,
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      },
+      "weakOutput": "Check the three failed child threads (thr_rc4syv49ry, thr_2s7gszycq7, thr_ee8w9rwem9) against their result files, git, and the ledger. Record nothing as done from failed or self-reported work. Count each as one failed attempt and add one line to Lessons. Re-delegate each item with a meaningfully different brief: use bugging-out with the failed evidence when the cause is unclear, add the PROMISE line and result file, and use a fresh reviewer then a fresh qa. Park any item on its third failure, with its unlock condition. Do not block on the owner's open choice about the Argent tool."
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_294zb7yhvt",
+      "momentId": "17de7059ede89ffb4afa",
+      "itemId": "ISC-011",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.952,
+          "changed": "PASS",
+          "changedConfidence": 0.952
+        },
+        "rule": {
+          "current": null,
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      },
+      "weakOutput": "The trace is empty, so the next step is the start check. Confirm the user explicitly invoked hivecall and gave a goal. If no goal was given, ask for it and stop. If this resumes an earlier run, read HOW-TO-WORK.md, the run card, the ledger, and watchdog/lessons.md, and check any handoff against git before trusting it. If this is a new run, draft the goal contract and plan, then ask the one kickoff question: Open a PR at the end? (yes / no)."
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_265af4d9z9",
+      "momentId": "19c55e50f4a64b2c191f",
+      "itemId": "ISC-169",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9783,
+          "changed": "PASS",
+          "changedConfidence": 0.9859
+        },
+        "rule": {
+          "current": null,
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      },
+      "weakOutput": "Commit int-4 locally and record only the rows backed by a fresh qa pass on that exact build. Rerun the regression smoke checks after the merge. Do not count the rebuilt spinner-fix app as proof: it only compiled and was never run on a simulator, and the skill forbids ticking from builder reports or green tests. Next, send a fresh visible qa tester to the first free simulator to verify the spinner-fix rows and the stalled Tester 2's rows on that build. Note the unused-capture warning as a risk."
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_n5w7aed52h",
+      "momentId": "2407ffe6d8e9441a106a",
+      "itemId": "ISC-202",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9787,
+          "changed": "PASS",
+          "changedConfidence": 0.9382
+        },
+        "rule": {
+          "current": null,
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      },
+      "weakOutput": "Read thr_yu82vfua5t's FAIL result and its evidence. Do not record those items as done. Count this as one failed attempt and add one line to Lessons. Send a correction brief with the failing evidence: use bugging-out if the cause is unclear, and require a fresh reviewer then a fresh qa. Park the item on its third failure. Do not count thr_37k7fehvta's passing typecheck and unit tests as proof. That builder paused without a result packet, so wait for its build and then verify it with a fresh qa. Keep the other lanes going."
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_265af4d9z9",
+      "momentId": "2d3d22253a37b53f9fd1",
+      "itemId": "ISC-212",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9783,
+          "changed": "PASS",
+          "changedConfidence": 0.9859
+        },
+        "rule": {
+          "current": null,
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      },
+      "weakOutput": "Commit int-4 locally and record only the rows backed by a fresh qa pass on that exact build. Rerun the regression smoke checks after the merge. Do not count the rebuilt spinner-fix app as proof: it only compiled and was never run on a simulator, and the skill forbids ticking from builder reports or green tests. Next, send a fresh visible qa tester to the first free simulator to verify the spinner-fix rows and the stalled Tester 2's rows on that build. Note the unused-capture warning as a risk."
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_hfuxqngp64",
+      "momentId": "355bf26cbefa6350561d",
+      "itemId": "ISC-013.1",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9763,
+          "changed": "PASS",
+          "changedConfidence": 0.9327
+        },
+        "rule": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      },
+      "weakOutput": "Read the output of thr_zxrv9rmqan to find the reason it was blocked. Hold the Daily notes commit, merge and tick, because a blocked tester proves nothing and the slice needs a passing tester plus the regression smoke checks after merging. Fix the blocker if it is in scope, then run a fresh tester on the exact candidate with a changed approach, counted as one attempt. Log a lesson line, stop the thread, and keep the other lanes running."
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_56vgbgy3nv",
+      "momentId": "365c326de0dea2fbbeac",
+      "itemId": "ISC-157",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.973,
+          "changed": "PASS",
+          "changedConfidence": 0.9742
+        },
+        "rule": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      },
+      "weakOutput": "Look at the three failed threads to find the root cause. Do not commit, merge or tick any of their work. Handle a shared cause once: set waiting-usage for a usage limit, clean up for a full disk, or cut lanes for simulator limits. Otherwise re-brief each slice with a different hypothesis, naming bugging-out if the cause is unclear, and count it as one attempt. Log lessons, stop the failed threads, and re-plan only if dependencies moved."
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_56vgbgy3nv",
+      "momentId": "3b56c489155ed5ed6330",
+      "itemId": "ISC-027",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.973,
+          "changed": "PASS",
+          "changedConfidence": 0.9809
+        },
+        "rule": {
+          "current": "PASS",
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      },
+      "weakOutput": "Find out why the three child threads failed by reading their logs. Make no ledger ticks and no commits. Retry each affected item with a meaningfully different brief, or park it after three failures with its unlock condition; if the cause is a usage limit, set the run card to waiting-usage. Log a lesson line, stop the failed threads, and keep other lanes busy."
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_6b5x4wsmkw",
+      "momentId": "3d038f76234192847649",
+      "itemId": "ISC-062",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9827,
+          "changed": "PASS",
+          "changedConfidence": 0.9723
+        },
+        "rule": {
+          "current": null,
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      },
+      "weakOutput": "Read thr_wkf9fqpnsz to find the reason for the block. Then send a fresh tester at the exact int-15 build, confirmed by its fingerprints, to run the unmarked rows' checks and the regression smoke checks. Do not tick or commit from the builder's build or tests, or from int-14 results. Log a lesson line and stop the blocked thread."
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_hfuxqngp64",
+      "momentId": "50489e282c0fec97837e",
+      "itemId": "ISC-013.2",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9813,
+          "changed": "PASS",
+          "changedConfidence": 0.977
+        },
+        "rule": {
+          "current": null,
+          "changed": "PASS"
+        },
+        "judge": {
+          "A": "PASS",
+          "B": "PASS",
+          "reason": "Both keep Daily notes unticked after BLOCKED and require a fresh independent tester on the exact candidate."
+        },
+        "judgeCalled": true,
+        "randomJudgeSample": true,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      },
+      "weakOutput": "Read why tester thread thr_zxrv9rmqan was blocked. Do not commit, merge or tick Daily notes without a tester pass. Resolve the blocker, then relaunch a fresh tester on the exact build with a different approach. Log a lesson line, stop the thread, and keep the other lanes moving."
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_hfuxqngp64",
+      "momentId": "59f6851e0680e7421421",
+      "itemId": "ISC-007",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9836,
+          "changed": "PASS",
+          "changedConfidence": 0.8583
+        },
+        "rule": {
+          "current": null,
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      },
+      "weakOutput": "Do not commit, merge or tick the Daily notes slice, since QA did not pass. Read the BLOCKED thread's output and log for the exact blocker, and check the candidate against git and the ledger. Re-brief a fresh qa tester with a meaningfully different approach to run the exact check on the exact candidate, or park the item with its unlock condition if only the owner can fix it. Add a Lessons line, stop the finished thread, re-check the plan, continue the other lanes, and end with the status footer."
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_b6qxikxqvb",
+      "momentId": "5a53eb6242d7e86ee25c",
+      "itemId": "ISC-013.1",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9585,
+          "changed": "PASS",
+          "changedConfidence": 0.9819
+        },
+        "rule": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "judge": {
+          "A": "PASS",
+          "B": "PASS",
+          "reason": "Both explicitly withhold ticks from the interrupted thread and inspect its claims rather than accepting them."
+        },
+        "judgeCalled": true,
+        "randomJudgeSample": true,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      },
+      "weakOutput": "Inspect the interrupted Jules thread (thr_bcvnk7is8u): its log, its output and the simulator state, verified against git and the ledger. Do not accept or tick any of its claims. If it is stuck at the check-in popup, add a Lessons line and send a fresh, bounded brief with a different way past the popup, or park the item with its unlock condition if a human is needed. Report the findings and the reminder-interval answer to the user, with the status footer."
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_294zb7yhvt",
+      "momentId": "63e40688832bd0cbe29c",
+      "itemId": "ISC-004",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9744,
+          "changed": "PASS",
+          "changedConfidence": 0.9757
+        },
+        "rule": {
+          "current": null,
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      },
+      "weakOutput": "The trace is empty, so the start conditions fail: no explicit invocation and no goal. Do nothing to the repo or ledger, and do not delegate. Ask the user for the goal and confirm the explicit hivecall invocation, then stop."
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_p3npdfisj8",
+      "momentId": "6c4d7334cd05cee7d6c1",
+      "itemId": "ISC-261",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9645,
+          "changed": null,
+          "changedConfidence": 0.6929
+        },
+        "rule": {
+          "current": "PASS",
+          "changed": null
+        },
+        "judge": {
+          "A": "PASS",
+          "B": "PASS",
+          "reason": "Both reject progress claims from the failed threads and leave their items unaccepted."
+        },
+        "judgeCalled": true,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      },
+      "weakOutput": "Inspect the three failed child threads (logs, outputs, and their state in git and the ledger) to learn the cause, and accept nothing from them. Stop them and log the lessons. Keep the frame open: no watchdog-fix shaping until the user confirms. Re-plan the unrelated items in chat and re-dispatch them with a different approach, or park them with their unlock conditions. Report briefly to the user that the frame still awaits their reply, with the status footer."
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_svie8fuf5y",
+      "momentId": "81032050d29b6b2ee2f7",
+      "itemId": "ISC-041",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "FAIL",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": "FAIL",
+          "currentConfidence": 0.9449,
+          "changed": "PASS",
+          "changedConfidence": 0.8227
+        },
+        "rule": {
+          "current": null,
+          "changed": "PASS"
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "FAIL",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      },
+      "weakOutput": "Treat the watchdog alert as a prompt to check, not as proof. Open the ISC-020 result file and confirm it is an independent qa pass of the exact check on the exact candidate. Confirm code-quality-gate passed if source changed, and, if it came from a lane, that it was merged and passed the regression smoke checks. Only then mark ISC-020 done in the ledger without editing its text, update the progress count, and commit locally. Otherwise keep it open and dispatch a fresh qa run. Re-check the plan and end with the status footer."
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_7sz2mpb37t",
+      "momentId": "8abaa566e0119db50ef0",
+      "itemId": "ISC-050",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.8843,
+          "changed": "PASS",
+          "changedConfidence": 0.9081
+        },
+        "rule": {
+          "current": null,
+          "changed": "PASS"
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      },
+      "weakOutput": "Treat Mia's lane as stalled. Confirm in her thread and result file that no rows were answered. Stop her thread and give the int-15 large view and reminders rows to a fresh qa tester on that simulator, against the same int-15 build. Keep Max on the ISC-124 Nearby first-load fix. Do not record any of those rows as done without real tester evidence. Log the stall in Lessons and continue with the status footer."
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_asgvj6urxk",
+      "momentId": "8e0d8b19e9b96f16fac7",
+      "itemId": "ISC-261",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9745,
+          "changed": "PASS",
+          "changedConfidence": 0.9789
+        },
+        "rule": {
+          "current": "PASS",
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      },
+      "weakOutput": "Verify the handoff against git and the ledger. Inspect the evidence behind the questionable Aug 6 versus Aug 7 row before correcting it. Settle which test-switch route is authorized. Then start a fresh qa tester on the freed simulator to resume the handoff rows, staying off Sam's simulator. Send ISC-052's FAIL evidence to a builder as the next fix attempt. Record outcomes only from real tester evidence."
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_n5w7aed52h",
+      "momentId": "9f399d13cd218ce9179f",
+      "itemId": "ISC-001",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9696,
+          "changed": null,
+          "changedConfidence": 0.7464
+        },
+        "rule": {
+          "current": "PASS",
+          "changed": null
+        },
+        "judge": {
+          "A": "PASS",
+          "B": "PASS",
+          "reason": "Both withhold passed status and wait for the build and fresh QA instead of accepting mechanical checks."
+        },
+        "judgeCalled": true,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      },
+      "weakOutput": "Open the FAIL thread's result and evidence and identify the failed rows. Mark nothing passed. Stop that thread. Send a correction brief with the evidence to the builder, naming bugging-out if the cause is unclear, and count it as one attempt. Wait for the other thread's build and a fresh qa run before trusting its checks. Re-check the critical path for the second combined build, then post the status footer."
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_hfuxqngp64",
+      "momentId": "a7421b4446def66b3aed",
+      "itemId": "ISC-014.2",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9624,
+          "changed": null,
+          "changedConfidence": 0.6123000000000001
+        },
+        "rule": {
+          "current": null,
+          "changed": null
+        },
+        "judge": {
+          "A": "PASS",
+          "B": "PASS",
+          "reason": "Both forbid marking the blocked slice passed and require fresh QA after resolving its prerequisite."
+        },
+        "judgeCalled": true,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      },
+      "weakOutput": "Inspect the BLOCKED result for the Daily notes slice. Do not commit, merge, or mark anything passed. Clear the blocker if it is within the run's authority and re-run a fresh qa tester on the exact candidate. Otherwise send a single 🚦 line and set the run card to waiting-owner while the launch-screen and Settings lanes continue. Log a lesson and post the status footer."
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_265af4d9z9",
+      "momentId": "ab2a04a25761387022b3",
+      "itemId": "ISC-001",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9734,
+          "changed": "PASS",
+          "changedConfidence": 0.9831
+        },
+        "rule": {
+          "current": null,
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      },
+      "weakOutput": "Finish the local int-4 commit and record only the rows that tester evidence proves, updating the count. Then send a visible fresh qa tester to the first free simulator to test the rebuilt app, including tester 2's reassigned rows. The build report alone is not proof. Re-check the plan and post the status footer."
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_p3npdfisj8",
+      "momentId": "bae57a477f9e583f6adc",
+      "itemId": "ISC-075",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9841,
+          "changed": "PASS",
+          "changedConfidence": 0.9672
+        },
+        "rule": {
+          "current": null,
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      },
+      "weakOutput": "Review the three failed child threads (thr_spza34dn92, thr_szyejvnqv8, thr_k8scp4jcne) to find their failure causes, and stop any that are still lingering. Do not mark progress. Add a lesson line to the run card. Keep the frame pending the owner's confirmation and make no change to the live watch. Send a brief note covering the failures and the still-open frame decision, plus the status footer."
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_56vgbgy3nv",
+      "momentId": "c2a33a4d0940f6108595",
+      "itemId": "ISC-213",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9846,
+          "changed": "PASS",
+          "changedConfidence": 0.9698
+        },
+        "rule": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      },
+      "weakOutput": "Review thr_rc4syv49ry and the two other failed threads to find their failure causes. Mark nothing done. Write a lesson line. For each affected item, either relaunch a meaningfully different attempt (bugging-out if the cause is unclear) or park it with an exact unlock condition once three attempts have failed. Keep other actionable lanes busy, and end with a short status update plus the footer, with the owner's tool decision still open."
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_n5w7aed52h",
+      "momentId": "d7fdac7c90d2af3e5120",
+      "itemId": "ISC-195",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9701,
+          "changed": "PASS",
+          "changedConfidence": 0.9695
+        },
+        "rule": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      },
+      "weakOutput": "Review thr_yu82vfua5t's FAIL evidence to find the failing check and its root cause. Mark nothing done and hold the combined build from merge. Brief a fix attempt that differs from the previous one and carries the failed evidence. Wait for thr_37k7fehvta's build result. Record a lesson, send a one-line re-plan if needed, and end with the status footer."
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_r798msifwq",
+      "momentId": "e1980811c656b64d5edc",
+      "itemId": "ISC-215",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": null,
+          "currentConfidence": 0.5647,
+          "changed": "PASS",
+          "changedConfidence": 0.9488
+        },
+        "rule": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "judge": {
+          "A": "PASS",
+          "B": "PASS",
+          "reason": "Both inspect the PASS packet and permit ticks only for independently proven exact checks on the exact candidate."
+        },
+        "judgeCalled": true,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      },
+      "weakOutput": "Inspect thr_4es6e72v5t's PASS packet and evidence to confirm it independently verified the exact checks on the exact candidate. Only then mark those items done in the ledger and update the count. Commit locally and rerun the regression journeys after any merge. Stop the thread. Re-check the plan for the next merge, and give a brief status with the footer."
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_hfuxqngp64",
+      "momentId": "e51e268d874309a97b20",
+      "itemId": "ISC-009",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9867,
+          "changed": "PASS",
+          "changedConfidence": 0.9738
+        },
+        "rule": {
+          "current": null,
+          "changed": null
+        },
+        "judge": {
+          "A": "PASS",
+          "B": "PASS",
+          "reason": "A explicitly forbids ticks; B records no pass and sends the blocked slice to fresh QA. Neither ticks without proof."
+        },
+        "judgeCalled": true,
+        "randomJudgeSample": true,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      },
+      "weakOutput": "Read thr_zxrv9rmqan's BLOCKED output to diagnose the blocker. Do not commit or merge the Daily notes slice. Resolve the prerequisite with one narrow recovery, then rerun a fresh qa on that slice. Escalate with a 🚦 line or park the item only if the blocker is owner-only or a hard blocker. Record the lesson, re-check the plan, and end with the status footer."
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_265af4d9z9",
+      "momentId": "ea3ba42c2ac18b08d75d",
+      "itemId": "ISC-211",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9726,
+          "changed": "PASS",
+          "changedConfidence": 0.9652
+        },
+        "rule": {
+          "current": null,
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      },
+      "weakOutput": "Commit int-4 locally. Mark only the int-4 rows whose checks a real test run proved, and update the progress count. Do not count the new build's compile-only report, which ran no simulator, as proof. Next, start a fresh QA tester, with a PROMISE line, on the rebuilt app on the first free simulator, and give it stalled Tester 2's rows. Log the stall as a lesson, re-check the plan, and end with the status footer."
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_7sz2mpb37t",
+      "momentId": "eda0ecf2dc2896775ac8",
+      "itemId": "ISC-051",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": null,
+          "currentConfidence": 0.7498,
+          "changed": null,
+          "changedConfidence": 0.5793
+        },
+        "rule": {
+          "current": null,
+          "changed": null
+        },
+        "judge": {
+          "A": "PASS",
+          "B": "PASS",
+          "reason": "Both record nothing done from Mia and route the unanswered int-15 rows to fresh QA."
+        },
+        "judgeCalled": true,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      },
+      "weakOutput": "Respond to the OFF TRACK alert. Inspect Mia's thread (thr_i87xp2i45k). If she is still stuck at 0 of 30, stop her and move her int-15 large-view and reminder rows to a fresh QA tester on the freed simulator, with a PROMISE line and a result filename. Record nothing as done from Mia. ISC-124 stays with Max. Log the stall as a lesson, re-check the plan, and end with the status footer."
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_r798msifwq",
+      "momentId": "f33817e7c419a8520c8a",
+      "itemId": "ISC-223",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.9374,
+          "changed": "FAIL",
+          "changedConfidence": 0.9504
+        },
+        "rule": {
+          "current": null,
+          "changed": "PASS"
+        },
+        "judge": {
+          "A": "PASS",
+          "B": "PASS",
+          "reason": "Both condition each tick on the independent tester's evidence for that item's exact check on the exact merged build; neither accepts the completion notice alone."
+        },
+        "judgeCalled": true,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": {
+          "candidate": "changed",
+          "rule": "PASS",
+          "clef": "FAIL"
+        }
+      },
+      "weakOutput": "Open thr_4es6e72v5t's result file and evidence rather than trusting the one-word PASS. Check that every claimed row ran its exact check on the exact merged build and has evidence. Record only the rows that are proven, update the count, commit locally, and stop the thread. Re-check the plan, continue to the next merged build with the hold menu, reactions, and reminders, give the free simulator to the next slice, and send the status footer."
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_7b73djecdb",
+      "momentId": "fa13c99320aae9b45e82",
+      "itemId": "ISC-001",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "changed",
+          "B": "current"
+        },
+        "clef": {
+          "current": "PASS",
+          "currentConfidence": 0.98,
+          "changed": "PASS",
+          "changedConfidence": 0.9774
+        },
+        "rule": {
+          "current": null,
+          "changed": null
+        },
+        "judge": null,
+        "judgeCalled": false,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      },
+      "weakOutput": "Do not mark anything done from this report: the ISC-124 timing check was invalid under overload, and ISC-120 failed (-10814) with case 3 never run. Log the overload lesson and keep the run at one simulator. Send ISC-120 and ISC-218 Settings routing to a builder for debugging, with bugging-out and the failed evidence. Once load is normal, rerun the 51 paused rows with one fresh QA tester on one simulator. Post a brief update with the status footer."
+    },
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_r798msifwq",
+      "momentId": "fcb9afb4b10df049acbb",
+      "itemId": "ISC-221",
+      "week": "2026-W41",
+      "behavior": 2,
+      "labels": {
+        "current": "PASS",
+        "changed": "PASS"
+      },
+      "details": {
+        "blindLabels": {
+          "A": "current",
+          "B": "changed"
+        },
+        "clef": {
+          "current": null,
+          "currentConfidence": 0.7637,
+          "changed": null,
+          "changedConfidence": 0.7852
+        },
+        "rule": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "judge": {
+          "A": "PASS",
+          "B": "PASS",
+          "reason": "Both reject reliance on the bare PASS and restrict ticks to rows proven by the independent tester's inspected evidence on the exact merged build."
+        },
+        "judgeCalled": true,
+        "randomJudgeSample": false,
+        "final": {
+          "current": "PASS",
+          "changed": "PASS"
+        },
+        "disagreement": null
+      },
+      "weakOutput": "Open thr_4es6e72v5t's result rows and evidence rather than trusting the bare PASS. Record only the rows that are proven on the exact merged build, update the count, commit locally, and stop the thread. Re-check the plan, continue with the next merged build with the hold menu, reactions, and reminders, give the free simulator to the next slice, and post the status footer."
+    }
+  ],
+  "judgeRuleDisagreements": [],
+  "flippedMoments": [
+    {
+      "runId": "thr_55cgwjcgzk",
+      "eventId": "evt_svie8fuf5y",
+      "momentId": "81032050d29b6b2ee2f7",
+      "itemId": "ISC-041",
+      "week": "2026-W41",
+      "behavior": 2,
+      "current": "FAIL",
+      "changed": "PASS",
+      "judge": {
+        "A": "PASS",
+        "B": "PASS",
+        "reason": "Both condition the ISC-020 tick on independent QA evidence for its exact check and candidate, not the watchdog alert."
+      }
+    }
+  ],
+  "calibration": {
+    "clef": {
+      "tier1": {
+        "n": 0,
+        "TPR": null,
+        "TNR": null
+      },
+      "tier2": {
+        "n": 55,
+        "TPR": 0.945,
+        "TNR": null
+      }
+    },
+    "judge": {
+      "tier1": {
+        "n": 0,
+        "TPR": null,
+        "TNR": null
+      },
+      "tier2": {
+        "n": 26,
+        "TPR": 1.0,
+        "TNR": null
+      }
+    }
+  }
+}
