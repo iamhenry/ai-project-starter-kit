@@ -26,11 +26,15 @@ ROLE: Terminal worker, read-only advisor. Do not edit files, run writing command
 4. Recommended next step: the smallest thing that solves the problem under the constraints. Name what to keep, cut, and add.
 5. What good looks like: a concrete test a non-expert can use to tell if your recommendation works.
 6. Unique angle: one thing the other advisors would likely miss.
+
+Return only your own raw answer. Do not compare, merge, or summarize other advisors' views.
 ```
 
 With no existing solution, drop "What exists now" and "Options", and answer item 1 as the biggest gap to close; keep the answer order.
 
-## Synthesis
+## Synthesis (main agent only)
+
+The advisors return raw answers only. The agent that invoked this skill, in the parent thread, writes the synthesis after all three answers arrive.
 
 Open with one sentence: the verdicts and whether they converge.
 

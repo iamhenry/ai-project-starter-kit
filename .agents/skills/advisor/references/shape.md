@@ -29,9 +29,13 @@ ROLE: Terminal worker, read-only advisor. Do not edit files, run writing command
 5. Risks and upkeep: what breaks and how often; how you keep it low maintenance.
 6. Proof: the smallest real check that shows it works, readable by a non-expert.
 7. Unique angle: one thing the other advisors would likely miss.
+
+Return only your own raw answer. Do not compare, merge, or write a combined spec.
 ```
 
-## Synthesis into a spec
+## Synthesis into a spec (main agent only)
+
+The advisors return raw shapes only. The agent that invoked this skill, in the parent thread, merges them into the spec after all three answers arrive.
 
 Merge the three shapes. Where they agree, adopt. Where they differ, pick one, give the reason, and list the runner-up. Escalate to the user only choices that change scope, cost, or a decided item.
 

@@ -29,7 +29,7 @@ Three advisors answer the same neutral brief, separately. You compare them. The 
 
    Resolve ids with `bb thread show --self --json`; if that fails, find the current thread per the BB delegation rules. Never omit the parent. Default models, unless the user names others: `openai/gpt-6.1-sol`, `anthropic/claude-sonnet-5-5`, `ollama-cloud/glm-5.3`. Check `bb provider models opencode` if one is missing.
 4. **Do not wait or poll.** Tell the user the three threads started and end the turn. Continue when completion notices arrive. Read full answers with `bb thread output <id>`.
-5. **Synthesize** per the playbook. Attribute views to models only in the synthesis, never in a later brief.
+5. **Synthesize yourself** per the playbook. Advisors return raw answers only; you, the parent agent, compare them. Attribute views to models only in the synthesis, never in a later brief.
 
 ## Neutral brief checklist
 
@@ -44,3 +44,4 @@ Three advisors answer the same neutral brief, separately. You compare them. The 
 - Role: terminal worker, read-only. Do not edit files, run writing commands, spawn threads or subagents, or ask other models.
 - May read the repo and search the web; cite external sources as URLs.
 - Be adversarial, concise, and answer in the playbook's numbered order.
+- Return only your own raw answer. Do not synthesize, compare, or merge with other advisors.
