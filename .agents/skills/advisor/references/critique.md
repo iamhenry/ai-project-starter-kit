@@ -1,0 +1,43 @@
+# Critique playbook
+
+Input: a problem statement, and optionally an existing solution to judge against it.
+
+## Brief template
+
+```markdown
+ROLE: Terminal worker, read-only advisor. Do not edit files, run writing commands, spawn threads or subagents, or ask other models. You may read the repo and search the web; cite URLs.
+
+## Problem statement
+<the user's problem, in their words or confirmed by them>
+
+## Owner premises and constraints
+- <decided items and hard limits, labeled as the owner's>
+
+## What exists now (facts only)
+<the current solution: what it does, size, cost, where it lives; strengths and weaknesses at equal depth>
+
+## Options on the table (if any)
+<each option with its strongest case and its costs, same depth; no ranking>
+
+## Answer in this order (under ~700 words)
+1. Verdict: does what exists solve the problem? yes / partly / no, one paragraph.
+2. Is the problem statement right? What is wrong or missing, from first principles.
+3. Risks: what will break, cost, or need upkeep.
+4. Recommended next step: the smallest thing that solves the problem under the constraints. Name what to keep, cut, and add.
+5. What good looks like: a concrete test a non-expert can use to tell if your recommendation works.
+6. Unique angle: one thing the other advisors would likely miss.
+```
+
+With no existing solution, drop "What exists now" and "Options", and answer item 1 as the biggest gap to close; keep the answer order.
+
+## Synthesis
+
+Open with one sentence: the verdicts and whether they converge.
+
+- **Agree:** points all three share.
+- **Disagree:** a table, topic by advisor.
+- **Unique angles:** one per advisor, attributed.
+- **What it means:** in the user's terms; note any bias you introduced in the brief.
+- **Next step:** 2 to 3 options ranked, your pick with one reason.
+
+Link each advisor thread. Do not present agreement as proof when the brief leaned toward one answer.
