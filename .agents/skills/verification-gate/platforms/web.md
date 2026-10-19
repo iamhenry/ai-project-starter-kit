@@ -15,7 +15,8 @@ Run the plan-named commands, or reuse a receipt per `SKILL.md`.
 ## Observable
 
 - Load `agent-browser` once and follow its CLI-served guidance. Read only the section you need.
-- Cycle: snapshot, interact, re-snapshot. Use a named session. Screenshots for static proof; a recording only when motion is the claim.
+- Cycle: `snapshot -i --delta`, interact, `snapshot -i --delta`. Use a named session. Screenshots for static proof; a recording only when motion is the claim.
+- Delta output is a patch, not a full tree: apply `treeChange` to the previous snapshot as you move through the flow, and take a `--full` snapshot for the state you are about to assert or retain as proof.
 - `mobile-web`: same, with a mobile viewport or device profile.
 - `desktop`: `agent-browser` for Electron when available. For other native apps, use `cua-driver` on the installed app's visible controls.
 - Good looks like: the user completes the flow and the app-owned result is visible. Example: submit a prompt once and capture the generated result inside the app, not the request log.
