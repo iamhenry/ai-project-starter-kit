@@ -104,7 +104,7 @@ Prefer the smallest repro path that still proves the bug clearly.
      records instead of extending blind waits. Report a UI/backend mismatch as
      the observed boundary; do not collapse it into success or failure without
      user-observable proof.
-   - Use `agent-browser` directly for browser setup, navigation, and evidence capture.
+   - Use `agent-browser` directly for browser setup, navigation, and evidence capture. Use `snapshot -i --delta` for repeated checks; take a `--full` snapshot for the final proof state.
    - Capture `📸` when a single static proof state is enough.
    - Capture `🎥` only when timing or the action sequence is part of the symptom; an interaction used to reach a static broken state does not by itself require video.
 

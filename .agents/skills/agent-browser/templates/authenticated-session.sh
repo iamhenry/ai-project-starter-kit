@@ -3,6 +3,11 @@
 # Purpose: Login once, save state, reuse for subsequent runs
 # Usage: ./authenticated-session.sh <login-url> [state-file]
 #
+# RECOMMENDED: Use the auth vault instead of this template:
+#   echo "<pass>" | agent-browser auth save myapp --url <login-url> --username <user> --password-stdin
+#   agent-browser auth login myapp
+# The auth vault stores credentials securely and the LLM never sees passwords.
+#
 # Environment variables:
 #   APP_USERNAME - Login username/email
 #   APP_PASSWORD - Login password
@@ -29,17 +34,20 @@ echo "Authentication workflow: $LOGIN_URL"
 # ================================================================
 if [[ -f "$STATE_FILE" ]]; then
     echo "Loading saved state from $STATE_FILE..."
-    agent-browser state load "$STATE_FILE"
-    agent-browser open "$LOGIN_URL"
-    agent-browser wait --load networkidle
+    if agent-browser --state "$STATE_FILE" open "$LOGIN_URL" 2>/dev/null; then
+        agent-browser wait --load load
 
-    CURRENT_URL=$(agent-browser get url)
-    if [[ "$CURRENT_URL" != *"login"* ]] && [[ "$CURRENT_URL" != *"signin"* ]]; then
-        echo "Session restored successfully"
-        agent-browser snapshot -i
-        exit 0
+        CURRENT_URL=$(agent-browser get url)
+        if [[ "$CURRENT_URL" != *"login"* ]] && [[ "$CURRENT_URL" != *"signin"* ]]; then
+            echo "Session restored successfully"
+            agent-browser snapshot -i
+            exit 0
+        fi
+        echo "Session expired, performing fresh login..."
+        agent-browser close 2>/dev/null || true
+    else
+        echo "Failed to load state, re-authenticating..."
     fi
-    echo "Session expired, performing fresh login..."
     rm -f "$STATE_FILE"
 fi
 
@@ -48,7 +56,8 @@ fi
 # ================================================================
 echo "Opening login page..."
 agent-browser open "$LOGIN_URL"
-agent-browser wait --load networkidle
+agent-browser wait --load domcontentloaded
+agent-browser wait --fn "(() => { const usable = (el) => { const style = getComputedStyle(el); return !el.disabled && !el.readOnly && style.display !== 'none' && style.visibility !== 'hidden' && el.getClientRects().length > 0; }; const username = Array.from(document.querySelectorAll('input[type=email], input[type=text], input[autocomplete=username], input[name*=email i], input[name*=user i], input[name*=login i]')).some(usable); const password = Array.from(document.querySelectorAll('input[type=password]')).some(usable); return username && password; })()"
 
 echo ""
 echo "Login form structure:"
@@ -72,14 +81,17 @@ exit 0
 # : "${APP_PASSWORD:?Set APP_PASSWORD environment variable}"
 #
 # agent-browser open "$LOGIN_URL"
-# agent-browser wait --load networkidle
+# agent-browser wait --load domcontentloaded
+# agent-browser wait --fn "(() => { const usable = (el) => { const style = getComputedStyle(el); return !el.disabled && !el.readOnly && style.display !== 'none' && style.visibility !== 'hidden' && el.getClientRects().length > 0; }; const username = Array.from(document.querySelectorAll('input[type=email], input[type=text], input[autocomplete=username], input[name*=email i], input[name*=user i], input[name*=login i]')).some(usable); const password = Array.from(document.querySelectorAll('input[type=password]')).some(usable); return username && password; })()"
 # agent-browser snapshot -i
 #
 # # Fill credentials (update refs to match your form)
 # agent-browser fill @e1 "$APP_USERNAME"
 # agent-browser fill @e2 "$APP_PASSWORD"
 # agent-browser click @e3
-# agent-browser wait --load networkidle
+# Replace this with the app-specific post-login wait, for example:
+# agent-browser wait --url "**/dashboard"
+# agent-browser wait --text "Welcome"
 #
 # # Verify login succeeded
 # FINAL_URL=$(agent-browser get url)

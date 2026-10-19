@@ -26,6 +26,10 @@ The CLI serves skill content that always matches the installed version,
 so instructions never go stale. The content in this stub cannot change
 between releases, which is why it just points at `skills get core`.
 
+## Snapshot deltas
+
+For repeated snapshots in one tab, use `snapshot -i --delta`: the first call is full, later calls return `unchanged` or a compact delta. Keep the same flags between calls; each tab and option set has its own baseline. Apply `treeChange` to the previous tree; use `--full` to reset or capture complete state.
+
 ## Recording guardrails
 
 - Before recording, read the CLI-served recording docs (`agent-browser skills get core --full`) and follow the current `record start` / `record stop` sequence.
@@ -44,12 +48,29 @@ Load a specialized skill when the task falls outside browser web pages:
 agent-browser skills get electron          # Electron desktop apps (VS Code, Slack, Discord, Figma, ...)
 agent-browser skills get slack             # Slack workspace automation
 agent-browser skills get dogfood           # Exploratory testing / QA / bug hunts
+agent-browser skills get derive-client     # Record a HAR, derive a standalone API client for a site
 agent-browser skills get vercel-sandbox    # agent-browser inside Vercel Sandbox microVMs
+agent-browser skills get protected-vercel-deployments # Access protected Vercel deployments
 agent-browser skills get agentcore         # AWS Bedrock AgentCore cloud browsers
 ```
 
 Run `agent-browser skills list` to see everything available on the
 installed version.
+
+## Local references
+
+The CLI-served content is authoritative. These local copies match v0.39.1 and are useful when you want a quick read without running the CLI:
+
+- [authentication.md](references/authentication.md) — login, saved state, OAuth/SSO, 2FA.
+- [session-management.md](references/session-management.md) — named sessions, state, cleanup.
+- [snapshot-refs.md](references/snapshot-refs.md) — snapshots, refs, troubleshooting.
+- [commands.md](references/commands.md) — full command reference and the delta contract.
+- [streaming.md](references/streaming.md) — live viewport streaming over WebSocket.
+- [webgpu.md](references/webgpu.md) — WebGPU launch preset for screenshots and video.
+- [proxy-support.md](references/proxy-support.md) — HTTP/SOCKS proxies.
+- [video-recording.md](references/video-recording.md) — WebM/MP4 evidence capture.
+
+The `templates/` directory holds copy-paste scripts for [authenticated sessions](templates/authenticated-session.sh), [capture workflows](templates/capture-workflow.sh), and [form automation](templates/form-automation.sh).
 
 ## Why agent-browser
 
