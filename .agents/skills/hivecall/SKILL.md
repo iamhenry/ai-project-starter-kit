@@ -1,6 +1,6 @@
 ---
 name: hivecall
-version: 1.0.1
+version: 1.0.2
 description: Autonomous multi-agent run that works through a large ledger of tasks until each is done or parked. Expensive. The user must explicitly invoke it by typing hivecall, /hivecall or @hivecall. Agents must never load or start it on their own, from inference, or from words like swarm, parallel or many tasks. Run by the orchestrator only.
 ---
 
