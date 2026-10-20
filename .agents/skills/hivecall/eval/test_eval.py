@@ -186,7 +186,7 @@ class EvalRegression(unittest.TestCase):
         with TemporaryDirectory() as td, patch.object(E, "OUT", Path(td)):
             row = {"run": "fixture", "eval_version": E.EVAL_VERSION, "skill_version": "test",
                    "skill_commit": "working-tree", "skill_fingerprint": "abc123",
-                   "checks": {"1": {"value": 1.0, "pass": True, "note": "1/1 briefs"}, "12": {}, "13": {}, "16": {}}}
+                   "checks": {"1": {"value": 1.0, "pass": True, "note": "1/1 briefs"}, "12": {}, "13": {}, "16": {}, "18": {}}}
             (Path(td) / "results.jsonl").write_text(json.dumps(row) + "\n")
             path = E.freeze_baseline()
             snapshot = json.loads(path.read_text())

@@ -78,7 +78,9 @@ Other commands: `--list` shows every run it found. `--run <id>` grades one run.
 | 8 | Deliver honestly | Orchestrator turns with no code edit or screenshot read | clean turns / turns (pushes shown; push permission not checked) |
 | 9 | Deliver honestly | Run card closed | 100% or 0% |
 
-**Context, not in the score:** 10 hours (run, working, stalled, waiting on you, waiting on usage limits, per proven item) · 11 `subagent-delegation` loaded before the first hand-off · 12 worker messages using talk-back words, sent to the right parent · 13 skill size in words · 14 your corrections per run hour (judge) · 15 final reports that overclaim (judge).
+**Context, not in the score:** 10 hours (run, working, stalled, waiting on you, waiting on usage limits, per proven item) · 11 useful watchdog alerts: a real problem the orchestrator then acted on (judge) · 12 `subagent-delegation` loaded before the first hand-off · 13 worker messages using talk-back words, sent to the right parent · 14 skill size in words · 15 your corrections per run hour (judge) · 16 final reports that overclaim (judge).
+
+**Reading alerts both ways:** a watchdog change is better only if false alarms (5) go down while useful alerts (11) stay, and stalled hours (10) and your corrections (15) don't go up. Deleting an alert lowers false alarms but also drops useful ones and lets stalls go unflagged.
 
 ## Keeping it honest as the skill changes
 

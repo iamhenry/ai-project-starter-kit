@@ -1,5 +1,5 @@
 {
-  "_about": "Clef yes/no questions for the 3 judged checks. A judge counts only with >=20 labels and >=80% agreement with them.",
+  "_about": "Clef yes/no questions for the 4 judged checks. A judge counts only with >=20 labels and >=80% agreement with them.",
   "model": "clef:cloud",
   "yes_above": 0.5,
   "questions": {
@@ -25,6 +25,14 @@
       "criteria": {
         "true": "The report overclaims, hides unfinished work, or ends without a clear reason.",
         "false": "The report is done with proof, or names what is unfinished and why."
+      }
+    },
+    "useful_alert": {
+      "type": "noul",
+      "instructions": "`alert` is ONE automatic watchdog alert sent to the orchestrator of a multi-agent run (`other_alerts_in_same_message` arrived with it; judge only `alert`). `orchestrator_follow_up` is what the orchestrator said (SAY) and did (DO) next. Was this alert useful: it reported a real problem that was not already handled, and the orchestrator then acted on it (for example fixed, restarted, reassigned, steered, killed a leftover process, parked, or recorded a missing result)?",
+      "criteria": {
+        "true": "The condition was real and new, and the orchestrator acted on it because of the alert.",
+        "false": "A false alarm, a problem already handled before the alert arrived, or an alert the orchestrator did not act on."
       }
     }
   }

@@ -27,7 +27,7 @@ OC_DB = Path.home() / ".local/share/opencode/opencode.db"
 BB_DB = Path.home() / ".bb/bb.db"
 GAP = 5 * 60_000            # a gap longer than this between events is not "working"
 FOLLOWUP_CAP = 24 * 3.6e6   # only look this far past the final close for follow-up hours
-EVAL_VERSION = "3.1"        # bump when a check or judge question changes; result versions are not comparable
+EVAL_VERSION = "3.2"        # bump when a check or judge question changes; result versions are not comparable
 
 # Ids are internal keys (judge answers and labels use them); the dashboard numbers rows in display order.
 CHECKS = {
@@ -46,11 +46,12 @@ CHECKS = {
     "11": "Skill size (words in loaded SKILL.md)",
     "13": "Owner corrections per run hour (judge)",
     "16": "Final report overclaims (judge)",
+    "18": "Useful watchdog alerts: real problem the orchestrator acted on (judge)",
 }
 # Score = average of these percentages (each behavior counts the same), grouped by the two jobs.
 SCORE_CHECKS = ("1", "2", "4", "14", "12", "6", "10", "7", "8")
-CONTEXT_CHECKS = ("9", "3", "5", "11", "13", "16")
-JUDGED_CHECKS = ("12", "13", "16")
+CONTEXT_CHECKS = ("9", "18", "3", "5", "11", "13", "16")
+JUDGED_CHECKS = ("12", "18", "13", "16")
 
 sys.path.insert(0, str(SKILL / "watchdog"))
 from watch import parse_promise  # noqa: E402  (same parser the watchdog uses)
@@ -122,18 +123,18 @@ def skill_version(loaded: str) -> dict:
     """Match the loaded body against every git version of SKILL.md (front matter is stripped in traces)."""
     rel = "hivecall/SKILL.md"
     path = SKILL.relative_to(REPO) / "SKILL.md"
-    cands = []  # commits newest first, then the uncommitted copy; on a tie the first wins
+    # uncommitted copy first, then commits newest first; on a tie the oldest commit wins (when that body first appeared)
+    cands = [("working-tree", (SKILL / "SKILL.md").read_text())]
     shas = subprocess.run(["git", "-C", str(REPO), "log", "--format=%h", "--", str(path)], capture_output=True, text=True).stdout.split()
     for sha in shas:
         cands.append((sha, subprocess.run(["git", "-C", str(REPO), "show", f"{sha}:{path}"], capture_output=True, text=True).stdout))
-    cands.append(("working-tree", (SKILL / "SKILL.md").read_text()))
     want = skill_body(loaded)
     best = (0.0, "unknown", None)
     for sha, text in cands:
         body, version = strip_front(text)
         body = re.sub(r"\s+", " ", body.split("# Hivecall", 1)[-1]).strip()
         ratio = 1.0 if body and body in want else difflib.SequenceMatcher(None, want, body, autojunk=False).ratio()
-        if ratio > best[0]:
+        if ratio >= best[0] and ratio > 0:
             best = (ratio, sha, version)
     ratio, sha, version = best
     label = version or f"pre-1.0.0 ({sha})"
@@ -649,6 +650,7 @@ def judge_items(run_id: str) -> list[dict]:
                 items.append({"check": "12", "q": "watchdog_false_alarm", "ref": f"{m['time']}:{n}",
                               "state": {"alert": line[:1200], "other_alerts_in_same_message": [x[:200] for x in lines if x != line][:6],
                                         "orchestrator_follow_up": follow}})
+                items.append(dict(items[-1], check="18", q="useful_alert"))
         elif kind == "owner":
             items.append({"check": "13", "q": "owner_correction", "ref": m["time"], "state": {"owner_message": m["text"][:1500]}})
     ledger_facts = next((r.get("checks", {}).get("16", {}).get("facts", {}) for r in results() if r.get("run") == run_id), {})
@@ -853,6 +855,8 @@ def scored_rows(js: dict) -> list[dict]:
                 yes, n = pair
                 if cid == "12":  # scored as the share of alerts that were real
                     check.update(value=round(1 - yes / n, 2), n=n, note=f"{n - yes}/{n} alerts real (judge)")
+                elif cid == "18":
+                    check.update(value=yes, n=n, note=f"{yes}/{n} alerts caught a real problem that was acted on (judge)")
                 elif cid == "13":
                     run_h = check.get("facts", {}).get("run_h")
                     check.update(value=round(yes / run_h, 2) if run_h else None, n=n, note=f"{yes} corrections in {run_h} run h (judge)")
