@@ -55,6 +55,27 @@ rule covers, such as:
 
 Count and classify from the original records first, then redact what you keep.
 
+## What good and bad look like
+
+Good:
+- Every rule the skill states is listed with followed / total per run, counted
+  across all hand-offs, ticks and messages. Subagents may split the counting.
+- Each change points at a count or a concrete event and names the rule or
+  friction it fixes.
+- A safeguard that caught real problems is kept; a noisy one is made more
+  accurate.
+- Every claim has evidence. What couldn't be checked says "unknown" and why.
+- Small, simple edits. The skill grows only with a stated reason.
+
+Bad:
+- Reading a few runs as stories, or sampling.
+- Skipping a count because logs are large, or calling a plain yes/no text check
+  "subjective".
+- Deleting an alert or rule because it was sometimes wrong.
+- Calling something a restored regression without the commit where it was lost.
+- Claiming nothing useful was removed without counting.
+- Proposing changes the skill already has.
+
 ## Output shape
 
 Start with a 2–3 sentence problem statement. List the reviewed runs:
