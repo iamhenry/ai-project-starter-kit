@@ -30,3 +30,6 @@ dist/
 .pi/models-store.json
 .pi/sessions/
 .pi/npm/
+
+# Local task contracts
+_ai/task/

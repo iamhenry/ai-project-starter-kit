@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Pre-commit: size hygiene + secrets, on staged files only.
+set -uo pipefail
+if [ "${SKIP_HOOKS:-}" = "1" ]; then
+  echo "  hooks skipped (SKIP_HOOKS=1)"
+  exit 0
+fi
+here=$(cd "$(dirname "$0")" && pwd)
+# shellcheck source=checks/lib.sh
+. "$here/checks/lib.sh"
+
+status=0
+staged_files | "$here/checks/size.sh" : || status=1
+"$here/checks/secrets.sh" staged || status=1
+exit $status
