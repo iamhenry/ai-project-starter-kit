@@ -61,6 +61,14 @@ rule covers, such as:
 - Places the skill made runs slow or heavy: needless rebuilds, oversized
   tasks, repeated work.
 
+## Wishlist
+
+Read `.agents/skills/hivecall/WISHLIST.md`. For each item, report what this
+week's runs show: evidence for it (counts or events), evidence against it, or
+none. Propose an item as a change only when the evidence supports it and it is
+the smallest fix; then remove it from the wishlist in the same commit. Never
+build an item without evidence.
+
 ## Privacy
 
 Count and classify from the original records first, then redact. Before any run
