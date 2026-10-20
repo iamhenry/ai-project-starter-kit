@@ -35,6 +35,12 @@ the owner having to step in. Exclude owner idle time.
 
 ## Where to look
 
+Check the runs against everything the skill tells agents to do. Before reading
+runs, list every rule the skill itself states (in SKILL.md, HOW-TO-WORK.md and
+the references). For each rule, count how often runs followed it across every
+hand-off, tick and message, not a sample. Then read the runs for problems no
+rule covers, such as:
+
 - The owner correcting, redirecting, or asking for status.
 - Watchdog alerts, read with the orchestrator's next reply: false alarm,
   already handled, acted on, or ignored. A change to an alert must keep the real
