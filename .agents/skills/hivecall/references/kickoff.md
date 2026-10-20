@@ -88,6 +88,7 @@ The approved contract lives on the checklist page, not here.
 - Pick 3-5 regression journeys that cover the areas the run will touch; record them under Overrides.
 - Create `.hivecall/verification/`.
 - Hide noise from Git: add `.lanes/` and `.hivecall/verification/` to `.git/info/exclude`. Thousands of evidence files slow Git and BB.
+- Before committing or opening a PR, inspect staged files and tracked evidence (`git diff --cached --name-only`; `git ls-files` for generated screenshots, recordings and logs, including under `_ai/`). Local excludes do not untrack files already committed. Keep run-only evidence local and cite it unless publication was authorized; do not rewrite shared history to remove it without the owner's approval.
 - If watchdog is on, follow [../README.md](../README.md#watchdog): name it `🐝 <orchestrator thread title>`, capture its automation id, write `watchdog: on, automation <id>` in the run card, pass `AUTOMATION_ID`, then start it live.
 
 ## 5. Keep the owner informed

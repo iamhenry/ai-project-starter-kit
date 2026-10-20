@@ -1560,8 +1560,9 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
             if open_items and not (open_items & claimed) and not waiting_is_current:
                 key = "unclaimed:" + hashlib.sha256("\n".join(open_rows).encode()).hexdigest()[:12]
                 trigger(key, True,
-                        f"UNCLAIMED: {len(open_rows)} open items have no agent ({', '.join(open_rows)}); "
-                        f"{len(sessions.get('live', []))} agents running. Start real work on one, or write a `waiting: <reason>` line in the run card.")
+                        f"UNCLAIMED: no live PROMISE claims any of {len(open_rows)} open items ({', '.join(open_rows)}); "
+                        f"{len(sessions.get('live', []))} agent(s) running. If one is working on an item, correct its promise; "
+                        "otherwise start work or write a `waiting: <reason>` line in the run card.")
             else:
                 for key in list(conditions):
                     if key.startswith("unclaimed:"):
@@ -1603,7 +1604,7 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
                  if plateau.get("no_progress_since") is not None else "unknown time")
         trigger("plateau", finish_count >= 3,
                 f"PLATEAU (heuristic): 3 helpers ended with no new verdict since {since}. Helpers that finish between "
-                "checks are not counted. If the work is stuck, change approach or park.",
+                "checks are not counted. Check for proof awaiting a ledger tick; if still stuck, change approach or park.",
                 valid=isa_valid and sessions.get("valid", False))
 
     # OpenCode recovery is intentionally one reload per hour, followed by a user note if still down.
@@ -2395,7 +2396,7 @@ def simulate(name: str, state_path: str, env: dict[str, str]) -> None:
             if i == 1 and "unclaimed work" not in alerts:
                 raise AssertionError("unclaimed set did not alert on its second check")
         text = output.getvalue()
-        if "UNCLAIMED: 2 open items have no agent (ISC-001, ISC-002); 1 agents running." not in text:
+        if "UNCLAIMED: no live PROMISE claims any of 2 open items (ISC-001, ISC-002); 1 agent(s) running." not in text:
             raise AssertionError(f"unclaimed alert did not list all open rows: {text}")
         open_key = "unclaimed:" + hashlib.sha256(b"ISC-001\nISC-002").hexdigest()[:12]
         if state.get("conditions", {}).get(open_key, {}).get("last_alert") != base + 60:
@@ -2581,7 +2582,7 @@ def simulate(name: str, state_path: str, env: dict[str, str]) -> None:
             tags = evaluate(snap, state, env, True)
         since = dt.datetime.fromtimestamp(base + 60).astimezone().isoformat(timespec="minutes")
         expected = (f"PLATEAU (heuristic): 3 helpers ended with no new verdict since {since}. Helpers that finish "
-                    "between checks are not counted. If the work is stuck, change approach or park.")
+                    "between checks are not counted. Check for proof awaiting a ledger tick; if still stuck, change approach or park.")
         if "plateau" not in tags or expected not in output.getvalue():
             raise AssertionError(f"third unchanged helper finish did not alert after confirmation: {tags}")
         changed = synthetic(name, base + 3 * 120 + 120)
