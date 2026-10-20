@@ -89,15 +89,15 @@ AUTOMATION_ID="$(bb automation create --project "$PROJECT_ID" --name "🐝 $ORCH
 export AUTOMATION_ID
 ENV_JSON="$(python3 -c 'import json,os; keys=("ORCH_THREAD","ORCH_SESSION","REPO","LEDGER","VERIFY_DIR","PROJECT_ID","AUTOMATION_ID"); print(json.dumps({k:os.environ[k] for k in keys if os.environ.get(k)}))')"
 # Write this exact value into .hivecall/run.md: watchdog: on, automation $AUTOMATION_ID
-bb automation update "$AUTOMATION_ID" --env-json "$ENV_JSON" --interpreter python3 \
+bb automation update "$AUTOMATION_ID" --project "$PROJECT_ID" --env-json "$ENV_JSON" --interpreter python3 \
   --working-directory "$REPO" --script "$LAUNCHER"
 ```
 
-3. `bb automation resume "$AUTOMATION_ID"` to start it live. After one or two checks, read the run history (`bb automation runs "$AUTOMATION_ID"`). The heartbeat line looks like `load 5 · disk 80 GB · 2 agents visible · 1/4 · OK`.
+3. `bb automation resume "$AUTOMATION_ID" --project "$PROJECT_ID"` to start it live. After one or two checks, read the run history (`bb automation runs "$AUTOMATION_ID" --project "$PROJECT_ID"`). The heartbeat line looks like `load 5 · disk 80 GB · 2 agents visible · 1/4 · OK`.
 
 `update` drops fields you don't pass, so always re-pass all of them.
 
-Pause: `bb automation pause <id>`. Remove: `bb automation delete <id> --project <project-id> --yes`.
+Pause: `bb automation pause <id> --project <project-id>`. Remove: `bb automation delete <id> --project <project-id> --yes`.
 
 ### How it ends
 
