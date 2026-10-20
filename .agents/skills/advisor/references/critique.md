@@ -4,6 +4,8 @@ Input: a problem statement, and optionally an existing solution to judge against
 
 ## Brief template
 
+The brief must be neutral and non-biased, with no leading details: facts and the question only, no hint at an answer. Check it against the rule in SKILL.md before sending.
+
 ```markdown
 ROLE: Terminal worker, read-only advisor. Do not edit files, run writing commands, spawn threads or subagents, or ask other models. You may read the repo and search the web; cite URLs.
 
@@ -11,7 +13,7 @@ ROLE: Terminal worker, read-only advisor. Do not edit files, run writing command
 <the user's problem, in their words or confirmed by them>
 
 ## Owner premises and constraints
-- <decided items and hard limits, labeled as the owner's>
+- <hard limits only, labeled as the owner's; no design choices or opinions of the options>
 
 ## What exists now (facts only)
 <the current solution: what it does, size, cost, where it lives; strengths and weaknesses at equal depth>
@@ -34,11 +36,11 @@ With no existing solution, drop "What exists now" and "Options", and answer item
 
 ## Synthesis (main agent only)
 
-The advisors return raw answers only. The agent that invoked this skill, in the parent thread, writes the synthesis after all three answers arrive.
+The advisors return raw answers only. The agent that invoked this skill, in the parent thread, writes the synthesis after all five answers arrive.
 
 Open with one sentence: the verdicts and whether they converge.
 
-- **Agree:** points all three share.
+- **Agree:** points most advisors share, with the count (for example 4 of 5).
 - **Disagree:** a table, topic by advisor.
 - **Unique angles:** one per advisor, attributed.
 - **What it means:** in the user's terms; note any bias you introduced in the brief.
