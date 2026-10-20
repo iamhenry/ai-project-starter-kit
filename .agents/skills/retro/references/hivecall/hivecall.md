@@ -35,6 +35,9 @@ the owner having to step in. Exclude owner idle time.
   orchestrator's OpenCode session: `opencode session export <session id> > file`
   (the session id is the `providerThreadId` in the BB log). Always redirect to a
   file; piped output is truncated. Do not use `--sanitize`; it blanks the text.
+  Count hand-offs from both sources: BB-started threads and OpenCode helper calls
+  in the orchestrator's export. Check `PROMISE:` lines with the watchdog's own
+  reader (`parse_promise` in `watchdog/watch.py`), not just whether the word appears.
 - If `bb` fails with a stale `BB_CLI` setting, run it as `env -u BB_CLI bb ...`
   or call the newest `bb` binary in the BB app's versions folder, and note it.
 
