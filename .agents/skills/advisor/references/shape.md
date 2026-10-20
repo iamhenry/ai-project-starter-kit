@@ -2,9 +2,11 @@
 
 Input: an idea or problem to build toward. Output: a short spec the main agent implements from.
 
-Never pass a previous synthesis as input. Turn it into the brief below: decisions stay decisions, shared facts stay facts, and disagreements become open questions.
+Never pass a previous synthesis as input. Turn it into the brief below: hard limits stay limits, shared facts stay facts, and everything else, including design choices the user agreed to after an earlier round, becomes an open question.
 
 ## Brief template
+
+The brief must be neutral and non-biased, with no leading details: facts and the question only, no hint at a design. Check it against the rule in SKILL.md before sending.
 
 ```markdown
 ROLE: Terminal worker, read-only advisor. Do not edit files, run writing commands, spawn threads or subagents, or ask other models. You may read the repo and search the web; cite URLs.
@@ -12,8 +14,8 @@ ROLE: Terminal worker, read-only advisor. Do not edit files, run writing command
 ## Problem statement
 <the user's problem>
 
-## Decided (do not reopen)
-- <owner decisions and hard constraints>
+## Hard limits (owner; do not reopen)
+- <privacy, cost, authority, and similar limits only; never a design choice or a prior round's conclusion>
 
 ## Facts
 - <what exists, data available, known limits; no opinions>
@@ -35,9 +37,9 @@ Return only your own raw answer. Do not compare, merge, or write a combined spec
 
 ## Synthesis into a spec (main agent only)
 
-The advisors return raw shapes only. The agent that invoked this skill, in the parent thread, merges them into the spec after all three answers arrive.
+The advisors return raw shapes only. The agent that invoked this skill, in the parent thread, merges them into the spec after all five answers arrive.
 
-Merge the three shapes. Where they agree, adopt. Where they differ, pick one, give the reason, and list the runner-up. Escalate to the user only choices that change scope, cost, or a decided item.
+Merge the five shapes. Where they agree, adopt. Where they differ, pick one, give the reason, and list the runner-up. Escalate to the user only choices that change scope, cost, or a hard limit.
 
 Write the spec with these sections:
 
