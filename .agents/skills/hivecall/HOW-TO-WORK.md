@@ -56,6 +56,7 @@ Read at kickoff, and again after any context compaction or compression. Invarian
 - Backup model per agent, named at kickoff; on a credit cutoff, switch and report it in one line.
 - Task time box: 30-45 minutes. Split a task expected to run longer before launch; check one that passes 45 minutes with no result, then split or park it.
 - Model-answer work (labeling, judging, replay): batches of at most 20 items, at most 5 batches in parallel.
+- Before scaling a model-answer batch, smoke one representative item end to end. Keep input-file lines under 2,000 characters when agents read them; longer lines can be silently truncated.
 - Every brief also carries: absolute paths, what is already done and still valid, what this change could break, its time box.
 
 ## What the watchdog guarantees (from `watchdog/watch.py`)

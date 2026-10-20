@@ -20,7 +20,7 @@ If the goal is missing, ask for it and stop.
 
 ## Kickoff
 
-Read [HOW-TO-WORK.md](HOW-TO-WORK.md) first: the owner's constants for every run. Re-read it and the run card after any context compaction or compression. Then follow [references/kickoff.md](references/kickoff.md):
+Read [HOW-TO-WORK.md](HOW-TO-WORK.md) first: the owner's constants for every run. Read [watchdog/lessons.md](watchdog/lessons.md) before the first delegation, not only when resuming. Re-read HOW-TO-WORK.md and the run card after any context compaction or compression. Then follow [references/kickoff.md](references/kickoff.md):
 
 1. If the input cannot yet support a falsifiable check for every Verification line (e.g., an ambiguous goal or raw bug report), follow [references/discovery.md](references/discovery.md) first; otherwise draft the goal contract and plan as today.
 2. On a clear-task route, show both and ask "Watchdog on? (yes / no)" and "Open a PR at the end? (yes / no)"; wait for contract approval. On discovery, those answers authorize the run; judges approve or revise the plan.
