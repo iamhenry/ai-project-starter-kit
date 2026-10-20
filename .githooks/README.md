@@ -22,6 +22,34 @@ git config core.hooksPath .githooks
 
 Check it: `git config core.hooksPath`. Turn it off: `git config --unset core.hooksPath`.
 
+## Use these hooks in every project on this machine
+
+Set the hooks path once, globally, to this folder in the main checkout:
+
+```sh
+git config --global core.hooksPath /Users/macvm/Desktop/Projects/other/ai-project-starter-kit/.githooks
+```
+
+This adds one line to `~/.gitconfig`. It changes no files and touches no repo.
+Every repo and worktree that doesn't set its own hooks path then runs these
+hooks. Edit a script here, merge to `main`, and all projects get the update.
+
+- **Keep the main checkout on `main`.** Other projects run whatever branch is
+  checked out in that folder.
+- **Use the main checkout path, not a worktree path.** Worktrees get deleted.
+- **A repo's own `core.hooksPath` overrides the global one** (for example
+  husky's `.husky/_`), so the checks do not run there. Find these repos with
+  `git config --local --get core.hooksPath` inside the repo. If it prints
+  something, the repo overrides the global setting.
+- **With a global path set, Git ignores each repo's `.git/hooks`.**
+- **This covers your machine only.** Teammates and CI do not get the hooks.
+
+Commands:
+
+- See the global setting: `git config --global --get core.hooksPath`
+- See where a repo's value comes from: `git config --show-origin --get core.hooksPath`
+- Undo: `git config --global --unset core.hooksPath`
+
 ## What it actually covers
 
 Both checks look only at what you are about to publish: the secret scan reads
