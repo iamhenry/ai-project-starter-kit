@@ -1,6 +1,6 @@
 ---
 name: code-quality-gate
-description: Fresh-subagent code quality review gate after implementation and before verification. Use when code changes are complete and the orchestrator needs APPROVE_CODE, REVISE_CODE, or ASK_USER based on plan fidelity, simplicity, tests, repo style, security, and maintainability. Does not implement or write files.
+description: Fresh-subagent code quality review gate after implementation and before verification. Use when code changes are complete and the orchestrator needs APPROVE_CODE, REVISE_CODE, or ASK_USER based on intent and plan fidelity, simplicity, tests, repo style, security, and maintainability. Does not implement or write files.
 ---
 
 <!--
@@ -29,7 +29,7 @@ Read the minimum available context:
 
 - Required: `{ISSUE_DIR}/plan.md` for pipeline calls; for a standalone call, an explicit approved scope, acceptance criteria, boundaries, and any named Mechanical commands may be supplied directly instead. Below, `plan.md` means that approved contract for standalone review; do not create pipeline artifacts just to review a diff.
 - Required: changed files and/or git diff
-- Optional but useful: `{ISSUE_DIR}/issue.md`
+- Required to judge intent: `{ISSUE_DIR}/issue.md`, or an explicit statement of the problem, user, and desired outcome in standalone calls.
 - Optional but useful: implementation summary from the implementation agent
 - Required when `plan.md` names Mechanical command(s): raw output for those commands. Missing output is an evidence gap, not a code defect. This gate does not run the commands or edit tests.
 - Optional but useful: `_ai/prompts/quality/code-review.md` as the review standard
@@ -47,7 +47,7 @@ If the approved contract or changed code/diff is missing, return `ASK_USER` nami
 
 ## Review Process
 
-1. Reconstruct the intended scope from `plan.md`; use `issue.md` only to resolve ambiguity.
+1. Reconstruct the task's intent from `issue.md` and the approved scope from `plan.md`. The plan is one interpretation of the task, not the definition of intent. If they disagree, record it for the decision; do not silently prefer either.
 2. Review the diff and directly affected code first.
 3. Use the local `ponytail-review` skill only as an optional, read-only, diff-focused lens when over-engineering is material or the review request explicitly calls for complexity review. Use its complexity-only findings to inform the simplicity/YAGNI judgment; it does not apply fixes, and this gate retains responsibility for correctness, security, performance, error handling, and maintainability. Do not run `ponytail-audit` or `ponytail-debt` automatically; they remain standalone reports only when explicitly requested. `ponytail-gain` and `ponytail-help` are informational, not gate steps.
 4. Trigger wider dependency review only when the change touches shared modules, public interfaces, global state, async side effects, security-sensitive paths, or common components.
@@ -56,13 +56,17 @@ If the approved contract or changed code/diff is missing, return `ASK_USER` nami
 7. Check provided Mechanical / test / build / lint / typecheck output. Judge coverage by the distinct changed failure modes it protects, not by test quantity. Distinguish demonstrated code failures from commands blocked by environment prerequisites; identify prerequisite repair in the findings, not speculative source changes. Do not invent results that were not provided. Do not run commands or edit tests.
 8. Return a concise structured decision to the orchestrator.
 
+## Intent Check
+
+Intent fidelity means the change produces the outcome the task was raised to produce, not just the steps the plan listed. Before scoring, answer three questions from the artifacts: what outcome is the task trying to produce for the user, what would the user notice if it worked, and did "done" move to fit what was built? Then map each changed file to a plan item or to that outcome; anything that serves neither is extra. A clear intent miss is blocking; a conflict between the task and the plan is `ASK_USER`, not a code defect.
+
 ## Weighted Rubric
 
 Score out of 100:
 
 | Category | Weight | Subcriteria |
 | --- | ---: | --- |
-| Correctness against `plan.md` | 30 | Implements required behavior; respects scope/out-of-scope; has no obvious regressions against plan acceptance criteria. |
+| Intent and correctness | 30 | Delivers the task's stated outcome, not just the plan's steps; respects scope/out-of-scope; has no obvious regressions against acceptance criteria. |
 | Simplicity / KISS / YAGNI | 25 | Uses the smallest solution that satisfies the plan; avoids speculative abstractions/features; avoids duplicate state or sources of truth. |
 | Tests / build / typecheck | 15 | Plan-named Mechanical output is present and passing; coverage matches changed risk. |
 | Architecture / repo style | 15 | Follows existing patterns; respects boundaries/interfaces; avoids unnecessary dependencies. |
@@ -84,6 +88,7 @@ Return `REVISE_CODE` regardless of score if any are true:
 - New or changed Mechanical test that asserts no relevant condition of the Objective (compile/lint/typecheck-only oracle). Mechanical and Observable may cover different parts of the outcome; do not demand a new end-to-end harness when focused assertions plus actual-surface proof suffice.
 - High severity bug with direct code evidence.
 - Security or privacy issue.
+- The implementation misses a clear, stated intent from the task.
 - Implementation contradicts `plan.md`.
 - Unplanned scope drift.
 - Overengineered solution where a simpler approach satisfies `plan.md`.
@@ -107,6 +112,7 @@ Return exactly this structure:
 
 - Decision: `APPROVE_CODE|REVISE_CODE|ASK_USER`
 - Score: [0-100 or `N/A`]
+- Intent: `faithful|drifted|unclear`
 - Reviewed: [plan.md, issue.md, diff/changed files, implementation summary, command outputs, quality docs]
 
 ### Findings
