@@ -1,13 +1,15 @@
 ---
 name: retro
 description: "Use only when the user explicitly asks for a retro or retrospective, or explicitly invokes or names `retro`, to learn from a completed or failed run. Never invoke automatically after work, failures, reviews, or other agent activity."
-version: 1.0.5
+version: 1.2.0
 ---
 
 # Retro
 
-Use this skill only after the user explicitly requests it. It reviews one completed
-or failed run involving a skill, command, prompt, agent, or workflow.
+Use this skill only after the user explicitly requests it. It reviews one or more
+completed or failed runs involving a skill, command, prompt, agent, or workflow.
+Its main job is error analysis: find failures that repeat across runs and trace
+them to what the reviewed artifact can change.
 
 Identify the skill or workflow being reviewed. If a matching
 `references/<skill-name>/<skill-name>.md` exists, read it and follow its specific
@@ -30,6 +32,19 @@ inventing results. The retro judge retains the final judgment.
 - If evidence is missing, the request is unsupported, or the change belongs to
   another owner or layer, say so instead of guessing or editing.
 
+## Questions to reflect on
+
+Ask these of every run, whatever the target:
+
+- What is working well and should be kept?
+- What needs improvement?
+- How can runs be more reliable (claims match evidence, no lost work),
+  more consistent (same stages and proof quality, fewer user corrections),
+  and faster (less active time and fewer redo rounds; exclude user idle time)?
+- Where was time or trust lost?
+- What was the earliest point that could have prevented it?
+- Which changes would remove the most friction across runs, not just this one?
+
 ## Workflow
 
 1. Identify the target, its intended outcome, the observed outcome, and the
@@ -38,7 +53,9 @@ inventing results. The retro judge retains the final judgment.
    failure or friction, including when no failure occurred.
 3. Classify the main cause as one or more of: `artifact_gap`,
    `execution_drift`, `input`, `environment`, `wrong_owner`, `one_off`, or
-   `bloat`. Explain why the evidence supports the classification.
+   `bloat`. Explain why the evidence supports the classification. The same
+   drift repeated across runs is an `artifact_gap`: the instruction is unclear,
+   buried, or unchecked. Find which, and fix that.
 4. Run a counterfactual check: would the same change help another realistic
    case, or does it only fit this input, run, tool, or environment? Reject
    one-off fixes and changes unsupported by evidence.
@@ -51,7 +68,9 @@ inventing results. The retro judge retains the final judgment.
    unverified result.
 7. Return exactly one verdict: `NO_CHANGE`, `PROPOSE_CHANGE`, or `BLOCKED`.
    Use `NO_CHANGE` when evidence does not support changing the reviewed
-   artifact, including execution-only, one-off, or wrong-layer findings; still
+   artifact, including one-off execution slips or wrong-layer findings. A newer,
+   untested version is not a reason for `NO_CHANGE` when the same failure spans
+   several earlier versions and the newer one does not address its cause; still
    report useful observations and route to the owner when relevant. Use
    `PROPOSE_CHANGE` when evidence supports a generalizable improvement owned
    by the reviewed target. Use `BLOCKED` only when missing evidence or context

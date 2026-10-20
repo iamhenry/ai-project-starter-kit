@@ -89,15 +89,15 @@ AUTOMATION_ID="$(bb automation create --project "$PROJECT_ID" --name "🐝 $ORCH
 export AUTOMATION_ID
 ENV_JSON="$(python3 -c 'import json,os; keys=("ORCH_THREAD","ORCH_SESSION","REPO","LEDGER","VERIFY_DIR","PROJECT_ID","AUTOMATION_ID"); print(json.dumps({k:os.environ[k] for k in keys if os.environ.get(k)}))')"
 # Write this exact value into .hivecall/run.md: watchdog: on, automation $AUTOMATION_ID
-bb automation update "$AUTOMATION_ID" --env-json "$ENV_JSON" --interpreter python3 \
+bb automation update "$AUTOMATION_ID" --project "$PROJECT_ID" --env-json "$ENV_JSON" --interpreter python3 \
   --working-directory "$REPO" --script "$LAUNCHER"
 ```
 
-3. `bb automation resume "$AUTOMATION_ID"` to start it live. After one or two checks, read the run history (`bb automation runs "$AUTOMATION_ID"`). The heartbeat line looks like `load 5 · disk 80 GB · 2 agents visible · 1/4 · OK`.
+3. `bb automation resume "$AUTOMATION_ID" --project "$PROJECT_ID"` to start it live. After one or two checks, read the run history (`bb automation runs "$AUTOMATION_ID" --project "$PROJECT_ID"`). The heartbeat line looks like `load 5 · disk 80 GB · 2 agents visible · 1/4 · OK`.
 
 `update` drops fields you don't pass, so always re-pass all of them.
 
-Pause: `bb automation pause <id>`. Remove: `bb automation delete <id> --project <project-id> --yes`.
+Pause: `bb automation pause <id> --project <project-id>`. Remove: `bb automation delete <id> --project <project-id> --yes`.
 
 ### How it ends
 
@@ -106,8 +106,8 @@ Pause: `bb automation pause <id>`. Remove: `bb automation delete <id> --project 
 - If pausing fails, it retries until paused. If deletion fails, it stays paused and retries deletion on each later check. Ledger-only completion retries a failed pause as before.
 - `status: waiting-owner` / `waiting-usage` → no nudges; other checks continue.
 - An unchecked row whose latest verdict is FAIL after three FAILs since its latest PASS, not parked/BLOCKED → one `LOOP` message to park it with its exact unlock condition and move to other work.
-- Open, unchecked, non-owner rows with no live PROMISE claim at all → one `UNCLAIMED` message per stable open-row set after two checks. Any claimed open row suppresses it. A `waiting:` line silences the alert only after the watchdog observed its text change while the ledger signature and HEAD hash stayed unchanged, and only while those values stay unchanged; on a fresh start, an existing line is just a baseline, so rewrite it to silence the alert.
-- Three observed live PROMISE helpers end without a new ledger verdict → one `PLATEAU (heuristic)` message with the first-finish time. Helpers that finish between checks are not counted. Any new verdict resets the count.
+- Open, unchecked, non-owner rows with no live PROMISE claim at all → one `UNCLAIMED` message per stable open-row set after two checks. It means no valid row claim, not necessarily that no agent is working; correct the promise if one is. Any claimed open row suppresses it. A `waiting:` line silences the alert only after the watchdog observed its text change while the ledger signature and HEAD hash stayed unchanged, and only while those values stay unchanged; on a fresh start, an existing line is just a baseline, so rewrite it to silence the alert.
+- Three observed live PROMISE helpers end without a new ledger verdict → one `PLATEAU (heuristic)` message with the first-finish time. Helpers that finish between checks are not counted. Check whether proof is awaiting a ledger tick before changing approach; any new verdict resets the count.
 - A row that passed before and now fails → one `REGRESSION` message: revert the breaking merge first, then fix on the side. A later PASS rearms it; a latest FAIL keeps the ledger incomplete even if checked.
 - A busy OpenCode session whose bound BB thread failed, stopped or went idle on two consecutive checks → one `LEFTOVER` message to interrupt it before relaunching. A healthy check clears the streak so a later failure can alert again. That session is excluded from other per-session alerts, live claims and orphan suppression.
 - Orphan recorder, simulator-launch/spawn and log-stream processes are ignored while an effective agent is live; without agents, they need 15 minutes and two checks to alert. Simulator idle time only accrues while a simulator is booted and resets when none are booted. Idle or finished OpenCode helpers do not count as ghost or off-track agents.
