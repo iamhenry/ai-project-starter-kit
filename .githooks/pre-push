@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Pre-push: every commit about to become public, including any commit that
+# added a key and a later one that removed it.
+set -uo pipefail
+if [ "${SKIP_HOOKS:-}" = "1" ]; then
+  exit 0
+fi
+here=$(cd "$(dirname "$0")" && pwd)
+zero=0000000000000000000000000000000000000000
+status=0
+
+while read -r _local_ref local_sha _remote_ref remote_sha; do
+  case "$local_sha" in *[!0]*) ;; *) continue ;; esac   # branch deleted
+  "$here/checks/secrets.sh" push "$remote_sha" "$local_sha" || status=1
+done
+
+exit $status

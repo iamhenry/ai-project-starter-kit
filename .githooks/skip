@@ -1,0 +1,48 @@
+# Paths nobody hand-authored. One glob per line; no negation.
+# Globs match the whole path from the repo root, so use src/**/dist/* for nested.
+
+# lockfiles
+*.lock
+*.lockb
+*-lock.json
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+bun.lockb
+go.sum
+Cargo.lock
+poetry.lock
+Gemfile.lock
+composer.lock
+
+# build output, vendored code
+dist/*
+build/*
+out/*
+vendor/*
+node_modules/*
+coverage/*
+
+# generated or minified
+*.min.js
+*.min.css
+*.map
+*.snap
+*.pb.go
+*_pb2.py
+*.generated.*
+*.d.ts
+
+# assets
+*.svg
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.ico
+*.pdf
+*.zip
+*.woff
+*.woff2
+*.ttf

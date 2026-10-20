@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Commit message: a key pasted into the message is published just like one in a file.
+set -uo pipefail
+if [ "${SKIP_HOOKS:-}" = "1" ]; then
+  exit 0
+fi
+here=$(cd "$(dirname "$0")" && pwd)
+exec "$here/checks/secrets.sh" message "$1"
