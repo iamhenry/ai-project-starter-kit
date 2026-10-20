@@ -1,7 +1,7 @@
 ---
 name: retro
 description: "Use only when the user explicitly asks for a retro or retrospective, or explicitly invokes or names `retro`, to learn from a completed or failed run. Never invoke automatically after work, failures, reviews, or other agent activity."
-version: 1.0.5
+version: 1.1.0
 ---
 
 # Retro
@@ -29,6 +29,19 @@ inventing results. The retro judge retains the final judgment.
   reports. Never reproduce them.
 - If evidence is missing, the request is unsupported, or the change belongs to
   another owner or layer, say so instead of guessing or editing.
+
+## Questions to reflect on
+
+Ask these of every run, whatever the target:
+
+- What is working well and should be kept?
+- What needs improvement?
+- How can runs be more reliable (claims match evidence, no lost work),
+  more consistent (same stages and proof quality, fewer user corrections),
+  and faster (less active time and fewer redo rounds; exclude user idle time)?
+- Where was time or trust lost?
+- What was the earliest point that could have prevented it?
+- Which changes would remove the most friction across runs, not just this one?
 
 ## Workflow
 
