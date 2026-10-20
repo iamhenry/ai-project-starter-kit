@@ -3,7 +3,8 @@
 Use for an explicitly requested retro of runs that invoked `hivecall`. The parent
 retro skill owns the questions, cause classes, verdicts, minimal-change order,
 redaction, and report. This module adds the goal, run selection, where to look,
-and two report tables.
+what good looks like, how to apply authorized edits, and two report tables. It is
+self-contained: a scheduled trigger only needs to invoke it and state authority.
 
 ## Goal
 
@@ -30,6 +31,10 @@ the owner having to step in. Exclude owner idle time.
 - Follow each run's child threads, and their children, to see the whole run.
 - Record which version of `.agents/skills/hivecall/` each run loaded (match it
   to `git log`), so a later drop can be traced to a change.
+- Hand-offs to OpenCode helper agents are not in BB logs. Read them from the
+  orchestrator's OpenCode session: `opencode session export <session id> > file`
+  (the session id is the `providerThreadId` in the BB log). Always redirect to a
+  file; piped output is truncated. Do not use `--sanitize`; it blanks the text.
 - If `bb` fails with a stale `BB_CLI` setting, run it as `env -u BB_CLI bb ...`
   or call the newest `bb` binary in the BB app's versions folder, and note it.
 
@@ -53,7 +58,16 @@ rule covers, such as:
 - Places the skill made runs slow or heavy: needless rebuilds, oversized
   tasks, repeated work.
 
-Count and classify from the original records first, then redact what you keep.
+## Privacy
+
+Count and classify from the original records first, then redact. Before any run
+text goes into scratch notes, helper prompts, the report, or a commit, remove
+secrets and tokens, emails, personal paths (`/Users/<name>` -> `/Users/[user]`),
+IPs, and personal names. Paraphrase the owner; never quote verbatim. Redact only
+identifying or secret values, never the behavior (what happened, when, counts,
+alert names, statuses), so redaction cannot skew findings. Keep scratch files in
+a temp folder outside the repo and delete them at the end. Commits contain no run
+excerpts, thread or session IDs, or personal data.
 
 ## What good and bad look like
 
@@ -76,6 +90,17 @@ Bad:
 - Claiming nothing useful was removed without counting.
 - Proposing changes the skill already has.
 
+## Applying changes
+
+Only when the request authorizes edits:
+- Edit only `.agents/skills/hivecall/`. Do not read or modify its `eval/` folder.
+- Keep the existing structure. Report words in SKILL.md, HOW-TO-WORK.md and
+  references/*.md before and after; justify each increase in one line.
+- If `watchdog/watch.py` changes, run every `--simulate` scenario, each with its
+  own temporary `REPO` folder; all must pass.
+- Bump the patch version in SKILL.md, commit locally on the current branch, and
+  never push, open a PR, or merge. Do not start a hivecall run.
+
 ## Output shape
 
 Start with a 2–3 sentence problem statement. List the reviewed runs:
@@ -87,3 +112,8 @@ Use this table for proposed changes:
 
 | # | File | What to change | What happened in the runs | Why | What to expect |
 | --- | --- | --- | --- | --- | --- |
+
+Then the rule counts (rule, followed / total per run, or unknown and why). If
+edits were applied: commit, branch, skill size before/after, simulation result,
+what should improve and what could get worse, and run hiccups (anything in this
+profile, the retro skill or the tools that slowed the run or was unclear).
