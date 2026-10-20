@@ -1,6 +1,6 @@
 ---
 name: hivecall
-version: 1.0.2
+version: 1.0.3
 description: Autonomous multi-agent run that works through a large ledger of tasks until each is done or parked. Expensive. The user must explicitly invoke it by typing hivecall, /hivecall or @hivecall. Agents must never load or start it on their own, from inference, or from words like swarm, parallel or many tasks. Run by the orchestrator only.
 ---
 
@@ -44,6 +44,7 @@ Repeat until every item is done or parked:
 
 1. **Pick** the cheapest move that can raise the score (HOW-TO-WORK.md): test a built fix, fix a known cause, debug an unknown cause, or park. Slice 1-5 related items a user could run end to end. Run lanes in parallel only when they touch different files and state. Keep an agent on an open item whenever one is actionable.
 2. **Delegate** each slice as one bounded task. Load the `subagent-delegation` skill before the first delegation and follow it for every brief. Every brief carries its TALK-BACK block (one channel, filled with your real id) so workers can send BUG / BLOCKED / QUESTION mid-run. `build` or `general` implements. Require `code-quality-gate` with a fresh `reviewer` for source-code (including test-only) and behavior-changing config before QA ticks; it is optional for non-executable docs/config. Use a fresh `qa` for `verification-gate`. Every brief says: do not spawn further subagents unless allowed. With the watchdog on, every brief also carries a `PROMISE:` line and a result filename (see README.md, Watchdog).
+   Before sending a brief, check its final text: the TALK-BACK block is present, and, when the watchdog is on, `watchdog/watch.py`'s `parse_promise` returns `valid: true` for its `PROMISE:` line. Use only the five kinds in README.md (`screen`, `timed`, `build`, `code`, `helper`); a reviewer or researcher is a `helper`, not `review` or `verdict`. Fix a missing or invalid line before launching the agent.
 3. **Tick** items proven by independent evidence. Commit the accepted work locally. Never push without the kickoff's explicit PR authority. For a worktree lane, merge it first (below). Stop the helper's BB thread once its result is in.
 4. **Guard old passes.** After each merge, rerun the run's regression journeys. If a passed item breaks, revert that merge first and fix on the side (HOW-TO-WORK.md).
 5. **Log lessons.** After any surprise, failure, or false alarm, add one line to the run card's Lessons section.
