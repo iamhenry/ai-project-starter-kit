@@ -5,7 +5,7 @@
 | Step | Work | Result |
 | --- | --- | --- |
 | 0 | Resolve and read inputs | Known facts, gaps, source precedence, existing capability baseline |
-| 1 | Scaffold or resume `_ai/docs/ISA.md` | Frontmatter plus currently supported sections |
+| 1 | Scaffold or resume `_ai/docs/ISA.html` | Frontmatter plus currently supported sections |
 | 2 | Clarify eight categories in order | Incremental source contracts and decisions |
 | 3 | Synthesize ISCs | Atomic claims traced to active source contracts |
 | 4 | Define Test Strategy | One binary consumer-boundary probe per leaf ISC |
@@ -18,7 +18,7 @@
 
 1. Resolve explicit `$ARGUMENTS` paths before defaults.
 2. Read required user stories and ETHOS. Inventory optional mocks by screen or flow.
-3. Read an existing `_ai/docs/ISA.md` before writing anything.
+3. Read an existing `_ai/docs/ISA.html` before writing anything. If only a legacy `_ai/docs/ISA.md` exists, resume from its content into `ISA.html` and ask before removing the Markdown file.
 4. Report one compact checklist: found, waiting, or skipped.
 5. Extract known product facts and exact user statements. Do not turn assumptions into known facts.
 6. If the product idea and user stories conflict, ask which source wins before continuing.
@@ -33,7 +33,7 @@
 For a new artifact:
 
 1. Create `_ai/docs/` only when missing.
-2. Write frontmatter from `artifact-template.md` with `status: drafting` and `clarification_progress: 0/8`.
+2. Start from the HTML skeleton in `artifact-template.md`: frontmatter table with `status: drafting` and `clarification_progress: 0/8`, plus only the sections supported now.
 3. Capture `principal_stated_goal` byte-for-byte from the user's explicit goal. Ask if no clear goal exists; do not manufacture one.
 4. For an existing product, add the evidence-backed `Existing Capability Baseline`; omit it for greenfield work.
 5. Populate only sections supported by current evidence. Never create empty headings.
@@ -94,7 +94,7 @@ Never carry stale evidence across a changed claim, weaken a probe to preserve pr
 
 After all eight categories are complete:
 
-1. Insert `## Criteria` before `## Test Strategy` and `## Features` in canonical order.
+1. Insert the Criteria and Progress sections in canonical order (Progress directly after Vision). Leaves use the checkbox markup in `formats.md`.
 2. Derive leaf ISCs from active product contracts. Apply the Splitting Test until each leaf has one fail mode.
 3. Include at least one `Anti:` ISC for a meaningful failure or prohibited outcome (prefer trust or Out of Scope boundaries).
 4. Build `## Test Strategy` with source trace, probe type, check, concrete pass threshold, and tool.
@@ -103,7 +103,7 @@ After all eight categories are complete:
 7. Apply Probe Realism before locking tools and checks.
 8. Apply the Ground-Truth Heuristic before locking each probe.
 9. Backfill each active source contract's `Satisfies` field and each active decision's ISC locks using the Proof Mapping rule below.
-10. Run the Proof Gate. Only then set `progress: 0/N` from the final leaf count.
+10. Run the Proof Gate. Only then set `progress: 0/N` from the final leaf count, and confirm the Progress section opens with that same total and no warning.
 11. Category completion (`clarification_progress: 8/8`) never implies `status: ready`.
 
 ### Splitting Test
@@ -204,7 +204,7 @@ If a gate fails, repair the artifact and rerun all affected gates. Do not mark i
 
 ## Independent Adversarial Review
 
-After all readiness gates pass and before asking to mark the ISA ready, invoke the `second-opinion` skill with Grok 4.5 (`xai/grok-4.5`) and GLM 5.2 (`ollama-cloud/glm-5.2`) in parallel. Have each independently review `_ai/docs/ISA.md` against its source inputs, this workflow, and `formats.md` for correctness, thoroughness, accuracy, intent fidelity, contradictions, missing behavior or boundaries, existing-capability and change-class accuracy, preservation drift, ISC atomicity, decisive binary consumer-boundary probes, concrete thresholds, semantic proof mapping, decision-lock accuracy, stable IDs, canonical section order, stale behavior, privacy claims, source lineage, evidence-class inflation, verification theater, probe realism, and accidental implementation prescription. Require severity-ordered findings with exact ISA line or contract references; do not criticize implementation because implementation is out of scope.
+After all readiness gates pass and before asking to mark the ISA ready, invoke the `second-opinion` skill with GPT-6.1 Sol (`openai/gpt-6.1-sol`, variant `high`) and Claude Opus 5.5 (`anthropic/claude-opus-5-5`, variant `high`) in parallel. Have each independently review `_ai/docs/ISA.html` against its source inputs, this workflow, and `formats.md` for correctness, thoroughness, accuracy, intent fidelity, contradictions, missing behavior or boundaries, existing-capability and change-class accuracy, preservation drift, ISC atomicity, decisive binary consumer-boundary probes, concrete thresholds, semantic proof mapping, decision-lock accuracy, stable IDs, canonical section order, stale behavior, privacy claims, source lineage, evidence-class inflation, verification theater, probe realism, and accidental implementation prescription. Require severity-ordered findings with exact ISA line or contract references; do not criticize implementation because implementation is out of scope.
 
 Validate findings against source evidence, apply only confirmed readiness corrections, and rerun affected gates. Let the `second-opinion` skill own command construction, quoting, independent execution, failures, and synthesis. Two distinct model reviews must succeed before handoff. If either model is unavailable or fails, flag it to the human and ask them to select an alternative; do not proceed with only one successful review.
 
@@ -212,13 +212,13 @@ Validate findings against source evidence, apply only confirmed readiness correc
 
 After adversarial review and before asking to mark the ISA ready, spawn a fresh `reviewer` agent (read-only; it never edits the ISA). Goal: the coding agent closes every ISC autonomously and cheaply; only genuinely costly or unprovable probes reach the human.
 
-The reviewer checks `_ai/docs/ISA.md` against `artifact-template.md` and `formats.md` for format conformance (section order, stable IDs, one binary probe per leaf ISC, every required-behavior bullet mapped), then tags each probe:
+The reviewer checks `_ai/docs/ISA.html` against `artifact-template.md` and `formats.md` for format conformance (section order, stable IDs as element ids, the checkbox, table and Verification markup the Progress script reads, one binary probe per leaf ISC, every required-behavior bullet mapped), then tags each probe:
 
 - **Cheap**: an agent can run it alone (test, script, Metro or simulator, headless browser).
 - **Expensive**: it would work, but a cheaper route proves the same claim (e.g. a full native iOS build where Metro shows the same result). Name the cheaper route.
 - **Unprovable or manual**: no honest automated closer exists.
 
-It returns format findings plus a table of only the Expensive and Unprovable rows: ISC ID, why, suggested cheaper probe. Show the table to the user in chat (not in `ISA.md`). The user decides per row: accept the cost, switch to the cheaper probe, or mark manual/contextual. Apply the decisions, rerun affected gates, and do not self-approve or ask to mark ready while flagged rows are unresolved.
+It returns format findings plus a table of only the Expensive and Unprovable rows: ISC ID, why, suggested cheaper probe. Show the table to the user in chat (not in `ISA.html`). The user decides per row: accept the cost, switch to the cheaper probe, or mark manual/contextual. Rows the user marks manual move to `#owner-verification-table`; the agent still builds and wires them. Apply the decisions, rerun affected gates, and do not self-approve or ask to mark ready while flagged rows are unresolved.
 
 ## Completion And Handoff
 
@@ -226,10 +226,10 @@ When all gates pass, adversarial review is complete, and the Verification Cost R
 
 1. Show the final scope, ISC count, and any explicitly N/A categories; ask once: `Mark this ISA ready for coding?`
 2. If accepted, set `status: ready`, `clarification_progress: 8/8`, `progress: 0/N`, and update `updated`. Otherwise remain `drafting` and capture the requested changes.
-3. Report `_ai/docs/ISA.md` as ready for direct implementation.
+3. Report `_ai/docs/ISA.html` as ready for direct implementation.
 4. Do not suggest the technical-requirements or roadmap commands.
 5. Provide this climb contract to the coding agent:
 
 ```text
-Read `_ai/docs/ISA.md` as the product source of truth. For existing products, begin with its Existing Capability Baseline and feature change classes; reuse proven behavior owners before introducing parallel paths. Choose implementation details from the repository and ETHOS. For each open ISC, make the smallest coherent change, run its predeclared probe, and close it only when the probe passes with replayable consumer-boundary evidence. Add a one-line Verification provenance reference and update progress after each closure. If a probe fails, determine whether the implementation or the claim is wrong; never weaken or rewrite product intent silently. Stop and ask when intent is ambiguous, evidence is unavailable, reuse is concretely incompatible, or satisfying a claim requires expanding scope.
+Read `_ai/docs/ISA.html` as the product source of truth. For existing products, begin with its Existing Capability Baseline and feature change classes; reuse proven behavior owners before introducing parallel paths. Choose implementation details from the repository and ETHOS. For each open ISC, make the smallest coherent change, run its predeclared probe, and close it only when the probe passes with replayable consumer-boundary evidence. Add a one-line Verification provenance reference and update progress after each closure. If a probe fails, determine whether the implementation or the claim is wrong; never weaken or rewrite product intent silently. Stop and ask when intent is ambiguous, evidence is unavailable, reuse is concretely incompatible, or satisfying a claim requires expanding scope.
 ```
