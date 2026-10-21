@@ -3,9 +3,9 @@
  * prose before every agent-loop model call. It only adds an instruction; it
  * never truncates or rewrites a reply, so nothing is cut mid-thought.
  *
- * Change the limit with the OPENCODE_REPLY_MAX_CHARS env var (default 750).
+ * Change the limit with the OPENCODE_REPLY_MAX_CHARS env var (default 500).
  */
-const MAX_CHARS = Number(process.env.OPENCODE_REPLY_MAX_CHARS) || 750;
+const MAX_CHARS = Number(process.env.OPENCODE_REPLY_MAX_CHARS) || 500;
 
 const INSTRUCTION =
   `Reply budget: keep your final reply to the user under ${MAX_CHARS} characters of prose. ` +
