@@ -4,12 +4,12 @@
     {
       "id": 1,
       "prompt": "Run /product-isa for my new iPhone pantry app. Use @_ai/docs/USER_STORIES.md and the screen mocks already in _ai/docs/mocks. Ask only what those sources do not settle.",
-      "expected_output": "Starts or resumes the eight-category whole-app interview, treats mocks as screen and flow evidence, incrementally writes _ai/docs/ISA.md, and does not create technical or roadmap artifacts.",
+      "expected_output": "Starts or resumes the eight-category whole-app interview, treats mocks as screen and flow evidence, incrementally writes _ai/docs/ISA.html, and does not create technical or roadmap artifacts.",
       "files": []
     },
     {
       "id": 2,
-      "prompt": "Continue the Product ISA in @_ai/docs/ISA.md. We changed our mind: deleting a saved item now needs an Undo instead of confirmation.",
+      "prompt": "Continue the Product ISA in @_ai/docs/ISA.html. We changed our mind: deleting a saved item now needs an Undo instead of confirmation.",
       "expected_output": "Resumes without overwriting history, supersedes affected decisions and contracts with stable IDs, updates relationships, and preserves exact user words.",
       "files": []
     },

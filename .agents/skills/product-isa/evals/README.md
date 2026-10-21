@@ -26,7 +26,7 @@ Until fixtures exist, the prompts can still be used as manual smoke tests in dis
 
 ## What To Check
 
-- Only `_ai/docs/ISA.md` is written.
+- Only `_ai/docs/ISA.html` is written.
 - Missing inputs and source conflicts stop safely.
 - Existing IDs and superseded history are preserved.
 - Detailed contracts remain first-class and trace to atomic ISCs.

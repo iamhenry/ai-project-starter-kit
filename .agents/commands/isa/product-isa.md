@@ -14,6 +14,6 @@ Thin entrypoint. The complete workflow lives in the `product-isa` skill.
 2. Pass the product idea and any input paths from `$ARGUMENTS`. (ex. user-stories.md, architecture.html, prototype.html, etc)
 3. Execute the skill end to end; do not recreate or expand its workflow here.
 
-**Output:** `_ai/docs/ISA.md`
+**Output:** `_ai/docs/ISA.html`
 
 This is an isolated experiment. Do not modify or invoke the existing product ADR, technical ADR, or roadmap workflow unless the user explicitly asks.

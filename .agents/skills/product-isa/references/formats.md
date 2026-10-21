@@ -8,8 +8,10 @@ Show a compact status before each question batch:
 PRODUCT ISA | Category [N]/8: [Name] | [resolved]/[total] gaps resolved
 Known: [short list]
 Open: [short list]
-Artifact: _ai/docs/ISA.md
+Artifact: _ai/docs/ISA.html
 ```
+
+Contract, decision, fog and learning blocks below show content and field order. In `ISA.html`, render contracts and decisions as `<article id="ID">` with a `<dl class="contract">` of fields, and other sections as plain HTML (see `artifact-template.md`). Interview questions are chat, not artifact content.
 
 ## Questions
 
@@ -182,10 +184,12 @@ Only Active decisions lock current behavior. Preserve Superseded entries. Reject
 
 ## Criteria
 
-```markdown
-- [ ] ISC-001: [One observable end-state claim]
-- [ ] ISC-002: Anti: [One prohibited outcome]
+```html
+<li id="ISC-001"><input type="checkbox" disabled aria-label="ISC-001"> <span class="id">ISC-001</span>: [One observable end-state claim]</li>
+<li id="ISC-002"><input type="checkbox" disabled aria-label="ISC-002"> <span class="id">ISC-002</span>: Anti: [One prohibited outcome]</li>
 ```
+
+Group leaves under one `<h3>` per product area inside `<ul class="isc">` (see `artifact-template.md`). A closed leaf adds `checked` to its checkbox.
 
 A leaf ISC:
 
@@ -244,10 +248,11 @@ Learned: [Durable correction]
 Criterion now: [ISC added, split, tightened, or dropped]
 ```
 
-```markdown
-## Verification
-
-- ISC-001: PASS - [identified subject and source]; observed [value]; evidence [replayable command, recording, screenshot, CI run, or path]; verifier [agent/session]
+```html
+<li>ISC-001: PASS - [identified subject and source]; observed [value]; evidence [replayable command, recording, screenshot, CI run, or path]; verifier [agent/session]</li>
+<li>ISC-002: BLOCKED - [why the probe cannot run now]; evidence [what was tried]; verifier [agent/session]</li>
 ```
+
+Append lines inside `<section id="verification">`; never rewrite earlier ones. The latest line per ISC is its current state and drives the Progress tiles.
 
 Omit each section when empty. Verification stores concise provenance, not copied logs or evidence paragraphs. `FAIL` and `BLOCKED` never close a criterion or increment progress. Redact personal data from subjects and evidence references.
