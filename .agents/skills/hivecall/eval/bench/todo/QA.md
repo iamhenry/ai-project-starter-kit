@@ -4,6 +4,8 @@ For the parent only. **Never copy this file into the run's repo**; the run gets 
 
 Same method as run 10 (`~/swarm-test/run10/evidence/SCORE.md`), so the scores compare.
 
+Spec provenance (kept out of the run folder): TASK.md's goal, features, definition of done and out-of-scope list are copied word for word from `~/swarm-test/run5/swarm/TASK.md` (sha256 336dc5c0ab0e…); `design.md` is unchanged (sha256 483fa8b01cd1…).
+
 ## Setup
 - Freeze first: record the app folder's file hashes and HEAD. Re-check after QA; a changed hash voids the QA.
 - 3 testers in parallel, each a fresh visible `qa` running `verification-gate` sized small: tester A features 1–10, B 11–20, C 21–29.

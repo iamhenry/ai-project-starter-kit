@@ -88,6 +88,10 @@ The new context rows 11-14 carry pass flags for the benchmark pass bar. They sta
 
 `bench/todo/` is a frozen task for comparing skill versions on the same work: `TASK.md` (the run 10 to-do spec plus run rules: no owner, 2 h cap) and `design.md` go into a fresh repo; `QA.md` is the blind testers' script and pass bar and stays here. Grade the run with this eval, then score the app with `QA.md`.
 
+Don't edit `TASK.md`, `design.md` or `QA.md` again: a changed task makes old and new runs incomparable.
+
+Baseline, to-do v1 (2026-10-22, hivecall 1.1.0, tag `hivecall-1.1.0-todo-baseline`): closed in 54 min, 28/29 proven, 0 owner messages. Blind QA: 87% working, 78% of claims confirmed. Run 10 on the same task took 90 min: 80–83% working, 59–70% confirmed.
+
 ## Keeping it honest as the skill changes
 
 An eval goes stale when the skill changes how runs are written and the eval keeps looking for the old words. Three habits stop that.

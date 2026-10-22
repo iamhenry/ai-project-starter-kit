@@ -1,6 +1,6 @@
 # Benchmark task: Pro To-Do App
 
-Frozen hivecall benchmark. The goal, features, definition of done and out-of-scope list are copied word for word from `~/swarm-test/run5/swarm/TASK.md` (sha256 336dc5c0ab0e…), the spec run 10 was scored against. `design.md` is that run's design file, unchanged (sha256 483fa8b01cd1…). The swarm mechanics (peers, board, claims, locks) are left out: hivecall supplies its own way of working. Only the sections marked "Run rules" are new.
+Only the sections marked "Run rules" are specific to this run; everything else is the product spec.
 
 ## Goal
 Build a pro-level to-do app with `index.html`, `style.css`, and `app.js`. You may split the code into more `.js` or `.css` files if that helps the team work in parallel. Use plain HTML, CSS, and JS only: no libraries, packages, CDNs, or build step. The only exception is Google Fonts. Use native browser features, for example `<input type="date">`, HTML5 drag and drop, localStorage, IndexedDB, BroadcastChannel, the Notification API, `<canvas>`, and `<dialog>`. Style it using `design.md`. Opening `index.html` directly in a browser must work.
@@ -55,4 +55,4 @@ Out of scope: accounts, backend, dark mode, touch drag on mobile, print view, sh
 - **Time cap: 2 hours** from the hivecall skill load. At the cap, finish nothing new: record every open item as FAIL or BLOCKED with its reason, write the run card's `## Final report`, set `status: closed`.
 - **Git:** local commits only. Never push, never open a PR.
 - **Safety:** stay inside this folder. No packages. No network except Google Fonts in the page.
-- **Do not read** anything outside this folder about earlier runs of this task (for example `~/swarm-test/`).
+- **Do not read** anything outside this folder about earlier runs of this task.
