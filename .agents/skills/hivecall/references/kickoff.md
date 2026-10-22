@@ -27,6 +27,7 @@ How the contract maps to the run:
 - **Exit criteria** is when the run stops early: set the run card to `waiting-owner`, report the one-line status, and stop. Items also park after three failed attempts with different approaches.
 - **Owner-only items** (physical device, accounts) go under OUT with a note "owner-only". They are not counted toward done. Prefer a simulator or scripted check over owner-only whenever one can prove the behavior.
 - Between items, pick the cheapest move that can raise the score (see HOW-TO-WORK.md).
+- **Every visual intent has a check.** If the spec has mocks, screenshots or a design doc, each screen they show is named by at least one item's check; otherwise add one before work starts.
 - **Write the check first.** An item without a check that can run on this machine gets one written before its worker starts. If none is possible, mark it "judged against spec" and cite the spec line, or owner-only. Do not block other items on it. Example: an app that cannot be built here cannot be checked here, so say that in the contract before work starts.
 
 Ask both questions in the same message: **"Watchdog on? (yes / no)"** and **"Open a PR at the end? (yes / no)"**. On the clear-task route, contract approval plus both answers starts the run; on discovery, the two answers authorize the run without owner approval of the contract or plan.
@@ -38,7 +39,7 @@ Ask both questions in the same message: **"Watchdog on? (yes / no)"** and **"Ope
 
 Rules:
 - One `<h3>` per feature, then `<ul class="isc">` with `<li id="ISC-n"><input type="checkbox" disabled> ISC-n: <observable behavior> — check: <exact check></li>`. The checkbox comes right after the `<li id>`.
-- Only the orchestrator edits the page. Tick an item by adding `checked` to its checkbox. Append one `<li>ISC-n: PASS|FAIL|BLOCKED - <reason>; evidence <path></li>` per result to `#verification`. Latest line per ID wins. A `BLOCKED` item stays unticked and counts as stuck.
+- Only the orchestrator edits the page. Tick an item by adding `checked` to its checkbox. Append one `<li>ISC-n: PASS|FAIL|BLOCKED - <reason>; commit <sha>; evidence <path></li>` per result at the end of `#verification`; never insert above older lines. The last line per ID wins. A `BLOCKED` item stays unticked and counts as stuck.
 - Update the `progress` row (`done/total`) with each tick. The page warns when it disagrees.
 - Owner-only items go in `#owner-only`; they are never counted.
 - Never edit the panel's numbers; the page counts them when opened (reload to refresh).
@@ -64,11 +65,30 @@ backup models: <agent> -> <provider/model#variant> (required; used on a credit c
 - machine: <e.g. iOS: 1 simulator, 1 native build; web: 1 browser, 1 dev server; keep 5 GB free>
 - regression journeys: <3-5 replayable user journeys, each with its command or flow file>
 
+## Plan map
+<one line per open item: ISC-n needs: ISC-a, ISC-b · files: src/x.ts, src/y.css>
+<slowest chain: ISC-a -> ISC-b -> ISC-n; update both when evidence changes a need or a file>
+
+## Owner rules
+<each owner steer, word for word, with its time; the watchdog repeats these after a compaction>
+
 ## Owner decisions
 <one line each: time, decision, reason; cite in verdict lines>
 
+## Pre-review checklist
+<the run's recurring review findings, one line each; builders check these and attach command output before review>
+
+## Proven recipes
+<one line per setup a QA pass proved: what it does, the exact steps or command; link it in later briefs>
+
+## Answers
+<one line per watchdog alert: ANSWER <alert id>: <action> — <thread id, ledger line, or park line>>
+
 ## Lessons
 <one line per surprise, failure, or false alarm: what happened → what to do instead>
+
+## Final report
+<written when the run closes or waits on the owner: confirmed with evidence, parked with unlock, owner-only, uncertain>
 ```
 
 The approved contract lives on the checklist page, not here.
@@ -108,5 +128,5 @@ The owner may be away for hours; the footer must make the current state clear at
 When every counted item is ticked or parked:
 
 1. If PR authority was yes, confirm cited verification evidence files exist, then finish with `create-pr` to push the branch and open a PR; never merge. Otherwise, use local commits only and never push.
-2. Set `status: closed` in the run card, then send the final report: confirmed (with evidence), parked (with unlock), owner-only items, uncertain.
+2. Write `## Final report` in the run card, set `status: closed`, then send the same report: confirmed (with evidence), parked (with unlock), owner-only items, uncertain.
 3. The watchdog pauses after `closed`, then deletes its automation on the check after a successful pause. If pause fails, it retries; a complete ledger with a card that is not closed only pauses and sends `WATCH DONE` without deleting the automation.

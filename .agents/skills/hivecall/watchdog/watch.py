@@ -13,7 +13,10 @@
 # 2. No AI, cheap, every 5 minutes. A plain script that finishes in seconds
 #    and adds no load of its own.
 # 3. Quiet unless it matters. One status line per run. A message only for a
-#    real problem, seen on two runs in a row, sent once per problem.
+#    real problem, seen on two runs in a row, sent once per problem. Each
+#    run-moving alert is a fact, two questions and a default move, with an
+#    alert id the orchestrator answers in the run card. Urgent alerts
+#    interrupt the turn (at most once per 10 minutes); the rest are queued.
 # 4. Judge agents only against their own promise. "Off track" means no real
 #    progress on the work the agent's brief promised, past its pace.
 #    Never guess from activity, tone or file names.
@@ -28,13 +31,20 @@
 #    always reported.
 # 9. Protect the machine. Report high load, low disk, huge files and orphaned
 #    recorders or log processes.
-# 10. Keep the run moving, without spinning. Nudge the orchestrator when work
-#     remains and nothing is running. Progress means a ledger verdict change.
-#     Stop nudging after 3 checks with no change and leave the user a note.
+# 10. Keep the run climbing, without spinning. Progress means honest proof: a
+#     new PASS/FAIL ledger verdict, a new PASS/FAIL result row with evidence,
+#     or a new commit. Revise verdicts, BLOCKED and waiting don't count. With
+#     no progress it asks at 10 minutes, asks again at 15 if nothing was done,
+#     and says park at 20, even while the orchestrator is busy. Then it stops
+#     nudging until progress and leaves the user a note. An idle orchestrator
+#     with work left is nudged; 3 idle checks with no change stop that too.
 # 11. Stop when done. When the ledger is complete or only parked items remain,
 #     pause its own automation; when the run card says closed, pause first and
 #     delete the automation on the check after a successful pause.
 #     While the run card says waiting, never nudge; keep the other checks.
+# 12. Re-anchor after compaction. When the orchestrator compacts its context,
+#     send one short message: goal, done and open items, live helpers, stuck
+#     items, the owner's rules word for word, and where to re-read the rest.
 
 """Cheap watchdog for a long-running BB/ISA task."""
 
@@ -276,11 +286,36 @@ def read_run_card(path: str) -> dict:
     try:
         source = Path(path).read_text(encoding="utf-8")
     except OSError:
-        return {"valid": False, "status": None, "waiting_text": None}
+        return {"valid": False, "status": None, "waiting_text": None, "goal": None,
+                "owner_rules": [], "answers": {}, "needs": {}, "plan_valid": False}
     m = re.search(r"^\s*(?:[-*]\s*)?\**status\**:\s*`?([a-z-]+)", source, re.M | re.I)
     waiting = re.search(r"^\s*waiting\s*:\s*(\S.*?)\s*$", source, re.M | re.I)
+    goal = re.search(r"^\s*goal\s*:\s*(\S.*?)\s*$", source, re.M | re.I)
+    sections: dict[str, list[str]] = {}
+    current = None
+    for line in source.splitlines():
+        heading = re.match(r"^##\s+(.*?)\s*$", line)
+        if heading:
+            current = heading.group(1).strip().lower()
+            sections.setdefault(current, [])
+        elif current is not None and line.strip() and not line.strip().startswith("<"):
+            sections[current].append(line.strip())
+    answers = {}
+    for line in source.splitlines():
+        answer = re.search(r"\bANSWER\s+(W\d+)\s*:\s*(.*)$", line)
+        if answer:
+            answers[answer.group(1)] = answer.group(2).strip()
+    needs = {}
+    for line in sections.get("plan map", []):
+        item = re.search(r"(ISC-[0-9.]+)\s+needs\s*:\s*([^·|]*)", line, re.I)
+        if item:
+            needs[normalize_ident(item.group(1))] = {normalize_ident(ident) for ident in
+                                                      re.findall(r"ISC-[0-9.]+", item.group(2))}
     return {"valid": True, "status": m.group(1).lower() if m else None,
-            "waiting_text": waiting.group(1).strip() if waiting else None}
+            "waiting_text": waiting.group(1).strip() if waiting else None,
+            "goal": goal.group(1).strip() if goal else None,
+            "owner_rules": [re.sub(r"^[-*]\s*", "", line) for line in sections.get("owner rules", [])],
+            "answers": answers, "needs": needs, "plan_valid": bool(needs), "plan_checked": True}
 
 
 def pause_automation(env: dict[str, str], dry_run: bool) -> str:
@@ -378,6 +413,8 @@ def parse_isa(path: str, root: str = "") -> dict:
     fail_occurrences = {}
     fail_counts: dict[str, int] = {}
     pass_history = set()
+    tries: dict[str, int] = {}
+    latest_fail_sigs: dict[str, str] = {}
     verdict_count = 0
     if verdict_texts:
         for text in verdict_texts:
@@ -388,16 +425,22 @@ def parse_isa(path: str, root: str = "") -> dict:
             status = status.upper()
             verdict_count += 1
             latest[ident] = (status, reason.strip())
+            norm = normalize_ident(ident)
+            latest_fail_sigs.pop(norm, None)
             if status == "PASS":
                 pass_lines += 1
                 pass_ids.add(ident)
-                pass_history.add(normalize_ident(ident))
-                fail_counts[normalize_ident(ident)] = 0
+                pass_history.add(norm)
+                fail_counts[norm] = 0
+                tries[norm] = 0
+            else:
+                tries[norm] = tries.get(norm, 0) + 1  # FAIL and BLOCKED are both attempts
             if status == "FAIL":
-                fail_counts[normalize_ident(ident)] = fail_counts.get(normalize_ident(ident), 0) + 1
+                fail_counts[norm] = fail_counts.get(norm, 0) + 1
                 signature = hashlib.sha256(text.encode()).hexdigest()[:12]
                 fail_occurrences[signature] = fail_occurrences.get(signature, 0) + 1
                 fails.append((ident, f"{signature}-{fail_occurrences[signature]}", text))
+                latest_fail_sigs[norm] = f"{signature}-{fail_occurrences[signature]}"
 
     blocked = {ident for ident, (status, _) in latest.items() if status == "BLOCKED" and ident not in checked}
     parked = (set(owner) | blocked) - checked
@@ -431,7 +474,7 @@ def parse_isa(path: str, root: str = "") -> dict:
             "frontmatter": frontmatter, "fails": enriched_fails, "test_tools": test_tools,
             "latest_verdicts": {normalize_ident(ident): {"status": status, "reason": reason}
                                 for ident, (status, reason) in latest.items()},
-            "fail_counts": fail_counts,
+            "fail_counts": fail_counts, "tries": tries, "latest_fail_sigs": latest_fail_sigs,
             "criteria": sorted(normalize_ident(ident) for ident in criteria),
             "regressions": sorted(regressions), "owner_only_ids": sorted(owner_only_ids),
             "ledger_mtime": ledger_mtime, "verdict_count": verdict_count,
@@ -564,9 +607,28 @@ def load_server() -> dict:
             "error": error or ("missing attached status or port" if not valid else "")}
 
 
-def load_sessions(session_id: str, now: float, root: str = "", verify_dir: str = "") -> dict:
+def bb_child_sessions(thread_id: str) -> list[str]:
+    """OpenCode sessions behind BB child threads of the orchestrator. A `bb thread spawn` child runs its
+    own root session (no parent_id), so the parent_id query alone would not see it. Read-only."""
+    db = os.path.expanduser("~/.bb/bb.db")
+    if not thread_id or not os.path.exists(db):
+        return []
+    try:
+        con = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=3.0)
+        con.execute("PRAGMA query_only=ON")
+        rows = con.execute("""SELECT DISTINCT e.provider_thread_id FROM events e JOIN threads t ON t.id=e.thread_id
+            WHERE t.parent_thread_id=? AND e.provider_thread_id LIKE 'ses_%'""", (thread_id,)).fetchall()
+        con.close()
+        return [row[0] for row in rows]
+    except sqlite3.Error:
+        return []
+
+
+def load_sessions(session_id: str, now: float, root: str = "", verify_dir: str = "",
+                  extra_ids: list[str] | None = None) -> dict:
     db = os.path.expanduser("~/.local/share/opencode/opencode.db")
-    result = {"live": [], "children": [], "last_orch_message": None, "error": "", "valid": False}
+    result = {"live": [], "children": [], "last_orch_message": None, "last_compaction": None,
+              "error": "", "valid": False}
     if not session_id:
         result["error"] = "ORCH_SESSION is unset"
         return result
@@ -577,11 +639,13 @@ def load_sessions(session_id: str, now: float, root: str = "", verify_dir: str =
         con = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=3.0)
         con.execute("PRAGMA query_only=ON")
         con.execute("PRAGMA busy_timeout=3000")
-        rows = con.execute("""SELECT s.id,s.agent,s.time_created,MAX(m.time_updated),
+        extra = [ident for ident in (extra_ids or []) if ident != session_id]
+        rows = con.execute(f"""SELECT s.id,s.agent,s.time_created,MAX(m.time_updated),
             MAX(CASE WHEN m.type='assistant' THEN m.time_updated END),s.time_idle,s.idle_outcome
             FROM session_v2 s LEFT JOIN session_message m ON m.session_id=s.id
-            WHERE s.parent_id=? GROUP BY s.id""",
-                            (session_id,)).fetchall()
+            WHERE s.parent_id=? {"OR s.id IN (" + ",".join("?" * len(extra)) + ")" if extra else ""}
+            GROUP BY s.id""",
+                            (session_id, *extra)).fetchall()
         for ident, agent, created, last, last_assistant, time_idle, idle_outcome in rows:
             last_s = seconds(last)
             if ident == session_id:
@@ -627,6 +691,11 @@ def load_sessions(session_id: str, now: float, root: str = "", verify_dir: str =
                     child["steers"] = []
         row = con.execute("SELECT MAX(time_updated) FROM session_message WHERE session_id=?", (session_id,)).fetchone()
         result["last_orch_message"] = seconds(row[0]) if row else None
+        # Rule 12: a DCP compress call or a native compaction marks lost context.
+        row = con.execute("""SELECT MAX(time_created) FROM session_message WHERE session_id=? AND
+            (type='compaction' OR (type='assistant' AND data LIKE '%"name":"compress"%'))""",
+                          (session_id,)).fetchone()
+        result["last_compaction"] = seconds(row[0]) if row else None
         con.close()
         result["valid"] = True
     except (sqlite3.Error, OSError) as exc:
@@ -740,6 +809,12 @@ def load_bb(thread_id: str, sessions: list[dict], live_sessions: list[dict]) -> 
     for sess in sessions:
         sess["thread_id"] = result["binding"].get(sess["id"])
         sess["visible"] = sess["thread_id"] in visible_ids if sess["thread_id"] else False
+        bound = by_id.get(sess["thread_id"], {}) if sess["thread_id"] else {}
+        # Facts for the alert, so the orchestrator checks by id, never by title.
+        sess["binding_fact"] = (f"bound to {sess['thread_id']} (title '{bound.get('title', '?')}', "
+                                f"status {bound.get('status', 'not listed')}, "
+                                f"visibility {bound.get('visibility', '?')})"
+                                if sess["thread_id"] else "no BB thread bound to this session")
     for child in result["children"]:
         if child.get("status") == "active":
             child["visible"] = child.get("id") in visible_ids
@@ -861,7 +936,8 @@ def collect(env: dict[str, str], now: float | None = None) -> dict:
     run_card = read_run_card(env.get("RUN_CARD") or os.path.join(root, ".hivecall", "run.md"))
     run_status = run_card["status"]
     host = load_host_facts(root, now, env)
-    sessions = load_sessions(env.get("ORCH_SESSION", ""), now, root, env.get("VERIFY_DIR", ""))
+    sessions = load_sessions(env.get("ORCH_SESSION", ""), now, root, env.get("VERIFY_DIR", ""),
+                             bb_child_sessions(env.get("ORCH_THREAD", "")))
     bb = load_bb(env.get("ORCH_THREAD", ""), sessions["children"], sessions["live"])
     server = load_server()
     promised_paths = {session["promise"].get("result_path") for session in sessions["children"]
@@ -869,9 +945,25 @@ def collect(env: dict[str, str], now: float | None = None) -> dict:
     evidence = load_results(env.get("VERIFY_DIR", ""), isa, now, promised_paths)
     lanes = load_lane_facts(sessions["live"])
     head, head_error = command(["git", "-C", root, "rev-parse", "HEAD"], 2.0)
+    # Candidate = HEAD plus uncommitted product edits (run files excluded), for the DRIFT check.
+    diff, diff_error = command(["git", "-C", root, "diff", "HEAD", "--", ".", ":(exclude).hivecall",
+                                ":(exclude).lanes", ":(exclude)_ai"], 3.0)
+    # New, untracked source files change the candidate too; screenshots and logs a tester writes do not.
+    others, others_error = command(["git", "-C", root, "ls-files", "--others", "--exclude-standard", "--", ".",
+                                    ":(exclude).hivecall", ":(exclude).lanes", ":(exclude)_ai"], 3.0)
+    untracked = []
+    for name in sorted(others.splitlines()) if not others_error else []:
+        if re.search(r"\.(html?|css|scss|m?js|jsx|tsx?|py|swift|kt|go|rs|json)$", name):
+            try:
+                st = os.stat(os.path.join(root, name))
+                untracked.append(f"{name}:{st.st_size}:{st.st_mtime_ns}")
+            except OSError:
+                pass
+    candidate = (hashlib.sha256((f"{head}\n{diff}\n" + "\n".join(untracked)).encode()).hexdigest()
+                 if head and not head_error and not diff_error else None)
     return {"now": now, "host": host, "server": server, "sessions": sessions, "bb": bb,
             "isa": isa, "run_status": run_status, "run_card": run_card, "evidence": evidence,
-            "lanes": lanes, "head": head,
+            "lanes": lanes, "head": head, "candidate": candidate,
             "head_valid": bool(head and not head_error),
             "head_error": head_error}
 
@@ -946,9 +1038,10 @@ def summary_line(snapshot: dict, alert_tags: list[str]) -> str:
               isa.get("pass") is not None and isa.get("total") is not None else "?/?")
     status = "OK" if not alert_tags else f"ALERT: {alert_tags[0]}" + (
         f" +{len(alert_tags) - 1}" if len(alert_tags) > 1 else "")
+    climb = f" · {snapshot['climb']}" if snapshot.get("climb") else ""
     return (f"load {load:.0f}" if load is not None else "load ?") + " · " + \
         (f"disk {free:.0f} GB" if free is not None else "disk ? GB") + \
-        f" · {agents} · {ledger} · {status}"
+        f" · {agents} · {ledger} · {status}{climb}"
 
 
 def promise_metrics(sess: dict, snapshot: dict, state: dict) -> dict | None:
@@ -1115,15 +1208,17 @@ def append_note(root: str, note: str, dry_run: bool) -> None:
         f.write(f"{dt.datetime.now().astimezone().isoformat(timespec='seconds')} {note}\n")
 
 
-def dispatch(thread_id: str, messages: list[str], dry_run: bool) -> None:
+def dispatch(thread_id: str, messages: list[str], dry_run: bool, mode: str = "queue") -> None:
+    """Queue by default; `auto` interrupts a live turn (urgent alerts, rate-limited by the caller)."""
     if not messages:
         return
     lines = [message.replace("\n", " ").strip() for message in messages]
     text = "\n".join(lines)
     if dry_run:
-        print(f"DRY-RUN: would queue to {thread_id}:\n{text}")
+        suffix = "" if mode == "queue" else f" (--mode {mode}, interrupts now)"
+        print(f"DRY-RUN: would queue to {thread_id}:{suffix}\n{text}")
         return
-    out, error = command(["bb", "thread", "tell", thread_id, "--mode", "queue", text], 8.0)
+    out, error = command(["bb", "thread", "tell", thread_id, "--mode", mode, text], 8.0)
     if error:
         print(f"WATCH ERROR: bb thread tell failed: {error}", file=sys.stderr)
     elif out:
@@ -1164,10 +1259,54 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
     alert_tags: list[str] = []
     conditions = state.setdefault("conditions", {})
 
+    asked = state.setdefault("asked", {})
+    if not isinstance(asked, dict):
+        asked = state["asked"] = {}
+    urgent_keys: list[str] = []
+
+    def action_fingerprint() -> dict:
+        """What the orchestrator can visibly do about an alert: start a helper, change the ledger, commit."""
+        return {"children": sorted(str(row.get("id")) for row in bb.get("children", []))
+                if bb.get("list_valid") else None,
+                "ledger": hashlib.sha256(json.dumps([isa.get("latest_verdicts", {}), isa.get("checked", []),
+                                                     isa.get("parked", []), isa.get("verdict_count", 0)],
+                                                    sort_keys=True).encode()).hexdigest()
+                if not isa.get("error") else None,
+                "head": snapshot.get("head") if snapshot.get("head_valid") else None}
+
+    def acted_since(baseline: dict) -> bool:
+        current = action_fingerprint()
+        if current["children"] is not None and baseline.get("children") is not None and \
+                set(current["children"]) - set(baseline["children"]):
+            return True
+        return any(current[k] is not None and baseline.get(k) is not None and current[k] != baseline[k]
+                   for k in ("ledger", "head"))
+
+    def record(key: str, tag: str, detail: str, urgent: bool, track: bool) -> None:
+        if track:
+            state["alert_seq"] = int(state.get("alert_seq", 0)) + 1
+            aid = f"W{state['alert_seq']}"
+            detail = f"{detail} (alert {aid})"
+            asked[aid] = {"at": now, "key": key, "kind": tag, "urgent": urgent,
+                          "baseline": action_fingerprint()}
+        messages.append(detail)
+        if urgent:
+            urgent_keys.append(key)
+        if tag not in alert_tags:
+            alert_tags.append(tag)
+        review["alerts"][tag] = review["alerts"].get(tag, 0) + 1
+
     def emit() -> None:
         if messages:
+            if any("(alert W" in message for message in messages):
+                messages.append("Answer each alert id under the run card's Answers: "
+                                "`ANSWER <id>: <action> — <thread id, ledger line, or park line>`.")
             messages.extend(status_table(snapshot))
-        dispatch(thread_id, messages, dry_run)
+        mode = "queue"
+        if messages and urgent_keys and now - float(state.get("last_interrupt", 0)) >= 600:
+            mode = "auto"
+            state["last_interrupt"] = now
+        dispatch(thread_id, messages, dry_run, mode)
 
     review = state.setdefault("review", {"last_at": now, "alerts": {},
                                           "promise_agents": [], "other_agents": []})
@@ -1180,7 +1319,14 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
     review.setdefault("other_agents", [])
 
     isa_valid = not isa.get("error")
+    prior_fail_lines: set[str] = set()
     if isa_valid:
+        # FAIL lines seen on earlier checks; the first check is a baseline.
+        current_fail_lines = {normalize_ident(ident) + ":" + signature
+                              for ident, signature, *_ in isa.get("fails", [])}
+        stored = state.get("fail_lines_seen")
+        prior_fail_lines = set(stored) if isinstance(stored, list) else set(current_fail_lines)
+        state["fail_lines_seen"] = sorted(prior_fail_lines | current_fail_lines)
         active_regressions = set(isa.get("regressions", []))
         for key in list(conditions):
             if key.startswith("regression:") and key.split(":", 1)[1] not in active_regressions:
@@ -1215,7 +1361,8 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
         state["continue"] = {}  # owner unblocked the run: nudging may resume
     state["last_run_status"] = run_status or ""
 
-    def trigger(key: str, active: bool, detail: str, severity: int = 1, valid: bool = True) -> bool:
+    def trigger(key: str, active: bool, detail: str, severity: int = 1, valid: bool = True,
+                urgent: bool = False, track: bool = False) -> bool:
         if not valid:
             return False
         rec = conditions.setdefault(key, {"streak": 0, "last_alert": 0, "severity": 0})
@@ -1227,7 +1374,6 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
         if due:
             rec["last_alert"] = now
             rec["severity"] = severity
-            messages.append(detail)
             tag = {
                 "high-load": "high load", "low-disk": "low disk", "big-file": "large file",
                 "orphan-process": "orphan process", "stuck-builder-log": "stuck builder",
@@ -1238,11 +1384,10 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
                 "off-track": "off track", "no-talkback": "no talk-back",
                 "repeat-fail": "repeat failure", "unclaimed": "unclaimed work",
                 "plateau": "plateau", "regression": "regression",
-                "leftover-session": "leftover session",
+                "leftover-session": "leftover session", "drift": "code changed under QA",
+                "free": "free items idle", "plan": "plan map out of date",
             }.get(key.split(":", 1)[0], "alert")
-            if tag not in alert_tags:
-                alert_tags.append(tag)
-            review["alerts"][tag] = review["alerts"].get(tag, 0) + 1
+            record(key, tag, detail, urgent, track)
         return due
 
     all_live_sessions = list(sessions.get("live", []))
@@ -1266,15 +1411,18 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
     for sess, child_thread in leftover_sessions:
         trigger("leftover-session:" + sess["id"], True,
                 f"LEFTOVER session {sess['id']} still running after its BB thread {child_thread} ended; "
-                "interrupt it before relaunching.",
-                valid=can_check_bindings)
+                "interrupt it before relaunching. Ask: Was this helper resumed after it finished? "
+                "Is its work already covered by a newer helper? Default: interrupt it and continue the "
+                "work in a fresh visible BB child with a Delta.",
+                valid=can_check_bindings, urgent=True, track=True)
 
     load = host.get("load")
     load_limit = setting(env, "WATCH_LOAD_LIMIT", 150)
     trigger("high-load", load is not None and load > load_limit,
             f"HOST load: 1-minute load {load:.1f} (>{load_limit:g}) on two checks; uptime reports this value."
             if load is not None else "HOST load: uptime reading unavailable.",
-            int(load // load_limit) if load else 1, valid=host.get("uptime_valid", False))
+            int(load // load_limit) if load else 1, valid=host.get("uptime_valid", False),
+            urgent=load is not None and load > 2 * load_limit)
     free = host.get("free_gb")
     disk_limit = setting(env, "WATCH_DISK_FREE_GB", 10)
     disk_valid = host.get("df_valid", False)
@@ -1284,7 +1432,7 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
         trigger("low-disk", False, "", valid=disk_valid)
         trigger("low-disk:critical", True,
                 f"🚦 HOST disk: only {free:.1f} GB free on / (<5 GB); see df -h /.",
-                2, valid=disk_valid)
+                2, valid=disk_valid, urgent=True)
     else:
         trigger("low-disk:critical", False, "", valid=disk_valid)
         trigger("low-disk", normal_disk,
@@ -1347,9 +1495,11 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
                         valid=evidence.get("valid", False) and isa_valid)
                 continue
             due = trigger("unrecorded-pass:" + key, unchanged_or_finished,
-                          f"LEDGER {ident}: PASS in {result['path']} is not in a newer ledger entry; record it.",
+                          f"LEDGER {ident}: PASS in {result['path']} is not in a newer ledger entry; record it. "
+                          "Ask: Did this tester check the exact committed candidate? Is anything blocking the "
+                          "tick? Default: tick it with the commit id and evidence, or write why not.",
                           max(1, int(age_m // 60)),
-                          valid=evidence.get("valid", False) and isa_valid)
+                          valid=evidence.get("valid", False) and isa_valid, track=True)
             if due:
                 deduped_passes[key] = now
 
@@ -1366,8 +1516,11 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
         if not promise or not promise.get("valid"):
             quiet = minutes_since(sess.get("last_message") or sess.get("created"), now) or 0
             trigger("stuck-agent:" + sess["id"], quiet >= setting(env, "WATCH_AGENT_STUCK_MIN", 10),
-                    f"AGENT {sess.get('agent', 'agent')} ({sess['id']}): no session activity for {quiet:.0f} min.",
-                    max(1, int(quiet // 60)), valid=sessions.get("valid", False))
+                    f"AGENT {sess.get('agent', 'agent')} ({sess['id']}): no session activity for {quiet:.0f} min. "
+                    "Ask: Is it waiting on a permission, a prompt or you? Would a fresh helper with a Delta "
+                    "finish sooner? Default: ask it for its smallest provable part now; if no reply in 5 min, "
+                    "restart it fresh with a Delta.",
+                    max(1, int(quiet // 60)), valid=sessions.get("valid", False), urgent=True, track=True)
         metrics = promise_metrics(sess, snapshot, state)
         if metrics is None:
             continue
@@ -1381,10 +1534,13 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
         detail = (f"OFF TRACK {title} ({role}) {child_id}: no evidence or session message for "
                   f"{idle:.0f} min (idle limit {OFF_TRACK_IDLE_MIN} min); "
                   f"{metrics['coverage']} rows answered; {metrics['placeholders']} placeholders; "
-                  f"{message_count}.") if idle is not None else ""
+                  f"{message_count}. Ask: Is it still working toward its promise, or stuck waiting? "
+                  "Would a fresh helper with a Delta land the smallest provable part faster? "
+                  "Default: ask it to land its smallest provable part now; if it can't, restart it "
+                  "fresh with a Delta.") if idle is not None else ""
         trigger("off-track:" + sess["id"],
                 idle is not None and idle >= OFF_TRACK_IDLE_MIN, detail,
-                valid=metrics["valid"] and idle is not None)
+                valid=metrics["valid"] and idle is not None, urgent=True, track=True)
 
     # Builder sessions with a quiet build log are called out separately from result-file progress.
     for sess in sessions["live"]:
@@ -1396,10 +1552,16 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
                     max(1, int(age // (max_hours * 60))), valid=sessions.get("valid", False))
         if not sess.get("visible"):
             idle = minutes_since(sess.get("last_message"), now) or 0
+            follow_ups = len(sess.get("steers", []))
             trigger("invisible-agent:" + sess["id"], True,
-                    f"AGENT {sess['agent']} session {sess['id']} is not bound to a visible active BB child; last message {idle:.0f} min ago.",
+                    f"AGENT {sess['agent']} session {sess['id']} is not bound to a visible active BB child; last message {idle:.0f} min ago. "
+                    f"Facts: {sess.get('binding_fact', 'binding unknown')}; started {age or 0:.0f} min ago; "
+                    f"{follow_ups} follow-up message{'s' if follow_ups != 1 else ''} after its brief. "
+                    "Ask: Was this helper resumed after it finished? Can the owner see it in BB (check by "
+                    "session and thread id, not title)? Default: let it finish, and start any further work "
+                    "in a fresh visible BB child with a Delta.",
                     valid=(sessions.get("valid", False) and bb.get("list_valid", False) and
-                           bb.get("binding_valid", False)))
+                           bb.get("binding_valid", False)), urgent=True, track=True)
 
     for child in bb["children"]:
         ghost_key = "ghost-agent:" + str(child.get("id"))
@@ -1483,18 +1645,44 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
         checked = {normalize_ident(ident) for ident in isa.get("checked", [])}
         parked = {normalize_ident(ident) for ident in isa.get("parked", [])}
         parked |= {normalize_ident(ident) for ident in isa.get("blocked", [])}
+        live_claims = set()
+        if sessions.get("valid", False):
+            for sess in sessions.get("live", []):
+                promise = sess.get("promise") or {}
+                if promise.get("valid"):
+                    live_claims |= {normalize_ident(ident) for ident in promise.get("rows", set())}
         for ident, verdict in isa.get("latest_verdicts", {}).items():
-            count = isa.get("fail_counts", {}).get(ident, 0)
+            # FAIL and BLOCKED both count as tries; restarts are the orchestrator's to count.
+            fails = isa.get("fail_counts", {}).get(ident, 0)
+            count = max(isa.get("tries", {}).get(ident, fails), fails)
+            blocked_tries = count - fails
+            retried = ident in live_claims
+            open_fail = verdict.get("status") == "FAIL" and ident not in parked
+            claim_text = "; a live helper is still on it" if retried and not open_fail else ""
             trigger("repeat-fail:" + ident,
-                    verdict.get("status") == "FAIL" and count >= 3 and ident not in checked and ident not in parked,
-                    f"LOOP {ident}: {count} FAIL verdicts. After 3 different attempts, park it with its exact "
-                    "unlock condition and move to other work.")
+                    count >= 3 and ident not in checked and (open_fail or retried),
+                    f"LOOP {ident}: {count} tries without a PASS ({fails} FAIL, {blocked_tries} BLOCKED)"
+                    f"{claim_text}. Ask: What did each try teach, and is the product "
+                    "or the test setup failing? What is the cheapest different probe? Default: park it with "
+                    "its unlock condition and start the next free item.", track=True)
 
         active_regressions = set(isa.get("regressions", []))
         alerted_regressions = set(state.setdefault("regressions_alerted", []))
+        # Only a newly written FAIL line is a regression; a moved or re-ordered old line is not.
+        fresh = state.setdefault("regression_fresh", {})
+        for ident in list(fresh):
+            if ident not in active_regressions:
+                fresh.pop(ident, None)
         for ident in sorted(active_regressions):
-            due = trigger("regression:" + ident, ident not in alerted_regressions,
-                          f"REGRESSION {ident}: passed before, now FAIL. Revert the merge that broke it first, fix on the side.")
+            line = ident + ":" + isa.get("latest_fail_sigs", {}).get(ident, "")
+            if fresh.get(ident, {}).get("line") != line:
+                fresh[ident] = {"line": line, "fresh": line not in prior_fail_lines}
+            due = trigger("regression:" + ident,
+                          ident not in alerted_regressions and fresh[ident]["fresh"],
+                          f"REGRESSION {ident}: passed before, now FAIL. Revert the merge that broke it first, fix on the side. "
+                          "Ask: Which merge since the PASS touched its files? Is the new FAIL real or a stale "
+                          "probe? Default: revert that merge, re-run the proof, then fix on a side branch.",
+                          urgent=True, track=True)
             if due:
                 alerted_regressions.add(ident)
         state["regressions_alerted"] = sorted(alerted_regressions)
@@ -1557,12 +1745,19 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
                 promise = sess.get("promise") or {}
                 if promise.get("valid"):
                     claimed |= {normalize_ident(ident) for ident in promise.get("rows", set())}
-            if open_items and not (open_items & claimed) and not waiting_is_current:
+            # Grace window: a helper that just ended is usually followed by the next one.
+            ended = [seconds(child.get("time_idle")) for child in sessions.get("children", [])
+                     if (child.get("promise") or {}).get("valid") and child.get("time_idle") is not None]
+            last_end = max((stamp for stamp in ended if stamp is not None), default=None)
+            in_grace = last_end is not None and 0 <= now - last_end < setting(env, "WATCH_UNCLAIMED_GRACE_MIN", 5) * 60
+            if open_items and not (open_items & claimed) and not waiting_is_current and not in_grace:
                 key = "unclaimed:" + hashlib.sha256("\n".join(open_rows).encode()).hexdigest()[:12]
                 trigger(key, True,
                         f"UNCLAIMED: no live PROMISE claims any of {len(open_rows)} open items ({', '.join(open_rows)}); "
                         f"{len(sessions.get('live', []))} agent(s) running. If one is working on an item, correct its promise; "
-                        "otherwise start work or write a `waiting: <reason>` line in the run card.")
+                        "otherwise start work or write a `waiting: <reason>` line in the run card. "
+                        "Ask: Which open item unblocks the most? Is anything waiting only on you? Default: start a "
+                        "fresh visible helper on the free item that unblocks most, smallest first.", track=True)
             else:
                 for key in list(conditions):
                     if key.startswith("unclaimed:"):
@@ -1573,39 +1768,213 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
                     trigger(key, False, "")
             state["unclaimed_open_set"] = None
 
-    if isa_valid and sessions.get("valid", False):
-        signature = [isa.get("verdict_count", 0),
-                     [[ident, verdict.get("status"), verdict.get("reason")] for ident, verdict in
-                      sorted(isa.get("latest_verdicts", {}).items())]]
-        plateau = state.setdefault("plateau", {"active": [], "finish_count": 0,
-                                                 "verdict_signature": None})
-        if not isinstance(plateau, dict):
-            plateau = state["plateau"] = {"active": [], "finish_count": 0,
-                                           "verdict_signature": None}
-        changed = plateau.get("verdict_signature") is not None and plateau["verdict_signature"] != signature
-        if changed:
-            plateau["finish_count"] = 0
-            plateau["no_progress_since"] = None
-        previous_active = set(plateau.get("active", []))
-        live_ids = {sess["id"] for sess in all_live_sessions}
-        current_active = {sess["id"] for sess in sessions.get("live", [])
-                          if (sess.get("promise") or {}).get("valid") and
-                          (sess.get("promise") or {}).get("rows")}
-        current_active |= previous_active & live_ids
-        if not changed:
-            plateau["finish_count"] = plateau.get("finish_count", 0) + len(previous_active - current_active)
-        plateau.update(active=sorted(current_active), verdict_signature=signature)
-        finish_count = plateau["finish_count"]
-        if finish_count and plateau.get("no_progress_since") is None:
-            plateau["no_progress_since"] = now
-        elif not finish_count:
-            plateau["no_progress_since"] = None
-        since = (dt.datetime.fromtimestamp(plateau["no_progress_since"]).astimezone().isoformat(timespec="minutes")
-                 if plateau.get("no_progress_since") is not None else "unknown time")
-        trigger("plateau", finish_count >= 3,
-                f"PLATEAU (heuristic): 3 helpers ended with no new verdict since {since}. Helpers that finish between "
-                "checks are not counted. Check for proof awaiting a ledger tick; if still stuck, change approach or park.",
-                valid=isa_valid and sessions.get("valid", False))
+    def clock(stamp: float | None) -> str:
+        return dt.datetime.fromtimestamp(stamp).astimezone().strftime("%H:%M") if stamp else "unknown"
+
+    open_ids: list[str] = []
+    tries_text = "none"
+    if isa_valid:
+        done_ids = {normalize_ident(i) for i in isa.get("checked", [])}
+        set_aside = done_ids | {normalize_ident(i) for i in isa.get("owner", [])} | \
+            {normalize_ident(i) for i in isa.get("owner_only_ids", [])}
+        open_ids = [ident for ident in isa.get("criteria", []) if ident not in set_aside]
+        tried = sorted(((isa.get("tries", {}).get(ident, 0), ident) for ident in open_ids), reverse=True)
+        tries_text = ", ".join(f"{ident} ({count} tries)" for count, ident in tried[:3] if count) or "none"
+
+    # Rule 10: the stall ladder. Honest progress = a new PASS/FAIL ledger line, a new tick,
+    # a new PASS/FAIL result row with evidence, or a new commit. It runs even while the orchestrator is busy.
+    stall = state.setdefault("stall", {})
+    if not isinstance(stall, dict):
+        stall = state["stall"] = {}
+    if isa_valid:
+        proof_lines = isa.get("pass_lines", 0) + len(isa.get("fails", []))
+        row_keys = set()
+        if evidence.get("valid", False):
+            for result in evidence.get("results", []):
+                for row in result.get("table_rows", []):
+                    if row.get("status") in ("PASS", "FAIL") and row.get("evidence") and not row.get("placeholder"):
+                        row_keys.add(hashlib.sha256(f"{result['path']}:{row.get('id')}:{row.get('status')}:"
+                                                    f"{row.get('signature', '')}".encode()).hexdigest()[:12])
+        seen_rows = set(stall.get("rows_seen", []))
+        head = snapshot.get("head") if snapshot.get("head_valid") else None
+        progressed = ("since" not in stall or proof_lines > stall.get("proof_lines", 0) or
+                      isa.get("pass", 0) > stall.get("checked", 0) or bool(row_keys - seen_rows) or
+                      (head is not None and stall.get("head") not in (None, head)))
+        if progressed or waiting:
+            stall.update(since=now, step=0)
+            if progressed:
+                stall["last_progress"] = now
+        stall.update(proof_lines=max(proof_lines, stall.get("proof_lines", 0)),
+                     checked=max(isa.get("pass", 0), stall.get("checked", 0)),
+                     rows_seen=sorted(seen_rows | row_keys), head=head or stall.get("head"))
+        minutes = (now - stall["since"]) / 60
+        ask_min = setting(env, "WATCH_STALL_MIN", 10)
+        live_count = len(sessions.get("live", [])) if sessions.get("valid", False) else "?"
+        step = stall.get("step", 0)
+        if not waiting and not isa.get("done") and step < 3:
+            facts = (f"no new proof for {minutes:.0f} min (last at {clock(stall.get('last_progress'))}); "
+                     f"proven {isa.get('pass', 0)}/{isa.get('total', 0)}; {live_count} helper(s) live; "
+                     f"most-tried open items: {tries_text}.")
+            if step == 0 and minutes >= ask_min:
+                stall.update(step=1, step_at=now, baseline=action_fingerprint())
+                record("stall:1", "stall", f"STALL 1/3: {facts} Ask: What exactly blocks the next proof? "
+                       "What is the smallest part you can prove in 15 minutes? Default: split the oldest open "
+                       "item and give its smallest provable part to a fresh visible helper.", False, True)
+            elif step == 1 and minutes >= ask_min + 5:
+                stall["step"] = 2
+                if not acted_since(stall.get("baseline", {})):
+                    record("stall:2", "stall", f"STALL 2/3: {facts} No new helper or ledger change since STALL 1. "
+                           "Ask: Does every free item have a live helper? Is a helper stale or waiting on you? "
+                           "Default: restart the stale helper fresh with a Delta, or start the next free item.",
+                           True, True)
+            elif step == 2 and minutes >= ask_min + 10:
+                stall["step"] = 3
+                record("stall:3", "stall", f"STALL 3/3: {facts} Ask: Which item has used its tries? What exact "
+                       "condition would unlock it? Default: park it now (a BLOCKED line with the unlock "
+                       "condition), note it in the run card, and start the next free item. No more stall "
+                       "questions until new proof.", True, True)
+                notes.append(f"Stall: {facts} Watchdog said park and stopped stall questions until new proof.")
+
+    # Free items: needs met (run card Plan map), not claimed by any live PROMISE.
+    run_card = snapshot.get("run_card", {})
+    free_idle: list[str] = []
+    if isa_valid and run_card.get("plan_valid") and sessions.get("valid", False):
+        done_ids = {normalize_ident(i) for i in isa.get("checked", [])}
+        parked_ids = {normalize_ident(i) for i in isa.get("parked", [])}
+        claimed = set()
+        for sess in sessions.get("live", []):
+            promise = sess.get("promise") or {}
+            if promise.get("valid"):
+                claimed |= {normalize_ident(i) for i in promise.get("rows", set())}
+        needs = run_card.get("needs", {})
+        free_idle = sorted(ident for ident in open_ids if ident in needs and ident not in parked_ids and
+                           ident not in claimed and needs[ident] <= done_ids)
+        if free_idle and sessions.get("live") and not waiting:
+            trigger("free:" + hashlib.sha256("\n".join(free_idle).encode()).hexdigest()[:12], True,
+                    f"FREE: {len(free_idle)} free item(s) have no helper ({', '.join(free_idle[:10])}); "
+                    f"{len(sessions['live'])} helper(s) live. Ask: Which of these unblocks the most? Does any "
+                    "share files with a running helper? Default: start a fresh visible helper on the free item "
+                    "that unblocks most, smallest first.", track=True)
+        else:
+            for key in list(conditions):
+                if key.startswith("free:"):
+                    trigger(key, False, "")
+
+    # The Plan map is living: every open item has a line, needs name real items, and no needs loop.
+    # A run card read from disk is checked even with an empty or missing map: then every open item is missing.
+    if isa_valid and (run_card.get("plan_valid") or run_card.get("plan_checked")):
+        needs = run_card.get("needs", {})
+        known = {normalize_ident(i) for i in isa.get("criteria", [])}
+        parked_ids = {normalize_ident(i) for i in isa.get("parked", [])}
+        missing = sorted(i for i in open_ids if i not in needs and i not in parked_ids)
+        unknown = sorted({n for deps in needs.values() for n in deps} - known) if known else []
+        loop: list[str] = []
+        finished: set[str] = set()
+        def walk(node, path):  # depth-first; each node is finished once, so shared needs are not re-walked
+            if loop or node in finished:
+                return
+            if node in path:
+                loop.extend(path[path.index(node):] + [node])
+                return
+            for nxt in sorted(needs.get(node, ())):
+                walk(nxt, path + [node])
+            finished.add(node)
+        for start in sorted(needs):
+            walk(start, [])
+        problems = ([f"open items with no Plan map line: {', '.join(missing[:10])}"] if missing else []) + \
+                   ([f"needs name unknown items: {', '.join(unknown[:10])}"] if unknown else []) + \
+                   ([f"needs loop: {' -> '.join(loop)}"] if loop else [])
+        key = "plan:" + hashlib.sha256("\n".join(problems).encode()).hexdigest()[:12]
+        trigger(key, bool(problems) and not waiting,
+                f"PLAN: the run card's Plan map is out of date ({'; '.join(problems)}). Ask: What did the newest "
+                "evidence change about what these items need or touch? Which chain is now the slowest? Default: "
+                "fix those Plan map lines and re-name the slowest chain before the next pick.", track=True)
+        for old in list(conditions):
+            if old.startswith("plan:") and old != key:
+                trigger(old, False, "")
+
+    # Code changed under a running tester: the candidate it is checking is no longer the candidate.
+    candidates = state.setdefault("qa_candidates", {})
+    fingerprint = snapshot.get("candidate")
+    if sessions.get("valid", False) and fingerprint:
+        testers = [sess for sess in sessions.get("live", []) if sess.get("agent") == "qa" or
+                   (sess.get("promise") or {}).get("kind") in ("screen", "timed")]
+        tester_ids = {sess["id"] for sess in testers}
+        for ident in list(candidates):
+            if ident not in tester_ids:
+                candidates.pop(ident, None)
+                conditions.pop("drift:" + ident, None)
+        for sess in testers:
+            first = candidates.setdefault(sess["id"], fingerprint)
+            child_id = sess.get("thread_id") or sess["id"]
+            trigger("drift:" + sess["id"], first != fingerprint,
+                    f"DRIFT: code changed while {sess.get('agent', 'tester')} {child_id} is testing "
+                    f"(candidate {first[:12]} -> {fingerprint[:12]}). Ask: Is the candidate it tests still the "
+                    "one you will ship? Who edited code during the test? Default: let it finish, then re-run QA "
+                    "on the new candidate; make no product edits while QA runs.", urgent=True, track=True)
+
+    # Rule 12: re-anchor after a context compaction.
+    compacted = sessions.get("last_compaction") if sessions.get("valid", False) else None
+    if sessions.get("valid", False) and "reanchored_at" not in state:
+        state["reanchored_at"] = compacted or 0  # baseline, also when none yet: older compactions are not news
+    elif compacted is not None:
+        if compacted > float(state["reanchored_at"] or 0):
+            state["reanchored_at"] = compacted
+            live = sessions.get("live", [])
+            titles = ", ".join((bb.get("by_id", {}).get(sess.get("thread_id"), {}).get("title") or
+                                sess.get("agent", "agent")) for sess in live[:5])
+            rules = run_card.get("owner_rules", [])
+            lines = [f"REANCHOR after your compaction at {clock(compacted)}. Goal: {run_card.get('goal') or 'see run card'}.",
+                     f"Proven {isa.get('pass', 0)}/{isa.get('total', 0)}; open: {', '.join(open_ids[:20]) or 'none'}.",
+                     f"Live helpers: {len(live)}" + (f" ({titles})" if titles else "") +
+                     f"; most-tried open items: {tries_text}."]
+            if rules:
+                lines.append("Owner rules, word for word: " + " | ".join(rules))
+            lines.append("Ask: What is the goal in one line, and which open item unblocks the most? Which owner "
+                         "rule are you closest to breaking? Default: re-read HOW-TO-WORK.md, the run card (Owner "
+                         "rules, Proven recipes, Answers) and the brief checklist before the next delegation.")
+            for line in lines:
+                messages.append(line)
+            urgent_keys.append("reanchor")
+            if "re-anchor" not in alert_tags:
+                alert_tags.append("re-anchor")
+            review["alerts"]["re-anchor"] = review["alerts"].get("re-anchor", 0) + 1
+
+    # Climb line for the heartbeat: proven count, recent gain, free items idle.
+    if isa_valid:
+        history = [entry for entry in state.get("proven_history", [])
+                   if isinstance(entry, list) and len(entry) == 2 and now - entry[0] <= 2 * 3600]
+        history.append([now, isa.get("pass", 0)])
+        state["proven_history"] = history
+        past = [count for stamp, count in history if now - stamp >= 30 * 60]
+        base_count = past[-1] if past else history[0][1]
+        gain = isa.get("pass", 0) - base_count
+        free_text = f" · {len(free_idle)} free item{'s' if len(free_idle) != 1 else ''} idle" \
+            if run_card.get("plan_valid") else ""
+        snapshot["climb"] = (f"proven {isa.get('pass', 0)}/{isa.get('total', 0)} · "
+                             f"{gain:+d} in last 30 min{free_text}")
+
+    # Alerts with an id expect a visible action within 10 minutes; otherwise they escalate once.
+    answers = run_card.get("answers", {})
+    for aid, rec in list(asked.items()):
+        if not isinstance(rec, dict) or now - rec.get("at", now) > 24 * 3600:
+            asked.pop(aid, None)
+            continue
+        if rec.get("done") or now - rec.get("at", now) < 600:
+            continue
+        cleared = conditions.get(rec.get("key", ""), {}).get("streak", 1) == 0
+        # Acted = the problem cleared, or an ANSWER line plus a visible action (new helper, ledger change, commit).
+        moved = acted_since(rec.get("baseline", {}))
+        rec["acted"] = cleared or (aid in answers and moved)
+        rec["done"] = True
+        if not rec["acted"] and not waiting:
+            answer = answers.get(aid)
+            record("unanswered:" + aid, "unanswered alert",
+                   f"UNANSWERED {aid} ({rec.get('kind', 'alert')}): the problem is still there 10 min after the alert"
+                   + ("" if moved else "; no new helper, ledger change or commit since")
+                   + (f"; your answer: {answer[:160]}" if answer else "; no ANSWER line in the run card")
+                   + ". Ask: What will you do about it in the next 5 minutes? What would make it go away? "
+                   "Default: take the alert's default move now and write its ANSWER line.", True, False)
 
     # OpenCode recovery is intentionally one reload per hour, followed by a user note if still down.
     server_state = state.setdefault("server", {})
@@ -1697,7 +2066,11 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
         counts = review.get("alerts", {})
         total = sum(counts.values())
         by_type = ", ".join(f"{kind} {count}" for kind, count in sorted(counts.items())) or "none"
+        judged = [rec for rec in asked.values() if isinstance(rec, dict) and rec.get("done") and
+                  rec.get("at", 0) >= review.get("last_at", now) - 600]
+        acted = sum(1 for rec in judged if rec.get("acted"))
         messages.append(f"WATCH REVIEW: {total} alerts since last review by type ({by_type}); "
+                        f"acted on within 10 min {acted}/{len(judged)}; "
                         f"PROMISE agents {len(review['promise_agents'])}, without {len(review['other_agents'])}; "
                         "check alerts matched reality, note false alarms in the run card's lessons section.")
         review.update(last_at=now, last_sent_at=now, alerts={}, promise_agents=[], other_agents=[])
@@ -2546,77 +2919,123 @@ def simulate(name: str, state_path: str, env: dict[str, str]) -> None:
         print("SIM regression: checked-row FAIL stayed open; unchecked owner-parked/owner-only FAILs did not block completion; PASS re-armed regression alerts.")
         print(summary_line(snap, tags))
         return
-    if name == "plateau":
+    if name == "stall":
         state = {}
         output = io.StringIO()
-        for n in range(3):
-            ident = f"ses-helper-{n}"
-            promise = {"valid": True, "kind": "helper", "rows": {"ISC-001"},
-                       "result_path": "/fixture/helper.md", "pace": 20}
-            live = {"id": ident, "agent": "helper", "created": base + n * 120,
-                    "last_message": base + n * 120, "time_idle": None, "idle_outcome": None,
-                    "thread_id": None, "visible": True, "promise": promise}
-            started = synthetic(name, base + n * 120)
-            started["isa"].update(latest_verdicts={"ISC-001": {"status": "FAIL", "reason": "same failure"}},
-                                  verdict_count=1)
-            started["sessions"].update(live=[live], children=[live])
+        seen = {}
+        for minute in (0, 5, 10, 15, 20, 25, 30):
+            snap = synthetic(name, base + minute * 60)
+            snap["run_status"] = "running"
+            snap["isa"].update(pass_lines=1, verdict_count=1, tries={"ISC-002": 2})
             with redirect_stdout(output):
-                evaluate(started, state, env, True)
-            ended = dict(live, time_idle=base + n * 120 + 60, idle_outcome="completed")
-            finished = synthetic(name, base + n * 120 + 60)
-            finished["isa"].update(latest_verdicts={"ISC-001": {"status": "FAIL", "reason": "same failure"}},
-                                   verdict_count=1)
-            finished["sessions"]["children"] = [ended]
+                seen[minute] = evaluate(snap, state, env, True)
+        text = output.getvalue()
+        for step, minute in ((1, 10), (2, 15), (3, 20)):
+            if f"STALL {step}/3:" not in text or "stall" not in seen[minute]:
+                raise AssertionError(f"stall step {step} did not fire at {minute} min: {seen[minute]}")
+        if any("stall" in seen[m] for m in (0, 5, 25, 30)):
+            raise AssertionError(f"stall fired outside its 10/15/20 ladder: {seen}")
+        if "most-tried open items: ISC-002 (2 tries)" not in text:
+            raise AssertionError("stall question did not name the most-tried open item")
+        if not re.search(r"UNANSWERED W\d+ \(stall\)", text):
+            raise AssertionError("an unacted STALL 1 did not escalate after 10 minutes")
+        if "(--mode auto, interrupts now)" not in text:
+            raise AssertionError("urgent stall steps did not interrupt")
+        if "Answer each alert id under the run card's Answers" not in text:
+            raise AssertionError("alert ids were sent without the ANSWER instruction")
+        progressed = synthetic(name, base + 35 * 60)
+        progressed["run_status"] = "running"
+        progressed["isa"].update(pass_lines=2, verdict_count=2)
+        evaluate(progressed, state, env, True)
+        if state["stall"].get("step") != 0:
+            raise AssertionError("a new PASS line did not reset the stall ladder")
+        busy_state = {}
+        for minute in (0, 10):
+            busy = synthetic(name, base + minute * 60)
+            busy["run_status"] = "running"
+            busy["bb"]["orch_status"] = "active"
+            tags = evaluate(busy, busy_state, env, True)
+        if "stall" not in tags:
+            raise AssertionError("stall ladder skipped a busy orchestrator")
+        print("SIM stall: asked at 10, re-asked at 15, said park at 20, stayed quiet after; progress reset it; unacted alert escalated.")
+        print(summary_line(progressed, []))
+        return
+    if name == "reanchor":
+        state = {}
+        output = io.StringIO()
+        card = {"valid": True, "status": "running", "waiting_text": None, "goal": "ship the to-do app",
+                "owner_rules": ["19:11 keep tasks atomic", "22:03 hill climb fast and honest"],
+                "answers": {}, "needs": {}, "plan_valid": False}
+        for minute, compacted in ((0, base - 600), (5, base - 600), (10, base + 8 * 60), (15, base + 8 * 60)):
+            snap = synthetic(name, base + minute * 60)
+            snap["run_card"] = card
+            snap["sessions"]["last_compaction"] = compacted
             with redirect_stdout(output):
-                tags = evaluate(finished, state, env, True)
-            state_write(state_path, state)
-            state = state_read(state_path)
-            if n < 2 and "plateau" in tags:
-                raise AssertionError("plateau alerted before three helper finishes")
-            if n == 2 and "plateau" in tags:
-                raise AssertionError("plateau skipped the two-check confirmation after its third finish")
-        snap = synthetic(name, base + 3 * 120 + 60)
-        snap["isa"].update(latest_verdicts={"ISC-001": {"status": "FAIL", "reason": "same failure"}},
-                           verdict_count=1)
-        with redirect_stdout(output):
-            tags = evaluate(snap, state, env, True)
-        since = dt.datetime.fromtimestamp(base + 60).astimezone().isoformat(timespec="minutes")
-        expected = (f"PLATEAU (heuristic): 3 helpers ended with no new verdict since {since}. Helpers that finish "
-                    "between checks are not counted. Check for proof awaiting a ledger tick; if still stuck, change approach or park.")
-        if "plateau" not in tags or expected not in output.getvalue():
-            raise AssertionError(f"third unchanged helper finish did not alert after confirmation: {tags}")
-        changed = synthetic(name, base + 3 * 120 + 120)
-        changed["isa"].update(latest_verdicts={"ISC-001": {"status": "FAIL", "reason": "same failure"}},
-                               verdict_count=2)
-        tags = evaluate(changed, state, env, True)
-        if "plateau" in tags or state["plateau"].get("finish_count") != 0:
-            raise AssertionError("new ledger verdict did not reset the plateau")
-
-        incomplete = synthetic(name, base + 3 * 120 + 180)
-        incomplete["isa"].update(latest_verdicts={"ISC-001": {"status": "FAIL", "reason": "same failure"}},
-                                 verdict_count=2)
-        incomplete_live = {"id": "ses-still-live", "agent": "helper", "created": base,
-                           "last_message": base, "last_assistant": base, "time_idle": None,
-                           "idle_outcome": None, "thread_id": None, "visible": True,
-                           "promise": None, "promise_read_valid": False, "steers": []}
-        incomplete["sessions"].update(live=[incomplete_live], children=[incomplete_live])
-        incomplete_state = {"plateau": {"active": ["ses-still-live"], "finish_count": 2,
-                                         "verdict_signature": [2, [["ISC-001", "FAIL", "same failure"]]]}}
-        tags = evaluate(incomplete, incomplete_state, env, True)
-        if "plateau" in tags or incomplete_state["plateau"].get("finish_count") != 2:
-            raise AssertionError("unreadable PROMISE on a still-live helper counted as a finish")
-
-        between_state = {}
-        between = synthetic(name, base + 4 * 120)
-        completed = {"id": "ses-between", "agent": "helper", "created": base,
-                     "time_idle": base + 60, "idle_outcome": "completed",
-                     "promise": {"valid": True, "rows": {"ISC-001"}}}
-        between["sessions"]["children"] = [completed]
-        evaluate(between, between_state, env, True)
-        if between_state.get("plateau", {}).get("finish_count") != 0:
-            raise AssertionError("helper finishing between checks was counted")
-        print("SIM plateau: three observed helper finishes alerted with a timestamp; new verdicts and unobserved finishes did not count.")
-        print(summary_line(changed, tags))
+                tags = evaluate(snap, state, env, True)
+            if ("re-anchor" in tags) != (minute == 10):
+                raise AssertionError(f"re-anchor fired at the wrong check ({minute} min): {tags}")
+        text = output.getvalue()
+        for needle in ("REANCHOR after your compaction", "Goal: ship the to-do app",
+                       "Owner rules, word for word: 19:11 keep tasks atomic | 22:03 hill climb fast and honest",
+                       "re-read HOW-TO-WORK.md"):
+            if needle not in text:
+                raise AssertionError(f"re-anchor message missing {needle!r}: {text}")
+        fresh = {}
+        for minute, compacted in ((0, None), (5, base + 3 * 60)):
+            snap = synthetic(name, base + minute * 60)
+            snap["run_card"] = card
+            snap["sessions"]["last_compaction"] = compacted
+            with redirect_stdout(io.StringIO()):
+                tags = evaluate(snap, fresh, env, True)
+        if "re-anchor" not in tags:
+            raise AssertionError("the first compaction of a run that started with none did not re-anchor")
+        print("SIM reanchor: an old compaction was a baseline; a new one sent goal, open items and owner rules once.")
+        return
+    if name == "plan-map":
+        state = {}
+        output = io.StringIO()
+        card = {"valid": True, "status": "running", "waiting_text": None, "goal": "ship it", "owner_rules": [],
+                "answers": {}, "needs": {}, "plan_valid": True}
+        tags_seen = []
+        for minute in (0, 5, 10):
+            snap = synthetic(name, base + minute * 60)
+            snap["run_status"] = "running"
+            open_ids = [i for i in snap["isa"].get("criteria", [])
+                        if i not in {normalize_ident(c) for c in snap["isa"].get("checked", [])}]
+            if len(open_ids) < 2:
+                raise AssertionError(f"plan-map sim needs two open items: {open_ids}")
+            first, second = open_ids[0], open_ids[1]
+            card["needs"] = ({first: {second}, second: {first}} if minute < 10 else
+                             {i: set() for i in open_ids})
+            snap["run_card"] = card
+            with redirect_stdout(output):
+                tags_seen.append(evaluate(snap, state, env, True))
+        text = output.getvalue()
+        if "plan map out of date" not in tags_seen[1] or "needs loop:" not in text:
+            raise AssertionError(f"a needs loop did not raise PLAN on the second check: {tags_seen} {text}")
+        if "plan map out of date" in tags_seen[0] or "plan map out of date" in tags_seen[2]:
+            raise AssertionError(f"PLAN fired on the first check or after the map was fixed: {tags_seen}")
+        print("SIM plan-map: a needs loop raised PLAN once on the second check; a fixed map stayed quiet.")
+        return
+    if name == "regression-order":
+        with tempfile.TemporaryDirectory() as directory:
+            ledger = Path(directory) / "ISA.html"
+            head = ('<ul><li id="ISC-001"><input type="checkbox" checked>Row</li></ul>'
+                    '<section id="verification"><ul>')
+            state = {}
+            tags_seen = []
+            for lines in ('<li>ISC-001: FAIL - old probe</li>',
+                          '<li>ISC-001: PASS - fixed</li><li>ISC-001: FAIL - old probe</li>',
+                          '<li>ISC-001: PASS - fixed</li><li>ISC-001: FAIL - old probe</li>'):
+                ledger.write_text(head + lines + '</ul></section>', encoding="utf-8")
+                snap = synthetic(name, base + len(tags_seen) * 300)
+                snap["isa"] = parse_isa(str(ledger), directory)
+                snap["run_status"] = "running"
+                with redirect_stdout(io.StringIO()):
+                    tags_seen.append(evaluate(snap, state, env, True))
+            if any("regression" in tags for tags in tags_seen):
+                raise AssertionError(f"a PASS inserted above an old FAIL line raised REGRESSION: {tags_seen}")
+        print("SIM regression-order: an old FAIL line left below a new PASS stayed quiet.")
         return
     if name == "leftover-session":
         state = {}
@@ -2784,7 +3203,7 @@ def main() -> int:
         "superseded-pass", "server-down", "combined-alerts", "continue",
         "anti-spin", "done", "closed-delete", "not-closed", "read-failure", "working-old-bb", "resumed-idle-agent",
         "off-track", "on-track-timed", "on-track-code", "fast-jules", "new-testers-old-results",
-        "no-promise", "review", "lane-drift", "alert-once", "repeat-fail", "unclaimed", "plateau", "sim-idle-timer",
+        "no-promise", "review", "lane-drift", "alert-once", "repeat-fail", "unclaimed", "stall", "reanchor", "plan-map", "regression-order", "sim-idle-timer",
         "regression", "leftover-session", "idle-helper", "reopen"),
         help="run a deterministic offline scenario; always dry-run")
     args = parser.parse_args()

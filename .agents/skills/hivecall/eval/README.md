@@ -76,11 +76,17 @@ Other commands: `--list` shows every run it found. `--run <id>` grades one run.
 | 6 | Deliver honestly | PASS ticks backed by a tester | PASS ticks with an earlier tester (`qa`) PASS for that item plus evidence / PASS ticks |
 | 7 | Deliver honestly | Ledger items proven at close | items whose last tick is a backed PASS / items |
 | 8 | Deliver honestly | Orchestrator turns with no code edit or screenshot read | clean turns / turns (pushes shown; push permission not checked) |
-| 9 | Deliver honestly | Run card closed | 100% or 0% |
+| 9 | Deliver honestly | Run card closed | 100% or 0%; a run paused on you (`waiting-owner`) counts when it wrote a `## Final report` |
 
-**Context, not in the score:** 10 hours (run, working, stalled, waiting on you, waiting on usage limits, per proven item) · 11 useful watchdog alerts: a real problem the orchestrator then acted on (judge) · 12 `subagent-delegation` loaded before the first hand-off · 13 worker messages using talk-back words, sent to the right parent · 14 skill size in words · 15 your corrections per run hour (judge) · 16 final reports that overclaim (judge).
+**Context, not in the score:** 10 hours (run, working, stalled, waiting on you, waiting on usage limits, per proven item) · 11 re-read `HOW-TO-WORK.md` after each compaction, before the next hand-off (pass: every time) · 12 watchdog alerts answered (`ANSWER W<n>` line) and acted on (hand-off, ledger write, commit, or stop) within 10 min (pass: every one) · 13 longest stretch without honest proof, in minutes (pass: ≤ 20) · 14 downhill steps: the progress count fell or a PASS later broke (pass: none still broken at the end) · 15 hill climb, reported only: time to 50/90/100% proven, items proven per hour, share of time flat (gaps over 10 min), average visible helpers, builder minutes, reviewer approve rate and reviews per approval, most tries on an open item, your messages · 16 useful watchdog alerts: a real problem the orchestrator then acted on (judge) · 17 `subagent-delegation` loaded before the first hand-off · 18 worker messages using talk-back words, sent to the right parent · 19 skill size in words · 20 your corrections per run hour (judge) · 21 final reports that overclaim (judge).
 
-**Reading alerts both ways:** a watchdog change is better only if false alarms (5) go down while useful alerts (11) stay, and stalled hours (10) and your corrections (15) don't go up. Deleting an alert lowers false alarms but also drops useful ones and lets stalls go unflagged.
+The new context rows 11-14 carry pass flags for the benchmark pass bar. They stay out of the score so runs before and after eval 4.0 keep the same nine behaviors in their score.
+
+**Reading alerts both ways:** a watchdog change is better only if false alarms (5) go down while useful alerts (16) stay, and stalled hours (10), the longest stretch without proof (13) and your corrections (20) don't go up. Deleting an alert lowers false alarms but also drops useful ones and lets stalls go unflagged.
+
+## Benchmark run
+
+`bench/todo/` is a frozen task for comparing skill versions on the same work: `TASK.md` (the run 10 to-do spec plus run rules: no owner, 2 h cap) and `design.md` go into a fresh repo; `QA.md` is the blind testers' script and pass bar and stays here. Grade the run with this eval, then score the app with `QA.md`.
 
 ## Keeping it honest as the skill changes
 
@@ -98,9 +104,13 @@ Traces, results, and the filled-in dashboard stay in `~/.evals/hivecall/` (or `H
 
 - OpenCode subagents and BB threads are joined into one tree of agents. Only agents created and messages sent inside the run count.
 - The run window comes from `status:` writes to `.hivecall/run.md`, including shell edits. A later non-closed status reopens the run. Follow-up hours are capped at 24.
-- Ledger ticks are read from file writes and from shell commands that write the ledger. A tester's proof can be its final result or result rows it wrote before the tick.
+- Ledger ticks are read from file writes and from shell commands whose write target is the ledger (a redirect, `sed -i`, or a Python write next to a quoted `ISA.html` / `checklist.html`). A tester appending a result row to its own file is not a tick, even when the row mentions the ledger. A tester's proof can be its final result or result rows it wrote before the tick; a bare `PASS` also counts when its brief named only that item.
+- The ledger as it stood at the run end is read too: the working file if it was last written by the end (5-min grace), else the last commit before the end. It never overrides a trace verdict written after it, and an unticked item is never proven even if its last line says PASS. The run card's `ledger:` line names it. It sets the item count (deferred items left out) and fills verdicts the trace missed, such as ticks written in a loop. A copy is kept as `ledger-at-end.html` next to the run's records.
+- An agent's role (`qa`, `build`, `reviewer`) comes from the agent named on its messages; the session row can keep a stale default.
 - Shell commands count as code edits only when a code file is the write target.
-- Watchdog alerts are recognized by their names (OFF TRACK, HOST, GHOST, LEDGER, …), with or without a leading 🚦. Worker result posts (`RESULT …`, `Acknowledged`) don't count as your messages.
+- Watchdog alerts are recognized by their names (OFF TRACK, HOST, GHOST, LEDGER, STALL, FREE, PLAN, DRIFT, REANCHOR, UNANSWERED, …), with or without a leading 🚦. Alert ids look like `(alert W3)`. Worker result posts (`RESULT …`, `Acknowledged`) don't count as your messages.
+- A compaction is an orchestrator `compress` call or a compaction message. A re-read is a `read` or shell command reading `HOW-TO-WORK.md` after it and before the next hand-off (or the next compaction); a brief or message that only names the file doesn't count. An `ANSWER W<n>` counts only when written into the run card.
+- Honest proof, for the longest stretch and flat share, is a ledger write with a new PASS or FAIL line (a rewrite repeating old lines doesn't count), a tester's PASS/FAIL row with evidence, or a `git commit`. Status changes split the stretches. Time while the run card says `waiting-owner` or `waiting-usage` is skipped.
 - The final report is the `## Final report` section of the run card if there is one. Otherwise it's the orchestrator's last message after the close and before your next message.
 - Labels for the judges come from the traces. For watchdog alerts, the orchestrator's own reply usually says whether the alert was false or real. A flagged leftover process that a working agent still uses is a false alarm; one left behind by a finished agent is real.
 - Every Clef answer is tied to a hash of its exact question and input. If either changes, only that answer is asked again.

@@ -33,3 +33,6 @@ Universal rules learned the hard way. Project-specific traps belong in the run c
 20. Watch the watchdog: once an hour, check its alerts matched reality. Note false alarms; loosen the check, never special-case it.
 21. Usage limits stop agents silently. Set the run card to `waiting-usage` so the watchdog stops nudging.
 22. A paused watchdog still clutters BB; delete its automation on the check after the run card closes.
+23. Resumed helpers are hidden from BB: BB binds a child only to its first run, so a resumed or queued-to-finished session can keep working while BB shows `idle`, and it creates duplicate writers. So never resume; start a fresh visible child (lesson 24), and trust the watchdog's hidden-helper alert.
+24. Send each new task or follow-up to a fresh visible child with a short Delta (`done`, `remaining`, `continue in`); message only running sessions, verify `active` with `bb thread list --parent-thread <orchestrator> --json`, and interrupt any hidden resumed worker before relaunching.
+25. Show each worker talk-back message to the owner as a word-for-word quote, then your response: the owner sees what the worker said (not as their own message) and how you handled it.

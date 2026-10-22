@@ -31,7 +31,7 @@ Read the minimum available context:
 - Required: changed files and/or git diff
 - Required to judge intent: `{ISSUE_DIR}/issue.md`, or an explicit statement of the problem, user, and desired outcome in standalone calls.
 - Optional but useful: implementation summary from the implementation agent
-- Required when `plan.md` names Mechanical command(s): raw output for those commands. Missing output is an evidence gap, not a code defect. This gate does not run the commands or edit tests.
+- Required when `plan.md` names Mechanical command(s): raw output for those commands. Missing output is an evidence gap, not a code defect. This gate may run them if they are read-only and finish in under 2 minutes; it never edits files or tests.
 - Optional but useful: `_ai/prompts/quality/code-review.md` as the review standard
 - Optional but useful: `_ai/prompts/quality/code-guidelines.md` as the quality standard
 
@@ -42,7 +42,7 @@ If the approved contract or changed code/diff is missing, return `ASK_USER` nami
 - `ISSUE_DIR` is the artifact directory created by `gather-context` for the current pipeline run.
 - Required: the approved contract above, plus changed files and/or git diff and exact candidate identity (commit or base plus uncommitted diff).
 - Optional but useful: `issue.md`, implementation summary, and quality docs.
-- If `plan.md` names Mechanical command(s) and their raw output is missing, return `ASK_USER` identifying the missing receipt and its owner. For pipeline calls, the caller repairs that owned input without asking the human. Resume this review against the same candidate after the receipt arrives; do not request source changes, create a new candidate, or invalidate prior review conclusions. Do not run the commands.
+- If `plan.md` names Mechanical command(s) and their raw output is missing, run them yourself when they are read-only and finish in under 2 minutes; otherwise return `ASK_USER` identifying the missing receipt and its owner. For pipeline calls, the caller repairs that owned input without asking the human. Resume this review against the same candidate after the receipt arrives; do not request source changes, create a new candidate, or invalidate prior review conclusions.
 - If command output is missing because the plan has no Mechanical field (legacy plan), do not invent a requirement here.
 
 ## Review Process
@@ -53,7 +53,7 @@ If the approved contract or changed code/diff is missing, return `ASK_USER` nami
 4. Trigger wider dependency review only when the change touches shared modules, public interfaces, global state, async side effects, security-sensitive paths, or common components.
 5. Compare implementation against the referenced quality docs without copying them into the report.
 6. Heavily weight simplicity: prefer the smallest code that satisfies `plan.md`; penalize speculative abstractions, extra surfaces, duplicate state, and unplanned features.
-7. Check provided Mechanical / test / build / lint / typecheck output. Judge coverage by the distinct changed failure modes it protects, not by test quantity. Distinguish demonstrated code failures from commands blocked by environment prerequisites; identify prerequisite repair in the findings, not speculative source changes. Do not invent results that were not provided. Do not run commands or edit tests.
+7. Check provided Mechanical / test / build / lint / typecheck output. Judge coverage by the distinct changed failure modes it protects, not by test quantity. Distinguish demonstrated code failures from commands blocked by environment prerequisites; identify prerequisite repair in the findings, not speculative source changes. Do not invent results. You may run plan-named and read-only commands (git diff/show/log, rg, tests, typecheck, lint) to confirm or refute a finding and quote their output; never edit files or tests, start servers, or open browsers.
 8. Return a concise structured decision to the orchestrator.
 
 ## Intent Check
@@ -101,7 +101,7 @@ Return `ASK_USER` instead when the blocker is missing context or evidence, ambig
 - `REVISE_CODE`: hard fail applies, or score is below 85 with actionable implementation changes.
 - `ASK_USER`: required inputs or receipts are missing, product behavior is ambiguous, or deciding would require guessing beyond the artifacts.
 
-If `REVISE_CODE`, the caller routes demonstrated defects to implementation and failed prerequisites to setup, then obtains fresh review of the resulting candidate. Identify which prior findings and evidence remain valid and which need rechecking; a narrow correction need not repeat unrelated review, while coupled, uncertain, or consequential changes may warrant full fresh assurance. If `ASK_USER` identifies a pipeline-owned evidence gap, repair that input and resume the same review against the unchanged candidate; this is not a revision attempt and does not restart acceptance. Compare repeated findings before proposing another edit; an unchanged failure calls for reconsideration. After 2 `REVISE_CODE` verdicts the caller stops with `EXHAUSTED`; carry prior verdicts across dispatches. If fresh delegation is unavailable, report the limitation, not APPROVE_CODE from self-review.
+If `REVISE_CODE`, the caller routes demonstrated defects to implementation and failed prerequisites to setup, then obtains fresh review of the resulting candidate. Identify which prior findings and evidence remain valid and which need rechecking; a narrow correction need not repeat unrelated review, while coupled, uncertain, or consequential changes may warrant full fresh assurance. If `ASK_USER` identifies a pipeline-owned evidence gap, repair that input and resume the same review against the unchanged candidate; this is not a revision attempt and does not restart acceptance. For a re-review after a fix, check the fix diff and the earlier findings only, unless the fix touches new files or risk. Compare repeated findings before proposing another edit; an unchanged failure calls for reconsideration. After 2 `REVISE_CODE` verdicts the caller stops with `EXHAUSTED`; carry prior verdicts across dispatches. If fresh delegation is unavailable, report the limitation, not APPROVE_CODE from self-review.
 
 ## Output Format
 
