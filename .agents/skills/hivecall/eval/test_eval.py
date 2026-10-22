@@ -252,6 +252,33 @@ class EvalRegression(unittest.TestCase):
                                           tools=[("shell", {"command": "bb thread spawn --parent-self --prompt 'ANSWER W1: go'"})])]
         self.assertEqual(E.grade(x)["20"]["value"], 0.0)
 
+    def test_orchestrator_switching_agent_mid_run_is_reported(self):
+        x = copy.deepcopy(fixture())
+        self.assertEqual(E.grade(x)["24"]["value"], 1.0)
+        x["sessions"]["root"][-1]["agent"] = "build"
+        result = E.grade(x)["24"]
+        self.assertFalse(result["pass"])
+        self.assertIn("switched to build", result["note"])
+
+    def test_orchestrator_ledger_tool_scripts_are_not_code_edits(self):
+        x = copy.deepcopy(fixture())
+        x["sessions"]["root"].insert(1, message("assistant", 102, agent="orchestrator",
+                                                tools=[("shell", {"command": "cat > .lanes/tick.py <<'EOF'\nprint(1)\nEOF"})]))
+        self.assertTrue(E.grade(x)["7"]["pass"])
+        x["sessions"]["root"].insert(1, message("assistant", 103, agent="orchestrator",
+                                                tools=[("write", {"path": "js/app.js", "content": "x"})]))
+        self.assertFalse(E.grade(x)["7"]["pass"])
+
+    def test_saved_ledger_copy_is_used_once_the_run_folder_is_gone(self):
+        with TemporaryDirectory() as td:
+            (Path(td) / "ledger-at-end.html").write_text(
+                '<section id="criteria"><ul><li id="ISC-1"><input type="checkbox" disabled checked> ISC-1: one</li>'
+                '<li id="ISC-2"><input type="checkbox" disabled> ISC-2: two</li></ul></section>'
+                '<section id="verification"><ul><li>ISC-1: PASS - ok</li></ul></section>')
+            snap = E.ledger_at_end(str(Path(td) / "deleted-run"), 1000, Path(td))
+            self.assertEqual(snap.get("source"), "saved copy")
+            self.assertEqual(snap.get("latest", {}).get("1"), "PASS")
+
     def test_freeze_snapshot_is_complete_and_guarded(self):
         with TemporaryDirectory() as td, patch.object(E, "OUT", Path(td)):
             row = {"run": "fixture", "eval_version": E.EVAL_VERSION, "skill_version": "test",

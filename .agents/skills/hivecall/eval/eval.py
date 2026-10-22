@@ -11,7 +11,7 @@
   python3 eval.py --freeze-baseline record the graded runs as the baseline later skill edits are compared to
 
 Sources: OpenCode DB (~/.local/share/opencode/opencode.db) and BB DB (~/.bb/bb.db), both opened read-only.
-Private output: ~/.evals/hivecall/ (never committed; eval/dashboard-data.js is a git-ignored link to it). Check definitions: README.md.
+Private output: ~/.evals/hivecall/ (never committed; eval/dashboard-data.js is a git-ignored copy of it). Check definitions: README.md.
 """
 from __future__ import annotations
 
@@ -22,12 +22,13 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 SKILL = HERE.parent
 REPO = SKILL.parents[2]
-OUT = Path(os.environ.get("HIVECALL_EVAL_DIR", Path.home() / ".evals/hivecall"))
+DEFAULT_OUT = Path.home() / ".evals/hivecall"
+OUT = Path(os.environ.get("HIVECALL_EVAL_DIR", DEFAULT_OUT))
 OC_DB = Path.home() / ".local/share/opencode/opencode.db"
 BB_DB = Path.home() / ".bb/bb.db"
 GAP = 5 * 60_000            # a gap longer than this between events is not "working"
 FOLLOWUP_CAP = 24 * 3.6e6   # only look this far past the final close for follow-up hours
-EVAL_VERSION = "4.0"        # bump when a check or judge question changes; result versions are not comparable
+EVAL_VERSION = "4.1"        # bump when a check or judge question changes; result versions are not comparable
 STALL_MS = 10 * 60_000      # the watchdog's stall clock; a longer gap without honest proof is "flat"
 ANSWER_MS = 10 * 60_000     # an alert counts as acted on when its ANSWER and an action land this fast
 
@@ -54,11 +55,12 @@ CHECKS = {
     "21": "Longest stretch without honest proof (min)",
     "22": "Downhill steps (a proven item later broken)",
     "23": "Hill climb (reported, not scored)",
+    "24": "Orchestrator turns run as the agent it started as",
 }
 # Score = average of these percentages (each behavior counts the same), grouped by the two jobs.
 SCORE_CHECKS = ("1", "2", "4", "14", "12", "6", "10", "7", "8")
 # 19-22 carry pass flags for the benchmark pass bar; they stay out of the score so old and new runs share one score.
-CONTEXT_CHECKS = ("9", "19", "20", "21", "22", "23", "18", "3", "5", "11", "13", "16")
+CONTEXT_CHECKS = ("9", "19", "20", "21", "22", "23", "18", "3", "5", "11", "13", "16", "24")
 JUDGED_CHECKS = ("12", "18", "13", "16")
 
 sys.path.insert(0, str(SKILL / "watchdog"))
@@ -214,6 +216,9 @@ def shell_targets(command: str) -> set[str]:
     return found
 
 
+RUN_SCRATCH = re.compile(r"(^|/)\.(lanes|hivecall)/")  # the orchestrator's own ledger tools, not product code
+
+
 def shell_code_writes(command: str) -> list[str]:
     return sorted(p for p in shell_targets(command) if CODE_EXT.search(p))
 
@@ -323,9 +328,10 @@ def norm_id(ident: str) -> str:
 def ledger_at_end(directory: str | None, end_ms: int, out: Path) -> dict:
     """The ledger as it stood when the run ended: the working file if it was last written by then (5-min grace),
     else the last commit before the end. Parsed by the watchdog's own parser. `at` dates the snapshot so newer
-    trace verdicts are never overridden by it."""
+    trace verdicts are never overridden by it. Once the run folder is deleted, the copy saved at grading is used."""
+    snap = out / "ledger-at-end.html"
     if not directory or not Path(directory).is_dir():
-        return {}
+        return ledger_summary(snap, out, "saved copy", end_ms, snap.name) if snap.is_file() else {}
     root = Path(directory)
     card = root / ".hivecall/run.md"
     named = re.search(r"^ledger:\s*(\S+)", card.read_text(errors="replace"), re.M) if card.is_file() else None
@@ -344,8 +350,11 @@ def ledger_at_end(directory: str | None, end_ms: int, out: Path) -> dict:
         text, source, at = git("show", f"{commit[0]}:{rel}").stdout, f"git {commit[0][:7]}", int(commit[1]) * 1000
     else:
         return {"path": rel, "source": None, "note": "ledger changed after the run and no commit before its end"}
-    snap = out / "ledger-at-end.html"
     snap.write_text(text)
+    return ledger_summary(snap, root, source, at, rel)
+
+
+def ledger_summary(snap: Path, root: Path, source: str, at: int, rel: str) -> dict:
     isa = parse_isa(str(snap), str(root))
     counted = {norm_id(i) for i in isa.get("criteria", [])}
     checked = {norm_id(i) for i in isa.get("checked", [])}
@@ -379,6 +388,13 @@ def final_report_written(sessions: dict, directory: str | None) -> bool:
 
 def export(oc, bb, run: dict) -> dict:
     tree = build_tree(oc, bb, run)
+    # Deleting a run's BB project removes its threads from bb.db; the tree saved at an earlier grade keeps them.
+    saved = OUT / "runs" / run["run"] / "run.json"
+    if saved.is_file():
+        known = {r[0] for r in bb.execute("select id from threads")}
+        for sid, node in (json.loads(saved.read_text()).get("tree") or {}).items():
+            if node.get("bb_thread") and node["bb_thread"] not in known and not (tree.get(sid) or {}).get("bb_thread"):
+                tree[sid] = {**tree.get(sid, {}), **node}
     sessions = {sid: load_session(oc, sid) for sid in tree}
     for sid, node in tree.items():  # the agent named on its messages wins; a session row can keep a stale default
         said = Counter(m["agent"] for m in sessions[sid] if m["type"] == "assistant" and m["agent"])
@@ -625,9 +641,9 @@ def grade(exp: dict) -> dict:
         before = code_edits + image_reads
         for name, inp in m["tools"]:
             p = str(inp.get("path", ""))
-            code_edits += sum(bool(CODE_EXT.search(fp)) for fp, _ in file_writes(name, inp))
+            code_edits += sum(bool(CODE_EXT.search(fp)) and not RUN_SCRATCH.search(fp) for fp, _ in file_writes(name, inp))
             if name == "shell":
-                code_edits += len(shell_code_writes(str(inp.get("command", ""))))
+                code_edits += sum(not RUN_SCRATCH.search(fp) for fp in shell_code_writes(str(inp.get("command", ""))))
             image_reads += name == "read" and bool(IMAGE.search(p))
             pushes += name == "shell" and "git push" in str(inp.get("command", ""))
         dirty += code_edits + image_reads > before
@@ -803,6 +819,18 @@ def grade(exp: dict) -> dict:
     }
     put("23", CHECKS["23"], climb, None, None,
         f"proven curve from {'the ledger progress field' if progress else 'trace ticks'}; reviewer verdicts {dict(verdicts)}")
+
+    # 24: the orchestrator session kept the agent it started as (a plugin restart can switch it silently).
+    said = [m for m in rmsgs if m["type"] == "assistant" and m.get("agent") and inside(m["time"])]
+    if said:
+        first = said[0]["agent"]
+        other = [m for m in said if m["agent"] != first]
+        late_h = round((said[-1]["time"] - other[0]["time"]) / 3_600_000, 2) if other else 0
+        put("24", CHECKS["24"], round(1 - len(other) / len(said), 2), not other, len(said),
+            f"{len(said) - len(other)}/{len(said)} turns as {first}"
+            + (f"; switched to {other[0]['agent']} at {iso(other[0]['time'])}, {late_h} h before the end" if other else ""))
+    else:
+        put("24", CHECKS["24"], None, None, 0, "no orchestrator turns with an agent name")
     return checks
 
 
@@ -1131,11 +1159,14 @@ def dashboard() -> Path:
                "judges": js["calibration"], "stale_answers": js["stale_answers"]}
     data = OUT / "dashboard-data.js"
     data.write_text("window.HIVECALL = " + json.dumps(payload) + ";\n")
-    link = HERE / "dashboard-data.js"
-    if link.is_symlink() or link.exists():
-        link.unlink()
-    link.symlink_to(data)
-    # BB's preview cannot follow the private data symlink, so publish a private self-contained copy.
+    # The repo's dashboard.html reads a git-ignored copy next to it. A real file, not a symlink: BB's preview
+    # can't follow a link out of the repo. Only written when grading into the default private folder.
+    local = HERE / "dashboard-data.js"
+    if OUT == DEFAULT_OUT:
+        if local.is_symlink() or local.exists():
+            local.unlink()
+        local.write_text(data.read_text())
+    # A self-contained private copy too, for opening outside the repo.
     template = (HERE / "dashboard.html").read_text()
     inline = json.dumps(payload).replace("<", "\\u003c")
     private = template.replace('<script src="dashboard-data.js"></script>', f"<script>window.HIVECALL = {inline};</script>")

@@ -68,6 +68,7 @@ A plain script, run every 5 minutes. It never acts on the run; it reports facts 
 - With no new proof it asks at 10 minutes, asks again at 15 if nothing changed, and says park at 20, even while the orchestrator is busy.
 - It flags a stale helper (no honest change for 10 minutes) and free items with nobody on them.
 - After a context compaction it sends a short re-anchor message.
+- If the orchestrator's session starts running as a different agent, it alerts once and leaves the owner a note.
 - It never alarms on missing data and prefers removing a noisy check over special cases.
 - An agent running but not visible in BB is always reported.
 - It reports load, disk, huge files, and leftover recorders and log processes.

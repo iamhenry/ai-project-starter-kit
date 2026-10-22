@@ -8,7 +8,7 @@ An eval is a test for an AI workflow. A normal test checks code. This one checks
 
 It doesn't start any agents itself. It reads the record of runs you already did: every message, tool call, and helper agent. Then it asks the same questions of each run, like "did every hand-off include the talk-back block?" or "was every PASS tick backed by a tester?" Each answer becomes a percentage. The average of those percentages is the run's score.
 
-Grade the runs before a skill edit, freeze them as the **baseline**, edit the skill, then do a few new runs. If the new runs score higher on the same questions, the edit helped. If they score lower, it hurt.
+Grade the runs before a skill edit, edit the skill, then do a few new runs. If the new runs score higher on the same questions, the edit helped. If they score lower, it hurt.
 
 ## How it works
 
@@ -41,7 +41,7 @@ python3 eval.py --regrade            # grade every hivecall run again
 python3 eval.py --judge-preview      # build the questions for Clef, with secrets removed; look before sending
 python3 eval.py --judge-send         # ask Clef (only new or changed questions)
 python3 eval.py --dashboard          # rebuild the dashboard
-python3 eval.py --freeze-baseline    # save today's results as the baseline (once)
+python3 eval.py --freeze-baseline    # optional snapshot of today's results; the dashboard doesn't need it
 ```
 
 **After a skill edit and a new hivecall run:**
@@ -58,10 +58,9 @@ Other commands: `--list` shows every run it found. `--run <id>` grades one run.
 
 - Grading takes a few minutes, mostly to read the records. Clef takes about a second per question; a full first send is around 7 minutes.
 - Open `~/.evals/hivecall/dashboard.html` in a browser. You'll see:
-  - a bar chart of the score per run, with the baseline as a dashed line;
-  - a table of the 9 scored behaviors, one column per run (green = 100%, red = less, grey = didn't apply);
+  - a bar chart of the score per run, with the average of the runs shown as a dashed line (it updates itself);
+  - a table of the 9 scored behaviors, one column per run (green = 95% or more, yellow = 80–94%, red = under 80%, grey = didn't apply);
   - a context table with numbers that help explain a score but aren't part of it, like hours and skill size.
-- If the baseline was graded by an older version of this eval, the dashboard says so and doesn't compare. Regrade, then freeze again.
 - "n/a" means the behavior didn't come up in that run. For example, no worker got stuck. It's left out of the score, not counted as zero.
 
 ## What it measures
@@ -78,7 +77,7 @@ Other commands: `--list` shows every run it found. `--run <id>` grades one run.
 | 8 | Deliver honestly | Orchestrator turns with no code edit or screenshot read | clean turns / turns (pushes shown; push permission not checked) |
 | 9 | Deliver honestly | Run card closed | 100% or 0%; a run paused on you (`waiting-owner`) counts when it wrote a `## Final report` |
 
-**Context, not in the score:** 10 hours (run, working, stalled, waiting on you, waiting on usage limits, per proven item) · 11 re-read `HOW-TO-WORK.md` after each compaction, before the next hand-off (pass: every time) · 12 watchdog alerts answered (`ANSWER W<n>` line) and acted on (hand-off, ledger write, commit, or stop) within 10 min (pass: every one) · 13 longest stretch without honest proof, in minutes (pass: ≤ 20) · 14 downhill steps: the progress count fell or a PASS later broke (pass: none still broken at the end) · 15 hill climb, reported only: time to 50/90/100% proven, items proven per hour, share of time flat (gaps over 10 min), average visible helpers, builder minutes, reviewer approve rate and reviews per approval, most tries on an open item, your messages · 16 useful watchdog alerts: a real problem the orchestrator then acted on (judge) · 17 `subagent-delegation` loaded before the first hand-off · 18 worker messages using talk-back words, sent to the right parent · 19 skill size in words · 20 your corrections per run hour (judge) · 21 final reports that overclaim (judge).
+**Context, not in the score:** 10 hours (run, working, stalled, waiting on you, waiting on usage limits, per proven item) · 11 re-read `HOW-TO-WORK.md` after each compaction, before the next hand-off (pass: every time) · 12 watchdog alerts answered (`ANSWER W<n>` line) and acted on (hand-off, ledger write, commit, or stop) within 10 min (pass: every one) · 13 longest stretch without honest proof, in minutes (pass: ≤ 20) · 14 downhill steps: the progress count fell or a PASS later broke (pass: none still broken at the end) · 15 hill climb, reported only: time to 50/90/100% proven, items proven per hour, share of time flat (gaps over 10 min), average visible helpers, builder minutes, reviewer approve rate and reviews per approval, most tries on an open item, your messages · 16 useful watchdog alerts: a real problem the orchestrator then acted on (judge) · 17 `subagent-delegation` loaded before the first hand-off · 18 worker messages using talk-back words, sent to the right parent · 19 skill size in words · 20 your corrections per run hour (judge) · 21 final reports that overclaim (judge) · 22 orchestrator turns run as the agent the session started as (pass: no switch; a switch shows when and how many hours were left).
 
 The new context rows 11-14 carry pass flags for the benchmark pass bar. They stay out of the score so runs before and after eval 4.0 keep the same nine behaviors in their score.
 
@@ -98,20 +97,20 @@ An eval goes stale when the skill changes how runs are written and the eval keep
 
 1. **Change the eval in the same edit as the skill.** If an edit renames something this eval reads, like the TALK-BACK block, the PROMISE line, the ledger tick format, the run card status words, or a watchdog alert name, update `eval.py` too. It's like fixing a unit test after changing the code. "Check details" below lists what each check reads.
 2. **Read the first new run next to its dashboard column.** After the first run on an edited skill, spend about 10 minutes reading that run, then compare with the dashboard. If a check says n/a or 100% when the run clearly did something else, the eval is stale. Fix it before trusting the score.
-3. **Compare only runs graded by the same eval version.** The dashboard does this for you. When you change a check or a judge question, bump `EVAL_VERSION` in `eval.py`, regrade, and freeze a new baseline. The raw records are kept, so old runs can always be regraded.
+3. **Compare only runs graded by the same eval version.** When you change a check or a judge question, bump `EVAL_VERSION` in `eval.py` and regrade. The dashboard's dashed line is the average score of the runs shown on the current eval version; it updates itself, so there is nothing to freeze. The raw records are kept, so old runs can always be regraded.
 
 ## Private data
 
-Traces, results, and the filled-in dashboard stay in `~/.evals/hivecall/` (or `HIVECALL_EVAL_DIR`). Never copy them into this repo. The committed `dashboard.html` has no data. It loads `dashboard-data.js`, a git-ignored link to the private file. Clef questions pass through a secret filter first, and `--judge-preview` lets you inspect them before anything is sent.
+Traces, results, and the filled-in dashboard stay in `~/.evals/hivecall/` (or `HIVECALL_EVAL_DIR`). Never copy them into this repo. The committed `dashboard.html` has no data. It loads `dashboard-data.js`, a git-ignored copy of the private data that `--dashboard` and grading rewrite, so the repo page shows your local results without them entering git. Clef questions pass through a secret filter first, and `--judge-preview` lets you inspect them before anything is sent.
 
 ## Check details
 
 - OpenCode subagents and BB threads are joined into one tree of agents. Only agents created and messages sent inside the run count.
 - The run window comes from `status:` writes to `.hivecall/run.md`, including shell edits. A later non-closed status reopens the run. Follow-up hours are capped at 24.
 - Ledger ticks are read from file writes and from shell commands whose write target is the ledger (a redirect, `sed -i`, or a Python write next to a quoted `ISA.html` / `checklist.html`). A tester appending a result row to its own file is not a tick, even when the row mentions the ledger. A tester's proof can be its final result or result rows it wrote before the tick; a bare `PASS` also counts when its brief named only that item.
-- The ledger as it stood at the run end is read too: the working file if it was last written by the end (5-min grace), else the last commit before the end. It never overrides a trace verdict written after it, and an unticked item is never proven even if its last line says PASS. The run card's `ledger:` line names it. It sets the item count (deferred items left out) and fills verdicts the trace missed, such as ticks written in a loop. A copy is kept as `ledger-at-end.html` next to the run's records.
+- The ledger as it stood at the run end is read too: the working file if it was last written by the end (5-min grace), else the last commit before the end. It never overrides a trace verdict written after it, and an unticked item is never proven even if its last line says PASS. The run card's `ledger:` line names it. It sets the item count (deferred items left out) and fills verdicts the trace missed, such as ticks written in a loop. A copy is kept as `ledger-at-end.html` next to the run's records, and is used instead once the run folder is deleted. Likewise, when a run's BB project is deleted, the agent tree saved at the last grade fills in its BB threads, so grade a run before deleting its project.
 - An agent's role (`qa`, `build`, `reviewer`) comes from the agent named on its messages; the session row can keep a stale default.
-- Shell commands count as code edits only when a code file is the write target.
+- Shell commands count as code edits only when a code file is the write target. Scripts the orchestrator writes under `.lanes/` or `.hivecall/` (its own ledger tools) don't count.
 - Watchdog alerts are recognized by their names (OFF TRACK, HOST, GHOST, LEDGER, STALL, FREE, PLAN, DRIFT, REANCHOR, UNANSWERED, …), with or without a leading 🚦. Alert ids look like `(alert W3)`. Worker result posts (`RESULT …`, `Acknowledged`) don't count as your messages.
 - A compaction is an orchestrator `compress` call or a compaction message. A re-read is a `read` or shell command reading `HOW-TO-WORK.md` after it and before the next hand-off (or the next compaction); a brief or message that only names the file doesn't count. An `ANSWER W<n>` counts only when written into the run card.
 - Honest proof, for the longest stretch and flat share, is a ledger write with a new PASS or FAIL line (a rewrite repeating old lines doesn't count), a tester's PASS/FAIL row with evidence, or a `git commit`. Status changes split the stretches. Time while the run card says `waiting-owner` or `waiting-usage` is skipped.

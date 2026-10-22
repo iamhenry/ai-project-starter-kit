@@ -45,6 +45,9 @@
 # 12. Re-anchor after compaction. When the orchestrator compacts its context,
 #     send one short message: goal, done and open items, live helpers, stuck
 #     items, the owner's rules word for word, and where to re-read the rest.
+# 13. Keep the orchestrator itself. When its session's latest turn runs as a
+#     different agent than the one it started as, alert it and leave the user
+#     a note. Only the user can switch it back.
 
 """Cheap watchdog for a long-running BB/ISA task."""
 
@@ -696,6 +699,16 @@ def load_sessions(session_id: str, now: float, root: str = "", verify_dir: str =
             (type='compaction' OR (type='assistant' AND data LIKE '%"name":"compress"%'))""",
                           (session_id,)).fetchone()
         result["last_compaction"] = seconds(row[0]) if row else None
+        # Rule 13: the agent the orchestrator session started as, and the one it runs as now.
+        for key, order in (("orch_agent_first", "ASC"), ("orch_agent", "DESC")):
+            row = con.execute(f"""SELECT time_created, data FROM session_message WHERE session_id=? AND type='assistant'
+                AND data LIKE '%"agent":%' ORDER BY seq {order} LIMIT 1""", (session_id,)).fetchone()
+            try:
+                result[key] = json.loads(row[1]).get("agent") if row else None
+            except (TypeError, ValueError):
+                result[key] = None
+            if key == "orch_agent" and row:
+                result["orch_agent_at"] = seconds(row[0])
         con.close()
         result["valid"] = True
     except (sqlite3.Error, OSError) as exc:
@@ -1385,7 +1398,7 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
                 "repeat-fail": "repeat failure", "unclaimed": "unclaimed work",
                 "plateau": "plateau", "regression": "regression",
                 "leftover-session": "leftover session", "drift": "code changed under QA",
-                "free": "free items idle", "plan": "plan map out of date",
+                "free": "free items idle", "plan": "plan map out of date", "agent-switch": "agent switched",
             }.get(key.split(":", 1)[0], "alert")
             record(key, tag, detail, urgent, track)
         return due
@@ -1912,6 +1925,16 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
                     f"(candidate {first[:12]} -> {fingerprint[:12]}). Ask: Is the candidate it tests still the "
                     "one you will ship? Who edited code during the test? Default: let it finish, then re-run QA "
                     "on the new candidate; make no product edits while QA runs.", urgent=True, track=True)
+
+    # Rule 13: the orchestrator session silently running as another agent (for example after a plugin restart).
+    first_agent, now_agent = sessions.get("orch_agent_first"), sessions.get("orch_agent")
+    switched = bool(first_agent and now_agent and first_agent != now_agent)
+    detail = (f"AGENT SWITCH: your session started as {first_agent} but its latest turn ran as {now_agent}. "
+              f"Ask: Did the owner choose this? Are you still following {first_agent}'s rules? Default: tell the "
+              f"owner to re-select {first_agent} for this thread; until then follow {first_agent}'s rules "
+              "(delegate, don't edit product code).") if switched else ""
+    if trigger("agent-switch", switched, detail, valid=sessions.get("valid", False), urgent=True, track=True):
+        notes.append(detail.split(" Ask:", 1)[0])
 
     # Rule 12: re-anchor after a context compaction.
     compacted = sessions.get("last_compaction") if sessions.get("valid", False) else None
@@ -2960,6 +2983,26 @@ def simulate(name: str, state_path: str, env: dict[str, str]) -> None:
         print("SIM stall: asked at 10, re-asked at 15, said park at 20, stayed quiet after; progress reset it; unacted alert escalated.")
         print(summary_line(progressed, []))
         return
+    if name == "agent-switch":
+        state = {}
+        output = io.StringIO()
+        fired = []
+        for minute, agent in ((0, "orchestrator"), (5, "build"), (10, "build"), (15, "build")):
+            snap = synthetic(name, base + minute * 60)
+            snap["sessions"]["orch_agent_first"] = "orchestrator"
+            snap["sessions"]["orch_agent"] = agent
+            with redirect_stdout(output):
+                tags = evaluate(snap, state, env, True)
+            fired.append("agent switched" in tags)
+        if fired != [False, False, True, False]:
+            raise AssertionError(f"agent switch should alert once, on the second check: {fired}")
+        text = output.getvalue()
+        for needle in ("AGENT SWITCH: your session started as orchestrator", "would append user note"):
+            if needle not in text:
+                raise AssertionError(f"agent-switch output missing {needle!r}: {text}")
+        print("SIM agent-switch: a session that started as orchestrator and now runs as build alerted once and left a note.")
+        return
+
     if name == "reanchor":
         state = {}
         output = io.StringIO()
@@ -3203,7 +3246,7 @@ def main() -> int:
         "superseded-pass", "server-down", "combined-alerts", "continue",
         "anti-spin", "done", "closed-delete", "not-closed", "read-failure", "working-old-bb", "resumed-idle-agent",
         "off-track", "on-track-timed", "on-track-code", "fast-jules", "new-testers-old-results",
-        "no-promise", "review", "lane-drift", "alert-once", "repeat-fail", "unclaimed", "stall", "reanchor", "plan-map", "regression-order", "sim-idle-timer",
+        "no-promise", "review", "lane-drift", "alert-once", "repeat-fail", "unclaimed", "stall", "reanchor", "agent-switch", "plan-map", "regression-order", "sim-idle-timer",
         "regression", "leftover-session", "idle-helper", "reopen"),
         help="run a deterministic offline scenario; always dry-run")
     args = parser.parse_args()

@@ -105,6 +105,11 @@ Bad:
 
 Only when the request authorizes edits:
 - Edit only `.agents/skills/hivecall/`. Do not read or modify its `eval/` folder.
+- The eval finds things by name: alert names, the ledger tick and verification
+  line format, the TALK-BACK and PROMISE words, and run card status words. If a
+  change renames or reshapes any of these, don't apply it. List it in the report
+  as `EVAL IMPACT: <old> → <new>` so the owner can change the skill and the eval
+  in one edit.
 - Keep the existing structure. Report words in SKILL.md, HOW-TO-WORK.md and
   references/*.md before and after; justify each increase in one line.
 - If `watchdog/watch.py` changes, run every `--simulate` scenario, each with its
