@@ -1,6 +1,6 @@
 ---
 name: hivecall
-version: 1.0.3
+version: 1.2.0
 description: Autonomous multi-agent run that works through a large ledger of tasks until each is done or parked. Expensive. The user must explicitly invoke it by typing hivecall, /hivecall or @hivecall. Agents must never load or start it on their own, from inference, or from words like swarm, parallel or many tasks. Run by the orchestrator only.
 ---
 
@@ -20,12 +20,12 @@ If the goal is missing, ask for it and stop.
 
 ## Kickoff
 
-Read [HOW-TO-WORK.md](HOW-TO-WORK.md) first: the owner's constants for every run. Read [watchdog/lessons.md](watchdog/lessons.md) before the first delegation, not only when resuming. Re-read HOW-TO-WORK.md and the run card after any context compaction or compression. Then follow [references/kickoff.md](references/kickoff.md):
+Read [HOW-TO-WORK.md](HOW-TO-WORK.md) first: the owner's constants for every run. Read [watchdog/lessons.md](watchdog/lessons.md) before the first delegation, not only when resuming. After any context compaction or compression, and on a watchdog `REANCHOR` message, re-read HOW-TO-WORK.md and the run card (Owner rules, Proven recipes, Answers) before the next delegation. Then follow [references/kickoff.md](references/kickoff.md):
 
 1. If the input cannot yet support a falsifiable check for every Verification line (e.g., an ambiguous goal or raw bug report), follow [references/discovery.md](references/discovery.md) first; otherwise draft the goal contract and plan as today.
 2. On a clear-task route, show both and ask "Watchdog on? (yes / no)" and "Open a PR at the end? (yes / no)"; wait for contract approval. On discovery, those answers authorize the run; judges approve or revise the plan.
 3. Use the supplied ISA.html as the ledger, or create `.hivecall/checklist.html` from the template, with the approved contract or the Discovery items on it.
-4. Write the run card `.hivecall/run.md` with `status: running`.
+4. Write the run card `.hivecall/run.md` with `status: running`, including the Plan map: one line per open item with what it needs and the files it touches. Name its slowest chain of needs. Size every task to fit in 15 minutes. A task is one outcome, one set of files, one proof check; a slice can hold several tasks.
 5. If watchdog is on, set it up per [README.md](README.md#watchdog): name it `🐝 <orchestrator thread title>`, capture the automation id, write `watchdog: on, automation <id>` in the run card, pass `AUTOMATION_ID`, then start it live.
 
 When resuming in a fresh thread, read HOW-TO-WORK.md, the run card and ledger first, then [watchdog/lessons.md](watchdog/lessons.md). Verify a handoff against git and the ledger before trusting it.
@@ -36,19 +36,21 @@ When resuming in a fresh thread, read HOW-TO-WORK.md, the run card and ledger fi
 - Only the orchestrator ticks items, and only on independent proof: a fresh `qa` result that ran the item's exact check on the exact candidate. A builder's own claim, passing tests, a compile, a mock, or a summary is not proof. A builder marking its own work verified is self-verification, not proof.
 - Never edit an item's text, check or threshold. Update the progress count with each tick.
 - Append implementation items only when ticking the plan-approved discovery item, in that same edit; never edit existing items.
-- Keep the plan (dependencies, critical path, lanes) in chat. Do not write it to the ledger.
+- Keep the plan (critical path, lanes) in chat; only the Plan map lines go in the run card. Do not write the plan to the ledger.
+- The Plan map is living: when evidence changes what an item needs or touches (a hidden dependency, a split, a new item), update its line in the same turn and re-name the slowest chain.
 
 ## Loop
 
 Repeat until every item is done or parked:
 
-1. **Pick** the cheapest move that can raise the score (HOW-TO-WORK.md): test a built fix, fix a known cause, debug an unknown cause, or park. Slice 1-5 related items a user could run end to end. Run lanes in parallel only when they touch different files and state. Keep an agent on an open item whenever one is actionable.
-2. **Delegate** each slice as one bounded task. Load the `subagent-delegation` skill before the first delegation and follow it for every brief. Every brief carries its TALK-BACK block (one channel, filled with your real id) so workers can send BUG / BLOCKED / QUESTION mid-run. `build` or `general` implements. Require `code-quality-gate` with a fresh `reviewer` for source-code (including test-only) and behavior-changing config before QA ticks; it is optional for non-executable docs/config. Use a fresh `qa` for `verification-gate`. Every brief says: do not spawn further subagents unless allowed. With the watchdog on, every brief also carries a `PROMISE:` line and a result filename (see README.md, Watchdog).
+1. **Pick** the steepest step: the cheapest move that can raise the score (HOW-TO-WORK.md), and among free items (needs met, no file overlap with work in flight) the one that unblocks the most others, smallest first. Fix a passed item that broke before new work. Slice 1-5 related items a user could run end to end. Run lanes in parallel only when they touch different files and state. No helper cap: every free item gets a helper; only browser or device QA is limited by the machine.
+2. **Delegate** each task to its own helper; a slice only groups tasks for its end-to-end proof. Load the `subagent-delegation` skill before the first delegation and follow it for every brief. Every helper is a fresh visible BB child thread; never resume or queue work to a finished helper. To continue its work, start a fresh child with a Delta (done, remaining, continue in). Every brief carries its TALK-BACK block through `bb thread tell` to your thread, so workers' BUG / BLOCKED / QUESTION lines appear in the timeline; quote them to the owner word for word. `build` or `general` implements. Require `code-quality-gate` with a fresh `reviewer` for source-code (including test-only) and behavior-changing config before QA ticks; it is optional for non-executable docs/config. The builder runs the run card's pre-review checklist and attaches command output first. When a reviewer finding repeats (the same kind of problem in a second review), add one line for it to the pre-review checklist before the next build brief. After a `REVISE_CODE` fix, send a delta review (the fix diff plus the earlier findings only). After a second `REVISE_CODE` on the same slice, split it or change the angle; never send a third fix. Once the reviewer approves, commit the candidate locally; QA tests that commit and its PASS line names the commit id, so every proven item is a checkpoint to return to. Use a fresh `qa` for `verification-gate`. Its brief lists every clause of the item as written, including each "and" and each error or empty case, and PASS needs every clause seen; a clause it can't check is named in the result, never silently skipped. Every brief says: do not spawn further subagents unless allowed. With the watchdog on, every brief also carries a `PROMISE:` line and a result filename (see README.md, Watchdog).
    Before sending a brief, check its final text: the TALK-BACK block is present, and, when the watchdog is on, `watchdog/watch.py`'s `parse_promise` returns `valid: true` for its `PROMISE:` line. Use only the five kinds in README.md (`screen`, `timed`, `build`, `code`, `helper`); a reviewer or researcher is a `helper`, not `review` or `verdict`. Fix a missing or invalid line before launching the agent.
-3. **Tick** items proven by independent evidence. Commit the accepted work locally. Never push without the kickoff's explicit PR authority. For a worktree lane, merge it first (below). Stop the helper's BB thread once its result is in.
-4. **Guard old passes.** After each merge, rerun the run's regression journeys. If a passed item breaks, revert that merge first and fix on the side (HOW-TO-WORK.md).
-5. **Log lessons.** After any surprise, failure, or false alarm, add one line to the run card's Lessons section.
-6. **Re-check** (below).
+3. **Answer watchdog alerts.** For each alert with an id, write one line under the run card's Answers within 10 minutes: `ANSWER <id>: <action> — <thread id, ledger line, or park line>`. The action must be something the watchdog can see; "noted" is not an action. On a stale-helper alert, decide: restart it fresh with a Delta, let it run (say why), or ask it to land its smallest provable part now. Don't split a running helper; split only when planning.
+4. **Tick** items proven by independent evidence on the committed candidate. Never push without the kickoff's explicit PR authority. For a worktree lane, merge it first (below). Stop the helper's BB thread once its result is in.
+5. **Guard old passes.** After each merge, rerun the run's regression journeys. If a passed item breaks, revert that merge first and fix on the side (HOW-TO-WORK.md).
+6. **Log lessons.** After any surprise, failure, or false alarm, add one line to the run card's Lessons section.
+7. **Re-check** (below).
 
 ## Worktree lanes (optional)
 
@@ -57,7 +59,7 @@ Use when parallel lanes would otherwise share a checkout. One lane = one visible
 - Group work so no two live lanes touch the same files. Lanes share the run's machine limits (HOW-TO-WORK.md defaults or run card overrides); when a lane needs a test device, it takes a free one within that limit.
 - Lanes never edit the ledger. They write evidence and result rows to the orchestrator's `VERIFY_DIR`; only the orchestrator ticks.
 - Limit live lanes to what disk allows (a worktree with dependencies and builds can need several GB).
-- **Merge after QA passes:** commit in the lane, then in the orchestrator's checkout `git merge --no-ff <lane-branch>`; rebuild and rerun the ledger's regression smoke checks on the merged build; tick; remove the worktree (`git worktree remove`) and stop the lane thread. A merge conflict or smoke failure reopens the item; never tick from the lane's build alone.
+- **Merge after QA passes:** the lane's candidate was committed before QA (its PASS line names that commit); then in the orchestrator's checkout `git merge --no-ff <lane-branch>`; rebuild and rerun the ledger's regression smoke checks on the merged build; tick; remove the worktree (`git worktree remove`) and stop the lane thread. A merge conflict or smoke failure reopens the item; never tick from the lane's build alone.
 
 ## Re-check after every result
 
@@ -70,18 +72,19 @@ Re-plan on new evidence, not on activity.
 
 ## Park, don't loop
 
-- Up to three attempts, each meaningfully different from the last, for example a new hypothesis or method, then a stronger model or research. Use judgment on what counts as different; never rerun the same idea. Debug in tight, time-boxed log loops (HOW-TO-WORK.md, Defaults). If the cause is unclear, the correction brief names `bugging-out` and carries the failed evidence; the builder picks the next playbook, not a repeat.
-- After the third failure, park the item with its exact unlock condition and move to other work.
-- Owner-only items (physical device, human access) are parked from the start.
+- A FAIL, a BLOCKED, and a restarted helper each count as an attempt. Up to three attempts, each meaningfully different from the last, for example a new hypothesis or method, then a stronger model or research. Use judgment on what counts as different; never rerun the same idea. Debug in tight, time-boxed log loops (HOW-TO-WORK.md, Defaults). If the cause is unclear, the correction brief names `bugging-out` and carries the failed evidence; the builder picks the next playbook, not a repeat.
+- Attempt 2 must use a new angle and check the run card's Proven recipes first. A BLOCKED report names the cheapest other probe it tried.
+- After the third failure, park the item with its exact unlock condition and move to other work. When a QA pass finds a working setup (a fixture, a way to open a screen), add it to Proven recipes and link it in later briefs.
+- Owner-only items (physical device, human access) are parked from the start. In an unattended run, a question for the owner is written in the run card and its item parked; the run continues.
 - Parked items do not stop the run.
 
 ## Stop and ask only for
 
-The hard blockers in HOW-TO-WORK.md, sent as one `🚦` line: missing authority or access, a contradictory ledger, a destructive or remote action, disk full after allowed cleanup, or model credits out with no backup. Everything else is decided from the specs and recorded. Never push without the kickoff's explicit PR authority. Never fabricate evidence. While waiting on the user, set the run card to `waiting-owner`; after a usage limit, `waiting-usage`. Set it back to `running` when work resumes.
+The hard blockers in HOW-TO-WORK.md, sent as one `🚦` line: missing authority or access, a contradictory ledger, a destructive or remote action, disk full after allowed cleanup, or model credits out with no backup. Everything else is decided from the specs and recorded. Never push without the kickoff's explicit PR authority. Never fabricate evidence. While waiting on the user, write `## Final report` so far into the run card and set it to `waiting-owner`; after a usage limit, `waiting-usage`. Set it back to `running` when work resumes.
 
 ## End
 
-When every counted item is ticked or parked: if PR authority was yes, confirm cited verification evidence files exist, then finish with `create-pr` (push the branch and open a PR; never merge); otherwise use local commits only. Then set the run card to `status: closed` and send the final report (confirmed with evidence, parked with unlock, owner-only items, uncertain). The watchdog pauses after closure and deletes its automation on the check after a successful pause; it retries a failed pause. Ledger completion before the card is closed only pauses the watchdog and sends `WATCH DONE`. On `WATCH DONE`, complete only an already-authorized `create-pr` closeout; otherwise report and stop. On `🚦 WATCH STALLED`, report and stop without new work.
+When every counted item is ticked or parked: if PR authority was yes, confirm cited verification evidence files exist, then finish with `create-pr` (push the branch and open a PR; never merge); otherwise use local commits only. Then write `## Final report` into the run card, set it to `status: closed`, and send the final report (confirmed with evidence, parked with unlock, owner-only items, uncertain). The watchdog pauses after closure and deletes its automation on the check after a successful pause; it retries a failed pause. Ledger completion before the card is closed only pauses the watchdog and sends `WATCH DONE`. On `WATCH DONE`, complete only an already-authorized `create-pr` closeout; otherwise report and stop. On `🚦 WATCH STALLED`, report and stop without new work.
 
 ## Workflow skills
 
@@ -104,7 +107,9 @@ End every reply to the user with a one-to-two-line summary and the one-row statu
 - Ticking from a builder's self-report or green tests.
 - Repeating a failed approach.
 - Parallel tasks that share files or depend on each other.
-- Delegating a task that spans several slices.
+- Delegating a task that spans several slices, or one that won't fit in 15 minutes.
+- Resuming a finished helper instead of starting a fresh visible one with a Delta.
+- Logging an alert as "expected" without an action the watchdog can see.
 - Re-planning on every tool call.
 - Asking for approval between slices once the run is approved.
 - Fanning out a skill's own subagents inside every lane. Size expensive skills first.

@@ -30,6 +30,22 @@ permission:
     "git rebase*": deny
     "git commit*": deny
     "git push*": deny
+    "git checkout*": deny
+    "git switch*": deny
+    "git stash*": deny
+    "git merge*": deny
+    "git add*": deny
+    "git restore*": deny
+    "git apply*": deny
+    "git cherry-pick*": deny
+    "npm install*": deny
+    "npm i *": deny
+    "pnpm install*": deny
+    "pnpm add*": deny
+    "yarn add*": deny
+    "agent-browser*": deny
+    "kill *": deny
+    "pkill*": deny
     "rm *": ask
     "*": allow
 ---
@@ -40,9 +56,11 @@ Duties:
 - `code-quality-gate`: judge the exact candidate (commit or diff) against the approved contract; return only `APPROVE_CODE`, `REVISE_CODE`, or `ASK_USER`; make no edits.
 - `judge-proposal` / `judge-plan`: review the declared artifacts in a fresh session; write only the skill-defined verdict section (`## Judge Decision` in `issue.md`, `## Plan Judge` in `plan.md`); return the same decision in chat.
 
+May run read-only checks to confirm or refute a finding, and quote the command and output in the finding: `git diff/show/log/status`, `rg`, `cat`, and the plan's named test, lint and typecheck commands (under 2 minutes each).
+
 Don't:
 - Edit anything except the judge writeback section the loaded skill authorizes
-- Run Mechanical commands or QA
+- Run QA, open browsers, start servers, install packages, or change files, git state or the machine
 - Review GitHub PRs (`pr-reviewer` owns that)
 
 Output is the loaded skill's decision contract.

@@ -11,7 +11,7 @@
   python3 eval.py --freeze-baseline record the graded runs as the baseline later skill edits are compared to
 
 Sources: OpenCode DB (~/.local/share/opencode/opencode.db) and BB DB (~/.bb/bb.db), both opened read-only.
-Private output: ~/.evals/hivecall/ (never committed; eval/dashboard-data.js is a git-ignored link to it). Check definitions: README.md.
+Private output: ~/.evals/hivecall/ (never committed; eval/dashboard-data.js is a git-ignored copy of it). Check definitions: README.md.
 """
 from __future__ import annotations
 
@@ -22,12 +22,15 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 SKILL = HERE.parent
 REPO = SKILL.parents[2]
-OUT = Path(os.environ.get("HIVECALL_EVAL_DIR", Path.home() / ".evals/hivecall"))
+DEFAULT_OUT = Path.home() / ".evals/hivecall"
+OUT = Path(os.environ.get("HIVECALL_EVAL_DIR", DEFAULT_OUT))
 OC_DB = Path.home() / ".local/share/opencode/opencode.db"
 BB_DB = Path.home() / ".bb/bb.db"
 GAP = 5 * 60_000            # a gap longer than this between events is not "working"
 FOLLOWUP_CAP = 24 * 3.6e6   # only look this far past the final close for follow-up hours
-EVAL_VERSION = "3.2"        # bump when a check or judge question changes; result versions are not comparable
+EVAL_VERSION = "4.1"        # bump when a check or judge question changes; result versions are not comparable
+STALL_MS = 10 * 60_000      # the watchdog's stall clock; a longer gap without honest proof is "flat"
+ANSWER_MS = 10 * 60_000     # an alert counts as acted on when its ANSWER and an action land this fast
 
 # Ids are internal keys (judge answers and labels use them); the dashboard numbers rows in display order.
 CHECKS = {
@@ -47,23 +50,36 @@ CHECKS = {
     "13": "Owner corrections per run hour (judge)",
     "16": "Final report overclaims (judge)",
     "18": "Useful watchdog alerts: real problem the orchestrator acted on (judge)",
+    "19": "Re-read HOW-TO-WORK.md after each compaction",
+    "20": "Watchdog alerts answered and acted on within 10 min",
+    "21": "Longest stretch without honest proof (min)",
+    "22": "Downhill steps (a proven item later broken)",
+    "23": "Hill climb (reported, not scored)",
+    "24": "Orchestrator turns run as the agent it started as",
 }
 # Score = average of these percentages (each behavior counts the same), grouped by the two jobs.
 SCORE_CHECKS = ("1", "2", "4", "14", "12", "6", "10", "7", "8")
-CONTEXT_CHECKS = ("9", "18", "3", "5", "11", "13", "16")
+# 19-22 carry pass flags for the benchmark pass bar; they stay out of the score so old and new runs share one score.
+CONTEXT_CHECKS = ("9", "19", "20", "21", "22", "23", "18", "3", "5", "11", "13", "16", "24")
 JUDGED_CHECKS = ("12", "18", "13", "16")
 
 sys.path.insert(0, str(SKILL / "watchdog"))
-from watch import parse_promise  # noqa: E402  (same parser the watchdog uses)
+from watch import parse_isa, parse_promise  # noqa: E402  (same parsers the watchdog uses)
 
 TALKBACK = re.compile(r"^(BUG|BLOCKED|QUESTION|STOP)\b")
-WATCHDOG = re.compile(r"^(?:🚦\s*)?(WATCH (REVIEW|DONE|STALLED|CONTINUE)|OFF TRACK|HOST\b|GHOST|UNCLAIMED|PLATEAU|LEDGER|AGENT |LOOP|REGRESSION|LEFTOVER|BRIEF\b)")
+# PLATEAU is kept for runs graded before the stall ladder replaced it.
+WATCHDOG = re.compile(r"^(?:🚦\s*)?(WATCH (REVIEW|DONE|STALLED|CONTINUE)|OFF TRACK|HOST\b|GHOST|UNCLAIMED|PLATEAU|STALL \d|FREE\b|PLAN\b|DRIFT\b"
+                      r"|REANCHOR\b|UNANSWERED\b|LEDGER|AGENT |LOOP|REGRESSION|LEFTOVER|BRIEF\b)")
+ALERT_ID = re.compile(r"\(alert (W\d+)\)")
+REVIEW_VERDICT = re.compile(r"\b(APPROVE_CODE|REVISE_CODE|ASK_USER)\b")
+PROGRESS = re.compile(r"progress\W*(?:</?t[hd][^>]*>\s*)*(\d+)\s*/\s*(\d+)", re.I)  # frontmatter "progress 12/40"
+VERDICT_WORD = re.compile(r"\b(PASS|FAIL)\b")
 WORKER_OTHER = re.compile(r"^((CORRECTION )?RESULT\b|Acknowledged\b)")  # worker posts that break talk-back rules; not the owner
 BB_MSG = re.compile(r"^\[bb message from thread:\S+\]\s*")
 STATUS = re.compile(r"status\s*:\s*(running|waiting-owner|waiting-usage|closed)\b", re.I)
 STATUS_ASSIGN = re.compile(r"status\s*=\s*['\"](running|waiting-owner|waiting-usage|closed)['\"]", re.I)
 STUCK_FINAL = re.compile(r"^\W*(?:(?:result|verdict|status)\s*[:=-]\s*)?\W*BLOCKED\b", re.I)  # checked on the start of the final result
-TICK = re.compile(r"ISC-0*(\d+)\b[^\n<]{0,40}?\b(PASS|FAIL|BLOCKED)\b")
+TICK = re.compile(r"ISC-0*(\d+)\b[^\n<]{0,40}?\b(PASS|FAIL|BLOCKED|REOPENED)\b")
 CODE_EXT = re.compile(r"\.(swift|tsx?|jsx?|mjs|py|kt|java|rb|go|rs|m|mm|c|cc|cpp|h|css|scss|sql)$")
 IMAGE = re.compile(r"\.(png|jpe?g|gif|webp|heic)$", re.I)
 EVIDENCE_PATH = re.compile(r"(?:/[\w.-]+(?:/[\w.-]+)*\.(?:png|jpe?g|mp4|mov|log|txt|json|md|html|xml|yaml|webm)|\b[\w.-]+(?:/[\w.-]+)*\.(?:png|jpe?g|mp4|mov|log|txt|json|md|html|xml|yaml|webm)\b)", re.I)
@@ -188,8 +204,8 @@ SHELL_TARGETS = [
 SHELL_INPLACE = re.compile(r"\b(?:sed|perl)\s+-i\S*\s+(.*)")
 
 
-def shell_code_writes(command: str) -> list[str]:
-    """Code files a shell command writes (redirect/tee targets, in-place sed/perl, Python writes)."""
+def shell_targets(command: str) -> set[str]:
+    """Files a shell command writes (redirect/tee targets, in-place sed/perl, Python writes)."""
     found = set()
     for rx in SHELL_TARGETS:
         found.update(rx.findall(command))
@@ -197,7 +213,30 @@ def shell_code_writes(command: str) -> list[str]:
         m = SHELL_INPLACE.search(segment)
         if m:
             found.update(tok.strip("'\"") for tok in m.group(1).split()[1:])  # skip the expression
-    return sorted(p for p in found if CODE_EXT.search(p))
+    return found
+
+
+RUN_SCRATCH = re.compile(r"(^|/)\.(lanes|hivecall)/")  # the orchestrator's own ledger tools, not product code
+
+
+def shell_code_writes(command: str) -> list[str]:
+    return sorted(p for p in shell_targets(command) if CODE_EXT.search(p))
+
+
+QUOTED_LEDGER = re.compile(r"['\"][^'\"\s]*(?:checklist|ISA)\.html['\"]", re.I)
+PY_WRITE = re.compile(r"\.write(?:_text)?\s*\(")
+
+
+def ledger_shell_write(command: str) -> bool:
+    """True when the command writes the ledger itself. A tester appending a result row to its own file
+    while the text mentions ISA.html is not a ledger tick."""
+    if MESSAGE_SEND.search(command):
+        return False
+    if any(LEDGER_FILE.search(t) for t in shell_targets(command)):
+        return True
+    if re.search(r"\bledger\.py\b", command) and SHELL_MUTATION.search(command):
+        return True
+    return bool(QUOTED_LEDGER.search(command) and PY_WRITE.search(command))  # p='ISA.html'; open(p,'w').write(s)
 
 
 def load_session(oc, ses: str) -> list[dict]:
@@ -282,9 +321,85 @@ def run_windows(sessions: dict, run: dict) -> tuple[list, list, int]:
     return windows, events, last
 
 
+def norm_id(ident: str) -> str:
+    return ".".join(str(int(x)) for x in re.findall(r"\d+", ident))
+
+
+def ledger_at_end(directory: str | None, end_ms: int, out: Path) -> dict:
+    """The ledger as it stood when the run ended: the working file if it was last written by then (5-min grace),
+    else the last commit before the end. Parsed by the watchdog's own parser. `at` dates the snapshot so newer
+    trace verdicts are never overridden by it. Once the run folder is deleted, the copy saved at grading is used."""
+    snap = out / "ledger-at-end.html"
+    if not directory or not Path(directory).is_dir():
+        return ledger_summary(snap, out, "saved copy", end_ms, snap.name) if snap.is_file() else {}
+    root = Path(directory)
+    card = root / ".hivecall/run.md"
+    named = re.search(r"^ledger:\s*(\S+)", card.read_text(errors="replace"), re.M) if card.is_file() else None
+    paths = ([named.group(1)] if named else []) + ["ISA.html", ".hivecall/checklist.html", "_ai/docs/ISA.html"]
+    path = next((root / p for p in paths if (root / p).is_file()), None)
+    if not path:
+        return {}
+    rel = path.relative_to(root).as_posix()
+    before = dt.datetime.fromtimestamp(end_ms / 1000).isoformat(timespec="seconds")
+    git = lambda *a: subprocess.run(["git", "-C", str(root), *a], capture_output=True, text=True)
+    mtime = path.stat().st_mtime * 1000
+    commit = git("log", "-1", f"--before={before}", "--format=%H %ct", "--", rel).stdout.split()
+    if mtime <= end_ms + GAP:
+        text, source, at = path.read_text(errors="replace"), "working file", int(mtime)
+    elif commit:
+        text, source, at = git("show", f"{commit[0]}:{rel}").stdout, f"git {commit[0][:7]}", int(commit[1]) * 1000
+    else:
+        return {"path": rel, "source": None, "note": "ledger changed after the run and no commit before its end"}
+    snap.write_text(text)
+    return ledger_summary(snap, root, source, at, rel)
+
+
+def ledger_summary(snap: Path, root: Path, source: str, at: int, rel: str) -> dict:
+    isa = parse_isa(str(snap), str(root))
+    counted = {norm_id(i) for i in isa.get("criteria", [])}
+    checked = {norm_id(i) for i in isa.get("checked", [])}
+    latest = {}
+    for ident, v in (isa.get("latest_verdicts") or {}).items():
+        num = norm_id(ident)
+        if num in counted:
+            status = v.get("status")
+            latest[num] = "OPEN" if status == "PASS" and num not in checked else status  # an unticked PASS is not proven
+    open_tries = {norm_id(i): n for i, n in (isa.get("tries") or {}).items() if norm_id(i) in counted - checked}
+    return {"path": rel, "source": source, "at": at, "total": isa.get("total") or len(counted), "checked": sorted(checked),
+            "latest": latest, "open_tries": open_tries}
+
+
+def final_report_written(sessions: dict, directory: str | None) -> bool:
+    """A `## Final report` section with content, written into run.md during the run or present in it now."""
+    texts = [t for msgs in sessions.values() for m in msgs for name, inp in m["tools"]
+             for p, t in file_writes(name, inp) if p.endswith("run.md")]
+    texts += [str(inp.get("command", "")) for msgs in sessions.values() for m in msgs for name, inp in m["tools"]
+              if name == "shell" and "run.md" in str(inp.get("command", "")) and "Final report" in str(inp.get("command", ""))]
+    card = Path(directory or "") / ".hivecall/run.md"
+    if directory and card.is_file():
+        texts.append(card.read_text(errors="replace"))
+    for text in texts:
+        sec = FINAL_SECTION.search(text)
+        body = [l for l in (sec.group(0).splitlines()[1:] if sec else []) if l.strip() and not l.strip().startswith("<")]
+        if body:
+            return True
+    return False
+
+
 def export(oc, bb, run: dict) -> dict:
     tree = build_tree(oc, bb, run)
+    # Deleting a run's BB project removes its threads from bb.db; the tree saved at an earlier grade keeps them.
+    saved = OUT / "runs" / run["run"] / "run.json"
+    if saved.is_file():
+        known = {r[0] for r in bb.execute("select id from threads")}
+        for sid, node in (json.loads(saved.read_text()).get("tree") or {}).items():
+            if node.get("bb_thread") and node["bb_thread"] not in known and not (tree.get(sid) or {}).get("bb_thread"):
+                tree[sid] = {**tree.get(sid, {}), **node}
     sessions = {sid: load_session(oc, sid) for sid in tree}
+    for sid, node in tree.items():  # the agent named on its messages wins; a session row can keep a stale default
+        said = Counter(m["agent"] for m in sessions[sid] if m["type"] == "assistant" and m["agent"])
+        if said:
+            node["agent"] = said.most_common(1)[0][0]
     windows, status_events, last = run_windows(sessions, run)
     end = windows[-1][1]
     for sid in list(tree):  # drop children created after the run ended (follow-up chat helpers are counted separately)
@@ -296,7 +411,9 @@ def export(oc, bb, run: dict) -> dict:
         (d / "sessions" / f"{sid}.json").write_text(json.dumps(msgs))
     info = {k: v for k, v in run.items() if not k.startswith("_")}
     info.update(tree=tree, windows=windows, status_events=status_events, last_activity=last,
-                closed=bool(status_events and status_events[-1][1] == "closed"))
+                closed=bool(status_events and status_events[-1][1] == "closed"),
+                ledger=ledger_at_end(run.get("directory"), end, d),
+                final_report_written=final_report_written(sessions, run.get("directory")))
     (d / "run.json").write_text(json.dumps(info, indent=1))
     return {"info": info, "sessions": sessions}
 
@@ -419,27 +536,57 @@ def grade(exp: dict) -> dict:
         f"{sum(w['ok'] and w not in good for w in sent)}" if sent else "no worker messages")
 
     # 6, 10: ledger ticks
-    ticks, ids, ledger_writes = [], set(), 0
+    ticks, ids, ledger_writes, proof_times, progress = [], set(), 0, [], []
+    blobs = []
     for s in tree:
         for m in sessions[s]:
             if not inside(m["time"]):
                 continue
             for name, inp in m["tools"]:
-                blob = "\n".join(t for p, t in file_writes(name, inp) if re.search(r"(checklist|ISA)\.html$|ledger", p, re.I))
+                writes = file_writes(name, inp)
+                blob = "\n".join(t for p, t in writes if re.search(r"(checklist|ISA)\.html$|ledger", p, re.I))
                 cmd = str(inp.get("command", "")) if name == "shell" else ""
                 # Ledgers are often ticked through shell (python replace, a ledger.py helper fed a tick file).
-                if cmd and LEDGER_FILE.search(cmd) and SHELL_MUTATION.search(cmd) and not MESSAGE_SEND.search(cmd):
+                if cmd and ledger_shell_write(cmd):
                     blob = cmd
-                if not blob:
-                    continue
-                ledger_writes += 1
-                ids.update(re.findall(r"ISC-0*(\d+)", blob))
-                for line in blob.splitlines():
-                    for num, verdict in TICK.findall(line):
-                        ticks.append({"time": m["time"], "isc": num, "verdict": verdict, "line": line.strip()[:200], "by": s})
+                if blob:
+                    blobs.append((m["time"], s, blob))
+                elif tree[s].get("agent") == "qa":  # a tester's evidenced PASS/FAIL row is proof too (watchdog rule 10)
+                    rows = "\n".join(t for _, t in writes) or (cmd if cmd and SHELL_MUTATION.search(cmd) else "")
+                    if any(v in ("PASS", "FAIL") for _, v in TICK.findall(rows)) and EVIDENCE_PATH.search(rows):
+                        proof_times.append(m["time"])
+    seen_lines = set()  # a full rewrite repeats old verdict lines; only new lines are events
+    for time_, s, blob in sorted(blobs, key=lambda b: b[0]):
+        ledger_writes += 1
+        frac = PROGRESS.findall(blob)
+        if frac:  # replace(old, new) puts the new value last
+            progress.append((time_, int(frac[-1][0]), int(frac[-1][1])))
+        ids.update(re.findall(r"ISC-0*(\d+)", blob))
+        fresh = False
+        for line in blob.splitlines():
+            found = TICK.findall(line)
+            if not found or line.strip() in seen_lines:
+                continue
+            seen_lines.add(line.strip())
+            fresh = True
+            for num, verdict in found:
+                ticks.append({"time": time_, "isc": num, "verdict": verdict, "line": line.strip()[:200], "by": s})
+        # Loop-written ticks (f"ISC-{n}") parse no lines; a PASS/FAIL word still marks the write as proof.
+        if fresh or (not any(TICK.search(l) for l in blob.splitlines()) and VERDICT_WORD.search(blob)):
+            proof_times.append(time_)
     latest = {}
     for t in sorted(ticks, key=lambda t: t["time"]):
         latest[t["isc"]] = t
+    # The ledger as it stood at the end is the truth for what closed; trace parsing misses ticks written
+    # through loops (f"ISC-{n}"). Its verdicts are dated at the run end.
+    ledger = info.get("ledger") or {}
+    snap_at = min(ledger.get("at") or end, end)
+    for num, status in (ledger.get("latest") or {}).items():
+        trace = latest.get(num)
+        if (trace or {}).get("verdict") != status and (not trace or trace["time"] <= snap_at):
+            tick = {"time": snap_at, "isc": num, "verdict": status, "line": "ledger at run end", "by": "ledger"}
+            latest[num] = tick
+            ticks.append(tick)
     pass_ticks = [t for t in ticks if t["verdict"] == "PASS"]
     latest_passes = [t for t in latest.values() if t["verdict"] == "PASS"]
 
@@ -461,7 +608,11 @@ def grade(exp: dict) -> dict:
             item = rf"ISC-0*{t['isc']}\b"
             row_pass = any(re.search(rf"\b{item}[^\n]*\bPASS\b|\bPASS\b\s+(?:for|on)\s+{item}", line, re.I)
                            for line in pool.splitlines())
-            file_pass = re.match(r"\s*\**PASS\b", final) and any(re.search(rf"isc-0*{t['isc']}(?!\d)", p, re.I) for p, _ in writes)
+            # A bare PASS counts when it wrote a file named for the item, or its brief named only this item.
+            brief = next((m["text"] for m in sessions[sid] if m["type"] == "user" and m["text"].strip()), "")
+            only_this = set(re.findall(r"ISC-0*(\d+)\b", brief)) == {t["isc"]}
+            file_pass = re.match(r"\s*\**PASS\b", final) and (
+                only_this or any(re.search(rf"isc-0*{t['isc']}(?!\d)", p, re.I) for p, _ in writes))
             evidence = EVIDENCE_PATH.search(pool) or writes
             if (row_pass or file_pass) and evidence:
                 return True
@@ -490,18 +641,23 @@ def grade(exp: dict) -> dict:
         before = code_edits + image_reads
         for name, inp in m["tools"]:
             p = str(inp.get("path", ""))
-            code_edits += sum(bool(CODE_EXT.search(fp)) for fp, _ in file_writes(name, inp))
+            code_edits += sum(bool(CODE_EXT.search(fp)) and not RUN_SCRATCH.search(fp) for fp, _ in file_writes(name, inp))
             if name == "shell":
-                code_edits += len(shell_code_writes(str(inp.get("command", ""))))
+                code_edits += sum(not RUN_SCRATCH.search(fp) for fp in shell_code_writes(str(inp.get("command", ""))))
             image_reads += name == "read" and bool(IMAGE.search(p))
             pushes += name == "shell" and "git push" in str(inp.get("command", ""))
         dirty += code_edits + image_reads > before
     put("7", CHECKS["7"], round((turns - dirty) / turns, 2) if turns else None, turns > 0 and dirty == 0, turns,
         f"{turns - dirty}/{turns} turns clean; code edits {code_edits}, image reads {image_reads}, git push {pushes} (push authority not checked)")
 
-    # 8: run card closed
-    put("8", CHECKS["8"], 1.0 if info["closed"] else 0.0, info["closed"], 1,
-        f"{len(info['status_events'])} status changes" if info["status_events"] else "no run card status found")
+    # 8: run card closed. A run that stops on the owner counts when it wrote its Final report.
+    last_status = info["status_events"][-1][1] if info["status_events"] else None
+    paused_ok = last_status == "waiting-owner" and bool(info.get("final_report_written"))
+    closed = bool(info["closed"] or paused_ok)
+    put("8", CHECKS["8"], 1.0 if closed else 0.0, closed, 1,
+        (f"{len(info['status_events'])} status changes" if info["status_events"] else "no run card status found")
+        + ("; waiting-owner with a Final report" if paused_ok else "")
+        + ("; last status waiting-owner, no Final report" if last_status == "waiting-owner" and not paused_ok else ""))
 
     # 9: hours
     times = sorted(m["time"] for s in tree for m in sessions[s] if m["type"] in ("user", "assistant"))
@@ -515,7 +671,7 @@ def grade(exp: dict) -> dict:
     put("9", CHECKS["9"], hrs, None, None, "5-min gap rule")
 
     # 10: proven at close + follow-up
-    total = len(ids)
+    total = ledger.get("total") or len(ids)
     post = [t for t in times if end < t <= end + FOLLOWUP_CAP] if info["closed"] else []
     follow = hours(sum(min(y - x, GAP) for x, y in zip(post, post[1:])))
     share = round(proven_n / total, 2) if total and ticks else None
@@ -546,8 +702,135 @@ def grade(exp: dict) -> dict:
     checks["12"]["facts"] = {"alerts": sum(alerts.values()), "by_kind": dict(alerts)}
     checks["13"]["facts"] = {"owner_messages": inbound["owner"], "run_h": hrs.get("run")}
     checks["16"]["facts"] = {"loop_alerts": alerts.get("LOOP", 0), "blocked_items": sum(t["verdict"] == "BLOCKED" for t in latest.values()),
-                              "ledger_items": len(ids), "latest_pass": len(latest_passes), "proven": proven_at_close,
+                              "ledger_items": total, "latest_pass": len(latest_passes), "proven": proven_at_close,
                               "unproven": len(latest_passes) - proven_at_close}
+
+    # 19: re-read the working rules after every compaction, before the next hand-off.
+    compactions = [m["time"] for m in rmsgs if inside(m["time"]) and
+                   (m["type"] == "compaction" or any(name == "compress" for name, _ in m["tools"]))]
+    def reads(name_rx):
+        return [m["time"] for m in rmsgs for name, inp in m["tools"]
+                if (name == "read" and re.search(name_rx, str(inp.get("path") or inp.get("filePath") or "")))
+                or (name == "shell" and re.search(name_rx, str(inp.get("command", "")))
+                    and not re.search(r"bb\s+thread\s+(?:spawn|tell)|opencode\s+(?:run|api)|>\s*\S*" + name_rx,
+                                      str(inp.get("command", ""))))]  # a prompt naming the file is not a read
+    rule_reads, card_reads = reads(r"HOW-TO-WORK\.md"), reads(r"\.hivecall/run\.md")
+    brief_times = [b["time"] for b in briefs]
+    reread = card = 0
+    for i, c in enumerate(compactions):
+        stop = min([t for t in brief_times if t > c] + compactions[i + 1:i + 2] + [end])
+        reread += any(c <= t < stop for t in rule_reads)
+        card += any(c <= t < stop for t in card_reads)
+    put("19", CHECKS["19"], round(reread / len(compactions), 2) if compactions else None,
+        (reread == len(compactions)) if compactions else None, len(compactions),
+        f"{reread}/{len(compactions)} compactions followed by HOW-TO-WORK.md before the next hand-off; run card {card}/{len(compactions)}"
+        if compactions else "n/a: no compaction in the run")
+
+    # 20: alerts with an id need an ANSWER line plus a visible action (hand-off, ledger write, stop) within 10 min.
+    asked = {}
+    for m in rmsgs:
+        if m["type"] == "user" and inside(m["time"]) and kinds.get(id(m)) == "watchdog":
+            for aid in ALERT_ID.findall(m["text"]):
+                asked.setdefault(aid, m["time"])
+    # An ANSWER counts only when it is written into the run card.
+    writes_text = [(m["time"], t) for m in rmsgs for name, inp in m["tools"] for p, t in file_writes(name, inp) if p.endswith("run.md")]
+    writes_text += [(m["time"], str(inp.get("command", ""))) for m in rmsgs for name, inp in m["tools"]
+                    if name == "shell" and "run.md" in str(inp.get("command", "")) and SHELL_MUTATION.search(str(inp.get("command", "")))]
+    action_times = brief_times + proof_times + [m["time"] for m in rmsgs for name, inp in m["tools"]
+                                                if name == "shell" and re.search(r"bb thread (stop|spawn)|git commit", str(inp.get("command", "")))]
+    acted = 0
+    for aid, t in asked.items():
+        answered = any(t <= w <= t + ANSWER_MS and re.search(rf"ANSWER {aid}\b", txt) for w, txt in writes_text)
+        acted += answered and any(t <= a <= t + ANSWER_MS for a in action_times)
+    unanswered = sum(len(re.findall(r"\bUNANSWERED W\d+", m["text"])) for m in rmsgs
+                     if m["type"] == "user" and kinds.get(id(m)) == "watchdog" and inside(m["time"]))
+    put("20", CHECKS["20"], round(acted / len(asked), 2) if asked else None, (acted == len(asked)) if asked else None, len(asked),
+        f"{acted}/{len(asked)} alerts answered and acted on within 10 min; UNANSWERED escalations {unanswered}"
+        if asked else "n/a: no alert ids (watchdog before 4.0 or no run-moving alerts)")
+
+    # 21 + flat share: honest proof = a ledger write carrying PASS/FAIL or a commit. Waiting on the owner or usage is not a stall.
+    commits = [m["time"] for s in tree for m in sessions[s] if inside(m["time"]) for name, inp in m["tools"]
+               if name == "shell" and re.search(r"\bgit commit\b", str(inp.get("command", "")))]
+    marks = sorted(set(proof_times + commits))
+    waiting = lambda t: next((s for e, s in reversed(ev) if e <= t), "").startswith("waiting")
+    gaps = []
+    for a, b in windows:  # status changes split gaps, so owner or usage waits drop out cleanly
+        pts = sorted(set([a] + [t for t in marks if a <= t <= b] + [e for e, _ in ev if a < e < b] + [b]))
+        gaps += [(x, y - x) for x, y in zip(pts, pts[1:]) if not waiting(x)]
+    longest = max((g for _, g in gaps), default=0)
+    run_ms = sum(b - a for a, b in windows)
+    flat = sum(g for _, g in gaps if g > STALL_MS)
+    at = next((x for x, g in gaps if g == longest), None)
+    put("21", CHECKS["21"], round(longest / 60_000) if gaps else None, (longest <= 2 * STALL_MS) if gaps else None, len(marks),
+        f"longest {round(longest / 60_000)} min from {iso(at)[11:16] if at else '?'} (pass ≤ 20 min); {len(marks)} proof marks" if gaps else "n/a")
+
+    # 22: downhill = the progress count fell, or an item went from PASS to something else.
+    progress.sort()
+    drops = sum(max(0, p[1] - q[1]) for p, q in zip(progress, progress[1:]))
+    seen_pass, broke = set(), Counter()
+    for t in sorted(ticks, key=lambda t: t["time"]):
+        if t["verdict"] == "PASS":
+            seen_pass.add(t["isc"])
+        elif t["isc"] in seen_pass:
+            broke[t["isc"]] += 1; seen_pass.discard(t["isc"])
+    still = sorted({n for n in broke if latest.get(n, {}).get("verdict") != "PASS"},
+                   key=lambda n: [int(x) for x in n.split(".")])
+    down = max(drops, sum(broke.values()))
+    put("22", CHECKS["22"], down, not still, None,
+        f"{down} downhill steps (count drops {drops}, PASS later broken {sum(broke.values())}); still broken at end: {', '.join('ISC-' + n for n in still) or 'none'}")
+
+    # 23: reported, not scored: how fast and how wide the climb was.
+    curve = [(t, n) for t, n, _ in progress]
+    if not curve:  # no progress field: count distinct items whose latest trace verdict is PASS
+        state = {}
+        for t in sorted(ticks, key=lambda t: t["time"]):
+            state[t["isc"]] = t["verdict"]
+            curve.append((t["time"], sum(v == "PASS" for v in state.values())))
+    denom = total or max((d for _, _, d in progress), default=0)
+    start = windows[0][0]
+    reach = lambda share: next((round(hours(t - start), 2) for t, n in curve if denom and n >= share * denom), None)
+    def life(s):
+        times = [m["time"] for m in sessions[s] if m["type"] in ("user", "assistant")]
+        return (tree[s]["created"], max(times)) if times else None
+    spans = {s: life(s) for s in children}
+    visible_ms = sum(max(0, min(b, sp[1]) - max(a, sp[0])) for s, sp in spans.items() if sp and tree[s]["visible"] for a, b in windows)
+    build = sorted((sp[1] - sp[0]) / 60_000 for s, sp in spans.items() if sp and tree[s].get("agent") == "build")
+    verdicts = Counter()
+    for s in children:
+        if tree[s].get("agent") != "reviewer":
+            continue
+        finals = [m["text"] for m in sessions[s] if m["type"] == "assistant" and m["text"].strip() and inside(m["time"])]
+        hit = REVIEW_VERDICT.search(finals[-1]) if finals else None
+        verdicts[hit.group(1) if hit else "none"] += 1
+    reviews = sum(verdicts.values())
+    open_tries = ledger.get("open_tries") or {}
+    climb = {
+        "to_50%_h": reach(0.5), "to_90%_h": reach(0.9), "to_100%_h": reach(1.0),
+        "proven_per_h": round(proven_n * 3.6e6 / run_ms, 2) if run_ms and proven_n else None,
+        "flat_share": round(flat / run_ms, 2) if run_ms else None,
+        "avg_visible_helpers": round(visible_ms / run_ms, 1) if run_ms else None,
+        "builder_median_min": round(build[len(build) // 2], 1) if build else None,
+        "builders_within_15_min": f"{sum(b <= 15 for b in build)}/{len(build)}" if build else None,
+        "review_approve_rate": round(verdicts["APPROVE_CODE"] / (verdicts["APPROVE_CODE"] + verdicts["REVISE_CODE"]), 2)
+        if verdicts["APPROVE_CODE"] + verdicts["REVISE_CODE"] else None,
+        "reviews_per_approval": round(reviews / verdicts["APPROVE_CODE"], 1) if verdicts["APPROVE_CODE"] else None,
+        "most_tries_open": max(open_tries.values(), default=None),
+        "owner_messages": inbound["owner"],
+    }
+    put("23", CHECKS["23"], climb, None, None,
+        f"proven curve from {'the ledger progress field' if progress else 'trace ticks'}; reviewer verdicts {dict(verdicts)}")
+
+    # 24: the orchestrator session kept the agent it started as (a plugin restart can switch it silently).
+    said = [m for m in rmsgs if m["type"] == "assistant" and m.get("agent") and inside(m["time"])]
+    if said:
+        first = said[0]["agent"]
+        other = [m for m in said if m["agent"] != first]
+        late_h = round((said[-1]["time"] - other[0]["time"]) / 3_600_000, 2) if other else 0
+        put("24", CHECKS["24"], round(1 - len(other) / len(said), 2), not other, len(said),
+            f"{len(said) - len(other)}/{len(said)} turns as {first}"
+            + (f"; switched to {other[0]['agent']} at {iso(other[0]['time'])}, {late_h} h before the end" if other else ""))
+    else:
+        put("24", CHECKS["24"], None, None, 0, "no orchestrator turns with an agent name")
     return checks
 
 
@@ -876,11 +1159,14 @@ def dashboard() -> Path:
                "judges": js["calibration"], "stale_answers": js["stale_answers"]}
     data = OUT / "dashboard-data.js"
     data.write_text("window.HIVECALL = " + json.dumps(payload) + ";\n")
-    link = HERE / "dashboard-data.js"
-    if link.is_symlink() or link.exists():
-        link.unlink()
-    link.symlink_to(data)
-    # BB's preview cannot follow the private data symlink, so publish a private self-contained copy.
+    # The repo's dashboard.html reads a git-ignored copy next to it. A real file, not a symlink: BB's preview
+    # can't follow a link out of the repo. Only written when grading into the default private folder.
+    local = HERE / "dashboard-data.js"
+    if OUT == DEFAULT_OUT:
+        if local.is_symlink() or local.exists():
+            local.unlink()
+        local.write_text(data.read_text())
+    # A self-contained private copy too, for opening outside the repo.
     template = (HERE / "dashboard.html").read_text()
     inline = json.dumps(payload).replace("<", "\\u003c")
     private = template.replace('<script src="dashboard-data.js"></script>', f"<script>window.HIVECALL = {inline};</script>")

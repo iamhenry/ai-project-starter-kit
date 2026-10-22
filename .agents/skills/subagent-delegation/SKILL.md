@@ -66,11 +66,13 @@ Give every worker one way to reach you before it finishes. Paste the TALK-BACK b
 | OpenCode subagent (parent `ses_…`, from your system prompt) | `opencode api post /api/session/<parent-ses-id>/prompt --data '{"text":"<msg>","delivery":"queue"}'` |
 | Anything else, or the command fails | No channel. Record it and report it in the final result. |
 
+OpenCode-channel messages don't appear in a BB thread's timeline. When the owner watches the parent in BB, start workers as BB threads and use the BB row.
+
 **Steer or queue.** Ask: "If the receiver keeps going, is its current work now wrong or harmful?" Yes → steer (interrupt). No → queue (default).
-- Parent → worker: steer when the plan changes ("stop, wrong file"); queue additions ("also check X"). BB: `bb thread tell <thr-id> '<msg>'` steers by default. OpenCode: send to the worker's `sessionID` with `"delivery":"steer"` or `"queue"`. Before sending, confirm the worker is still running (its BB card is active, or its session isn't idle). If it has finished, don't message it. Send the follow-up as new work: continue the same worker through the hand-off tool, or brief a fresh one.
+- Parent → worker: steer when the plan changes ("stop, wrong file"); queue additions ("also check X"). BB: `bb thread tell <thr-id> '<msg>'` steers by default. OpenCode: send to the worker's `sessionID` with `"delivery":"steer"` or `"queue"`. Before sending, confirm the worker is still running (its BB card is active, or its session isn't idle). If it has finished, don't message it. Send the follow-up as new work: brief a fresh visible worker with a Delta (done, remaining, continue in). A resumed finished worker may run hidden from BB.
 - Worker → parent: always queue, except a stop-everything emergency (destructive risk, or something breaking other workers).
 
-**Rules.** One event, one message. Only `BUG`, `BLOCKED <step>: <exact error>`, `QUESTION: <one question>`, or `STOP: <reason>`. No acks, progress notes, or final results as messages. The final result goes back the normal way. Don't resend unless the send command failed. Keep doing independent work after sending. Workers never message each other; everything goes through the parent.
+**Rules.** One event, one message. Only `BUG`, `BLOCKED <step>: <exact error>`, `QUESTION: <one question>`, or `STOP: <reason>`. No acks, progress notes, or final results as messages. The final result goes back the normal way. Don't resend unless the send command failed, and don't repeat a blocker the parent already answered. Keep doing independent work after sending. Workers never message each other; everything goes through the parent.
 
 ```
 TALK-BACK: Reach the parent mid-run without stopping: <one channel command>.

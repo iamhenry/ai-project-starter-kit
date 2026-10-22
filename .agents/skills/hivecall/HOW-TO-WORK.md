@@ -18,7 +18,7 @@ Read at kickoff, and again after any context compaction or compression. Invarian
 
 ### Progress
 
-7. Always have an agent on an open item. Never busywork; never re-check a pass whose files did not change.
+7. Every free item has an agent on it. Never busywork; never re-check a pass whose files did not change.
 8. Cheapest proof first: test a built fix → fix a known cause → debug an unknown cause → park.
 9. A merge that breaks a passed item is reverted first and fixed on the side, unless the cause is known and the repair is one small change (log why).
 10. Three different attempts, then park with an unlock condition. Never repeat the same idea.
@@ -35,8 +35,8 @@ Read at kickoff, and again after any context compaction or compression. Invarian
 
 ### Agents
 
-15. Every running agent is visible in BB, briefed with a `PROMISE:` line and the full TALK-BACK block.
-16. Talk back early: stuck for 5 minutes or about to guess means a `QUESTION`.
+15. Every running agent is visible in BB, briefed with a `PROMISE:` line and the full TALK-BACK block. Never resume a finished helper; continue its work in a fresh visible child with a Delta.
+16. Talk back early through `bb thread tell`: confused, the brief is ambiguous, stuck for 5 minutes, or about to guess means a `QUESTION` to the orchestrator. Ask, then keep doing the parts that don't depend on the answer.
 17. A talk-back line names the build it is about; a line about an older build is history.
 18. Stop a helper's BB thread as soon as its result arrives.
 19. One task, one checkable result, named in the brief (for example "baseline scores saved" or "batch 3 answered"). Group code tasks by the feature they change; no two live tasks touch the same files.
@@ -54,18 +54,23 @@ Read at kickoff, and again after any context compaction or compression. Invarian
 - Preflight: install, typecheck and build the starting branch once (a few minutes). If it fails, fixing it is the first item; independent work may start meanwhile.
 - Checkpoint: a git commit to revert to before any risky change.
 - Backup model per agent, named at kickoff; on a credit cutoff, switch and report it in one line.
-- Task time box: 30-45 minutes. Split a task expected to run longer before launch; check one that passes 45 minutes with no result, then split or park it.
+- Task time box: 15 minutes. Split a task expected to run longer before launch. A helper with no honest change for 10 minutes is stale; one still changing but without proof at 15 minutes is asked to land its smallest provable part. QA reports a FAIL with evidence within 10 minutes and does not debug.
 - Model-answer work (labeling, judging, replay): batches of at most 20 items, at most 5 batches in parallel.
 - Before scaling a model-answer batch, smoke one representative item end to end. Keep input-file lines under 2,000 characters when agents read them; longer lines can be silently truncated.
 - Every brief also carries: absolute paths, what is already done and still valid, what this change could break, its time box.
 
 ## What the watchdog guarantees (from `watchdog/watch.py`)
-A plain script, run every 5 minutes. It never acts on the run. Work with it:
+A plain script, run every 5 minutes. It never acts on the run; it reports facts and questions, and the orchestrator decides. Work with it:
 - It judges each agent only against its own `PROMISE:` line.
-- Progress means a new ledger verdict with evidence.
-- It alerts on a real problem seen on two checks in a row, once per problem. Act on it, or record why it was a false alarm in the run lessons.
+- Progress means proof: a new ledger verdict with evidence.
+- It alerts on a real problem seen on two checks in a row, once per problem. Each alert is a fact, two questions and a default move, with an id. Answer it in the run card (`ANSWER <id>: ...`) with an action it can see; an unanswered or unacted alert escalates.
+- Urgent alerts interrupt the current turn; the rest wait for the turn to end.
+- With no new proof it asks at 10 minutes, asks again at 15 if nothing changed, and says park at 20, even while the orchestrator is busy.
+- It flags a stale helper (no honest change for 10 minutes) and free items with nobody on them.
+- After a context compaction it sends a short re-anchor message.
+- If the orchestrator's session starts running as a different agent, it alerts once and leaves the owner a note.
 - It never alarms on missing data and prefers removing a noisy check over special cases.
 - An agent running but not visible in BB is always reported.
 - It reports load, disk, huge files, and leftover recorders and log processes.
-- It nudges when work remains and nothing moves, stops after three nudges with no change, and never nudges while the run card says waiting.
+- It never nudges while the run card says waiting.
 - It pauses when the ledger is done and deletes itself after the run card says closed.

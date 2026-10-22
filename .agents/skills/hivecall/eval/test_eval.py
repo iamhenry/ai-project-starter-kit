@@ -71,6 +71,9 @@ class EvalRegression(unittest.TestCase):
         msg = lambda t: {"text": t, "source": None}
         self.assertEqual(E.classify_inbound(msg("🚦 HOST disk: only 3.0 GB free on / (<5 GB); see df -h /.")), "watchdog")
         self.assertEqual(E.alert_lines("OFF TRACK: lane A\n🚦 WATCH STALLED: no progress"), ["OFF TRACK: lane A", "🚦 WATCH STALLED: no progress"])
+        for alert in ("STALL 2/3: no proof", "FREE: 2 free items", "PLAN: the run card's Plan map is out of date",
+                      "DRIFT: code changed", "REANCHOR after your compaction", "UNANSWERED W3 (stall): no action"):
+            self.assertEqual(E.classify_inbound(msg(alert)), "watchdog", alert)
 
     def test_final_report_is_read_after_the_close(self):
         run = fixture()
@@ -181,6 +184,100 @@ class EvalRegression(unittest.TestCase):
                                                   tools=[("read", {"path": "late/screenshot.png"})]))
         after = E.grade(noisy)
         self.assertEqual({c: first[c] for c in SCRIPTED}, {c: after[c] for c in SCRIPTED})
+
+    def test_tester_result_row_mentioning_the_ledger_is_not_a_tick(self):
+        row = "cat >> .hivecall/verification/qa-core.md <<'EOF'\n| ISC-3 | PASS | see ISA.html criteria | log.txt |\nEOF"
+        self.assertFalse(E.ledger_shell_write(row))
+        loop = "python3 - <<'EOF'\np='ISA.html'; s=open(p).read()\nfor i in ['1','6']:\n  s=s.replace(f'ISC-{i}', 'x')\nopen(p,'w').write(s)\nEOF"
+        self.assertTrue(E.ledger_shell_write(loop))
+        self.assertTrue(E.ledger_shell_write("sed -i '' 's/a/b/' .hivecall/checklist.html"))
+
+    def test_ledger_at_end_fills_ticks_the_trace_missed(self):
+        x = copy.deepcopy(fixture())
+        x["info"]["ledger"] = {"total": 2, "latest": {"1": "PASS", "2": "FAIL"}}
+        result = E.grade(x)
+        self.assertEqual(result["10"]["n"], 2)
+        self.assertEqual(result["10"]["value"], 0.5)
+
+    def test_paused_run_with_final_report_counts_as_closed(self):
+        x = copy.deepcopy(fixture())
+        x["info"].update(closed=False, status_events=[(100, "running"), (200, "waiting-owner")])
+        self.assertFalse(E.grade(x)["8"]["pass"])
+        x["info"]["final_report_written"] = True
+        self.assertTrue(E.grade(x)["8"]["pass"])
+
+    def test_reread_after_compaction_before_next_hand_off(self):
+        x = copy.deepcopy(fixture())
+        root = x["sessions"]["root"]
+        root.insert(1, message("assistant", 102, agent="orchestrator", tools=[("compress", {})]))
+        self.assertEqual(E.grade(x)["19"]["value"], 0.0)  # hand-off at 105 came first
+        root.insert(2, message("assistant", 103, agent="orchestrator", tools=[("read", {"path": "/s/hivecall/HOW-TO-WORK.md"})]))
+        self.assertEqual(E.grade(x)["19"]["value"], 1.0)
+
+    def test_alert_needs_answer_and_action_within_ten_minutes(self):
+        x = copy.deepcopy(fixture())
+        x["info"]["windows"] = [(100, 2_000_000)]
+        root = x["sessions"]["root"]
+        root.append(message("user", 1000, "STALL 1/3: no proof for 10 min. Ask: why? (alert W1)"))
+        self.assertEqual(E.grade(x)["20"]["value"], 0.0)
+        root.append(message("assistant", 200_000, agent="orchestrator",
+                            tools=[("edit", {"path": ".hivecall/run.md", "newString": "ANSWER W1: split ISC-1 — thr_new"}),
+                                   ("shell", {"command": "bb thread spawn --parent-self --title split"})]))
+        self.assertEqual(E.grade(x)["20"]["value"], 1.0)
+
+    def test_pass_later_broken_is_a_downhill_step(self):
+        x = copy.deepcopy(fixture())
+        x["info"]["ledger"] = {"total": 1, "latest": {"1": "FAIL"}}
+        result = E.grade(x)["22"]
+        self.assertEqual(result["value"], 1)
+        self.assertFalse(result["pass"])
+
+    def test_older_ledger_snapshot_never_overrides_a_newer_trace_verdict(self):
+        x = copy.deepcopy(fixture())
+        x["info"]["ledger"] = {"total": 1, "at": 150, "latest": {"1": "FAIL"}}  # trace PASS is at 180
+        self.assertEqual(E.grade(x)["10"]["value"], 1.0)
+
+    def test_rewritten_old_verdict_lines_are_not_new_events(self):
+        x = copy.deepcopy(fixture())
+        write = lambda t, text: message("assistant", t, agent="orchestrator", tools=[("write", {"path": "ISA.html", "content": text})])
+        x["sessions"]["root"][1:1] = [write(150, "ISC-002: FAIL - old"), write(170, "ISC-002: FAIL - old\nISC-002: PASS - fixed"),
+                                      write(175, "ISC-002: FAIL - old\nISC-002: PASS - fixed")]
+        self.assertEqual(E.grade(x)["22"]["value"], 0)
+
+    def test_answer_outside_the_run_card_does_not_count(self):
+        x = copy.deepcopy(fixture())
+        x["info"]["windows"] = [(100, 2_000_000)]
+        x["sessions"]["root"] += [message("user", 1000, "FREE: 2 free items (alert W1)"),
+                                  message("assistant", 2000, agent="orchestrator",
+                                          tools=[("shell", {"command": "bb thread spawn --parent-self --prompt 'ANSWER W1: go'"})])]
+        self.assertEqual(E.grade(x)["20"]["value"], 0.0)
+
+    def test_orchestrator_switching_agent_mid_run_is_reported(self):
+        x = copy.deepcopy(fixture())
+        self.assertEqual(E.grade(x)["24"]["value"], 1.0)
+        x["sessions"]["root"][-1]["agent"] = "build"
+        result = E.grade(x)["24"]
+        self.assertFalse(result["pass"])
+        self.assertIn("switched to build", result["note"])
+
+    def test_orchestrator_ledger_tool_scripts_are_not_code_edits(self):
+        x = copy.deepcopy(fixture())
+        x["sessions"]["root"].insert(1, message("assistant", 102, agent="orchestrator",
+                                                tools=[("shell", {"command": "cat > .lanes/tick.py <<'EOF'\nprint(1)\nEOF"})]))
+        self.assertTrue(E.grade(x)["7"]["pass"])
+        x["sessions"]["root"].insert(1, message("assistant", 103, agent="orchestrator",
+                                                tools=[("write", {"path": "js/app.js", "content": "x"})]))
+        self.assertFalse(E.grade(x)["7"]["pass"])
+
+    def test_saved_ledger_copy_is_used_once_the_run_folder_is_gone(self):
+        with TemporaryDirectory() as td:
+            (Path(td) / "ledger-at-end.html").write_text(
+                '<section id="criteria"><ul><li id="ISC-1"><input type="checkbox" disabled checked> ISC-1: one</li>'
+                '<li id="ISC-2"><input type="checkbox" disabled> ISC-2: two</li></ul></section>'
+                '<section id="verification"><ul><li>ISC-1: PASS - ok</li></ul></section>')
+            snap = E.ledger_at_end(str(Path(td) / "deleted-run"), 1000, Path(td))
+            self.assertEqual(snap.get("source"), "saved copy")
+            self.assertEqual(snap.get("latest", {}).get("1"), "PASS")
 
     def test_freeze_snapshot_is_complete_and_guarded(self):
         with TemporaryDirectory() as td, patch.object(E, "OUT", Path(td)):

@@ -33,3 +33,13 @@ Universal rules learned the hard way. Project-specific traps belong in the run c
 20. Watch the watchdog: once an hour, check its alerts matched reality. Note false alarms; loosen the check, never special-case it.
 21. Usage limits stop agents silently. Set the run card to `waiting-usage` so the watchdog stops nudging.
 22. A paused watchdog still clutters BB; delete its automation on the check after the run card closes.
+23. Resumed helpers are hidden from BB: BB binds a child only to its first run, so a resumed or queued-to-finished session can keep working while BB shows `idle`, and it creates duplicate writers. So never resume; start a fresh visible child (lesson 24), and trust the watchdog's hidden-helper alert.
+24. Send each new task or follow-up to a fresh visible child with a short Delta (`done`, `remaining`, `continue in`); message only running sessions, verify `active` with `bb thread list --parent-thread <orchestrator> --json`, and interrupt any hidden resumed worker before relaunching.
+25. Show each worker talk-back message to the owner as a word-for-word quote, then your response: the owner sees what the worker said (not as their own message) and how you handled it.
+
+## From to-do run 1 (2026-10-22)
+26. Serve the candidate on a free port and check the served files match it (hash or commit) before testing. A stray server left on a fixed port answered for the candidate and produced false errors that cost a try.
+27. agent-browser recipes: type a date with one key press per digit (picker clicks and typing whole values can leave it blank), or set the value and fire `input`/`change` events; drag and drop by dispatching DragEvents. A headless test browser can't grant notification permission; park permission features with the unlock steps.
+28. BB runs at most 10 threads per host (the concurrency limit plugin); extra helpers wait as `pending`. Check a pending thread's session before stopping it: it may belong to another session.
+29. `bb thread tell --mode queue` to a finished helper resumes it, which hides it (lesson 23). Message only running helpers.
+30. The OpenCode BB plugin can drop a thread's chosen agent and fall back to `build` after a bind failure (iamhenry/bb-opencode#39). The watchdog's `AGENT SWITCH` alert catches it; for unattended runs, re-pin the agent from outside.
