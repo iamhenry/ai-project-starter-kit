@@ -72,6 +72,8 @@ If it succeeds:
 - `thread.parentThreadId == null` → root coordinator; follow the selected agent prompt and normal task router.
 - `thread.parentThreadId != null` → terminal worker unless the selected agent prompt explicitly assigns a bounded exception. Without that exception, do **not** call `bb thread spawn`, OpenCode `subagent`, `functions.subagent`, or any other agent/subagent workflow; report blockers to the parent instead.
 
+OpenCode-backed BB threads never have `BB_THREAD_ID` in their shell, so `--self` and `--parent-self` always fail there; go straight to case 1 below and use `--parent-thread`.
+
 If it fails because `BB_THREAD_ID` is unset, distinguish two cases:
 
 1. **This conversation is visibly running in BB or the user asked to use it as the parent.** Recover the current thread ID instead of spawning an unparented thread. Search with a unique, non-sensitive phrase from the latest user message, then verify the candidate's project, environment, status, and log:
@@ -112,6 +114,7 @@ Rules:
 - **Always pass `--project` explicitly** — the CLI never infers it.
 - `--parent-self` and `--parent-thread <verified-id>` are equivalent native child-thread routes. Prefer explicit `--parent-thread` when shell context is missing or uncertain.
 - Omit the parent flag only for intentionally independent root work—not as a fallback for missing environment variables.
+- `bb thread spawn` has no agent flag; a line like `agent: qa` in the prompt does nothing. To run a specific OpenCode agent (for example `qa`) in a BB child, request it immediately before the spawn and pass `--provider opencode`: write `{"projectId": "<project-id>", "agent": "qa", "queued": false}` to a file, run `bb plugin rpc call opencode stampAgent --input-file <file>`, then spawn. The next new thread in that project takes the agent and its configured model; the request expires after 60 seconds. Spawn such children one at a time.
 - Use `--visibility visible` for normal workers so their cards and sidebar entries appear in BB. Never use `hidden` for work the user should monitor.
 - A child with a non-null `parentThreadId` must not delegate unless the selected agent prompt explicitly assigns a bounded exception. Invoked skills own any provider-native subagents their contracts require; do not create nested BB threads beyond the selected agent's explicit topology.
 - Child permission is capped by the parent's mode. `--permission-mode` options: `accept-edits`, `auto` (default), `full`.
