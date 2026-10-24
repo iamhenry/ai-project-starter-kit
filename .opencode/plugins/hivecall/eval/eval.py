@@ -28,7 +28,7 @@ OC_DB = Path.home() / ".local/share/opencode/opencode.db"
 BB_DB = Path.home() / ".bb/bb.db"
 GAP = 5 * 60_000            # a gap longer than this between events is not "working"
 FOLLOWUP_CAP = 24 * 3.6e6   # only look this far past the final close for follow-up hours
-EVAL_VERSION = "4.1"        # bump when a check or judge question changes; result versions are not comparable
+EVAL_VERSION = "4.3"        # bump when a check or judge question changes; result versions are not comparable
 STALL_MS = 10 * 60_000      # the watchdog's stall clock; a longer gap without honest proof is "flat"
 ANSWER_MS = 10 * 60_000     # an alert counts as acted on when its ANSWER and an action land this fast
 
@@ -56,11 +56,12 @@ CHECKS = {
     "22": "Downhill steps (a proven item later broken)",
     "23": "Hill climb (reported, not scored)",
     "24": "Orchestrator turns run as the agent it started as",
+    "25": "Helpers that ran as the agent their brief named",
 }
 # Score = average of these percentages (each behavior counts the same), grouped by the two jobs.
 SCORE_CHECKS = ("1", "2", "4", "14", "12", "6", "10", "7", "8")
 # 19-22 carry pass flags for the benchmark pass bar; they stay out of the score so old and new runs share one score.
-CONTEXT_CHECKS = ("9", "19", "20", "21", "22", "23", "18", "3", "5", "11", "13", "16", "24")
+CONTEXT_CHECKS = ("9", "19", "20", "21", "22", "23", "18", "3", "5", "11", "13", "16", "24", "25")
 JUDGED_CHECKS = ("12", "18", "13", "16")
 
 sys.path.insert(0, str(SKILL / "watchdog"))
@@ -137,7 +138,7 @@ def strip_front(text: str) -> tuple[str, str | None]:
 
 def skill_version(loaded: str) -> dict:
     """Match the loaded body against every git version of SKILL.md (front matter is stripped in traces)."""
-    rel = "hivecall/SKILL.md"
+    rel = ".opencode/plugins/hivecall/SKILL.md"
     path = SKILL.relative_to(REPO) / "SKILL.md"
     # uncommitted copy first, then commits newest first; on a tie the oldest commit wins (when that body first appeared)
     cands = [("working-tree", (SKILL / "SKILL.md").read_text())]
@@ -354,6 +355,9 @@ def ledger_at_end(directory: str | None, end_ms: int, out: Path) -> dict:
     return ledger_summary(snap, root, source, at, rel)
 
 
+STRAY_VERDICT = re.compile(r"<li>\s*(ISC-[0-9.]+):\s*(PASS|FAIL|BLOCKED)\s*-", re.I)
+
+
 def ledger_summary(snap: Path, root: Path, source: str, at: int, rel: str) -> dict:
     isa = parse_isa(str(snap), str(root))
     counted = {norm_id(i) for i in isa.get("criteria", [])}
@@ -364,25 +368,36 @@ def ledger_summary(snap: Path, root: Path, source: str, at: int, rel: str) -> di
         if num in counted:
             status = v.get("status")
             latest[num] = "OPEN" if status == "PASS" and num not in checked else status  # an unticked PASS is not proven
+    # A tick script can append its verdict line to the wrong list. Read such lines for items the
+    # verification section has no line for; the last one wins.
+    stray = {}
+    for ident, status in STRAY_VERDICT.findall(re.sub(r"<!--.*?-->", "", snap.read_text(errors="replace"), flags=re.S)):
+        stray[norm_id(ident)] = status.upper()
+    for num, status in stray.items():
+        if num in counted and num not in latest:
+            latest[num] = "OPEN" if status == "PASS" and num not in checked else status
     open_tries = {norm_id(i): n for i, n in (isa.get("tries") or {}).items() if norm_id(i) in counted - checked}
     return {"path": rel, "source": source, "at": at, "total": isa.get("total") or len(counted), "checked": sorted(checked),
             "latest": latest, "open_tries": open_tries}
 
 
+REPORT_SECTION = re.compile(r"^##\s*(?:Final|Progress) report\b.*?(?=^##\s|\Z)", re.I | re.M | re.S)
+
+
 def final_report_written(sessions: dict, directory: str | None) -> bool:
-    """A `## Final report` section with content, written into run.md during the run or present in it now."""
+    """A `## Final report` or (skill 1.4.6, while waiting on the owner) `## Progress report` section with content,
+    written into run.md during the run or present in it now."""
     texts = [t for msgs in sessions.values() for m in msgs for name, inp in m["tools"]
              for p, t in file_writes(name, inp) if p.endswith("run.md")]
     texts += [str(inp.get("command", "")) for msgs in sessions.values() for m in msgs for name, inp in m["tools"]
-              if name == "shell" and "run.md" in str(inp.get("command", "")) and "Final report" in str(inp.get("command", ""))]
+              if name == "shell" and "run.md" in str(inp.get("command", "")) and re.search(r"(?:Final|Progress) report", str(inp.get("command", "")))]
     card = Path(directory or "") / ".hivecall/run.md"
     if directory and card.is_file():
         texts.append(card.read_text(errors="replace"))
     for text in texts:
-        sec = FINAL_SECTION.search(text)
-        body = [l for l in (sec.group(0).splitlines()[1:] if sec else []) if l.strip() and not l.strip().startswith("<")]
-        if body:
-            return True
+        for sec in REPORT_SECTION.finditer(text):
+            if [l for l in sec.group(0).splitlines()[1:] if l.strip() and not l.strip().startswith("<")]:
+                return True
     return False
 
 
@@ -390,9 +405,10 @@ def export(oc, bb, run: dict) -> dict:
     tree = build_tree(oc, bb, run)
     # Deleting a run's BB project removes its threads from bb.db; the tree saved at an earlier grade keeps them.
     saved = OUT / "runs" / run["run"] / "run.json"
+    before = json.loads(saved.read_text()) if saved.is_file() else {}
     if saved.is_file():
         known = {r[0] for r in bb.execute("select id from threads")}
-        for sid, node in (json.loads(saved.read_text()).get("tree") or {}).items():
+        for sid, node in (before.get("tree") or {}).items():
             if node.get("bb_thread") and node["bb_thread"] not in known and not (tree.get(sid) or {}).get("bb_thread"):
                 tree[sid] = {**tree.get(sid, {}), **node}
     sessions = {sid: load_session(oc, sid) for sid in tree}
@@ -413,7 +429,8 @@ def export(oc, bb, run: dict) -> dict:
     info.update(tree=tree, windows=windows, status_events=status_events, last_activity=last,
                 closed=bool(status_events and status_events[-1][1] == "closed"),
                 ledger=ledger_at_end(run.get("directory"), end, d),
-                final_report_written=final_report_written(sessions, run.get("directory")))
+                final_report_written=final_report_written(sessions, run.get("directory")),
+                prompt_files=saved_prompt_files(sessions[run["session"]], run.get("directory"), before.get("prompt_files")))
     (d / "run.json").write_text(json.dumps(info, indent=1))
     return {"info": info, "sessions": sessions}
 
@@ -438,16 +455,76 @@ def classify_inbound(m: dict) -> str:
     return "owner"
 
 
-def briefs_of(msgs: list[dict], window) -> list[dict]:
+def briefs_of(msgs: list[dict], window, prompt_files: dict | None = None) -> list[dict]:
+    """One brief per hand-off. A `bb thread spawn --prompt-file` brief is the file's text (saved at grading),
+    one per file a simple `for x in a b; do` loop expands to; without saved files the command itself is the brief."""
     out = []
     for m in msgs:
         if not window(m["time"]):
             continue
         for name, inp in m["tools"]:
+            cmd = str(inp.get("command", "")) if name == "shell" else ""
             if name == "subagent":
                 out.append({"time": m["time"], "agent": inp.get("agent"), "text": inp.get("prompt", "")})
-            elif name == "shell" and "bb thread spawn" in str(inp.get("command", "")):
-                out.append({"time": m["time"], "agent": "bb", "text": inp["command"]})
+            elif "bb thread spawn" in cmd and "--prompt" in cmd:  # `--help`, greps and notes naming it are not hand-offs
+                paths = prompt_file_paths(cmd)
+                if any(p in (prompt_files or {}) for p in paths):
+                    out += [{"time": m["time"], "agent": "bb", "text": prompt_files.get(p, cmd)} for p in paths]
+                else:
+                    out.append({"time": m["time"], "agent": "bb", "text": cmd})
+    return out
+
+
+SUBAGENT_PREAMBLE = "You are a subagent spawned by another session."
+ROLE_LINE = re.compile(r"\A\s*agent:\s*(build|qa|reviewer|general|plan)\b", re.I)          # BB briefs: no agent flag
+ROLE_NAME = re.compile(r"\bYou are [^\n()]{1,40}\((build|qa|reviewer|general|plan)\)", re.I)  # "You are Cy (qa)"
+
+
+def briefed_role(tree: dict, sessions: dict, sid: str) -> str | None:
+    """The agent a helper was briefed as: the `agent` of the subagent call that sent its prompt, else the
+    brief's `agent: <role>` line or `You are <Name> (<role>)`."""
+    text = next((m["text"] for m in sessions.get(sid, []) if m["type"] == "user" and m["text"].strip()), "").strip()
+    if text.startswith(SUBAGENT_PREAMBLE):
+        text = text[len(SUBAGENT_PREAMBLE):].strip()
+    for m in sessions.get(tree[sid].get("parent"), []):
+        for name, inp in m["tools"]:
+            if name == "subagent" and inp.get("agent") and str(inp.get("prompt", "")).strip() == text:
+                return inp["agent"]
+    hit = ROLE_LINE.match(text) or ROLE_NAME.search(text)
+    return hit.group(1).lower() if hit else None
+
+
+PROMPT_FILE = re.compile(r"--prompt-file[= ]\s*['\"]?([^\s'\";|&)]+)")
+FOR_LOOP = re.compile(r"\bfor\s+(\w+)\s+in\s+([^;\n]+?)\s*;\s*do\b")
+
+
+def prompt_file_paths(command: str) -> list[str]:
+    """Files a spawn command reads its prompt from; `$x` in a path is expanded from `for x in a b; do`."""
+    loops = {m.group(1): [w.strip("'\"") for w in m.group(2).split()] for m in FOR_LOOP.finditer(command)}
+    out = []
+    for m in PROMPT_FILE.finditer(command):
+        path = m.group(1)
+        var = re.search(r"\$\{?(\w+)\}?", path)
+        words = loops.get(var.group(1)) if var else None
+        out += [path.replace(var.group(0), w) for w in words] if words else [path]
+    return out
+
+
+def saved_prompt_files(sessions: list[dict], directory: str | None, saved: dict) -> dict:
+    """Text of every prompt file the orchestrator spawned from, read from the run folder at grading.
+    Files written by scripts never appear in the trace, so the folder is the only source; once it is
+    deleted, the copy saved at the last grade is used."""
+    out = dict(saved or {})
+    root = Path(directory) if directory else None
+    for m in sessions:
+        for name, inp in m["tools"]:
+            cmd = str(inp.get("command", "")) if name == "shell" else ""
+            if "bb thread spawn" not in cmd:
+                continue
+            for p in prompt_file_paths(cmd):
+                f = Path(p) if Path(p).is_absolute() else (root / p if root else None)
+                if f and f.is_file():
+                    out[p] = f.read_text(errors="replace")
     return out
 
 
@@ -502,7 +579,7 @@ def grade(exp: dict) -> dict:
         checks[cid] = {"name": name, "value": value, "pass": ok, "n": n, "note": note}
 
     # 1, 2: brief contract
-    briefs = briefs_of(rmsgs, inside)
+    briefs = briefs_of(rmsgs, inside, info.get("prompt_files"))
     nb = len(briefs)
     tb = sum(bool(re.search(r"talk[- ]?back", b["text"], re.I)) for b in briefs)
     pr = sum(bool((parse_promise(b["text"]) or {}).get("valid")) for b in briefs)
@@ -521,6 +598,11 @@ def grade(exp: dict) -> dict:
 
     # A child is attributable only when it was created in one of the active run windows.
     children = [s for s, n in tree.items() if n["via"] != "root" and n.get("created") is not None and inside(n["created"])]
+    # A BB spawn cannot name an agent, so a BB helper's role is the one its brief names (check 25 reports when
+    # it ran as another agent). An OpenCode subagent could name its agent, so the agent it ran as is its role.
+    briefed = {s: briefed_role(tree, sessions, s) for s in tree if tree[s]["via"] != "root"}
+    role = lambda s: briefed.get(s) if tree[s]["via"] == "bb" and briefed.get(s) else tree[s].get("agent")
+    is_tester = lambda s: "qa" in (tree[s].get("agent"), role(s))
 
     # 4: every in-window agent visible in BB
     vis = sum(tree[s]["visible"] for s in children)
@@ -551,7 +633,7 @@ def grade(exp: dict) -> dict:
                     blob = cmd
                 if blob:
                     blobs.append((m["time"], s, blob))
-                elif tree[s].get("agent") == "qa":  # a tester's evidenced PASS/FAIL row is proof too (watchdog rule 10)
+                elif is_tester(s):  # a tester's evidenced PASS/FAIL row is proof too (watchdog rule 10)
                     rows = "\n".join(t for _, t in writes) or (cmd if cmd and SHELL_MUTATION.search(cmd) else "")
                     if any(v in ("PASS", "FAIL") for _, v in TICK.findall(rows)) and EVIDENCE_PATH.search(rows):
                         proof_times.append(m["time"])
@@ -593,7 +675,7 @@ def grade(exp: dict) -> dict:
     def proven(t):
         for sid in children:
             node = tree[sid]
-            if node.get("agent") != "qa" or not node.get("created") or node["created"] >= t["time"]:
+            if not is_tester(sid) or not node.get("created") or node["created"] >= t["time"]:
                 continue
             before = [m for m in sessions[sid] if inside(m["time"]) and m["time"] < t["time"]]
             finals = [m for m in before if m["type"] == "assistant" and m["text"].strip()]
@@ -650,14 +732,14 @@ def grade(exp: dict) -> dict:
     put("7", CHECKS["7"], round((turns - dirty) / turns, 2) if turns else None, turns > 0 and dirty == 0, turns,
         f"{turns - dirty}/{turns} turns clean; code edits {code_edits}, image reads {image_reads}, git push {pushes} (push authority not checked)")
 
-    # 8: run card closed. A run that stops on the owner counts when it wrote its Final report.
+    # 8: run card closed. A run that stops on the owner counts when it wrote its Final or Progress report.
     last_status = info["status_events"][-1][1] if info["status_events"] else None
     paused_ok = last_status == "waiting-owner" and bool(info.get("final_report_written"))
     closed = bool(info["closed"] or paused_ok)
     put("8", CHECKS["8"], 1.0 if closed else 0.0, closed, 1,
         (f"{len(info['status_events'])} status changes" if info["status_events"] else "no run card status found")
-        + ("; waiting-owner with a Final report" if paused_ok else "")
-        + ("; last status waiting-owner, no Final report" if last_status == "waiting-owner" and not paused_ok else ""))
+        + ("; waiting-owner with a Final or Progress report" if paused_ok else "")
+        + ("; last status waiting-owner, no Final or Progress report" if last_status == "waiting-owner" and not paused_ok else ""))
 
     # 9: hours
     times = sorted(m["time"] for s in tree for m in sessions[s] if m["type"] in ("user", "assistant"))
@@ -794,10 +876,10 @@ def grade(exp: dict) -> dict:
         return (tree[s]["created"], max(times)) if times else None
     spans = {s: life(s) for s in children}
     visible_ms = sum(max(0, min(b, sp[1]) - max(a, sp[0])) for s, sp in spans.items() if sp and tree[s]["visible"] for a, b in windows)
-    build = sorted((sp[1] - sp[0]) / 60_000 for s, sp in spans.items() if sp and tree[s].get("agent") == "build")
+    build = sorted((sp[1] - sp[0]) / 60_000 for s, sp in spans.items() if sp and role(s) == "build")
     verdicts = Counter()
     for s in children:
-        if tree[s].get("agent") != "reviewer":
+        if role(s) != "reviewer":
             continue
         finals = [m["text"] for m in sessions[s] if m["type"] == "assistant" and m["text"].strip() and inside(m["time"])]
         hit = REVIEW_VERDICT.search(finals[-1]) if finals else None
@@ -831,6 +913,21 @@ def grade(exp: dict) -> dict:
             + (f"; switched to {other[0]['agent']} at {iso(other[0]['time'])}, {late_h} h before the end" if other else ""))
     else:
         put("24", CHECKS["24"], None, None, 0, "no orchestrator turns with an agent name")
+
+    # 25: each helper ran as the agent its brief named (a BB spawn has no agent flag and starts the default agent).
+    # Judged on its own turns, like 24: every turn must be the briefed agent, so a helper pinned after its first
+    # turn already ran as build is reported as "ran build+reviewer". The session's agent is the fallback only.
+    def ran(s):
+        names = [m["agent"] for m in sessions[s] if m["type"] == "assistant" and m.get("agent") and inside(m["time"])]
+        return list(dict.fromkeys(names)) or [tree[s]["agent"]] * bool(tree[s].get("agent"))
+    known = {s: ran(s) for s in children if briefed.get(s)}
+    known = {s: a for s, a in known.items() if a}
+    wrong = Counter(f"briefed {briefed[s]}, ran {'+'.join(a)}" for s, a in known.items() if a != [briefed[s]])
+    miss = sum(wrong.values())
+    put("25", CHECKS["25"], round(1 - miss / len(known), 2) if known else None, (not miss) if known else None, len(known),
+        (f"{len(known) - miss}/{len(known)} helpers ran as briefed"
+         + (f"; {miss} ran as another agent: " + ", ".join(f"{k} {v}" for k, v in wrong.most_common()) if miss else ""))
+        if known else "n/a: no helper brief names its agent")
     return checks
 
 
@@ -1217,7 +1314,7 @@ def main() -> None:
     runs = find_runs(oc)
     if a.list:
         for r in runs:
-            print(f"{r['index']:>2}  {r['run']}  {r['session']}  loaded {iso(r['loaded_at'])} by {r['loaded_by']}  {r['title'][:50]}")
+            print(f"{r['index']:>2}  {r['run']}  {r['session']}  loaded {iso(r['loaded_at'])} by {r['loaded_by']}  {(r['title'] or '')[:50]}")
         return
     if a.run:
         runs = [r for r in runs if a.run in (str(r["index"]), r["run"], r["session"])]
@@ -1227,8 +1324,12 @@ def main() -> None:
         judge_preview([r["run"] for r in runs if (OUT / "runs" / r["run"] / "run.json").exists()]); return
     graded = {r["session"] for r in results()}
     todo = [r for r in runs if a.regrade or r["session"] not in graded]
-    for r in todo:
+    for r in list(todo):
         r.update(skill_version(r.pop("_body")))
+        if r["skill_commit"] == "unknown":
+            print(f"skipped {r['run']}: its loaded skill body matches no SKILL.md version")
+            todo.remove(r)
+            continue
         r["skill_fingerprint"] = skill_fingerprint(r["skill_commit"])
         exp = export(oc, bb, r)
         info = exp["info"]

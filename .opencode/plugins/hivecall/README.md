@@ -38,11 +38,11 @@ Every reply ends with a one-row status table, so you can catch up at a glance.
 
 ## Needs
 
-BB with the OpenCode plugin provider (not ACP), the `orchestrator` agent, and `python3`. The watchdog needs nothing else installed.
+OpenCode v2 with the `orchestrator` agent and `python3`. The bundled plugin registers the skill, `/hivecall`, and deterministic hooks without a config entry. The watchdog's default integration uses the BB CLI; its rules and PROMISE parser stay separate from that adapter.
 
 ## Watchdog
 
-A Python 3 script (built-ins only, no AI) that checks the run every 5 minutes: machine health, whether every agent is visible in BB and keeping its promise, whether the orchestrator went idle with work left, and whether the run is finished. It reports by queuing one message to the orchestrator's BB thread. Its lifecycle actions are pausing its own timer when done and deleting itself on the check after the run card is closed. Its rules are the INVARIANTS block at the top of `watchdog/watch.py`; change them only with the owner's OK.
+A Python 3 script (built-ins only, no AI) that checks the run every 5 minutes: machine health, whether every agent is visible in BB and keeping its promise, whether the orchestrator went idle with work left, and whether the run is finished. The default BB adapter queues alerts and manages its automation; replace the `BB` adapter seam to use another harness. Its lifecycle actions are pausing its own timer when done and deleting itself on the check after the run card is closed. Its rules are the INVARIANTS block at the top of `watchdog/watch.py`; change them only with the owner's OK.
 
 Each check takes 1–2 seconds of CPU. A failed read skips that check for the run; it never alarms on missing data. Simulator and recorder checks find nothing on projects that don't use them.
 

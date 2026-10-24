@@ -194,6 +194,40 @@ def command(args: list[str], timeout: float = 1.5) -> tuple[str, str]:
         return "", str(exc)
 
 
+class BBAdapter:
+    """Default BB integration; watchdog decisions stay reusable without BB."""
+
+    def command(self, args: list[str], timeout: float = 8.0) -> tuple[str, str]:
+        return command([os.environ.get("BB_CLI") or "bb", *args], timeout)
+
+    def parse_json(self, args: list[str], timeout: float = 8.0):
+        out, error = self.command(args, timeout)
+        try:
+            return json.loads(out), error
+        except (json.JSONDecodeError, TypeError):
+            return None, error or ("invalid JSON" if out else "empty output")
+
+    def child_sessions(self, thread_id: str) -> list[str]:
+        db = os.path.expanduser("~/.bb/bb.db")
+        if not thread_id or not os.path.exists(db):
+            return []
+        try:
+            con = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=3.0)
+            con.execute("PRAGMA query_only=ON")
+            rows = con.execute("""SELECT DISTINCT e.provider_thread_id FROM events e JOIN threads t ON t.id=e.thread_id
+                WHERE t.parent_thread_id=? AND e.provider_thread_id LIKE 'ses_%'""", (thread_id,)).fetchall()
+            con.close()
+            return [row[0] for row in rows]
+        except sqlite3.Error:
+            return []
+
+    def load(self, thread_id: str, sessions: list[dict], live_sessions: list[dict]) -> dict:
+        return load_bb(thread_id, sessions, live_sessions)
+
+
+BB = BBAdapter()
+
+
 def seconds(value: object) -> float | None:
     try:
         n = float(value)
@@ -325,7 +359,7 @@ def pause_automation(env: dict[str, str], dry_run: bool) -> str:
     """Rule 11: switch itself off. Returns a short result for the heartbeat."""
     automation_id = env.get("AUTOMATION_ID", "")
     if "AUTOMATION_ID" not in env and env.get("PROJECT_ID") and env.get("ORCH_THREAD"):
-        listing, _ = parse_json_command(["bb", "automation", "list", "--project", env["PROJECT_ID"], "--json"])
+        listing, _ = BB.parse_json(["automation", "list", "--project", env["PROJECT_ID"], "--json"])
         name = f"hivecall watchdog {env['ORCH_THREAD']}"
         for item in flatten_dicts(listing):
             if item.get("name") == name and str(item.get("id", "")).startswith("auto_"):
@@ -336,10 +370,10 @@ def pause_automation(env: dict[str, str], dry_run: bool) -> str:
     if dry_run:
         print(f"DRY-RUN: would run bb automation pause {automation_id}")
         return f"would pause {automation_id}"
-    args = ["bb", "automation", "pause", automation_id]
+    args = ["automation", "pause", automation_id]
     if env.get("PROJECT_ID"):
         args += ["--project", env["PROJECT_ID"]]  # bb requires it outside a thread
-    _, error = command(args, 10.0)
+    _, error = BB.command(args, 10.0)
     return f"pause {automation_id} failed: {error}" if error else f"paused {automation_id}"
 
 
@@ -350,11 +384,11 @@ def delete_automation(env: dict[str, str], dry_run: bool) -> str:
         return "no explicit automation id; not deleting"
     if not env.get("PROJECT_ID"):
         return "no project id; not deleting"
-    args = ["bb", "automation", "delete", automation_id, "--project", env["PROJECT_ID"], "--yes"]
+    args = ["automation", "delete", automation_id, "--project", env["PROJECT_ID"], "--yes"]
     if dry_run:
-        print(f"DRY-RUN: would run {' '.join(args)}")
+        print(f"DRY-RUN: would run bb {' '.join(args)}")
         return f"would delete {automation_id}"
-    _, error = command(args, 10.0)
+    _, error = BB.command(args, 10.0)
     return f"delete {automation_id} failed: {error}" if error else f"deleted {automation_id}"
 
 
@@ -593,7 +627,7 @@ def load_host_facts(root: str, now: float, env: dict[str, str]) -> dict:
 
 
 def load_server() -> dict:
-    text, error = command(["bb", "opencode"], 8.0)
+    text, error = BB.command(["opencode"], 8.0)
     port_match = re.search(r"\bport\s*:\s*(\d+)", text, re.I)
     attached_match = re.search(r"\battached:\s*(true|false)\b", text, re.I)
     port = int(port_match.group(1)) if port_match else None
@@ -613,18 +647,7 @@ def load_server() -> dict:
 def bb_child_sessions(thread_id: str) -> list[str]:
     """OpenCode sessions behind BB child threads of the orchestrator. A `bb thread spawn` child runs its
     own root session (no parent_id), so the parent_id query alone would not see it. Read-only."""
-    db = os.path.expanduser("~/.bb/bb.db")
-    if not thread_id or not os.path.exists(db):
-        return []
-    try:
-        con = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=3.0)
-        con.execute("PRAGMA query_only=ON")
-        rows = con.execute("""SELECT DISTINCT e.provider_thread_id FROM events e JOIN threads t ON t.id=e.thread_id
-            WHERE t.parent_thread_id=? AND e.provider_thread_id LIKE 'ses_%'""", (thread_id,)).fetchall()
-        con.close()
-        return [row[0] for row in rows]
-    except sqlite3.Error:
-        return []
+    return BB.child_sessions(thread_id)
 
 
 def load_sessions(session_id: str, now: float, root: str = "", verify_dir: str = "",
@@ -716,14 +739,6 @@ def load_sessions(session_id: str, now: float, root: str = "", verify_dir: str =
     return result
 
 
-def parse_json_command(args: list[str], timeout: float = 8.0):
-    out, error = command(args, timeout)
-    try:
-        return json.loads(out), error
-    except (json.JSONDecodeError, TypeError):
-        return None, error or ("invalid JSON" if out else "empty output")
-
-
 def flatten_dicts(value):
     if isinstance(value, dict):
         yield value
@@ -771,7 +786,7 @@ def load_bb(thread_id: str, sessions: list[dict], live_sessions: list[dict]) -> 
     else:
         result["errors"].append("task-bound: unsupported binding format")
 
-    listing, error = parse_json_command(["bb", "thread", "list", "--json"], 8.0)
+    listing, error = BB.parse_json(["thread", "list", "--json"], 8.0)
     if isinstance(listing, list):
         result["children"] = [row for row in listing if isinstance(row, dict) and isinstance(row.get("id"), str) and
                               row.get("parentThreadId") == thread_id and row.get("id") != thread_id]
@@ -779,7 +794,7 @@ def load_bb(thread_id: str, sessions: list[dict], live_sessions: list[dict]) -> 
     else:
         result["errors"].append(f"thread list: {error}")
 
-    shown, error = parse_json_command(["bb", "thread", "show", thread_id, "--json"], 8.0)
+    shown, error = BB.parse_json(["thread", "show", thread_id, "--json"], 8.0)
     if shown is not None:
         for obj in flatten_dicts(shown):
             if obj.get("id") == thread_id and isinstance(obj.get("status"), str):
@@ -793,7 +808,7 @@ def load_bb(thread_id: str, sessions: list[dict], live_sessions: list[dict]) -> 
     else:
         result["errors"].append(f"thread show: {error}")
 
-    qout, qerror = command(["bb", "thread", "queue", "list", thread_id], 8.0)
+    qout, qerror = BB.command(["thread", "queue", "list", thread_id], 8.0)
     if not qerror and "no queued" in qout.lower():
         result["queue_count"] = 0
         result["queue_valid"] = True
@@ -951,7 +966,7 @@ def collect(env: dict[str, str], now: float | None = None) -> dict:
     host = load_host_facts(root, now, env)
     sessions = load_sessions(env.get("ORCH_SESSION", ""), now, root, env.get("VERIFY_DIR", ""),
                              bb_child_sessions(env.get("ORCH_THREAD", "")))
-    bb = load_bb(env.get("ORCH_THREAD", ""), sessions["children"], sessions["live"])
+    bb = BB.load(env.get("ORCH_THREAD", ""), sessions["children"], sessions["live"])
     server = load_server()
     promised_paths = {session["promise"].get("result_path") for session in sessions["children"]
                       if session.get("promise") and session["promise"].get("result_path")}
@@ -1231,7 +1246,7 @@ def dispatch(thread_id: str, messages: list[str], dry_run: bool, mode: str = "qu
         suffix = "" if mode == "queue" else f" (--mode {mode}, interrupts now)"
         print(f"DRY-RUN: would queue to {thread_id}:{suffix}\n{text}")
         return
-    out, error = command(["bb", "thread", "tell", thread_id, "--mode", mode, text], 8.0)
+    out, error = BB.command(["thread", "tell", thread_id, "--mode", mode, text], 8.0)
     if error:
         print(f"WATCH ERROR: bb thread tell failed: {error}", file=sys.stderr)
     elif out:
@@ -2015,7 +2030,7 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
                 if dry_run:
                     print("DRY-RUN: would run bb plugin reload opencode (server unreachable on two checks).")
                 else:
-                    out, error = command(["bb", "plugin", "reload", "opencode"], 8.0)
+                    out, error = BB.command(["plugin", "reload", "opencode"], 8.0)
                     print("WATCH: ran bb plugin reload opencode" + (f" ({error})" if error else ""))
             elif pending and now > pending:
                 detail = f"OpenCode server still unreachable at port {server.get('port')}; check `bb opencode` and restart the plugin."

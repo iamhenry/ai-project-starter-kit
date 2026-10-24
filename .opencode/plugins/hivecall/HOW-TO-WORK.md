@@ -18,7 +18,7 @@ Read at kickoff, and again after any context compaction or compression. Invarian
 
 ### Progress
 
-7. Every free item has an agent on it. Never busywork; never re-check a pass whose files did not change.
+7. Every free item has an agent on it within available capacity; pending launches already count as assigned. Never busywork; never re-check a pass whose files did not change.
 8. Cheapest proof first: test a built fix → fix a known cause → debug an unknown cause → park.
 9. A merge that breaks a passed item is reverted first and fixed on the side, unless the cause is known and the repair is one small change (log why).
 10. Three different attempts, then park with an unlock condition. Never repeat the same idea.
@@ -45,6 +45,8 @@ Read at kickoff, and again after any context compaction or compression. Invarian
 
 ## Defaults (override per run in the run card)
 - Machine: one test device at a time (simulator, emulator or browser instance), one heavy build at a time, at least 5 GB free.
+- Leave worker capacity for review and QA; when full, wait for an existing result rather than opening another lane. A pending native helper already owns its task: never launch a duplicate BB thread for it.
+- Web QA: use the assigned server URL and a named browser session. If a new server is needed, bind an available port and record its actual URL and process handle. Close only that owned browser session and server handle; never stop another worker's browser/server or kill by process name.
 - Debug box: about 15 minutes per attempt; stop after two loops with nothing new.
 - Attempt ladder (a guide, not a script): a new hypothesis or method → a different method → a stronger model or research agent → park. Skip a rung when the evidence already rules it out.
 - When an attempt fails for an environment, platform, or tool reason, the next starts with reflection and an official-docs lookup, then a new angle—never a plain retry.

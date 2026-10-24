@@ -1,0 +1,8 @@
+[
+  {"text":"PROMISE: kind=screen rows=1-3 result=screen.txt lane=.lanes/a","valid":true,"kind":"screen","rows":["ISC-001","ISC-002","ISC-003"],"pace":10},
+  {"text":"PROMISE: kind=helper rows=- result=- lane=-","valid":true,"kind":"helper","rows":[],"pace":20},
+  {"text":"PROMISE: kind=review rows=1 result=x lane=y","valid":false,"kind":"review","rows":["ISC-001"],"pace":0},
+  {"text":"PROMISE: kind=build rows=bad result=x lane=y","valid":false,"kind":"build","rows":[],"pace":10},
+  {"text":"PROMISE: kind=code rows=1 result=x lane=y pace=0","valid":false,"kind":"code","rows":["ISC-001"],"pace":0},
+  {"text":"No promise here","valid":null}
+]

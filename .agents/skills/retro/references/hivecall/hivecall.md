@@ -29,7 +29,7 @@ the owner having to step in. Exclude owner idle time.
 - A run lasts from the skill load until the run card says `status: closed`; a
   later non-closed status reopens it. Work after close is follow-up.
 - Follow each run's child threads, and their children, to see the whole run.
-- Record which version of `.agents/skills/hivecall/` each run loaded (match it
+- Record which version of `.opencode/plugins/hivecall/` each run loaded (match it
   to `git log`), so a later drop can be traced to a change.
 - Hand-offs to OpenCode helper agents are not in BB logs. Read them from the
   orchestrator's OpenCode session: `opencode session export <session id> > file`
@@ -63,7 +63,7 @@ rule covers, such as:
 
 ## Wishlist
 
-Read `.agents/skills/hivecall/WISHLIST.md`. For each item, report what this
+Read `.opencode/plugins/hivecall/WISHLIST.md`. For each item, report what this
 week's runs show: evidence for it (counts or events), evidence against it, or
 none. Propose an item as a change only when the evidence supports it and it is
 the smallest fix; then remove it from the wishlist in the same commit. Never
@@ -104,7 +104,7 @@ Bad:
 ## Applying changes
 
 Only when the request authorizes edits:
-- Edit only `.agents/skills/hivecall/`. Do not read or modify its `eval/` folder.
+- Edit only `.opencode/plugins/hivecall/`. Do not read or modify its `eval/` folder.
 - The eval finds things by name: alert names, the ledger tick and verification
   line format, the TALK-BACK and PROMISE words, and run card status words. If a
   change renames or reshapes any of these, don't apply it. List it in the report

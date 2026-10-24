@@ -45,6 +45,20 @@ def fixture():
 
 
 class EvalRegression(unittest.TestCase):
+    def test_promise_parser_matches_plugin_fixtures(self):
+        fixtures = json.loads((E.SKILL / "test" / "promise-parity.json").read_text())
+        for row in fixtures:
+            with self.subTest(text=row["text"]):
+                parsed = E.parse_promise(row["text"])
+                if row["valid"] is None:
+                    self.assertIsNone(parsed)
+                    continue
+                self.assertIsNotNone(parsed)
+                self.assertEqual(parsed["valid"], row["valid"])
+                self.assertEqual(parsed["kind"], row["kind"])
+                self.assertEqual(sorted(parsed["rows"]), row["rows"])
+                self.assertEqual(parsed["pace"], row["pace"])
+
     def test_multi_file_patch_extracts_closed_status_and_tick(self):
         patch = ("*** Begin Patch\n*** Update File: .hivecall/ISA.html\n@@\n+ISC-006 PASS - ok; evidence qa/x.md\n"
                  "*** Update File: .hivecall/run.md\n@@\n-status: running\n+status: closed\n*** End Patch")
@@ -278,6 +292,99 @@ class EvalRegression(unittest.TestCase):
             snap = E.ledger_at_end(str(Path(td) / "deleted-run"), 1000, Path(td))
             self.assertEqual(snap.get("source"), "saved copy")
             self.assertEqual(snap.get("latest", {}).get("1"), "PASS")
+
+    def test_bb_helper_running_as_another_agent_is_reported_and_still_a_tester(self):
+        x = copy.deepcopy(fixture())
+        self.assertIsNone(E.grade(x)["25"]["value"])  # no brief names an agent
+        x["info"]["tree"]["qa"].update(via="bb", agent="build")
+        x["sessions"]["qa"][0]["text"] = "agent: qa\n\nYou are Cy (qa). Test ISC-001"
+        x["sessions"]["qa"][1]["agent"] = "build"
+        result = E.grade(x)
+        self.assertEqual(result["25"]["value"], 0.0)
+        self.assertFalse(result["25"]["pass"])
+        self.assertIn("briefed qa, ran build 1", result["25"]["note"])
+        self.assertTrue(result["6"]["pass"])  # BB cannot pin the agent; the brief's role makes it the tester
+        x["info"]["tree"]["qa"]["via"] = "opencode"  # a subagent call could have named qa, so build is not a tester
+        self.assertFalse(E.grade(x)["6"]["pass"])
+
+    def bb_reviewer_helper(self, *turn_agents):
+        x = copy.deepcopy(fixture())
+        x["info"]["tree"]["qa"].update(via="bb", agent="reviewer")  # session metadata says reviewer
+        x["sessions"]["qa"] = [message("user", 115, "agent: reviewer\n\nYou are Rae (reviewer). Review ISC-001")] + [
+            message("assistant", 140 + i, "APPROVE_CODE" if i == len(turn_agents) - 1 else "reading", agent=a)
+            for i, a in enumerate(turn_agents)]
+        return E.grade(x)["25"]
+
+    def test_helper_judged_on_its_turns_not_session_agent(self):
+        self.assertEqual(self.bb_reviewer_helper("reviewer", "reviewer")["note"], "1/1 helpers ran as briefed")
+        late = self.bb_reviewer_helper("build", "reviewer", "reviewer")  # pinned after turn 1 already ran as build
+        self.assertFalse(late["pass"])
+        self.assertIn("briefed reviewer, ran build+reviewer 1", late["note"])
+        all_build = self.bb_reviewer_helper("build", "build")
+        self.assertFalse(all_build["pass"])
+        self.assertIn("briefed reviewer, ran build 1", all_build["note"])
+
+    def test_subagent_call_agent_is_the_briefed_role(self):
+        x = copy.deepcopy(fixture())
+        prompt = x["sessions"]["root"][1]["tools"][0][1]["prompt"]
+        x["sessions"]["worker"][0]["text"] = E.SUBAGENT_PREAMBLE + "\n" + prompt
+        x["info"]["tree"]["worker"]["via"] = "opencode"
+        self.assertEqual(E.grade(x)["25"]["note"], "1/1 helpers ran as briefed")
+        x["sessions"]["root"][1]["tools"][0][1]["agent"] = "reviewer"
+        self.assertIn("briefed reviewer, ran build 1", E.grade(x)["25"]["note"])
+
+    def test_prompt_file_spawns_are_read_per_loop_item(self):
+        loop = "for k in rev-a qa-a; do bb thread spawn --parent-self --prompt-file .lanes/brief-$k.md --json; done"
+        msgs = [message("assistant", 150, agent="orchestrator", tools=[("shell", {"command": loop}),
+                                                                       ("shell", {"command": "bb thread spawn --help"})])]
+        self.assertEqual(E.prompt_file_paths(loop), [".lanes/brief-rev-a.md", ".lanes/brief-qa-a.md"])
+        self.assertEqual([b["text"] for b in E.briefs_of(msgs, lambda t: True)], [loop])  # files not saved: old behavior
+        with TemporaryDirectory() as td:
+            (Path(td) / ".lanes").mkdir()
+            for k in ("rev-a", "qa-a"):
+                (Path(td) / ".lanes" / f"brief-{k}.md").write_text(f"TALK-BACK: {k}\nPROMISE: kind=helper rows=ISC-1 result=- lane=-")
+            files = E.saved_prompt_files(msgs, td, {})
+        self.assertEqual(sorted(files), [".lanes/brief-qa-a.md", ".lanes/brief-rev-a.md"])
+        briefs = E.briefs_of(msgs, lambda t: True, files)
+        self.assertEqual([b["text"].splitlines()[0] for b in briefs], ["TALK-BACK: rev-a", "TALK-BACK: qa-a"])
+        self.assertEqual(E.saved_prompt_files(msgs, str(Path(td) / "gone"), files), files)  # saved copy survives
+
+    def test_verdict_lines_outside_the_verification_list_are_read(self):
+        with TemporaryDirectory() as td:
+            snap = Path(td) / "ledger-at-end.html"
+            snap.write_text('<section id="criteria"><ul><li id="ISC-1"><input type="checkbox" disabled checked> ISC-1: one</li>'
+                            '<li id="ISC-2"><input type="checkbox" disabled checked> ISC-2: two</li>'
+                            '<li>ISC-2: PASS - qa ok; commit abc1234; evidence qa.md</li>'
+                            '<li>ISC-1: FAIL - stray older line</li></ul></section>'
+                            '<section id="verification"><ul><li>ISC-1: PASS - ok</li></ul></section>')
+            latest = E.ledger_summary(snap, Path(td), "working file", 1000, "ISA.html")["latest"]
+        self.assertEqual(latest, {"1": "PASS", "2": "PASS"})  # the verification list still wins for ISC-1
+
+    def test_list_prints_a_run_without_a_title(self):
+        run = {"index": 1, "run": "2026-10-23-abcdef", "session": "ses_abcdef", "loaded_at": 0, "loaded_by": "build", "title": None}
+        with TemporaryDirectory() as td, patch.object(E, "OUT", Path(td)), patch.object(E, "ro", lambda _p: None), \
+                patch.object(E, "find_runs", lambda _oc: [run]), patch("sys.argv", ["eval.py", "--list"]), \
+                patch("builtins.print") as out:
+            E.main()
+        self.assertIn("2026-10-23-abcdef", out.call_args[0][0])
+
+    def test_regrade_skips_a_run_whose_skill_matches_no_version_and_still_builds_the_dashboard(self):
+        run = {"index": 1, "run": "2026-10-23-probe1", "session": "ses_probe1", "loaded_at": 0, "loaded_by": "build", "title": "p",
+               "directory": None, "_body": "not the hivecall skill"}
+        with TemporaryDirectory() as td, patch.object(E, "OUT", Path(td)), patch.object(E, "ro", lambda _p: None), \
+                patch.object(E, "find_runs", lambda _oc: [run]), patch("sys.argv", ["eval.py", "--regrade"]), \
+                patch.object(E, "skill_version", lambda _b: {"skill_version": "~unknown", "skill_commit": "unknown", "match": 0}), \
+                patch.object(E, "dashboard", lambda: Path(td) / "dashboard.html"), patch("builtins.print") as out:
+            E.main()
+        lines = [c[0][0] for c in out.call_args_list]
+        self.assertEqual(lines[0], "skipped 2026-10-23-probe1: its loaded skill body matches no SKILL.md version")
+        self.assertTrue(lines[-1].startswith("0 run(s) graded"))
+
+    def test_paused_run_with_progress_report_counts_as_closed(self):
+        card = "status: waiting-owner\n\n## Progress report\n{}\n## Lessons\n"
+        write = lambda body: {"root": [message("assistant", 150, agent="orchestrator", tools=[("write", {"path": "/r/.hivecall/run.md", "content": card.format(body)})])]}
+        self.assertFalse(E.final_report_written(write(""), None))  # an empty heading is not a report
+        self.assertTrue(E.final_report_written(write("ISC-1 done; ISC-2 waits on the owner's API key."), None))
 
     def test_freeze_snapshot_is_complete_and_guarded(self):
         with TemporaryDirectory() as td, patch.object(E, "OUT", Path(td)):
