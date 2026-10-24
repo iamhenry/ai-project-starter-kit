@@ -16,7 +16,7 @@ START, CAP = float(E["START_EPOCH"]), float(E.get("CAP_MIN", "125")) * 60
 SILENT = float(E.get("SILENT_MIN", "30")) * 60
 STATE = os.path.join(os.getcwd(), "liverun-check-state.json")
 LEAKS = [p for p in E.get("LEAKS", "swarm-test,hivecall/eval,bench/todo,_ai/task,.evals/hivecall,"
-                                    "ai-project-starter-kit/.agents/skills/hivecall").split(",") if p]
+                                     "ai-project-starter-kit/.opencode/plugins/hivecall").split(",") if p]
 BB = E.get("BB_CLI") or shutil.which("bb") or os.path.expanduser("~/.bb/bin/bb")
 now = time.time()
 

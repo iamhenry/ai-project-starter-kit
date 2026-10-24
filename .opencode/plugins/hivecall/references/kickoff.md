@@ -44,6 +44,21 @@ Rules:
 - Owner-only items go in `#owner-only`; they are never counted.
 - Never edit the panel's numbers; the page counts them when opened (reload to refresh).
 
+### Parking an item
+
+A BLOCKED receipt alone does not park an open criterion. Keep its original text/check and leave its checkbox unticked; add `data-status="parked"` to the **input inside that criterion**, not the run card or a separate note. Append the reason and exact unlock under `#verification`. For example:
+
+```html
+<!-- In #criteria; keep the original item's text and check. -->
+<li id="ISC-23"><input type="checkbox" disabled data-status="parked"> ISC-23: original behavior — check: original check</li>
+<!-- Append under #verification; use the actual reason, unlock and evidence. -->
+<li>ISC-23: BLOCKED - parked; reason: required permission unavailable; unlock: permission granted and delivery proven; evidence .hivecall/verification/blocked-23.md</li>
+```
+
+For Markdown ledgers, put `parked` on the unchecked criterion line and any BLOCKED result row for that item, with reason/unlock. Parking never makes an item PASS or hides other open items. Keep the card `running` until close (or use `waiting-owner`/`waiting-usage` when paused); do not set the whole run to `parked` to hide work.
+
+Save all ticks, receipts and parking markers in a **separate completed tool call before** writing `## Final report` or `status: closed`. The close gate checks the ledger as it exists before the call runs: updating the ledger and closing in one script is refused while that pre-call ledger is still open or unearned. Read the named open/unearned ids in the error, fix their ledger state, then retry the close separately. This does not weaken the approval/receipt check or turn a parked item into a proven one.
+
 ## 3. Write the run card
 
 `.hivecall/run.md` lets a fresh orchestrator resume and tells the watchdog the run's lifecycle state. It holds no progress; the checklist page does.
@@ -86,10 +101,9 @@ backup models: <agent> -> <provider/model#variant> (required; used on a credit c
 
 ## Lessons
 <one line per surprise, failure, or false alarm: what happened → what to do instead>
-
-## Final report
-<written when the run closes or waits on the owner: confirmed with evidence, parked with unlock, owner-only, uncertain>
 ```
+
+A fresh card has no `## Final report` heading. While the run waits on the owner, write the report so far under `## Progress report`. Add `## Final report`, with its content, only when every counted item is ticked or parked: confirmed with evidence, parked with unlock, owner-only, uncertain. The plugin blocks that heading, and setting `status: closed`, while counted items are open or ticked without approval and receipt.
 
 The approved contract lives on the checklist page, not here.
 
@@ -128,5 +142,5 @@ The owner may be away for hours; the footer must make the current state clear at
 When every counted item is ticked or parked:
 
 1. If PR authority was yes, confirm cited verification evidence files exist, then finish with `create-pr` to push the branch and open a PR; never merge. Otherwise, use local commits only and never push.
-2. Write `## Final report` in the run card, set `status: closed`, then send the same report: confirmed (with evidence), parked (with unlock), owner-only items, uncertain.
+2. After the ledger's ticks/receipts/parking markers are saved in a completed tool call, use a separate call to write `## Final report` in the run card and set `status: closed`. Then send the same report: confirmed (with evidence), parked (with unlock), owner-only items, uncertain.
 3. The watchdog pauses after `closed`, then deletes its automation on the check after a successful pause. If pause fails, it retries; a complete ledger with a card that is not closed only pauses and sends `WATCH DONE` without deleting the automation.
