@@ -74,6 +74,7 @@ Prefer the smallest repro path that still proves the bug clearly.
    - Start from the first meaningful action.
    - End at the exact failing state or at proof that the bug did not occur.
    - Avoid extra setup steps unless they are required to trigger the issue.
+   - Find the trigger, not the wait. If the report says it takes hours, many runs, or lots of data, ask what condition actually causes it (a restart, reload, input, state change) and reproduce that condition directly. Time and volume are usually only ways of reaching it. Use logs or existing evidence to name the trigger as an observation; if you cannot show the shortcut reaches the same failing state, say it is a proxy and report `BLOCKED` or `NOT_REPRODUCED` with that coverage rather than waiting it out.
    - Keep the flow rerunnable as the cheapest faithful before/after check: after a fix, the same entry point should flip the expected/actual contrast without rework.
    - Record that exact command or flow as the reusable smoke check for verification; do not make verification rediscover or broaden it.
 
@@ -176,7 +177,7 @@ Use this exact structure:
 - Repro target: [exact behavior tested]
 - Falsifier: [observation that distinguishes the bug from expected behavior]
 - Result: `REPRODUCED|NOT_REPRODUCED|BLOCKED`
-- Reusable smoke: [exact command or flow to rerun after a fix, or "Unavailable — [reason]"]
+- Reusable smoke: [exact command or flow to rerun after a fix, or "Unavailable — [reason]"; if it shortcuts a long-running report, name the trigger it creates]
 - Checks run: [concise list of probes and any observation window]
 - Model-backed product operations: [provider/model, reasoning level, and submitted turn count when applicable; `n/a` when none; `unknown` for unexposed details]
 

@@ -38,7 +38,7 @@ If `Mechanical` is missing, return `BLOCKED` naming the missing command and its 
 
 ## Workflow
 
-1. **Frame.** For each claim, write the observation that shows it works and the one that would show it is broken (the falsifier). Add one lightweight regression check only when adjacent behavior could easily break.
+1. **Frame.** For each claim, write the observation that shows it works and the one that would show it is broken (the falsifier), plus the shortest honest path to the condition that triggers it. Time, volume, and repetition are usually just ways of reaching a condition; if you can create the condition directly, take that path. Add one lightweight regression check only when adjacent behavior could easily break.
 2. **Pick the platform** from the real entry point, not the file types changed. Timing, persistence, delivery, synchronization, and background behavior can need a visible product flow even when no UI source changed. Read exactly one file:
    - `web`, `mobile-web`, `desktop` -> `platforms/web.md`
    - `ios` -> `platforms/ios.md`
@@ -51,7 +51,7 @@ If `Mechanical` is missing, return `BLOCKED` naming the missing command and its 
    - Am I allowed to set that up?
 
    A missing `Reach` line is not a blocker; work out the narrowest way using the platform file. Changing shared state (installing the candidate into a running host, restarting a service, mutating shared data) needs authority stated in `Reach` or the task. Without it, return `BLOCKED` naming the owner and the unlock step. With it, record the original state first and restore it always, including when you stop early. If activation could interrupt the verifier, use a disposable executor, restore, and judge the retained evidence. Before a costly or state-changing flow, check the capture mechanism with the smallest disposable capture.
-4. **Prove.** Run the Primary Flow through the actual user or consumer entry point first. Prefer the real surface to a replica; a replica can omit the very integration under test. If proof infrastructure would exceed the change itself, reconsider the route or return the precise blocker.
+4. **Prove.** Run the Primary Flow through the actual user or consumer entry point first. Prefer the real surface to a replica; a replica can omit the very integration under test. If proof (setup, waiting, or repetition) would cost much more than the change itself, take the shortest path that still runs the same code path and shows the same user-visible result, and state in one sentence why it is equivalent. For a bug fix, the best justification is that the same shortcut fails on the pre-fix candidate and passes on this one; if you cannot show that, or otherwise justify the equivalence, mark that part unverified. A shortcut covers only the cause it triggers, so list the original full-cost scenario under Risk as not run. If no cheaper path exists, return the precise blocker with its cost rather than silently running a long check.
    - **Mechanical:** validate and reuse a supplied receipt only if the command, exit status or raw output, and exact candidate and relevant runtime conditions are available and sufficient for the declared check; otherwise run the named command and say why (missing, stale, unverifiable, a distinct risk, or an explicit fresh-run requirement). Quote raw output and mark it fresh or reused. An implementer's summary alone is not a receipt. Do not rewrite the command. Reuse never waives independent Observable proof. Example: reuse a passing export check tied to this exact diff and dataset; rerun a receipt that came from the previous candidate.
    - **Regression Check:** when not `None`, run that one regression. Add another counterexample only for a distinct named failure mode that is still unresolved.
    - **Observable:** required whenever user or consumer behavior changed, even if the plan omitted it. Tests, logs, source, CI pages, and screenshots of them are Mechanical evidence only.
@@ -94,7 +94,7 @@ Platform files list known examples.
 - Continuing after the success signal appears, or drifting into exploratory QA.
 - Changing shared state without stated authority, not restoring it, or stopping processes by name instead of by a PID you started.
 - Editing the candidate to make it pass.
-- Building a harness larger than the change.
+- Building a harness larger than the change, or waiting or repeating when the cause can be triggered directly.
 - Reporting `FAIL` when something was missing, or `BLOCKED` when the product is wrong.
 - Declaring `BLOCKED` on an assumption: without the observation that proves it, or without checking the task, plan, and ticket first.
 
@@ -133,7 +133,7 @@ Write `{ISSUE_DIR}/verification/result.md` first (or `result.md` in the authoriz
 - Reach used: [exact steps and restore, or "default surface"; reusable on re-check]
 - Mechanical: [command] -> [exit code and quoted raw excerpt; fresh or reused, source, reuse rationale]
 - Observable: [artifact path or `n/a`]
-- Checks run: [concise list, including any observation window]
+- Checks run: [concise list, including any observation window; name any shortcut taken and why it is equivalent]
 - Model-backed product operations: [provider/model, reasoning, turns; `n/a`; or `unknown`]
 - Verdict: `PASS|FAIL|BLOCKED`
 

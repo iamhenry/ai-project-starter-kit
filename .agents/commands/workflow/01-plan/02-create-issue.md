@@ -318,7 +318,7 @@ Use the `verification-gate` skill's platform routes and evidence rules to prove 
 - Use `recording` only when motion or lifecycle cannot be proven by screenshots; prefer one recording for the sequence instead of multiple short clips
 - Use `test output` or `logs` as Mechanical proof; they do not replace Observable on UI platforms
 - For UI work, Observable must show the app-owned result produced by the Primary Flow. A terminal, test runner, CI page, log viewer, or source file is Mechanical evidence, not Observable evidence.
-- Start with the cheapest faithful probe. Add another check only when it targets a named unresolved question, provides a new signal that could change the verdict, and remains proportionate to the task. Repetition is appropriate when it tests timing or intermittency and has a stated observation window and stopping condition.
+- Proof sizing (cheapest faithful probe, direct trigger over waiting, stop rules) is owned by `verification-gate`; for bugs, the trigger comes from `reproduce-bug`. Name them here; do not restate the rules.
 - Save browser artifacts to `{ISSUE_DIR}/verification/videos/{step}.webm`
 - Save browser artifacts to `{ISSUE_DIR}/verification/screenshots/{step}.png`
 
