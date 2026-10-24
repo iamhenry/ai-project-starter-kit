@@ -64,6 +64,10 @@ Choose exactly one primary mode:
 Prefer the smallest repro path that still proves the bug clearly.
 ## Workflow
 
+0. Check existing evidence first.
+   - Before running anything, look at logs, recordings, and reports that already exist. If they show the failing state at the reported entry point, that can be the reproduction: cite it, mark it as reused, and skip a new run.
+   - Existing evidence counts only if it matches the reported entry point and conditions. Otherwise treat it as a lead for the trigger, not as proof.
+
 1. Define the repro target.
    - State the exact behavior you are trying to trigger.
    - State the falsifier: the observation that distinguishes the reported bug
@@ -87,7 +91,7 @@ Prefer the smallest repro path that still proves the bug clearly.
    - Reproduce through the reported entry point: the screen, command, or flow the reporter actually used. A unit test, a different code path, or a mocked dependency can support a finding but never confirms a real user-flow bug by itself.
    - Require user-visible proof for a user-visible report. Add mechanical proof only when the visible state is ambiguous or the mechanical observation is part of the report.
    - When the requester explicitly asks for a screenshot (or other specific artifact), capture it or return `BLOCKED` naming the missing prerequisite; do not substitute a different artifact silently.
-   - Check for existing faithful evidence (logs, screenshots, reports from the actual flow) before spending on a new reproduction; valid existing evidence that matches the reported entry point can avoid a new expensive repro run.
+   - Estimate the cost of the run before starting it. If it would take more than a few minutes or needs special setup, first look for a direct trigger (see step 2). If none exists, tell the user the cost and what you would need instead of grinding through it.
    - Clearly mark controlled evidence (staging data, seeded fixtures, scripted runs); it supports diagnosis but never proves live user behavior on its own.
    - If the product flow itself performs model-backed work, preserve the model
      selected by the task, target, or user rather than optimizing it here.
@@ -148,6 +152,12 @@ Prefer the smallest repro path that still proves the bug clearly.
    - `BLOCKED`: required auth, data, environment, or tooling is missing, or the
      available evidence cannot distinguish the reported failure from expected
      behavior within the declared budget.
+   - Recognize a hard blocker by this test, not by a fixed list: the next probe
+     cannot produce a new signal until something you lack is supplied (access,
+     data, a build, a device, authority to change shared state, or the user's
+     intent), and retrying would not change that. Stop at the first one. Report
+     what is missing, who can supply it, and the smallest unlock; do not work
+     around it, and do not spend more probes first.
    - Exit when the evidence supports a result, no discriminating probe remains,
      a prerequisite is blocked, or further work is disproportionate to the
      unresolved question.
