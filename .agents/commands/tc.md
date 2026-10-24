@@ -16,7 +16,7 @@ Fill each line in one sentence from the query plus a quick codebase check (facts
 - Current state: <what the user sees and can do today, with file paths — facts only, not a restated problem>
 - Ideal state: <what the user sees and can do when done — visible outcome, not the implementation>
 - Narrow scope: IN: <files/behaviors covered> · OUT: <named things not touched>
-- Verification: <cheapest check of that ideal-state surface that would fail if broken — not a unit test of a helper> → evidence: <output/log + screenshot/screen recording of that surface>
+- Verification: <cheapest check of that ideal-state surface that would fail if broken, triggering the cause directly rather than waiting for it (see `verification-gate`) — not a unit test of a helper> → evidence: <output/log + screenshot/screen recording of that surface>
 - E2E smoke: <one real happy-path through the actual user entry point → expected visible result>
 - Definition of done: scope held · implementation proven on the ideal-state surface before a regression test is written · named check passed with evidence · smoke ran end to end · tests do not substitute
 - Exit criteria: all boxes hold with evidence from the named Verification and E2E; BLOCKED only if that live surface cannot be loaded — never PASS without running them
