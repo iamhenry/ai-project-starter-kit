@@ -76,3 +76,45 @@ they install with each project, not the machine.
 - **Xcode** — required by all iOS tooling above (simulators, signing).
 - **Astro** (https://astro.app) — Mac app required by the ASO and
   keyword-research skills (local ASO database queries).
+
+## BB Plugins
+
+Enabled plugins beyond what ships with BB (built-ins are omitted; 30 total). Install with
+`bb plugin install <source>`; catalog entries install by name.
+
+| Plugin | What it does | Source |
+| --- | --- | --- |
+| Agent Calendar | Calendar / time sheet of what agents worked on | catalog: `agent-calendar` |
+| Lanes | Live timeline with a lane per agent thread | catalog: `agent-lanes` |
+| Agentic Mermaid | Better Mermaid rendering in chat | catalog: `agentic-mermaid` |
+| Beautiful Chat | Restyles chat in BeautifulUI design | catalog: `beautiful-chat` |
+| Chat Timestamps | Message times in chat action strip | `github.com/pixexid/bb-plugin-chat-timestamps` |
+| Cursor Sidebar | Cursor-style sidebar: trees, pins, folders | local: `~/src/bb-plugin-cursor-sidebar` |
+| Dashboard Sidebar | Project-grouped threads with status, git context, snooze | local: `bb-plugin-dashboard-sidebar` |
+| Diff Editor | Edit diffs in place and save to disk | `github.com/CostaFot/bb-plugin-diff-editor` |
+| Diff Viewed | "Viewed" checkbox per changed file | catalog: `diff-viewed` |
+| Doc Review | Comment on MD/PDF/Office/HTML files, hand to an agent | catalog: `doc-review` |
+| Fast Split | One-click neighbouring new-thread pane | catalog: `fast-split` |
+| File Manager | Browse/upload/download/move files under home | catalog: `file-manager` |
+| File Links | Clickable file names, copy/reveal menu, image thumbnails in timeline | `github.com/adam-tracht/bb-plugin-file-links` |
+| Files | VS Code-style file explorer and editor | catalog: `files-editor` |
+| Finder | File tree, editor, and markdown preview for a workspace | catalog: `finder` |
+| Fluid Thinking | Thinking indicator for timeline turns | `github.com/fahmiirsyadk/bb-plugins` |
+| Generative UI | Agents answer with inline interactive UI | `github.com/ComicBit/bb-plugin-genui` |
+| Git History | Full Git history in a right panel | catalog: `git-history` |
+| Git worktree | Stage, AI-commit, branch, sync in BB | catalog: `git-panel` |
+| Gitx | VS Code-style source control sidebar | local: `bb-plugin-gitx` |
+| Host Monitor | Resource health across enrolled machines | catalog: `host-monitor` |
+| Image Preview | Click-to-expand chat image previews | catalog: `image-preview` |
+| Inline Comments | Quote reply text as comments in next message | catalog: `inline-comments` |
+| Missing keyboard shortcuts | Shortcuts for threads, history, composer | `github.com/ariofrio/ribbon` |
+| OpenCode | Run BB threads on a detached OpenCode server | `github.com/iamhenry/bb-opencode` |
+| Pins | Pinned threads in a live-chat strip | local: `bb-plugin-pins` |
+| Preset Buttons | One-click provider/model presets in New thread | catalog: `preset-buttons` |
+| Session Brief | Floating snapshot: context, usage, subthreads, todos | local: `bb-plugin-session-brief` |
+| Usage | Token usage and estimated cost per machine | catalog: `usage` |
+| Vercel Theme | Vercel-style palette and Geist type | catalog: `vercel-theme` |
+| Workbench Explorer | File explorer beside every thread | catalog: `workbench-explorer` |
+
+Local plugins live under `~/Desktop/Projects/other/` (Cursor Sidebar: `~/src/`);
+install with `bb plugin install <path>`.
