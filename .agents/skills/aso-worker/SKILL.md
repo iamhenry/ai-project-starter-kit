@@ -459,6 +459,7 @@ Keywords in the App Store are locked to a specific version. You cannot update ke
    - If an already-uploaded build exists for `$NEXT_VERSION` and is eligible for App Review, attach it: `asc versions attach-build --app "$APP_ID" --version "$NEXT_VERSION" --build "$BUILD_NUMBER"`.
    - Otherwise upload a new build from the same source code with incremented version/build numbers, then attach that build. No feature changes are required, but a new eligible binary artifact usually is.
 5. **Stage only the exact approved fields:** validate/dry-run the metadata, push it, then pull back from ASC to verify the editable version, locale, fields, and `submission.inFlight:false`. Do not submit merely because staging was approved.
+5b. **Review notes (Apple's "Notes" field):** before submission, read `references/review-notes-template.md` and follow it. It checks for existing notes first and asks the user before replacing or merging; never overwrite silently.
 6. **Only with separate explicit submission authority:** attach an eligible build if needed, run `asc validate --app "$APP_ID" --version "$NEXT_VERSION"`, and submit only if validation passes. Append a `submitted` or `submission_failed` event to `results.jsonl`; leave the original proposal entry unchanged.
 
 ## Proposal Output Specification
