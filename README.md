@@ -79,17 +79,15 @@ they install with each project, not the machine.
 
 ## BB Plugins
 
-Enabled plugins beyond what ships with BB (built-ins are omitted; 30 total). Install with
-`bb plugin install <source>`; catalog entries install by name.
+Enabled plugins beyond what ships with BB (built-ins are omitted; 31 total). Install with
+`bb plugin install <source>`; catalog entries install by name. `bb plugin list` is the source
+of truth for what is currently enabled.
 
 | Plugin | What it does | Source |
 | --- | --- | --- |
-| Agent Calendar | Calendar / time sheet of what agents worked on | catalog: `agent-calendar` |
-| Lanes | Live timeline with a lane per agent thread | catalog: `agent-lanes` |
 | Agentic Mermaid | Better Mermaid rendering in chat | catalog: `agentic-mermaid` |
 | Beautiful Chat | Restyles chat in BeautifulUI design | catalog: `beautiful-chat` |
 | Chat Timestamps | Message times in chat action strip | `github.com/pixexid/bb-plugin-chat-timestamps` |
-| Cursor Sidebar | Cursor-style sidebar: trees, pins, folders | local: `~/src/bb-plugin-cursor-sidebar` |
 | Dashboard Sidebar | Project-grouped threads with status, git context, snooze | local: `bb-plugin-dashboard-sidebar` |
 | Diff Editor | Edit diffs in place and save to disk | `github.com/CostaFot/bb-plugin-diff-editor` |
 | Diff Viewed | "Viewed" checkbox per changed file | catalog: `diff-viewed` |
@@ -106,15 +104,17 @@ Enabled plugins beyond what ships with BB (built-ins are omitted; 30 total). Ins
 | Gitx | VS Code-style source control sidebar | local: `bb-plugin-gitx` |
 | Host Monitor | Resource health across enrolled machines | catalog: `host-monitor` |
 | Image Preview | Click-to-expand chat image previews | catalog: `image-preview` |
-| Inline Comments | Quote reply text as comments in next message | catalog: `inline-comments` |
+| Inline Review | Mark exact assistant passages and send one feedback batch to the same thread | catalog: `inline-review` |
+| Media Viewer | Images, video and audio in the right panel, plus `::media` inline in chat | catalog: `media-viewer` |
 | Missing keyboard shortcuts | Shortcuts for threads, history, composer | `github.com/ariofrio/ribbon` |
+| Noctis Themes | Eight Noctis palettes (5 dark, 3 light) with matching code and diff colours | `github.com/iamhenry/bb-noctis-theme` |
 | OpenCode | Run BB threads on a detached OpenCode server | `github.com/iamhenry/bb-opencode` |
 | Pins | Pinned threads in a live-chat strip | local: `bb-plugin-pins` |
 | Preset Buttons | One-click provider/model presets in New thread | catalog: `preset-buttons` |
+| Quick Reply | Line-by-line agree/disagree feedback, with detail or a comment | catalog: `quick-reply` |
 | Session Brief | Floating snapshot: context, usage, subthreads, todos | local: `bb-plugin-session-brief` |
-| Usage | Token usage and estimated cost per machine | catalog: `usage` |
+| Super Diff | Group a thread's diff by concern, each with an explanation | catalog: `super-diff` |
 | Vercel Theme | Vercel-style palette and Geist type | catalog: `vercel-theme` |
 | Workbench Explorer | File explorer beside every thread | catalog: `workbench-explorer` |
 
-Local plugins live under `~/Desktop/Projects/other/` (Cursor Sidebar: `~/src/`);
-install with `bb plugin install <path>`.
+Local plugins live under `~/Desktop/Projects/other/`; install with `bb plugin install <path>`.
