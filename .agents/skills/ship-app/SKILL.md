@@ -69,6 +69,7 @@ Useful user instructions include:
 - Inspect `asc builds upload --help`, then upload the verified IPA once.
 - Poll with current `asc builds` commands until processing reaches a terminal state.
 - A successful TestFlight upload reports the build valid and ready for internal testing. Set What to Test notes when supplied.
+- For App Store review notes (not TestFlight What to Test), use `../aso-worker/references/review-notes-template.md`; it checks existing notes and asks before overwriting.
 - Report internal and external testing states separately. A processed build is not distributed until a group or tester receives it.
 
 ### 7. Finish
