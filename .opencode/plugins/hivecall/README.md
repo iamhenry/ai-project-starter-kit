@@ -46,6 +46,55 @@ A Python 3 script (built-ins only, no AI) that checks the run every 5 minutes: m
 
 Each check takes 1–2 seconds of CPU. A failed read skips that check for the run; it never alarms on missing data. Simulator and recorder checks find nothing on projects that don't use them.
 
+### Mental model
+
+Who talks to whom. The watchdog only reads, then sends alerts.
+
+```mermaid
+flowchart LR
+  YOU[You] -->|goal| ORCH[Orchestrator]
+  ORCH -->|brief with PROMISE line| W[Workers - build, review, QA]
+  W -->|PASS or FAIL rows with evidence| LED[(Ledger and result files)]
+  ORCH -->|ticks only on QA proof| LED
+  WD[Watchdog every 5 min] -.reads.-> LED
+  WD -.reads.-> W
+  WD -.reads.-> RC[Run card]
+  WD -->|alert with id| ORCH
+  ORCH -->|ANSWER id - action| RC
+```
+
+What one 5-minute check does.
+
+```mermaid
+flowchart TD
+  S[Wake up] --> R{Run card status}
+  R -->|closed| P[Pause itself, delete next check]
+  R -->|waiting| Q[No nudges, other checks continue]
+  R -->|running| C[Run checks]
+  C --> M[Machine - load, disk, orphan processes]
+  C --> A[Agents - visible in BB, kept PROMISE]
+  C --> L[Ledger - stall, regression, unclaimed rows, free items]
+  C --> X[Orchestrator - compaction, agent switch, idle]
+  M --> D{Real problem on 2 checks in a row?}
+  A --> D
+  L --> D
+  X --> D
+  D -->|no| H[One heartbeat line]
+  D -->|yes| AL[Alert - fact, two questions, default, id]
+  L -->|ledger complete| DONE[WATCH DONE, pause]
+```
+
+The no-progress ladder. Progress means a new PASS or FAIL, a new tick, or a new commit.
+
+```mermaid
+flowchart LR
+  P[Last proof] -->|10 min| S1[STALL 1 of 3 - ask]
+  S1 -->|15 min, nothing changed| S2[STALL 2 of 3 - interrupt]
+  S2 -->|20 min| S3[STALL 3 of 3 - park it, note to you]
+  S3 --> Z[Silent until new proof]
+  Z -.new proof resets.-> P
+```
+
 ### Inputs
 
 | Variable | Required | Value |
