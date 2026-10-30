@@ -28,7 +28,7 @@ OC_DB = Path.home() / ".local/share/opencode/opencode.db"
 BB_DB = Path.home() / ".bb/bb.db"
 GAP = 5 * 60_000            # a gap longer than this between events is not "working"
 FOLLOWUP_CAP = 24 * 3.6e6   # only look this far past the final close for follow-up hours
-EVAL_VERSION = "4.3"        # bump when a check or judge question changes; result versions are not comparable
+EVAL_VERSION = "4.4"        # bump when a check or judge question changes; result versions are not comparable
 STALL_MS = 10 * 60_000      # the watchdog's stall clock; a longer gap without honest proof is "flat"
 ANSWER_MS = 10 * 60_000     # an alert counts as acted on when its ANSWER and an action land this fast
 
@@ -377,7 +377,17 @@ def ledger_summary(snap: Path, root: Path, source: str, at: int, rel: str) -> di
         if num in counted and num not in latest:
             latest[num] = "OPEN" if status == "PASS" and num not in checked else status
     open_tries = {norm_id(i): n for i, n in (isa.get("tries") or {}).items() if norm_id(i) in counted - checked}
-    return {"path": rel, "source": source, "at": at, "total": isa.get("total") or len(counted), "checked": sorted(checked),
+    text = snap.read_text(errors="replace")
+    headings = list(re.finditer(r"<h[2-6]\b[^>]*>\s*([^<]*?)\s*</h[2-6]\s*>|^\s*#{1,6}\s+(.+?)\s*#*\s*$", text, re.I | re.M))
+    discovery = set()
+    for i, heading in enumerate(headings):
+        if (heading.group(1) or heading.group(2)).strip().lower() == "discovery":
+            section = text[heading.end():headings[i + 1].start() if i + 1 < len(headings) else len(text)]
+            discovery.update(norm_id(ident) for ident in re.findall(r"<li\b[^>]*\bid=[\"'](ISC-\d+(?:\.\d+)*)[\"']", section, re.I))
+            for line in section.splitlines():
+                if re.match(r"\s*[-*]\s+\[[ xX]\]|\s*\|?\s*ISC-\d+(?:\.\d+)*\s*\|", line, re.I):
+                    discovery.update(norm_id(ident) for ident in re.findall(r"(?<![/.-])\bISC-\d+(?:\.\d+)*\b(?![._-][a-z])", line, re.I))
+    return {"discovery": sorted(discovery), "path": rel, "source": source, "at": at, "total": isa.get("total") or len(counted), "checked": sorted(checked),
             "latest": latest, "open_tries": open_tries}
 
 
@@ -675,11 +685,24 @@ def grade(exp: dict) -> dict:
     def proven(t):
         for sid in children:
             node = tree[sid]
-            if not is_tester(sid) or not node.get("created") or node["created"] >= t["time"]:
+            if not (is_tester(sid) or role(sid) == "reviewer") or not node.get("created") or node["created"] >= t["time"]:
                 continue
             before = [m for m in sessions[sid] if inside(m["time"]) and m["time"] < t["time"]]
             finals = [m for m in before if m["type"] == "assistant" and m["text"].strip()]
             final = max(finals, key=lambda m: m["time"])["text"] if finals else ""
+            brief = next((m["text"] for m in sessions[sid] if m["type"] == "user" and m["text"].strip()), "")
+            only_this = set(re.findall(r"ISC-0*(\d+)\b", brief)) == {t["isc"]}
+            promise = parse_promise(brief) or {}
+            rows = promise.get("rows", set()) if promise.get("valid") else set()
+            scoped = any(norm_id(row) == norm_id(t["isc"]) for row in rows)
+            discovery_item = norm_id(t["isc"]) in ledger.get("discovery", [])
+            if not is_tester(sid):
+                decision = re.search(r"(?m)^\s*[-*]?\s*(?i:decision|verdict|status)\s*[:=]\s*`?(APPROVE_PLAN|SELECTED|REVISE_PLAN|ASK_USER)\b", final)
+                item = rf"ISC-0*{t['isc']}\b"
+                negative = any(re.search(item, line, re.I) and re.search(r"\b(?:REVISE_PLAN|ASK_USER)\b", line) for line in final.splitlines())
+                if decision and decision.group(1) in ("APPROVE_PLAN", "SELECTED") and not negative and scoped and discovery_item:
+                    return True
+                continue
             # Testers usually write result rows to a verification file (by tool or shell), often while
             # still running for later items, and return a bare verdict.
             writes = [(p, txt) for m in before for name, inp in m["tools"] for p, txt in file_writes(name, inp)]
@@ -690,13 +713,13 @@ def grade(exp: dict) -> dict:
             item = rf"ISC-0*{t['isc']}\b"
             row_pass = any(re.search(rf"\b{item}[^\n]*\bPASS\b|\bPASS\b\s+(?:for|on)\s+{item}", line, re.I)
                            for line in pool.splitlines())
-            # A bare PASS counts when it wrote a file named for the item, or its brief named only this item.
-            brief = next((m["text"] for m in sessions[sid] if m["type"] == "user" and m["text"].strip()), "")
-            only_this = set(re.findall(r"ISC-0*(\d+)\b", brief)) == {t["isc"]}
             file_pass = re.match(r"\s*\**PASS\b", final) and (
                 only_this or any(re.search(rf"isc-0*{t['isc']}(?!\d)", p, re.I) for p, _ in writes))
+            negative = any((re.search(item, line, re.I) or not re.search(r"\bISC-\d+\b", line, re.I)) and re.search(r"\b(?:NOT_REPRODUCED|BLOCKED)\b", line) for line in final.splitlines())
+            reproduced = not negative and (any(re.search(rf"\b{item}[^\n]*\bREPRODUCED\b|\bREPRODUCED\b\s+(?:for|on)\s+{item}", line)
+                             for line in pool.splitlines()) or re.search(r"(?m)^\s*(?:[-*]\s*)?(?:[Rr]esult\s*:\s*`?)?REPRODUCED\b", final))
             evidence = EVIDENCE_PATH.search(pool) or writes
-            if (row_pass or file_pass) and evidence:
+            if (row_pass or file_pass or (reproduced and scoped and discovery_item)) and evidence:
                 return True
         return False
 

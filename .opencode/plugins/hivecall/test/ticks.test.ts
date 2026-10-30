@@ -23,6 +23,49 @@ const tickRows = (h: Awaited<ReturnType<typeof host>>) => h.events()
   .filter((row) => row.type === "tick-unearned" || row.action === "tick" || row.type === "close-unearned").map((row) => `${row.type} ${row.id ?? row.ids}`)
 
 describe("earned ticks", () => {
+  test("discovery requires explicit promise rows and earns every promised item", async () => {
+    for (const [rows, count] of [["-", 1], ["ISC-001,ISC-002", 2]] as const) {
+      const h = await host({ card: true })
+      await h.call("skill", { id: "subagent-delegation" })
+      h.before({ sessionID: "ses-root", id: "qa", tool: "subagent", input: { agent: "qa", description: "slice=ISC-001", prompt: `PROMISE: kind=helper rows=${rows} result=- lane=-\nTALK-BACK: report BUG only.` } })
+      await h.send("session.tool.success", { sessionID: "ses-root", id: "qa", metadata: { sessionID: "ses_qa", status: "completed" }, content: [{ type: "text", text: "Result: REPRODUCED" }] })
+      const ledger = "<h3>Discovery</h3>\n" + Array.from({ length: count }, (_, i) => `<li id="ISC-00${i + 1}"><input type="checkbox" checked> discovery</li>\n| ISC-00${i + 1} | PASS | commit abcdef1 | evidence .hivecall/proof.txt |`).join("\n")
+      const result = await h.call("write", { path: ".hivecall/checklist.html", content: ledger })
+      if (rows === "-") expect(result).toContain("ISC-001 is ticked without")
+      else expect(result).toBeNull()
+    }
+  })
+  test("discovery verdicts earn scoped ticks and allow close", async () => {
+    const h = await host({ card: true })
+    await h.call("skill", { id: "subagent-delegation" })
+    for (const [id, agent, rows, result] of [["qa", "qa", "ISC-001", "- Result: `REPRODUCED`"], ["rev", "reviewer", "ISC-002,ISC-003", "- Decision: `APPROVE_PLAN`"]]) {
+      h.before({ sessionID: "ses-root", id, tool: "subagent", input: { agent, description: "discovery", prompt: `PROMISE: kind=helper rows=${rows} result=- lane=-\nTALK-BACK: report BUG only.` } })
+      await h.send("session.tool.success", { sessionID: "ses-root", id, metadata: { sessionID: `ses_${id}`, status: "completed" }, content: [{ type: "text", text: result }] })
+    }
+    const ledger = "<h3>Discovery</h3>\n" + [1, 2, 3].map((n) => `<li id="ISC-00${n}"><input type="checkbox" checked> discovery</li>\n| ISC-00${n} | PASS | commit abcdef1 | evidence .hivecall/proof.txt |`).join("\n")
+    expect(await h.call("write", { path: ".hivecall/checklist.html", content: ledger })).toBeNull()
+    expect(await h.call("write", close)).toBeNull()
+  })
+
+  test("discovery verdicts cannot approve build items or lowercase prose", async () => {
+    for (const [agent, result, heading] of [["reviewer", "Decision: APPROVE_PLAN", "Build"], ["qa", "Result: bug reproduced", "Discovery"]]) {
+      const h = await host({ card: true })
+      await h.call("skill", { id: "subagent-delegation" })
+      h.before({ sessionID: "ses-root", id: "helper", tool: "subagent", input: { agent, description: "ISC-001", prompt: "PROMISE: kind=helper rows=ISC-001 result=- lane=-\nTALK-BACK: report BUG only." } })
+      await h.send("session.tool.success", { sessionID: "ses-root", id: "helper", metadata: { sessionID: "ses_helper", status: "completed" }, content: [{ type: "text", text: result }] })
+      expect(await h.call("write", { ...tick, content: `<h3>${heading}</h3>\n${ticked}` })).toContain("ISC-001 is ticked without")
+    }
+  })
+
+  for (const [agent, verdict] of [["qa", "PASS"], ["qa", "NOT_REPRODUCED"], ["reviewer", "REPRODUCED"]]) {
+    test(`${agent} ${verdict} does not earn a tick`, async () => {
+      const h = await host({ card: true })
+      await h.call("skill", { id: "subagent-delegation" })
+      h.before({ sessionID: "ses-root", id: "helper", tool: "subagent", input: { agent, description: "ISC-001", prompt: "PROMISE: kind=helper rows=ISC-001 result=- lane=-\nTALK-BACK: report BUG only." } })
+      await h.send("session.tool.success", { sessionID: "ses-root", id: "helper", metadata: { sessionID: "ses_helper", status: "completed" }, content: [{ type: "text", text: `- Result: \`${verdict}\`` }] })
+      expect(await h.call("write", tick)).toContain("ISC-001 is ticked without")
+    })
+  }
   test("an unearned tick blocks the close three times, then the fourth goes through with one warning", async () => {
     const h = await host({ card: true })
     expect(await h.call("write", tick)).toContain("ISC-001 is ticked without")

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test"
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { resolve } from "node:path"
-import { activeRun, anchor, apply, blockDecision, memory, parsePromise, reviewOutcome, ruleFor, tickedItems, unearned } from "../watchdog/policy"
+import { activeRun, anchor, apply, blockDecision, memory, parsePromise, reviewEvent, reviewOutcome, ruleFor, tickedItems, unearned } from "../watchdog/policy"
 
 const parity = await Bun.file(resolve(import.meta.dir, "promise-parity.json")).json() as Array<Record<string, unknown>>
 const canary = await Bun.file(resolve(import.meta.dir, "canary-false-blocks.json")).json() as Record<"runCardWrite" | "tickWrite", { command: string }>
@@ -159,6 +159,16 @@ describe("Hivecall rule fixtures", () => {
     expect(reviewOutcome("Decision: REVISE_CODE. Earlier draft said APPROVE_CODE.", ["ISC-001"])).toEqual({ approved: [], revised: true })
     expect(reviewOutcome("ISC-002 APPROVE_CODE", ["ISC-001"])).toEqual({ approved: [], revised: false })
     expect(reviewOutcome("No verdict here", ["ISC-001"])).toBeNull()
+    const helper = { agent: "reviewer", role: "reviewer", slice: "ISC-001", rows: "ISC-001" }
+    const discovery = reviewEvent("s", "plan", helper, "Decision: REVISE_PLAN")
+    expect(discovery).toBeNull()
+    expect(reviewEvent("s", "qa", { ...helper, agent: "qa" }, "Result: NOT_REPRODUCED")).toBeNull()
+    const revisions = memory(); revisions.skills.add("s")
+    for (let i = 0; i < 2; i++) {
+      const event = reviewEvent("s", `plan${i}`, helper, "Decision: REVISE_PLAN")
+      if (event) apply(revisions, event)
+    }
+    expect(revisions.revisions.size).toBe(0)
     const state = memory()
     const event = { type: "review-result", sessionID: "s", helper: "thr_a", slice: "ISC-001", approved: "", revised: 1 }
     apply(state, event); apply(state, event)

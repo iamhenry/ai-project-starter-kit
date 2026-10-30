@@ -45,6 +45,81 @@ def fixture():
 
 
 class EvalRegression(unittest.TestCase):
+    def test_discovery_backing_and_code_review_not_proof(self):
+        for verdict in ("APPROVE_PLAN", "SELECTED", "APPROVE_CODE"):
+            with self.subTest(verdict=verdict):
+                run = fixture()
+                run["info"]["ledger"] = {"discovery": ["1"]}
+                run["info"]["tree"]["qa"]["agent"] = "reviewer"
+                run["sessions"]["qa"] = [message("user", 115, "PROMISE: kind=helper rows=ISC-001,ISC-002 result=- lane=-", agent="reviewer"),
+                                          message("assistant", 160, f"- Status: `{verdict}`", agent="reviewer")]
+                grade = E.grade(run)
+                self.assertEqual(grade["6"]["pass"], verdict != "APPROVE_CODE")
+                self.assertEqual(grade["10"]["pass"], verdict != "APPROVE_CODE")
+        run = fixture()
+        run["info"]["ledger"] = {"discovery": ["1"]}
+        run["sessions"]["qa"][0]["text"] = "PROMISE: kind=helper rows=ISC-001 result=- lane=-"
+        run["sessions"]["qa"][-1]["text"] = "ISC-001 REPRODUCED: evidence: evidence/isc-001.png"
+        self.assertTrue(E.grade(run)["6"]["pass"])
+        run["sessions"]["qa"][-1]["text"] = "ISC-001 NOT_REPRODUCED: evidence: evidence/isc-001.png"
+        self.assertFalse(E.grade(run)["6"]["pass"])
+
+    def test_discovery_requires_promised_rows_and_bare_result_covers_both(self):
+        run = fixture()
+        run["sessions"]["qa"][0]["text"] = "slice=ISC-001\nPROMISE: kind=helper rows=- result=- lane=-"
+        run["sessions"]["qa"][-1]["text"] = "Result: REPRODUCED\nEvidence: evidence/isc-001.png"
+        self.assertFalse(E.grade(run)["6"]["pass"])
+        run["sessions"]["qa"][0]["text"] = "PROMISE: kind=helper rows=ISC-001,ISC-002 result=- lane=-"
+        run["sessions"]["worker"][3]["tools"][0][1]["content"] += "\nISC-002 PASS - verified; evidence: evidence/isc-002.png"
+        run["info"]["ledger"] = {"discovery": ["1", "2"]}
+        self.assertTrue(E.grade(run)["6"]["pass"])
+        run["sessions"]["qa"][-1]["text"] += "\nISC-002: NOT_REPRODUCED"
+        self.assertFalse(E.grade(run)["6"]["pass"])
+        run["sessions"]["qa"][-1]["text"] = "Risks: ISC-001 bug reproduced after restore. evidence: evidence/isc-001.png"
+        self.assertFalse(E.grade(run)["6"]["pass"])  # prose, not a REPRODUCED verdict
+        run["sessions"]["qa"][-1]["text"] = "- Result: `REPRODUCED`\nEvidence: evidence/isc-001.png"
+        self.assertTrue(E.grade(run)["6"]["pass"])
+        run["sessions"]["qa"][0]["text"] = "Test ISC-002"
+        self.assertFalse(E.grade(run)["6"]["pass"])
+
+    def test_discovery_scope_and_negative_decisions(self):
+        run = fixture()
+        run["info"]["ledger"] = {"discovery": ["1"]}
+        run["info"]["tree"]["qa"]["agent"] = "reviewer"
+        run["sessions"]["qa"] = [message("user", 115, "PROMISE: kind=helper rows=ISC-001 result=- lane=-", agent="reviewer"),
+                                  message("assistant", 160, "Decision: REVISE_PLAN\nEarlier APPROVE_PLAN", agent="reviewer")]
+        self.assertFalse(E.grade(run)["6"]["pass"])
+        run["sessions"]["qa"][-1]["text"] = "Decision: APPROVE_PLAN\nISC-001: ASK_USER"
+        self.assertFalse(E.grade(run)["6"]["pass"])
+        run["sessions"]["qa"][-1]["text"] = "Decision: APPROVE_PLAN"
+        run["info"]["ledger"] = {"discovery": []}
+        self.assertFalse(E.grade(run)["6"]["pass"])
+        run = fixture()
+        run["info"]["ledger"] = {"discovery": ["1"]}
+        run["sessions"]["qa"][0]["text"] = "Test ISC-001\nPROMISE: kind=helper rows=ISC-002 result=- lane=-"
+        run["sessions"]["qa"][-1]["text"] = "ISC-001 REPRODUCED: evidence: evidence/isc-001.png"
+        self.assertFalse(E.grade(run)["6"]["pass"])
+
+    def test_discovery_missing_metadata_fails_closed(self):
+        for role, verdict in (("reviewer", "Decision: APPROVE_PLAN"), ("qa", "Result: REPRODUCED\nEvidence: evidence/isc-001.png")):
+            with self.subTest(role=role):
+                run = fixture()
+                run["info"]["tree"]["qa"]["agent"] = role
+                run["sessions"]["qa"] = [message("user", 115, "PROMISE: kind=helper rows=ISC-001 result=- lane=-", agent=role),
+                                          message("assistant", 160, verdict, agent=role)]
+                self.assertFalse(E.grade(run)["6"]["pass"])
+
+    def test_bare_negative_vetoes_discovery_but_not_pass(self):
+        for verdict in ("NOT_REPRODUCED", "BLOCKED"):
+            with self.subTest(verdict=verdict):
+                run = fixture()
+                run["info"]["ledger"] = {"discovery": ["1"]}
+                run["sessions"]["qa"][0]["text"] = "PROMISE: kind=helper rows=ISC-001 result=- lane=-"
+                run["sessions"]["qa"][-1] = message("assistant", 160, f"Result: {verdict}", agent="qa", tools=[("write", {"path": "evidence/result.md", "content": "ISC-001 REPRODUCED"})])
+                self.assertFalse(E.grade(run)["6"]["pass"])
+                run["sessions"]["qa"][-1]["tools"][0][1]["content"] = "ISC-001 PASS"
+                self.assertTrue(E.grade(run)["6"]["pass"])
+
     def test_promise_parser_matches_plugin_fixtures(self):
         fixtures = json.loads((E.SKILL / "test" / "promise-parity.json").read_text())
         for row in fixtures:
