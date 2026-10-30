@@ -16,7 +16,7 @@ Start only when all are true:
 
 - The user explicitly invoked hivecall in this conversation.
 - A goal or task description is supplied: free-form text, a spec file, or an ISA.html ledger. Raw bug reports use discovery.
-- On a clear-task route, the owner approved the goal contract and answered both kickoff questions; on discovery, the owner's answers authorize the run and judges approve/revise the plan. This replaces the orchestrator's IMPLEMENTATION GATE for this run only. (See Kickoff.)
+- On a clear-task route, the owner approved the goal contract and answered both kickoff questions; on discovery, the owner's answers authorize the run and judges approve/revise a plan when one is needed. This replaces the orchestrator's IMPLEMENTATION GATE for this run only. (See Kickoff.)
 
 If the goal is missing, ask for it and stop.
 
@@ -24,8 +24,8 @@ If the goal is missing, ask for it and stop.
 
 Read [HOW-TO-WORK.md](HOW-TO-WORK.md) first: the owner's constants for every run. Read [watchdog/lessons.md](watchdog/lessons.md) before the first delegation, not only when resuming. After any context compaction or compression, and on a watchdog `REANCHOR` message, re-read HOW-TO-WORK.md and the run card (Owner rules, Proven recipes, Answers) before the next delegation. Then follow [references/kickoff.md](references/kickoff.md):
 
-1. If the input cannot yet support a falsifiable check for every Verification line (e.g., an ambiguous goal or raw bug report), follow [references/discovery.md](references/discovery.md) first; otherwise draft the goal contract and plan as today.
-2. On a clear-task route, show both and ask "Watchdog on? (yes / no)" and "Open a PR at the end? (yes / no)"; wait for contract approval. On discovery, those answers authorize the run; judges approve or revise the plan.
+1. Apply the four judgment gates per item: **Clarity** (kickoff falsifiability), **Understanding** (discovery as needed), **Readiness** (judge a real plan if needed), and **Verification** (tick-gate and independent proof). Mixed lists may use clear and discovery routes together; size each gate to the evidence, not a fixed sequence. Planless discovery still needs a fresh qa `REPRODUCED` (or `PASS` on the item's check) for a reproduction/cause or a fresh reviewer `SELECTED` on a cited non-bug finding (judge-proposal even for one option); cited research alone never ticks.
+2. On a clear-task route, show both and ask "Watchdog on? (yes / no)" and "Open a PR at the end? (yes / no)"; wait for contract approval. On discovery, those answers authorize the run; judges approve or revise a plan when needed.
 3. Use the supplied ISA.html as the ledger, or create `.hivecall/checklist.html` from the template, with the approved contract or the Discovery items on it.
 4. Write the run card `.hivecall/run.md` with `status: running`, including the Plan map: one line per open item with what it needs and the files it touches. Name its slowest chain of needs. Size every task to fit in 15 minutes. A task is one outcome, one set of files, one proof check; a slice can hold several tasks.
 5. If watchdog is on, set it up per [README.md](README.md#watchdog): name it `🐝 <orchestrator thread title>`, capture the automation id, write `watchdog: on, automation <id>` in the run card, pass `AUTOMATION_ID`, then start it live.
@@ -35,9 +35,9 @@ When resuming in a fresh thread, read HOW-TO-WORK.md, the run card and ledger fi
 ## Ledger rules
 
 - The ledger is the only progress record. The run card holds lifecycle status only (running, waiting-owner, waiting-usage, closed). Create no other status file.
-- Only the orchestrator ticks items, and only on independent proof: a fresh `qa` result that ran the item's exact check on the exact candidate. A builder's own claim, passing tests, a compile, a mock, or a summary is not proof. A builder marking its own work verified is self-verification, not proof.
+- Only the orchestrator ticks items, and only on independent proof: for build items, a fresh `qa` result that ran the item's exact check on the exact candidate; for discovery items, the fresh scoped verdict and receipt in [discovery.md](references/discovery.md). A builder's own claim, passing tests, a compile, a mock, or a summary is not proof. A builder marking its own work verified is self-verification, not proof.
 - Never edit an item's text, check or threshold. Update the progress count with each tick.
-- Append implementation items only when ticking the plan-approved discovery item, in that same edit; never edit existing items.
+- On either discovery route, append implementation items in the same ledger edit that ticks the last discovery item; append later additions or replacements only after orchestrator vetting; never edit existing items. Follow the approval and superseding record in [kickoff.md](references/kickoff.md). Each build item still needs a falsifiable check and real-entry-point E2E smoke before build.
 - Keep the plan (critical path, lanes) in chat; only the Plan map lines go in the run card. Do not write the plan to the ledger.
 - The Plan map is living: when evidence changes what an item needs or touches (a hidden dependency, a split, a new item), update its line in the same turn and re-name the slowest chain.
 
@@ -92,6 +92,8 @@ Ask three things: did this unblock or break another item, did the critical path 
 Re-plan on new evidence, not on activity.
 
 ## Park, don't loop
+
+- For every find-out item, a negative result (NOT_REPRODUCED, BLOCKED, no cause or source found) never earns a tick or proves absence, and cannot alone justify replacement. Give one fresh helper what was tried and retry with one changed angle (entry point, setup, data or steps). If still negative, park and ask one 🚦 question listing what was tried and what is needed; continue other work.
 
 - A FAIL, a BLOCKED, and a restarted helper each count as an attempt. Up to three attempts, each meaningfully different from the last, for example a new hypothesis or method, then a stronger model or research. Use judgment on what counts as different; never rerun the same idea. Debug in tight, time-boxed log loops (HOW-TO-WORK.md, Defaults). If the cause is unclear, the correction brief names `bugging-out` and carries the failed evidence; the builder picks the next playbook, not a repeat.
 - Attempt 2 must use a new angle and check the run card's Proven recipes first. A BLOCKED report names the cheapest other probe it tried.

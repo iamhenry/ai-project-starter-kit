@@ -45,6 +45,114 @@ def fixture():
 
 
 class EvalRegression(unittest.TestCase):
+    def test_discovery_backing_and_code_review_not_proof(self):
+        for verdict in ("APPROVE_PLAN", "SELECTED", "APPROVE_CODE"):
+            with self.subTest(verdict=verdict):
+                run = fixture()
+                run["info"]["ledger"] = {"discovery": ["1"]}
+                run["info"]["tree"]["qa"]["agent"] = "reviewer"
+                run["sessions"]["qa"] = [message("user", 115, "PROMISE: kind=helper rows=ISC-001,ISC-002 result=- lane=-", agent="reviewer"),
+                                          message("assistant", 160, f"- Status: `{verdict}`", agent="reviewer")]
+                grade = E.grade(run)
+                self.assertEqual(grade["6"]["pass"], verdict != "APPROVE_CODE")
+                self.assertEqual(grade["10"]["pass"], verdict != "APPROVE_CODE")
+        run = fixture()
+        run["info"]["ledger"] = {"discovery": ["1"]}
+        run["sessions"]["qa"][0]["text"] = "PROMISE: kind=helper rows=ISC-001 result=- lane=-"
+        run["sessions"]["qa"][-1]["text"] = "ISC-001 REPRODUCED: evidence: evidence/isc-001.png"
+        self.assertTrue(E.grade(run)["6"]["pass"])
+        run["sessions"]["qa"][-1]["text"] = "ISC-001 NOT_REPRODUCED: evidence: evidence/isc-001.png"
+        self.assertFalse(E.grade(run)["6"]["pass"])
+
+    def test_discovery_requires_promised_rows_and_bare_result_covers_both(self):
+        run = fixture()
+        run["sessions"]["qa"][0]["text"] = "slice=ISC-001\nPROMISE: kind=helper rows=- result=- lane=-"
+        run["sessions"]["qa"][-1]["text"] = "Result: REPRODUCED\nEvidence: evidence/isc-001.png"
+        self.assertFalse(E.grade(run)["6"]["pass"])
+        run["sessions"]["qa"][0]["text"] = "PROMISE: kind=helper rows=ISC-001,ISC-002 result=- lane=-"
+        run["sessions"]["worker"][3]["tools"][0][1]["content"] += "\nISC-002 PASS - verified; evidence: evidence/isc-002.png"
+        run["info"]["ledger"] = {"discovery": ["1", "2"]}
+        self.assertTrue(E.grade(run)["6"]["pass"])
+        run["sessions"]["qa"][-1]["text"] += "\nISC-002: NOT_REPRODUCED"
+        self.assertFalse(E.grade(run)["6"]["pass"])
+        run["sessions"]["qa"][-1]["text"] = "Risks: ISC-001 bug reproduced after restore. evidence: evidence/isc-001.png"
+        self.assertFalse(E.grade(run)["6"]["pass"])  # prose, not a REPRODUCED verdict
+        run["sessions"]["qa"][-1]["text"] = "- Result: `REPRODUCED`\nEvidence: evidence/isc-001.png"
+        self.assertTrue(E.grade(run)["6"]["pass"])
+        run["sessions"]["qa"][0]["text"] = "Test ISC-002"
+        self.assertFalse(E.grade(run)["6"]["pass"])
+
+    def test_discovery_scope_and_negative_decisions(self):
+        run = fixture()
+        run["info"]["ledger"] = {"discovery": ["1"]}
+        run["info"]["tree"]["qa"]["agent"] = "reviewer"
+        run["sessions"]["qa"] = [message("user", 115, "PROMISE: kind=helper rows=ISC-001 result=- lane=-", agent="reviewer"),
+                                  message("assistant", 160, "Decision: REVISE_PLAN\nEarlier APPROVE_PLAN", agent="reviewer")]
+        self.assertFalse(E.grade(run)["6"]["pass"])
+        run["sessions"]["qa"][-1]["text"] = "Decision: APPROVE_PLAN\nISC-001: ASK_USER"
+        self.assertFalse(E.grade(run)["6"]["pass"])
+        run["sessions"]["qa"][-1]["text"] = "Decision: APPROVE_PLAN"
+        run["info"]["ledger"] = {"discovery": []}
+        self.assertFalse(E.grade(run)["6"]["pass"])
+        run = fixture()
+        run["info"]["ledger"] = {"discovery": ["1"]}
+        run["sessions"]["qa"][0]["text"] = "Test ISC-001\nPROMISE: kind=helper rows=ISC-002 result=- lane=-"
+        run["sessions"]["qa"][-1]["text"] = "ISC-001 REPRODUCED: evidence: evidence/isc-001.png"
+        self.assertFalse(E.grade(run)["6"]["pass"])
+
+    def test_discovery_missing_metadata_fails_closed(self):
+        for role, verdict in (("reviewer", "Decision: APPROVE_PLAN"), ("qa", "Result: REPRODUCED\nEvidence: evidence/isc-001.png")):
+            with self.subTest(role=role):
+                run = fixture()
+                run["info"]["tree"]["qa"]["agent"] = role
+                run["sessions"]["qa"] = [message("user", 115, "PROMISE: kind=helper rows=ISC-001 result=- lane=-", agent=role),
+                                          message("assistant", 160, verdict, agent=role)]
+                self.assertFalse(E.grade(run)["6"]["pass"])
+
+    def test_bare_negative_vetoes_discovery_but_not_build_pass(self):
+        for verdict in ("NOT_REPRODUCED", "BLOCKED"):
+            with self.subTest(verdict=verdict):
+                run = fixture()
+                run["info"]["ledger"] = {"discovery": ["1"]}
+                run["sessions"]["qa"][0]["text"] = "PROMISE: kind=helper rows=ISC-001 result=- lane=-"
+                run["sessions"]["qa"][-1] = message("assistant", 160, f"Result: {verdict}", agent="qa", tools=[("write", {"path": "evidence/result.md", "content": "ISC-001 REPRODUCED"})])
+                self.assertFalse(E.grade(run)["6"]["pass"])
+                run["sessions"]["qa"][-1]["tools"][0][1]["content"] = "ISC-001 PASS"
+                self.assertFalse(E.grade(run)["6"]["pass"])  # Discovery: the final negative wins, as in the plugin
+                run["info"]["ledger"] = {"discovery": []}
+                self.assertTrue(E.grade(run)["6"]["pass"])  # build items keep today's PASS-row backing
+
+    def test_qa_bare_pass_backs_promised_discovery_rows_unless_vetoed(self):
+        run = fixture()
+        run["info"]["ledger"] = {"discovery": ["1", "2"]}
+        run["sessions"]["worker"][3]["tools"][0][1]["content"] += "\nISC-002 PASS - verified"
+        run["sessions"]["qa"][0]["text"] = "PROMISE: kind=helper rows=ISC-001,ISC-002 result=- lane=-"
+        run["sessions"]["qa"][-1] = message("assistant", 160, "Result: PASS", agent="qa", tools=[("write", {"path": "evidence/result.md", "content": "checked"})])
+        self.assertTrue(E.grade(run)["6"]["pass"])
+        for veto in ("Result: PASS\nResult: FAIL", "Result: PASS; BLOCKED", "Result: PASS\nISC-002 FAIL"):
+            with self.subTest(veto=veto):
+                run["sessions"]["qa"][-1]["text"] = veto
+                self.assertFalse(E.grade(run)["6"]["pass"])
+        run["sessions"]["qa"][0]["text"] = "PROMISE: kind=helper rows=ISC-001 result=- lane=-"  # single item: file_pass/row_pass paths
+        for veto in ("PASS\nFAIL", "PASS\nBLOCKED"):
+            with self.subTest(single=veto):
+                run["sessions"]["qa"][-1]["text"] = veto
+                self.assertFalse(E.grade(run)["6"]["pass"])
+        run["sessions"]["qa"][0]["text"] = "PROMISE: kind=helper rows=ISC-001,ISC-002 result=- lane=-"
+        run["sessions"]["qa"][-1]["text"] = "Result: PASS"
+        run["info"]["ledger"] = {"discovery": []}  # build items keep today's rules: bare PASS on a generic file is not enough
+        self.assertFalse(E.grade(run)["6"]["pass"])
+
+    def test_reviewer_overall_negative_vetoes_discovery(self):
+        for text in ("Decision: APPROVE_PLAN\nDecision: REVISE_PLAN", "Decision: APPROVE_PLAN; ASK_USER"):
+            with self.subTest(text=text):
+                run = fixture()
+                run["info"]["ledger"] = {"discovery": ["1"]}
+                run["info"]["tree"]["qa"]["agent"] = "reviewer"
+                run["sessions"]["qa"] = [message("user", 115, "PROMISE: kind=helper rows=ISC-001 result=- lane=-", agent="reviewer"),
+                                          message("assistant", 160, text, agent="reviewer")]
+                self.assertFalse(E.grade(run)["6"]["pass"])
+
     def test_promise_parser_matches_plugin_fixtures(self):
         fixtures = json.loads((E.SKILL / "test" / "promise-parity.json").read_text())
         for row in fixtures:
@@ -404,6 +512,22 @@ class EvalRegression(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 E.freeze_baseline(force=True)
 
+
+
+class GrowthFixtures(unittest.TestCase):
+    def test_frozen_growth_records(self):
+        rows = json.loads((E.HERE / "fixtures/growth.json").read_text())
+        for row in rows:
+            with self.subTest(row=row["name"]):
+                with TemporaryDirectory() as td:
+                    path = Path(td) / "ledger.html"
+                    items = '<li id="ISC-1"><input type="checkbox" disabled data-status="parked"> ISC-1: original</li><li id="ISC-2"><input type="checkbox" disabled checked> ISC-2: replacement</li>'
+                    path.write_text('<h3>Criteria</h3><ul class="isc">' + items + '</ul><section id="verification"><ul>' + ''.join('<li>' + r + '</li>' for r in row['records']) + '<li>ISC-2: PASS - proven; evidence proof/result.md</li></ul></section>')
+                    if row['name'] == 'approved replacement':
+                        self.assertTrue(E.parse_isa(str(path), td)['done'])
+                    growth = E.ledger_summary(path, Path(td), 'fixture', 1, 'ledger.html')['growth']
+                    for key in ('added', 'incomplete', 'chained', 'superseded'):
+                        self.assertEqual(growth[key], row[key])
 
 if __name__ == "__main__":
     unittest.main()

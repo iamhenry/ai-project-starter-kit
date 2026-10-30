@@ -314,7 +314,7 @@ export default Plugin.define({
       for (const id of bad) if (!flagged.has(id)) {
         flagged.add(id)
         record({ type: "tick-unearned", rule: "tick-gate", id, sessionID: event.sessionID, tool })
-        notices.push(`${id} is ticked without a verified reviewer approval and its receipt, so it does not count.`)
+        notices.push(`${id} is ticked without a verified reviewer APPROVE_CODE, APPROVE_PLAN or SELECTED, or qa REPRODUCED for Discovery items only, and its receipt, so it does not count.`)
       }
       for (const id of [...flagged]) if (!bad.has(id)) flagged.delete(id)
       for (const id of [...earned]) if (!ticked.has(id)) earned.delete(id)

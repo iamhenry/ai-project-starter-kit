@@ -150,12 +150,14 @@ Signals:
 If no signals fire, stay local.
 
 Decision process:
-1. Classify request (Trivial, Explicit, Exploratory, Open-ended, Ambiguous).
+1. Judge the request’s clarity and scope.
 2. Validate scope/assumptions.
 3. Choose Direct, Delegated, or Orchestrated execution.
 4. Internal search → `research/atlas`; external refs → `research/voyager`.
 5. File modifications → present plan via IMPLEMENTATION GATE, wait for approval, then delegate to `build`/`general`, unless a HIVECALL RUN is active.
 6. Run background agents only when a probe signal fires.
+
+**Gates (judgment, not extra rules):** Clarity uses the kickoff falsifiability test; Understanding sizes discovery to the evidence; Readiness judges a real plan when needed; Verification uses independent proof and, in hivecall, tick-gate plus QA. Apply these per task, including mixed clear and find-out lists. In hivecall, planless discovery still needs fresh qa `REPRODUCED` for a reproduction/cause or fresh reviewer `SELECTED` on a cited non-bug finding (judge-proposal even for one option); cited research alone never ticks. Existing research mode and IMPLEMENTATION GATE remain unchanged outside hivecall.
 
 Task delegation:
 
@@ -198,7 +200,7 @@ Name the skill in the prompt's OBJECTIVE so the agent loads it.
 | `create-ticket` | Writing a GitHub issue or a local `ticket.md` | `general` |
 | `code-quality-gate` | A diff is done and needs review | `reviewer` |
 | `verification-gate` | Work is done and must be proven | `qa` |
-| `hivecall` | Large ledger of tasks, only when the user explicitly invokes it (`@hivecall`). Most expensive workflow; never start it yourself | `orchestrator` |
+| `hivecall` | Autonomous ledger run for clear or find-out tasks, only when the user explicitly invokes it (`@hivecall`). Most expensive workflow; never start it yourself | `orchestrator` |
 | `git-commits` | The user explicitly asked to commit | `general` |
 | `issue-to-pr` / `create-pr` | The user explicitly asked for a PR | `general` |
 

@@ -45,6 +45,27 @@ export function reviewOutcome(text: string, scope: string[]): { approved: string
   return { approved, revised: overall === "revise" || (!overall && [...perItem.values()].includes("revise")) }
 }
 
+function discoveryOutcome(text: string, scope: string[], role: string): string[] {
+  const approve = role === "qa" ? /\b(?:REPRODUCED|PASS)\b/ : /\b(?:APPROVE_PLAN|SELECTED)\b/
+  const revise = role === "qa" ? /\b(?:NOT_REPRODUCED|BLOCKED|FAIL)\b/ : /\b(?:REVISE_PLAN|ASK_USER)\b/
+  const verdict = (line: string): Verdict | null => {
+    const yes = approve.test(line), no = revise.test(line)
+    return yes === no ? null : yes ? "approve" : "revise"
+  }
+  const lines = text.split(/\r?\n/)
+  // A negative on a line naming no ISC id vetoes every scoped id, even after an approving Decision/Result line.
+  if (lines.some((line) => !iscIds(line).length && revise.test(line))) return []
+  const token = role === "qa" ? "REPRODUCED|PASS|NOT_REPRODUCED|BLOCKED|FAIL" : "APPROVE_PLAN|SELECTED|REVISE_PLAN|ASK_USER"
+  const decision = lines.map((line) => new RegExp(`^\\W*(?:[Dd][Ee][Cc][Ii][Ss][Ii][Oo][Nn]|[Vv][Ee][Rr][Dd][Ii][Cc][Tt]|[Ss][Tt][Aa][Tt][Uu][Ss]|[Rr][Ee][Ss][Uu][Ll][Tt])\\b[^:=\\n]*[:=].*?\\b(${token})\\b`).exec(line)?.[1]).find(Boolean)
+  const overall = decision ? verdict(decision) : verdict(lines.filter((line) => !iscIds(line).length).join("\n"))
+  const perItem = new Map<string, Verdict>()
+  for (const line of lines) {
+    const result = revise.test(line) ? "revise" : verdict(line)
+    if (result) for (const id of iscIds(line)) perItem.set(id, perItem.get(id) === "revise" ? "revise" : result)
+  }
+  return scope.filter((id) => (perItem.get(id) ?? overall) === "approve")
+}
+
 /** Role a brief names for its helper: an `agent:`/`role:` line, `You are <Name> (<role>)`, or the one gate it says to run; "" if none. */
 export function briefRole(text: string): string {
   const role = "(build|general|reviewer|qa|research)"
@@ -61,7 +82,7 @@ export function agentMismatch(role: string, agent: string): boolean {
   return Boolean(role && agent && !agent.toLowerCase().includes(role))
 }
 
-export type Helper = { parentSessionID: string; agent: string; role: string; slice: string; rows: string }
+export type Helper = { parentSessionID: string; agent: string; role: string; slice: string; rows: string; promise?: string }
 
 export type Memory = {
   blocks: Map<string, number>
@@ -86,15 +107,21 @@ export type HiveEvent = { type: string } & Record<string, string | number | unde
 /** Identity of a helper from its delegation input; `agent` is the harness agent or an inferred role. */
 export function helperIdentity(input: Record<string, unknown>): Omit<Helper, "parentSessionID"> {
   const text = `${String(input.description ?? "")}\n${String(input.prompt ?? "")}`
-  return { agent: String(input.agent ?? "").toLowerCase(), role: briefRole(text), slice: sliceKey(text) ?? "", rows: reviewScope(text).join(",") }
+  const promise = parsePromise(text)
+  const rows = promise?.valid ? [...promise.rows].join(",") : ""
+  return { agent: String(input.agent ?? "").toLowerCase(), role: briefRole(text), slice: sliceKey(text) ?? "", rows: reviewScope(text).join(","), ...(rows ? { promise: rows } : {}) }
 }
 
-/** Turns a finished reviewer helper's result text into a `review-result` event; other helpers return null. */
+/** Turns a finished reviewer or qa helper's result text into a `review-result` event; other helpers return null. */
 export function reviewEvent(sessionID: string, helperID: string, helper: Omit<Helper, "parentSessionID">, text: string): HiveEvent | null {
-  if (!helper.agent.includes("reviewer")) return null
-  const outcome = reviewOutcome(text, helper.rows ? helper.rows.split(",") : [])
-  if (!outcome) return null
-  return { type: "review-result", sessionID, helper: helperID, slice: helper.slice, approved: outcome.approved.join(","), revised: outcome.revised ? 1 : 0 }
+  const role = helper.agent.includes("reviewer") ? "reviewer" : helper.agent.includes("qa") ? "qa" : ""
+  if (!role) return null
+  const scope = helper.rows ? helper.rows.split(",") : []
+  const code = role === "reviewer" ? reviewOutcome(text, scope) : null
+  const discovery = discoveryOutcome(text, helper.promise ? helper.promise.split(",") : [], role)
+  if (!code && !discovery.length) return null
+  return { type: "review-result", sessionID, helper: helperID, slice: helper.slice, approved: code?.approved.join(",") ?? "", revised: code?.revised ? 1 : 0,
+    ...(discovery.length ? { discovery: discovery.join(",") } : {}) }
 }
 
 /** Applies one neutral event to memory; used both live and when restoring `events.jsonl`. */
@@ -108,7 +135,7 @@ export function apply(state: Memory, event: HiveEvent): void {
   if (event.type === "skill-loaded" && event.id === "subagent-delegation") state.skills.add(sessionID)
   if (event.type === "helper-created" && event.parentSessionID)
     state.helpers.set(sessionID, { parentSessionID: String(event.parentSessionID), agent: String(event.agent ?? ""),
-      role: String(event.role ?? ""), slice: String(event.slice ?? ""), rows: String(event.rows ?? "") })
+      role: String(event.role ?? ""), slice: String(event.slice ?? ""), rows: String(event.rows ?? ""), ...(event.promise ? { promise: String(event.promise) } : {}) })
   // The agent a helper really runs as (a harness pin), which outranks the role its brief names.
   if (event.type === "helper-agent" && event.agent) {
     const known = state.helpers.get(sessionID)
@@ -121,6 +148,7 @@ export function apply(state: Memory, event: HiveEvent): void {
     if (helper && state.reviewed.has(helper)) return // the same helper result read twice is one review
     if (helper) state.reviewed.add(helper)
     for (const id of String(event.approved ?? "").split(",").filter(Boolean)) state.approvals.add(iscId(id))
+    for (const id of String(event.discovery ?? "").split(",").filter(Boolean)) state.approvals.add(`discovery:${iscId(id)}`)
     if (Number(event.revised) && event.slice) {
       const ref = `${sessionID}:${event.slice}`
       state.revisions.set(ref, (state.revisions.get(ref) ?? 0) + 1)
@@ -226,7 +254,13 @@ export function tickedItems(text: string): string[] {
  * Judged on the file's end state, whatever tool wrote it; the ledger is never changed.
  */
 export function unearned(ledger: string, approvals: Set<string>, grandfathered: Set<string>, root: string): string[] {
-  return tickedItems(ledger).filter((id) => !grandfathered.has(id) && !(approvals.has(id) && hasReceipt(ledger, id, root)))
+  const headings = [...ledger.matchAll(/<h[2-6]\b[^>]*>\s*([^<]*?)\s*<\/h[2-6]\s*>|^\s*#{1,6}\s+(.+?)\s*#*\s*$/gim)]
+  const discovery = new Set<string>()
+  for (let i = 0; i < headings.length; i++) {
+    if ((headings[i][1] ?? headings[i][2]).trim().toLowerCase() === "discovery")
+      for (const id of tickedItems(ledger.slice(headings[i].index! + headings[i][0].length, headings[i + 1]?.index ?? ledger.length))) discovery.add(id)
+  }
+  return tickedItems(ledger).filter((id) => !grandfathered.has(id) && !((approvals.has(id) || (discovery.has(id) && approvals.has(`discovery:${id}`))) && hasReceipt(ledger, id, root)))
 }
 
 function checkedItems(text: string): string[] {
