@@ -4,7 +4,7 @@ Read this at the start of every hivecall run, and again when resuming one.
 
 ## 1. Turn the owner's input into a goal contract
 
-The owner may give a free-form goal, a spec file, or an ISA.html. For clear input, draft this contract and plan, then wait for owner approval. Choose per item: when it cannot support a falsifiable Verification check, use [discovery.md](discovery.md); clear and find-out items can share a run. Do not wait for owner contract/plan approval for discovery; judge a plan only when needed. Planless discovery still needs a fresh qa `REPRODUCED` for a reproduction/cause or fresh reviewer `SELECTED` on a cited non-bug finding (judge-proposal even for one option); cited research alone never ticks.
+The owner may give a free-form goal, a spec file, or an ISA.html. For clear input, draft this contract and plan, then wait for owner approval. Choose per item: when it cannot support a falsifiable Verification check, use [discovery.md](discovery.md); clear and find-out items can share a run. Do not wait for owner contract/plan approval for discovery; judge a plan only when needed. Planless discovery still needs a fresh qa `REPRODUCED` (or `PASS` on the item's check) for a reproduction/cause or fresh reviewer `SELECTED` on a cited non-bug finding (judge-proposal even for one option); cited research alone never ticks.
 
 Use exactly this shape:
 

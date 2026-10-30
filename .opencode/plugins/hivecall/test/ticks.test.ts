@@ -57,6 +57,32 @@ describe("earned ticks", () => {
     }
   })
 
+  // qa.md lets qa answer only PASS/FAIL/BLOCKED: PASS on a Discovery item's check earns it; FAIL or a later negative does not.
+  for (const [result, heading, earned] of [["Result: PASS", "Discovery", true], ["Result: PASS", "Build", false], ["Result: FAIL", "Discovery", false],
+    ["Result: PASS\nISC-001 NOT_REPRODUCED", "Discovery", false], ["Result: PASS\nISC-001 BLOCKED", "Discovery", false],
+    // An overall negative on a line naming no id vetoes, even after a PASS; another id's negative does not.
+    ["Result: PASS\nResult: FAIL", "Discovery", false], ["Result: PASS; BLOCKED", "Discovery", false], ["Result: PASS\nISC-002 FAIL", "Discovery", true]] as const) {
+    test(`qa ${JSON.stringify(result)} on a ${heading} item ${earned ? "earns" : "does not earn"} a tick`, async () => {
+      const h = await host({ card: true })
+      await h.call("skill", { id: "subagent-delegation" })
+      h.before({ sessionID: "ses-root", id: "qa", tool: "subagent", input: { agent: "qa", description: "ISC-001", prompt: "PROMISE: kind=helper rows=ISC-001 result=- lane=-\nTALK-BACK: report BUG only." } })
+      await h.send("session.tool.success", { sessionID: "ses-root", id: "qa", metadata: { sessionID: "ses_qa", status: "completed" }, content: [{ type: "text", text: result }] })
+      const written = await h.call("write", { ...tick, content: `<h3>${heading}</h3>\n${ticked}` })
+      if (earned) expect(written).toBeNull()
+      else expect(written).toContain("ISC-001 is ticked without")
+    })
+  }
+
+  for (const result of ["Decision: APPROVE_PLAN\nDecision: REVISE_PLAN", "Decision: APPROVE_PLAN; ASK_USER"]) {
+    test(`reviewer ${JSON.stringify(result)} does not earn a Discovery tick`, async () => {
+      const h = await host({ card: true })
+      await h.call("skill", { id: "subagent-delegation" })
+      h.before({ sessionID: "ses-root", id: "rev", tool: "subagent", input: { agent: "reviewer", description: "ISC-001", prompt: "PROMISE: kind=helper rows=ISC-001 result=- lane=-\nTALK-BACK: report BUG only." } })
+      await h.send("session.tool.success", { sessionID: "ses-root", id: "rev", metadata: { sessionID: "ses_rev", status: "completed" }, content: [{ type: "text", text: result }] })
+      expect(await h.call("write", { ...tick, content: `<h3>Discovery</h3>\n${ticked}` })).toContain("ISC-001 is ticked without")
+    })
+  }
+
   for (const [agent, verdict] of [["qa", "PASS"], ["qa", "NOT_REPRODUCED"], ["reviewer", "REPRODUCED"]]) {
     test(`${agent} ${verdict} does not earn a tick`, async () => {
       const h = await host({ card: true })

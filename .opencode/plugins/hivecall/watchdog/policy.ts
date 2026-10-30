@@ -46,14 +46,16 @@ export function reviewOutcome(text: string, scope: string[]): { approved: string
 }
 
 function discoveryOutcome(text: string, scope: string[], role: string): string[] {
-  const approve = role === "qa" ? /\bREPRODUCED\b/ : /\b(?:APPROVE_PLAN|SELECTED)\b/
-  const revise = role === "qa" ? /\b(?:NOT_REPRODUCED|BLOCKED)\b/ : /\b(?:REVISE_PLAN|ASK_USER)\b/
+  const approve = role === "qa" ? /\b(?:REPRODUCED|PASS)\b/ : /\b(?:APPROVE_PLAN|SELECTED)\b/
+  const revise = role === "qa" ? /\b(?:NOT_REPRODUCED|BLOCKED|FAIL)\b/ : /\b(?:REVISE_PLAN|ASK_USER)\b/
   const verdict = (line: string): Verdict | null => {
     const yes = approve.test(line), no = revise.test(line)
     return yes === no ? null : yes ? "approve" : "revise"
   }
   const lines = text.split(/\r?\n/)
-  const token = role === "qa" ? "REPRODUCED|NOT_REPRODUCED|BLOCKED" : "APPROVE_PLAN|SELECTED|REVISE_PLAN|ASK_USER"
+  // A negative on a line naming no ISC id vetoes every scoped id, even after an approving Decision/Result line.
+  if (lines.some((line) => !iscIds(line).length && revise.test(line))) return []
+  const token = role === "qa" ? "REPRODUCED|PASS|NOT_REPRODUCED|BLOCKED|FAIL" : "APPROVE_PLAN|SELECTED|REVISE_PLAN|ASK_USER"
   const decision = lines.map((line) => new RegExp(`^\\W*(?:[Dd][Ee][Cc][Ii][Ss][Ii][Oo][Nn]|[Vv][Ee][Rr][Dd][Ii][Cc][Tt]|[Ss][Tt][Aa][Tt][Uu][Ss]|[Rr][Ee][Ss][Uu][Ll][Tt])\\b[^:=\\n]*[:=].*?\\b(${token})\\b`).exec(line)?.[1]).find(Boolean)
   const overall = decision ? verdict(decision) : verdict(lines.filter((line) => !iscIds(line).length).join("\n"))
   const perItem = new Map<string, Verdict>()

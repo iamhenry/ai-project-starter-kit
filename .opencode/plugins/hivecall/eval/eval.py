@@ -717,7 +717,7 @@ def grade(exp: dict) -> dict:
             if not is_tester(sid):
                 decision = re.search(r"(?m)^\s*[-*]?\s*(?i:decision|verdict|status)\s*[:=]\s*`?(APPROVE_PLAN|SELECTED|REVISE_PLAN|ASK_USER)\b", final)
                 item = rf"ISC-0*{t['isc']}\b"
-                negative = any(re.search(item, line, re.I) and re.search(r"\b(?:REVISE_PLAN|ASK_USER)\b", line) for line in final.splitlines())
+                negative = any((re.search(item, line, re.I) or not re.search(r"\bISC-\d+\b", line, re.I)) and re.search(r"\b(?:REVISE_PLAN|ASK_USER)\b", line) for line in final.splitlines())
                 if decision and decision.group(1) in ("APPROVE_PLAN", "SELECTED") and not negative and scoped and discovery_item:
                     return True
                 continue
@@ -733,10 +733,14 @@ def grade(exp: dict) -> dict:
                            for line in pool.splitlines())
             file_pass = re.match(r"\s*\**PASS\b", final) and (
                 only_this or any(re.search(rf"isc-0*{t['isc']}(?!\d)", p, re.I) for p, _ in writes))
-            negative = any((re.search(item, line, re.I) or not re.search(r"\bISC-\d+\b", line, re.I)) and re.search(r"\b(?:NOT_REPRODUCED|BLOCKED)\b", line) for line in final.splitlines())
+            negative = any((re.search(item, line, re.I) or not re.search(r"\bISC-\d+\b", line, re.I)) and re.search(r"\b(?:NOT_REPRODUCED|BLOCKED|FAIL)\b", line) for line in final.splitlines())
             reproduced = not negative and (any(re.search(rf"\b{item}[^\n]*\bREPRODUCED\b|\bREPRODUCED\b\s+(?:for|on)\s+{item}", line)
-                             for line in pool.splitlines()) or re.search(r"(?m)^\s*(?:[-*]\s*)?(?:[Rr]esult\s*:\s*`?)?REPRODUCED\b", final))
+                             for line in pool.splitlines()) or re.search(r"(?m)^\s*(?:[-*]\s*)?(?:[Rr]esult\s*:\s*`?)?REPRODUCED\b", final)
+                             # qa.md answers only PASS/FAIL/BLOCKED: a bare PASS backs a promised Discovery item too.
+                             or re.search(r"(?m)^\s*(?:[-*]\s*)?\**(?:[Rr]esult\s*:\s*`?)?PASS\b", final))
             evidence = EVIDENCE_PATH.search(pool) or writes
+            if discovery_item and negative:  # same veto as the plugin, on every Discovery proof path
+                continue
             if (row_pass or file_pass or (reproduced and scoped and discovery_item)) and evidence:
                 return True
         return False

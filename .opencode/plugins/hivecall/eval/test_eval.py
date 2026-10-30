@@ -109,7 +109,7 @@ class EvalRegression(unittest.TestCase):
                                           message("assistant", 160, verdict, agent=role)]
                 self.assertFalse(E.grade(run)["6"]["pass"])
 
-    def test_bare_negative_vetoes_discovery_but_not_pass(self):
+    def test_bare_negative_vetoes_discovery_but_not_build_pass(self):
         for verdict in ("NOT_REPRODUCED", "BLOCKED"):
             with self.subTest(verdict=verdict):
                 run = fixture()
@@ -118,7 +118,40 @@ class EvalRegression(unittest.TestCase):
                 run["sessions"]["qa"][-1] = message("assistant", 160, f"Result: {verdict}", agent="qa", tools=[("write", {"path": "evidence/result.md", "content": "ISC-001 REPRODUCED"})])
                 self.assertFalse(E.grade(run)["6"]["pass"])
                 run["sessions"]["qa"][-1]["tools"][0][1]["content"] = "ISC-001 PASS"
-                self.assertTrue(E.grade(run)["6"]["pass"])
+                self.assertFalse(E.grade(run)["6"]["pass"])  # Discovery: the final negative wins, as in the plugin
+                run["info"]["ledger"] = {"discovery": []}
+                self.assertTrue(E.grade(run)["6"]["pass"])  # build items keep today's PASS-row backing
+
+    def test_qa_bare_pass_backs_promised_discovery_rows_unless_vetoed(self):
+        run = fixture()
+        run["info"]["ledger"] = {"discovery": ["1", "2"]}
+        run["sessions"]["worker"][3]["tools"][0][1]["content"] += "\nISC-002 PASS - verified"
+        run["sessions"]["qa"][0]["text"] = "PROMISE: kind=helper rows=ISC-001,ISC-002 result=- lane=-"
+        run["sessions"]["qa"][-1] = message("assistant", 160, "Result: PASS", agent="qa", tools=[("write", {"path": "evidence/result.md", "content": "checked"})])
+        self.assertTrue(E.grade(run)["6"]["pass"])
+        for veto in ("Result: PASS\nResult: FAIL", "Result: PASS; BLOCKED", "Result: PASS\nISC-002 FAIL"):
+            with self.subTest(veto=veto):
+                run["sessions"]["qa"][-1]["text"] = veto
+                self.assertFalse(E.grade(run)["6"]["pass"])
+        run["sessions"]["qa"][0]["text"] = "PROMISE: kind=helper rows=ISC-001 result=- lane=-"  # single item: file_pass/row_pass paths
+        for veto in ("PASS\nFAIL", "PASS\nBLOCKED"):
+            with self.subTest(single=veto):
+                run["sessions"]["qa"][-1]["text"] = veto
+                self.assertFalse(E.grade(run)["6"]["pass"])
+        run["sessions"]["qa"][0]["text"] = "PROMISE: kind=helper rows=ISC-001,ISC-002 result=- lane=-"
+        run["sessions"]["qa"][-1]["text"] = "Result: PASS"
+        run["info"]["ledger"] = {"discovery": []}  # build items keep today's rules: bare PASS on a generic file is not enough
+        self.assertFalse(E.grade(run)["6"]["pass"])
+
+    def test_reviewer_overall_negative_vetoes_discovery(self):
+        for text in ("Decision: APPROVE_PLAN\nDecision: REVISE_PLAN", "Decision: APPROVE_PLAN; ASK_USER"):
+            with self.subTest(text=text):
+                run = fixture()
+                run["info"]["ledger"] = {"discovery": ["1"]}
+                run["info"]["tree"]["qa"]["agent"] = "reviewer"
+                run["sessions"]["qa"] = [message("user", 115, "PROMISE: kind=helper rows=ISC-001 result=- lane=-", agent="reviewer"),
+                                          message("assistant", 160, text, agent="reviewer")]
+                self.assertFalse(E.grade(run)["6"]["pass"])
 
     def test_promise_parser_matches_plugin_fixtures(self):
         fixtures = json.loads((E.SKILL / "test" / "promise-parity.json").read_text())
