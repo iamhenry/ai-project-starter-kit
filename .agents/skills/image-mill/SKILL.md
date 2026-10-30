@@ -1,18 +1,30 @@
 ---
 name: image-mill
-description: Generate raster images (icons, illustrations, mockups, photos, concept art) by delegating to CLI image tools. Currently backed by the Codex CLI's built-in image generation (codex exec). Use when the user asks to generate, create, or make an image, picture, icon, logo draft, illustration, or photorealistic visual and no in-session image tool exists. Delivers the final PNG path in the workspace. Tool-agnostic by design; more CLI backends may be added later.
+description: Generate raster images (icons, illustrations, mockups, photos, concept art). Uses OpenCode's built-in image tool when the session has one, otherwise falls back to the Codex CLI (codex exec). Use when the user asks to generate, create, or make an image, picture, icon, logo draft, illustration, or photorealistic visual. Delivers the final image path in the workspace. Tool-agnostic by design; more backends may be added later.
 ---
 
 # Image Mill
 
-Generate images by delegating to a CLI image tool. Currently the only backend is
-the **Codex CLI**. The name is intentionally tool-agnostic: if more backends are
-added, pick the best available one.
+Generate images with the best available backend: OpenCode's built-in image tool
+first, the **Codex CLI** as a fallback. The name is intentionally tool-agnostic:
+if more backends are added, pick the best available one.
 
 ## Backend selection
 
-1. If the `codex` CLI is installed (`which codex`), use the Codex backend below.
-2. If not, report BLOCKED with one line: "No image CLI available. Install Codex CLI (https://github.com/openai/codex) to enable image generation." Do not attempt other backends.
+1. If this session has the `experimental_image_generate` tool (OpenCode 2.2.2+ with an image-capable provider connected), use the built-in backend below.
+2. Else if the `codex` CLI is installed (`which codex`), use the Codex backend below.
+3. If neither, report BLOCKED with one line: "No image tool available. Connect an image-capable provider in OpenCode (e.g. OpenAI or xAI) or install Codex CLI (https://github.com/openai/codex)." Do not attempt other backends.
+
+## Built-in backend (`experimental_image_generate`)
+
+- Call the tool directly with `prompt`, plus `path` (the user's destination, or `./generated/<descriptive-name>.png` by default) and `images` (for edits or style references).
+- Do not set `model` unless the user names one. The default comes from `experimental.image_generate.model` in `opencode.jsonc` (currently `openai/gpt-image-2`); without it the tool picks automatically.
+- It runs in the background and notifies the session with the saved path. Do not poll or re-request.
+- The saved file takes its real format's extension (`.png`, `.jpg`, `.webp`), so use the path from the notice, not the one requested.
+- An existing file at `path` is overwritten (after permission), so pick a fresh name unless the user wants a replace.
+- One image per call. For N images, call N times.
+- Verify: `file <path>` must say an image format. If not, report FAIL with the actual output.
+- Prompt shaping and Rules below apply to this backend too.
 
 ## Codex backend
 
@@ -69,7 +81,7 @@ Constraints: <no text, no watermark, transparent background, etc.>
 
 ## Rules
 
-- One image per `codex exec` call. For N images, run N calls (sequentially is fine).
+- One image per `codex exec` call (or built-in tool call). For N images, run N calls (sequentially is fine).
 - Never echo Codex auth/config contents; never log tokens or keys.
 - Do not modify anything under `~/.codex/skills/` — Codex owns its system skills.
 - Don't hijack: this skill is only for raster/bitmap generation requests. SVG,

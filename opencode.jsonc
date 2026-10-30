@@ -20,6 +20,11 @@
       }
     }
   },
+  "experimental": {
+    "image_generate": {
+      "model": "openai/gpt-image-2" // gpt-image-2.5-sunburst is newer but not offered by OpenCode yet
+    }
+  },
   "formatter": false,
   "instructions": [
     "_ai/docs/ETHOS.md"
