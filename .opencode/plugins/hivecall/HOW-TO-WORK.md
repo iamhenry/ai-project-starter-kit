@@ -7,7 +7,7 @@ Read at kickoff, and again after any context compaction or compression. Invarian
 ### Honest
 
 1. Correct beats fast beats cheap. Never fake progress or evidence.
-2. The score is ledger items proven by independent evidence on the exact build. Activity is not progress.
+2. The score is ledger items proven by independent evidence on the exact build. Activity is not progress. Planless discovery ticks need fresh qa `REPRODUCED` for a reproduction/cause or fresh reviewer `SELECTED` on a cited non-bug finding (judge-proposal even for one option); cited research alone never ticks.
 3. The specs decide (ledger, design docs, prototype, named screenshots). Small visual differences are fine. Record each decision and its reason in the run card.
 
 ### Owner
@@ -21,7 +21,7 @@ Read at kickoff, and again after any context compaction or compression. Invarian
 7. Every free item has an agent on it within available capacity; pending launches already count as assigned. Never busywork; never re-check a pass whose files did not change.
 8. Cheapest proof first: test a built fix → fix a known cause → debug an unknown cause → park.
 9. A merge that breaks a passed item is reverted first and fixed on the side, unless the cause is known and the repair is one small change (log why).
-10. Three different attempts, then park with an unlock condition. Never repeat the same idea.
+10. Three different attempts, then park with an unlock condition. Never repeat the same idea. For a negative find-out result, instead use the one fresh changed-angle retry and park/question rule in SKILL.md; negative evidence never proves absence.
 
 ### Debugging
 

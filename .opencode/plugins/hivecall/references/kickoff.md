@@ -4,7 +4,7 @@ Read this at the start of every hivecall run, and again when resuming one.
 
 ## 1. Turn the owner's input into a goal contract
 
-The owner may give a free-form goal, a spec file, or an ISA.html. For clear input, draft this contract and plan, then wait for owner approval. If the input cannot support a falsifiable check for every Verification line, use [discovery.md](discovery.md) instead; do not wait for owner contract/plan approval, and follow its judge gates.
+The owner may give a free-form goal, a spec file, or an ISA.html. For clear input, draft this contract and plan, then wait for owner approval. Choose per item: when it cannot support a falsifiable Verification check, use [discovery.md](discovery.md); clear and find-out items can share a run. Do not wait for owner contract/plan approval for discovery; judge a plan only when needed. Planless discovery still needs a fresh qa `REPRODUCED` for a reproduction/cause or fresh reviewer `SELECTED` on a cited non-bug finding (judge-proposal even for one option); cited research alone never ticks.
 
 Use exactly this shape:
 
@@ -22,7 +22,7 @@ Implementation Workflow Note: Validate and prove functionality or via smoke test
 
 How the contract maps to the run:
 
-- **Verification** becomes one checklist item per check (`ISC-n`), each with its evidence. Evidence files go in `.hivecall/verification/`. A fresh `qa` runs the checks, never the builder.
+- **Verification** becomes one checklist item per check (`ISC-n`), each with its evidence. Evidence files go in `.hivecall/verification/`. For build items a fresh `qa` runs the checks, never the builder; discovery items use the fresh scoped verdict and receipt in [discovery.md](discovery.md).
 - **Definition of done** is the finish line the watchdog reads: every counted checklist item ticked with a PASS verdict, or parked.
 - **Exit criteria** is when the run stops early: set the run card to `waiting-owner`, report the one-line status, and stop. Items also park after three failed attempts with different approaches.
 - **Owner-only items** (physical device, accounts) go under OUT with a note "owner-only". They are not counted toward done. Prefer a simulator or scripted check over owner-only whenever one can prove the behavior.
@@ -54,6 +54,18 @@ A BLOCKED receipt alone does not park an open criterion. Keep its original text/
 <!-- Append under #verification; use the actual reason, unlock and evidence. -->
 <li>ISC-23: BLOCKED - parked; reason: required permission unavailable; unlock: permission granted and delivery proven; evidence .hivecall/verification/blocked-23.md</li>
 ```
+
+### Vetted additions and replacements
+
+A helper proposes an addition with positive evidence (failed check, spec line, or reproduction result), not opinion or a negative finding. The primary orchestrator approves, never the proposer; even an orchestrator-originated change needs helper-produced evidence. Trace each addition to a line of the approved goal contract or spec; otherwise put it on a later list in the run card or `WISHLIST.md`, not the ledger. Judge convergence before approval: additions based only on earlier additions, additions outpacing proven tasks, or repeated changes to one area are warning signs. If not converging, park or ask one 🚦 question and continue other work; there is no fixed growth limit.
+
+Append this exact record under `#verification` for each approved new item (replace placeholders; use `new` for no replacement):
+
+```html
+<li>ISC-24: ADDED by orchestrator; replaces ISC-23; evidence .hivecall/verification/repro.md; goal spec.md:12; converging: fixes the reported defect</li>
+```
+
+To replace ISC-23, retain its text and check, leave it unchecked, mark its input `data-status="parked"` (Markdown: `parked` on the criterion), and append `<li>ISC-23: BLOCKED - superseded by ISC-24; reason: corrected cause; evidence .hivecall/verification/repro.md</li>`. Append ISC-24 separately; no existing item is edited except its parking marker. The new item needs its own falsifiable check and real-entry-point E2E smoke before build.
 
 For Markdown ledgers, put `parked` on the unchecked criterion line and any BLOCKED result row for that item, with reason/unlock. Parking never makes an item PASS or hides other open items. Keep the card `running` until close (or use `waiting-owner`/`waiting-usage` when paused); do not set the whole run to `parked` to hide work.
 

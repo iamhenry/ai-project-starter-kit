@@ -28,7 +28,7 @@ OC_DB = Path.home() / ".local/share/opencode/opencode.db"
 BB_DB = Path.home() / ".bb/bb.db"
 GAP = 5 * 60_000            # a gap longer than this between events is not "working"
 FOLLOWUP_CAP = 24 * 3.6e6   # only look this far past the final close for follow-up hours
-EVAL_VERSION = "4.4"        # bump when a check or judge question changes; result versions are not comparable
+EVAL_VERSION = "4.5"        # bump when a check or judge question changes; result versions are not comparable
 STALL_MS = 10 * 60_000      # the watchdog's stall clock; a longer gap without honest proof is "flat"
 ANSWER_MS = 10 * 60_000     # an alert counts as acted on when its ANSWER and an action land this fast
 
@@ -57,11 +57,12 @@ CHECKS = {
     "23": "Hill climb (reported, not scored)",
     "24": "Orchestrator turns run as the agent it started as",
     "25": "Helpers that ran as the agent their brief named",
+    "26": "Recorded additions and replacement warning signs",
 }
 # Score = average of these percentages (each behavior counts the same), grouped by the two jobs.
 SCORE_CHECKS = ("1", "2", "4", "14", "12", "6", "10", "7", "8")
 # 19-22 carry pass flags for the benchmark pass bar; they stay out of the score so old and new runs share one score.
-CONTEXT_CHECKS = ("9", "19", "20", "21", "22", "23", "18", "3", "5", "11", "13", "16", "24", "25")
+CONTEXT_CHECKS = ("9", "19", "20", "21", "22", "23", "18", "3", "5", "11", "13", "16", "24", "25", "26")
 JUDGED_CHECKS = ("12", "18", "13", "16")
 
 sys.path.insert(0, str(SKILL / "watchdog"))
@@ -387,7 +388,24 @@ def ledger_summary(snap: Path, root: Path, source: str, at: int, rel: str) -> di
             for line in section.splitlines():
                 if re.match(r"\s*[-*]\s+\[[ xX]\]|\s*\|?\s*ISC-\d+(?:\.\d+)*\s*\|", line, re.I):
                     discovery.update(norm_id(ident) for ident in re.findall(r"(?<![/.-])\bISC-\d+(?:\.\d+)*\b(?![._-][a-z])", line, re.I))
-    return {"discovery": sorted(discovery), "path": rel, "source": source, "at": at, "total": isa.get("total") or len(counted), "checked": sorted(checked),
+    # Records are voluntary: a missing record cannot reveal an otherwise unmarked addition.
+    verification = re.search(r'<(?:section|div)\b[^>]*\bid=["\']verification["\'][^>]*>(.*?)</(?:section|div)>', text, re.I | re.S)
+    body = verification.group(1) if verification else ""
+    body = re.sub(r"<!--.*?-->|<[^>]+>", "\n", body, flags=re.S)
+    rows = [line.strip() for line in body.splitlines() if re.match(r"\s*ISC-\d+:\s*ADDED\b", line, re.I)]
+    ids = {norm_id(re.match(r"ISC-\d+", row, re.I).group()) for row in rows}
+    incomplete = chained = 0
+    for row in rows:
+        parts = [part.strip() for part in row.split(";")]
+        approval = re.fullmatch(r"ISC-\d+: ADDED by orchestrator", parts[0], re.I)
+        fields = dict(part.split(" ", 1) for part in parts[1:] if " " in part)
+        evidence, goal = fields.get("evidence", "").strip(), fields.get("goal", "").strip()
+        incomplete += not (approval and evidence and goal and fields.get("replaces") and fields.get("converging:", "").strip())
+        ref = re.fullmatch(r"ISC-\d+", evidence, re.I)
+        chained += bool(ref and norm_id(ref.group()) in ids)
+    superseded = len(re.findall(r"\bISC-\d+:\s*BLOCKED\s*-\s*superseded by ISC-\d+\b", body, re.I))
+    growth = {"added": len(rows), "incomplete": incomplete, "chained": chained, "superseded": superseded}
+    return {"growth": growth, "discovery": sorted(discovery), "path": rel, "source": source, "at": at, "total": isa.get("total") or len(counted), "checked": sorted(checked),
             "latest": latest, "open_tries": open_tries}
 
 
@@ -924,6 +942,8 @@ def grade(exp: dict) -> dict:
     }
     put("23", CHECKS["23"], climb, None, None,
         f"proven curve from {'the ledger progress field' if progress else 'trace ticks'}; reviewer verdicts {dict(verdicts)}")
+
+    put("26", CHECKS["26"], ledger.get("growth"), None, None, "Recorded additions only; absent records cannot be detected from a final snapshot. Chained evidence is a warning, not a verdict.")
 
     # 24: the orchestrator session kept the agent it started as (a plugin restart can switch it silently).
     said = [m for m in rmsgs if m["type"] == "assistant" and m.get("agent") and inside(m["time"])]

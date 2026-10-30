@@ -480,5 +480,21 @@ class EvalRegression(unittest.TestCase):
                 E.freeze_baseline(force=True)
 
 
+
+class GrowthFixtures(unittest.TestCase):
+    def test_frozen_growth_records(self):
+        rows = json.loads((E.HERE / "fixtures/growth.json").read_text())
+        for row in rows:
+            with self.subTest(row=row["name"]):
+                with TemporaryDirectory() as td:
+                    path = Path(td) / "ledger.html"
+                    items = '<li id="ISC-1"><input type="checkbox" disabled data-status="parked"> ISC-1: original</li><li id="ISC-2"><input type="checkbox" disabled checked> ISC-2: replacement</li>'
+                    path.write_text('<h3>Criteria</h3><ul class="isc">' + items + '</ul><section id="verification"><ul>' + ''.join('<li>' + r + '</li>' for r in row['records']) + '<li>ISC-2: PASS - proven; evidence proof/result.md</li></ul></section>')
+                    if row['name'] == 'approved replacement':
+                        self.assertTrue(E.parse_isa(str(path), td)['done'])
+                    growth = E.ledger_summary(path, Path(td), 'fixture', 1, 'ledger.html')['growth']
+                    for key in ('added', 'incomplete', 'chained', 'superseded'):
+                        self.assertEqual(growth[key], row[key])
+
 if __name__ == "__main__":
     unittest.main()

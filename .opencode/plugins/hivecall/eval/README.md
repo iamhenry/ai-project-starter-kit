@@ -121,3 +121,5 @@ Traces, results, and the filled-in dashboard stay in `~/.evals/hivecall/` (or `H
 - Every Clef answer is tied to a hash of its exact question and input. If either changes, only that answer is asked again.
 - The Ollama key is read into memory only, never printed or written.
 - Hours come from message times, with a five-minute gap rule for "working".
+
+**Growth context (eval 4.5):** recorded additions, incomplete records (approval, evidence, goal, replacement or convergence missing), evidence consisting only of an earlier recorded addition, and superseded items. These are review signals, not scores or automatic verdicts. A final ledger cannot reveal an addition with no `ADDED` record at all; the counts cover recorded additions only.

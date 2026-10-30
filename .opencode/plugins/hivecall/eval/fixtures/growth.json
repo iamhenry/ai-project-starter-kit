@@ -1,0 +1,6 @@
+[
+ {"name":"approved replacement", "records":["ISC-2: ADDED by orchestrator; replaces ISC-1; evidence proof/repro.md; goal spec.md:12; converging: fixes reported defect", "ISC-1: BLOCKED - superseded by ISC-2; reason: corrected cause; evidence proof/repro.md"], "added":1,"incomplete":0,"chained":0,"superseded":1},
+ {"name":"missing approval", "records":["ISC-2: ADDED by helper; replaces new; evidence proof/repro.md; goal spec.md:12; converging: required"], "added":1,"incomplete":1,"chained":0,"superseded":0},
+ {"name":"missing goal", "records":["ISC-2: ADDED by orchestrator; replaces new; evidence proof/repro.md; goal ; converging: required"], "added":1,"incomplete":1,"chained":0,"superseded":0},
+ {"name":"chained addition", "records":["ISC-2: ADDED by orchestrator; replaces new; evidence proof/repro.md; goal spec.md:12; converging: required", "ISC-3: ADDED by orchestrator; replaces new; evidence ISC-2; goal spec.md:12; converging: required"], "added":2,"incomplete":0,"chained":1,"superseded":0}
+]
