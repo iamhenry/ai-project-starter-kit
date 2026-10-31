@@ -11,21 +11,166 @@ permissions:
   - { action: edit, resource: "**/_ai/task/**", effect: allow }
   - { action: question, resource: "*", effect: allow }
   - { action: webfetch, resource: "*", effect: allow }
-  # Shell: only the commands listed below run. BB's auto mode approves "ask", so the default is deny.
-  - { action: shell, resource: "*", effect: deny }
-  - { action: shell, resource: "date *", effect: allow }
-  - { action: shell, resource: "ls *", effect: allow }
-  - { action: shell, resource: "pwd *", effect: allow }
-  - { action: shell, resource: "rg *", effect: allow }
-  - { action: shell, resource: "jq *", effect: allow }
-  - { action: shell, resource: "head *", effect: allow }
-  - { action: shell, resource: "tail *", effect: allow }
-  - { action: shell, resource: "wc *", effect: allow }
+  # Shell: guardrails, not a sandbox. Plain commands run by default; known write, run-a-program, network and waiting
+  # commands are denied. Chained or piped commands are checked one part at a time and every part must pass.
+  # Last matching rule wins: general allow, then the denied families, then the git/gh/bb allow lists, then the
+  # one heredoc exception, then the final denials (redirects, write flags, waiting), which beat everything before.
+  - { action: shell, resource: "*", effect: allow }
+  # Changing files or machine state.
+  - { action: shell, resource: "rm*", effect: deny }
+  - { action: shell, resource: "mv *", effect: deny }
+  - { action: shell, resource: "cp *", effect: deny }
+  - { action: shell, resource: "ln *", effect: deny }
+  - { action: shell, resource: "touch *", effect: deny }
+  - { action: shell, resource: "mkdir *", effect: deny }
+  - { action: shell, resource: "mktemp*", effect: deny }
+  - { action: shell, resource: "install *", effect: deny }
+  - { action: shell, resource: "tee *", effect: deny }
+  - { action: shell, resource: "dd *", effect: deny }
+  - { action: shell, resource: "truncate *", effect: deny }
+  - { action: shell, resource: "patch *", effect: deny }
+  - { action: shell, resource: "rsync*", effect: deny }
+  - { action: shell, resource: "ditto *", effect: deny }
+  - { action: shell, resource: "tar *", effect: deny }
+  - { action: shell, resource: "unzip *", effect: deny }
+  - { action: shell, resource: "zip *", effect: deny }
+  - { action: shell, resource: "gzip *", effect: deny }
+  - { action: shell, resource: "gunzip *", effect: deny }
+  - { action: shell, resource: "chmod*", effect: deny }
+  - { action: shell, resource: "chown*", effect: deny }
+  - { action: shell, resource: "chgrp*", effect: deny }
+  - { action: shell, resource: "mkfs*", effect: deny }
+  - { action: shell, resource: "sed*", effect: deny }
+  - { action: shell, resource: "sort *-o*", effect: deny }
+  - { action: shell, resource: "sort *--output*", effect: deny }
+  - { action: shell, resource: "find *-delete*", effect: deny }
+  - { action: shell, resource: "find *-exec*", effect: deny }
+  - { action: shell, resource: "find *-ok*", effect: deny }
+  - { action: shell, resource: "find *-fprint*", effect: deny }
+  - { action: shell, resource: "find *-fls*", effect: deny }
+  - { action: shell, resource: "defaults *", effect: deny }
+  - { action: shell, resource: "launchctl*", effect: deny }
+  - { action: shell, resource: "crontab*", effect: deny }
+  - { action: shell, resource: "sqlite3 *", effect: deny }
+  - { action: shell, resource: "open *", effect: deny }
+  - { action: shell, resource: "osascript*", effect: deny }
+  # Running other programs: interpreters, shells, wrappers, package managers, build tools.
+  - { action: shell, resource: "/*", effect: deny }
+  - { action: shell, resource: "./*", effect: deny }
+  - { action: shell, resource: "../*", effect: deny }
+  - { action: shell, resource: "awk*", effect: deny }
+  - { action: shell, resource: "gawk*", effect: deny }
+  - { action: shell, resource: "nawk*", effect: deny }
+  - { action: shell, resource: "less*", effect: deny }
+  - { action: shell, resource: "more *", effect: deny }
+  - { action: shell, resource: "vi *", effect: deny }
+  - { action: shell, resource: "vim*", effect: deny }
+  - { action: shell, resource: "nano*", effect: deny }
+  - { action: shell, resource: "emacs*", effect: deny }
+  - { action: shell, resource: "ed *", effect: deny }
+  - { action: shell, resource: "ex *", effect: deny }
+  - { action: shell, resource: "expect*", effect: deny }
+  - { action: shell, resource: "java*", effect: deny }
+  - { action: shell, resource: "python*", effect: deny }
+  - { action: shell, resource: "node*", effect: deny }
+  - { action: shell, resource: "bun*", effect: deny }
+  - { action: shell, resource: "deno*", effect: deny }
+  - { action: shell, resource: "ruby*", effect: deny }
+  - { action: shell, resource: "perl*", effect: deny }
+  - { action: shell, resource: "php*", effect: deny }
+  - { action: shell, resource: "lua*", effect: deny }
+  - { action: shell, resource: "sh *", effect: deny }
+  - { action: shell, resource: "bash *", effect: deny }
+  - { action: shell, resource: "zsh *", effect: deny }
+  - { action: shell, resource: "fish *", effect: deny }
+  - { action: shell, resource: "dash *", effect: deny }
+  - { action: shell, resource: "eval *", effect: deny }
+  - { action: shell, resource: "source *", effect: deny }
+  - { action: shell, resource: ". *", effect: deny }
+  - { action: shell, resource: "exec *", effect: deny }
+  - { action: shell, resource: "env *", effect: deny }
+  - { action: shell, resource: "command *", effect: deny }
+  - { action: shell, resource: "builtin *", effect: deny }
+  - { action: shell, resource: "xargs*", effect: deny }
+  - { action: shell, resource: "parallel *", effect: deny }
+  - { action: shell, resource: "nohup *", effect: deny }
+  - { action: shell, resource: "nice *", effect: deny }
+  - { action: shell, resource: "time *", effect: deny }
+  - { action: shell, resource: "timeout *", effect: deny }
+  - { action: shell, resource: "script *", effect: deny }
+  - { action: shell, resource: "tmux *", effect: deny }
+  - { action: shell, resource: "screen *", effect: deny }
+  - { action: shell, resource: "docker*", effect: deny }
+  - { action: shell, resource: "opencode *", effect: deny }
+  - { action: shell, resource: "make*", effect: deny }
+  - { action: shell, resource: "just *", effect: deny }
+  - { action: shell, resource: "swift*", effect: deny }
+  - { action: shell, resource: "xcodebuild*", effect: deny }
+  - { action: shell, resource: "xcrun*", effect: deny }
+  - { action: shell, resource: "xcodebuildmcp*", effect: deny }
+  - { action: shell, resource: "npm *", effect: deny }
+  - { action: shell, resource: "npx*", effect: deny }
+  - { action: shell, resource: "pnpm*", effect: deny }
+  - { action: shell, resource: "pnpx*", effect: deny }
+  - { action: shell, resource: "yarn*", effect: deny }
+  - { action: shell, resource: "bunx*", effect: deny }
+  - { action: shell, resource: "uv *", effect: deny }
+  - { action: shell, resource: "uvx*", effect: deny }
+  - { action: shell, resource: "pip*", effect: deny }
+  - { action: shell, resource: "brew*", effect: deny }
+  - { action: shell, resource: "cargo*", effect: deny }
+  - { action: shell, resource: "go *", effect: deny }
+  - { action: shell, resource: "gem *", effect: deny }
+  - { action: shell, resource: "composer *", effect: deny }
+  - { action: shell, resource: "apt*", effect: deny }
+  - { action: shell, resource: "port *", effect: deny }
+  - { action: shell, resource: "mas *", effect: deny }
+  # Network, remote hosts, killing processes, privilege.
+  - { action: shell, resource: "curl*", effect: deny }
+  - { action: shell, resource: "wget*", effect: deny }
+  - { action: shell, resource: "nc *", effect: deny }
+  - { action: shell, resource: "ncat*", effect: deny }
+  - { action: shell, resource: "telnet*", effect: deny }
+  - { action: shell, resource: "ssh*", effect: deny }
+  - { action: shell, resource: "scp*", effect: deny }
+  - { action: shell, resource: "sftp*", effect: deny }
+  - { action: shell, resource: "tailscale*", effect: deny }
+  - { action: shell, resource: "kill*", effect: deny }
+  - { action: shell, resource: "pkill*", effect: deny }
+  - { action: shell, resource: "killall*", effect: deny }
+  - { action: shell, resource: "sudo *", effect: deny }
+  - { action: shell, resource: "su *", effect: deny }
+  - { action: shell, resource: "doas *", effect: deny }
+  # Waiting or following: never block the chat.
+  - { action: shell, resource: "sleep *", effect: deny }
+  - { action: shell, resource: "watch *", effect: deny }
+  - { action: shell, resource: "tail *-f*", effect: deny }
+  - { action: shell, resource: "tail *-F*", effect: deny }
+  - { action: shell, resource: "tail *--follow*", effect: deny }
+  # git, gh, bb: stay on an allow list, because the verb decides whether they change anything.
+  - { action: shell, resource: "git *", effect: deny }
+  - { action: shell, resource: "gh *", effect: deny }
+  - { action: shell, resource: "bb *", effect: deny }
   - { action: shell, resource: "git status *", effect: allow }
   - { action: shell, resource: "git diff *", effect: allow }
   - { action: shell, resource: "git log *", effect: allow }
   - { action: shell, resource: "git show *", effect: allow }
   - { action: shell, resource: "git rev-parse *", effect: allow }
+  - { action: shell, resource: "git ls-files *", effect: allow }
+  - { action: shell, resource: "git blame *", effect: allow }
+  - { action: shell, resource: "git describe *", effect: allow }
+  - { action: shell, resource: "git merge-base *", effect: allow }
+  - { action: shell, resource: "git rev-list *", effect: allow }
+  - { action: shell, resource: "git cat-file *", effect: allow }
+  - { action: shell, resource: "git ls-tree *", effect: allow }
+  - { action: shell, resource: "git shortlog *", effect: allow }
+  - { action: shell, resource: "git worktree list *", effect: allow }
+  - { action: shell, resource: "git remote -v", effect: allow }
+  - { action: shell, resource: "git stash list *", effect: allow }
+  - { action: shell, resource: "git branch --list", effect: allow }
+  - { action: shell, resource: "git branch --show-current", effect: allow }
+  - { action: shell, resource: "git branch -a", effect: allow }
+  - { action: shell, resource: "git branch -vv", effect: allow }
   - { action: shell, resource: "gh pr view *", effect: allow }
   - { action: shell, resource: "gh pr list *", effect: allow }
   - { action: shell, resource: "gh pr checks *", effect: allow }
@@ -35,6 +180,7 @@ permissions:
   - { action: shell, resource: "gh run view *", effect: allow }
   - { action: shell, resource: "gh run list *", effect: allow }
   - { action: shell, resource: "bb status *", effect: allow }
+  - { action: shell, resource: "bb guide *", effect: allow }
   - { action: shell, resource: "bb thread show *", effect: allow }
   - { action: shell, resource: "bb thread list *", effect: allow }
   - { action: shell, resource: "bb thread search *", effect: allow }
@@ -54,43 +200,27 @@ permissions:
   - { action: shell, resource: "bb tasks update *", effect: allow }
   - { action: shell, resource: "bb tasks attach *", effect: allow }
   - { action: shell, resource: "bb tasks threads *", effect: allow }
+  - { action: shell, resource: "bb project list *", effect: allow }
+  - { action: shell, resource: "bb machine list *", effect: allow }
+  - { action: shell, resource: "bb provider list *", effect: allow }
+  - { action: shell, resource: "bb provider models *", effect: allow }
+  - { action: shell, resource: "bb skill list *", effect: allow }
+  - { action: shell, resource: "bb skill show *", effect: allow }
+  - { action: shell, resource: "bb skill files *", effect: allow }
+  - { action: shell, resource: "bb opencode status *", effect: allow }
+  - { action: shell, resource: "bb opencode version *", effect: allow }
+  - { action: shell, resource: "bb opencode logs *", effect: allow }
+  - { action: shell, resource: "bb opencode commands *", effect: allow }
   - { action: shell, resource: "bb plugin rpc call opencode stampAgent *", effect: allow }
-  # No writing through shell redirects or write-capable flags of allowed commands.
+  # Heredocs are denied, except the one for a multi-line BB message.
+  - { action: shell, resource: "*<<*", effect: deny }
+  - { action: shell, resource: "bb thread tell * --message-file - <<*", effect: allow }
+  # Final denials, after the heredoc exception so they still apply to it: no redirects, no write flags, no waiting.
   - { action: shell, resource: "*>*", effect: deny }
   - { action: shell, resource: "git *--output*", effect: deny }
   - { action: shell, resource: "rg *--pre*", effect: deny }
-  # Never block the chat on a delegated thread.
+  - { action: shell, resource: "bb thread spawn *--prompt-file -*", effect: deny }
   - { action: shell, resource: "bb thread wait *", effect: deny }
-  # Destructive denials.
-  - { action: shell, resource: "rmdir *", effect: deny }
-  - { action: shell, resource: "sudo *", effect: deny }
-  - { action: shell, resource: "dd *", effect: deny }
-  - { action: shell, resource: "mkfs*", effect: deny }
-  - { action: shell, resource: "chmod -R*", effect: deny }
-  - { action: shell, resource: "chown -R*", effect: deny }
-  - { action: shell, resource: "> *", effect: deny }
-  - { action: shell, resource: "cat *", effect: deny }
-  - { action: shell, resource: "*<<*", effect: deny }
-  - { action: shell, resource: "truncate *", effect: deny }
-  - { action: shell, resource: "git reset*", effect: deny }
-  - { action: shell, resource: "git clean*", effect: deny }
-  - { action: shell, resource: "git rebase*", effect: deny }
-  - { action: shell, resource: "git branch -D*", effect: deny }
-  - { action: shell, resource: "git reflog expire*", effect: deny }
-  - { action: shell, resource: "git update-ref*", effect: deny }
-  - { action: shell, resource: "git restore*", effect: deny }
-  - { action: shell, resource: "git rm*", effect: deny }
-  - { action: shell, resource: "gh pr checkout*", effect: deny }
-  - { action: shell, resource: "gh pr update-branch*", effect: deny }
-  - { action: shell, resource: "gh pr close*", effect: deny }
-  - { action: shell, resource: "gh pr reopen*", effect: deny }
-  - { action: shell, resource: "gh pr lock*", effect: deny }
-  - { action: shell, resource: "gh pr unlock*", effect: deny }
-  - { action: shell, resource: "gh repo clone*", effect: deny }
-  - { action: shell, resource: "gh repo create*", effect: deny }
-  - { action: shell, resource: "gh repo delete*", effect: deny }
-  - { action: shell, resource: "gh repo fork*", effect: deny }
-  - { action: shell, resource: "gh repo sync*", effect: deny }
 ---
 
 # BB Supervisor
@@ -101,7 +231,7 @@ You are the root coordinator for one BB project. You hold the bird's-eye view: y
 
 Config and the `bb-supervisor` plugin enforce the fixed rules, so they are not repeated as steps here:
 
-- You can only write under `_ai/task/**`. Your shell runs only read-only and BB coordination commands (no redirects), and you cannot wait on threads.
+- You can only write under `_ai/task/**`. Your shell is for read-only inspection and BB coordination. Rules block redirects, common write and run-a-program commands, and waiting on threads; they are guardrails, not a sandbox.
 - Every helper must run as the agent its role needs: reviews as `reviewer`, QA as `qa`, code as `build`.
 - A small Mission ends only one of four ways: `DONE`, `BLOCKED`, `NEEDS DECISION`, or `UNVERIFIED`. `DONE` needs a fresh reviewer `APPROVE_CODE`, then a fresh qa `PASS` naming a new receipt file. Any later file change voids both. After 3 send-backs you are told the Mission is `BLOCKED`.
 - Your role and your Missions' real state are restored after compaction.
