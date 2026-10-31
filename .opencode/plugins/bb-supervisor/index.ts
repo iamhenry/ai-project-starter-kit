@@ -1,13 +1,13 @@
 import { Plugin } from "@opencode/plugin"
 import { anchorText, bb, gateStatus } from "./bb"
-import { type Gate, SEND_BACK_LIMIT, ending, freshReceipts, git, log, missing, qaVerdict, resultBody, reviewDecision, snapshot, wrongAgent } from "./gate"
+import { type Gate, SEND_BACK_LIMIT, ending, freshReceipts, git, log, missing, missionLaunch, qaVerdict, resultBody, reviewDecision, snapshot, wrongAgent } from "./gate"
 import { statSync } from "node:fs"
 
 export * from "./gate"
 export * from "./bb"
 
 /**
- * Three jobs only:
+ * Four jobs only:
  * 1. Done gate: a small Mission (first prompt line `MISSION: SMALL`) must end its report with an honest ending line,
  *    `ENDING: DONE | BLOCKED | NEEDS DECISION | UNVERIFIED`. DONE (or no ending) without a fresh reviewer `APPROVE_CODE`
  *    and then a fresh qa `PASS` started after that approval is sent back, naming what is missing. Only the child's own
@@ -20,6 +20,7 @@ export * from "./bb"
  *    as another agent is refused, and the root is told when a Mission itself runs as the wrong agent.
  * 3. Re-anchor: every `bb-supervisor` request carries its role, active Missions with their gate status, and Task cards,
  *    read from BB state, so the root keeps them after compaction.
+ * 4. Launch guard: refuse a Supervisor's BB Mission spawn when its brief has no TALK-BACK: line.
  */
 
 export default Plugin.define({
@@ -188,8 +189,12 @@ export default Plugin.define({
     })
 
     await ctx.tool.hook("execute.before", (event) => {
-      if (event.tool !== "subagent" || !missions.has(event.sessionID) && !gates.has(event.sessionID)) return
       const input = event.input && typeof event.input === "object" ? event.input as Record<string, unknown> : {}
+      if (event.agent === "bb-supervisor" && (event.tool === "shell" || event.tool === "bash")) {
+        const refusal = missionLaunch(String(input.command ?? ""), String(input.workdir ?? dir))
+        if (refusal) throw new Error(refusal)
+      }
+      if (event.tool !== "subagent" || !missions.has(event.sessionID) && !gates.has(event.sessionID)) return
       const refusal = wrongAgent(input)
       if (refusal) throw new Error(refusal)
       const agent = String(input.agent ?? "").toLowerCase()
