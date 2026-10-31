@@ -2,10 +2,20 @@ import { existsSync, mkdtempSync, copyFileSync, rmSync, statSync } from "node:fs
 import { tmpdir } from "node:os"
 import { isAbsolute, join, relative, resolve } from "node:path"
 import { briefRole } from "../hivecall/watchdog/policy"
+import { shellDelegation } from "../hivecall/watchdog/adapters"
 
 /** Pure done-gate checks: endings, verdicts, receipts and worktree snapshots. No host or BB calls. */
 
 export const SEND_BACK_LIMIT = 3
+
+/** Presence only: the skill owns the Talk-back wording, not this guard. */
+export function missionLaunch(command: string, cwd: string): string {
+  const parsed = shellDelegation(command, cwd)
+  if (parsed.warning) log("Mission launch check", new Error(parsed.warning))
+  const brief = String(parsed.call?.input.prompt ?? "")
+  return parsed.call?.action === "spawn" && /^MISSION:/.test(brief) && !/^TALK-BACK:/m.test(brief)
+    ? "[bb-supervisor] Mission launch refused: add TALK-BACK: by pasting the block from subagent-delegation SKILL.md (Talk-back), filled for this parent, then retry." : ""
+}
 
 // approvedAt / passedAt: worktree snapshots the reviewer approved and qa passed. receipts: accepted qa receipt files;
 // they were new when their qa started and are left out of every snapshot, so saving them never voids a gate.
@@ -119,4 +129,3 @@ export function snapshot(dir: string, receipts: string[] = []): string {
   } catch (error) { log("worktree snapshot", error); return "" }
   finally { rmSync(temp, { recursive: true, force: true }) }
 }
-

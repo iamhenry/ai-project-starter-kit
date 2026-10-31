@@ -52,6 +52,29 @@ async function host(storage = store(), existing?: string) {
   return { dir, storage, sent, emit, prompt, gate, done, hooks, stop }
 }
 
+test("a Supervisor cannot launch a Mission without TALK-BACK; only presence is checked", async () => {
+  const h = await host()
+  try {
+    const file = join(h.dir, "brief with spaces.md")
+    const run = (command: string, agent = "bb-supervisor", tool = "shell") => () => h.hooks["tool.execute.before"]({
+      sessionID: "root", id: "spawn", agent, tool, input: { command, workdir: h.dir },
+    })
+    for (const size of ["SMALL", "LARGE"]) {
+      const brief = `MISSION: ${size}\nRole: Mission Lead\n`
+      writeFileSync(file, brief)
+      expect(run("bb thread spawn --prompt-file 'brief with spaces.md'")).toThrow("SKILL.md (Talk-back)")
+      expect(run(`bb thread spawn --prompt '${brief}'`, "bb-supervisor", "bash")).toThrow("Mission launch refused")
+      expect(run(`bb thread spawn --prompt '${brief}not TALK-BACK: inline mention'`)).toThrow("Mission launch refused")
+      expect(run(`bb thread spawn --prompt-file '${file}'`, "build")).not.toThrow()
+      writeFileSync(file, `${brief}TALK-BACK: any wording\n`)
+      expect(run(`bb thread spawn --prompt-file='${file}'`)).not.toThrow()
+      expect(run(`bb thread spawn --prompt '${brief}TALK-BACK:'`)).not.toThrow()
+    }
+    expect(run("bb thread spawn --prompt 'Ordinary task'")).not.toThrow()
+    expect(run("bb thread tell thr_m --message-file 'brief with spaces.md'")).not.toThrow()
+  } finally { h.stop() }
+})
+
 test("a small Mission that reports done without QA is sent back, naming the missing QA pass", async () => {
   const h = await host()
   h.prompt("m", "MISSION: SMALL\nadd a line")

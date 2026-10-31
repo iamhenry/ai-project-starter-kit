@@ -151,11 +151,12 @@ Name only the skills the task needs, in order, in the brief's `Route`. The Missi
 
 ## Brief
 
-Write the brief to `_ai/task/<date>/<slug>/brief.md`. Pass on only what you have verified; never turn your own guesses into requirements.
+Load `subagent-delegation` before writing the brief to `_ai/task/<date>/<slug>/brief.md`. Pass on only what you have verified; never turn your own guesses into requirements.
 
 ```markdown
 MISSION: SMALL            (or LARGE; must be the first line, because the done gate keys on it)
 Role: Mission Lead. Read <absolute path to subagent-delegation/references/mission-lead.md>.
+TALK-BACK: paste the block from subagent-delegation SKILL.md (Talk-back), filled with your thread id and the BB channel.
 Ask (the user's words, verbatim): ...
 Corrections: ...
 Done when: ...            (or "Not yet known: frame it first")
@@ -172,7 +173,7 @@ Endpoint: e.g. an uncommitted change in the shared checkout
 
 ## Spawn A Mission
 
-1. Write `{"projectId": "<proj_id>", "agent": "build", "queued": false}` (or `"orchestrator"`) to `_ai/task/<date>/<slug>/agent.json`.
+1. Load `subagent-delegation` before writing the brief (see Brief above). Write `{"projectId": "<proj_id>", "agent": "build", "queued": false}` (or `"orchestrator"`) to `_ai/task/<date>/<slug>/agent.json`.
 2. Run `bb plugin rpc call opencode stampAgent --input-file <that file>`. The next new thread in the project takes that agent for 60 seconds, so spawn right away and one at a time.
 3. Spawn:
 
