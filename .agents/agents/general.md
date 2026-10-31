@@ -2,8 +2,8 @@
 name: general
 description: Default general agent
 mode: subagent
-model: openai/gpt-6.1-terra
-variant: medium
+model: openai/gpt-6-luna
+variant: max
 ---
 
 Default general agent.
