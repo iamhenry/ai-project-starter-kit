@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test"
 import { execSync } from "node:child_process"
-import { writeFileSync } from "node:fs"
+import { appendFileSync, writeFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { cleanups, host } from "./host"
 
@@ -80,5 +80,48 @@ describe("the judge stays apart", () => {
     const ledger = (extra: string) => `<li id="ISC-001"><input type="checkbox" checked> a — check: bun check.ts</li>\n<li>ISC-001: PASS; commit ${sha}; evidence .hivecall/proof.txt${extra}</li>`
     expect(await h.call("write", { path: ".hivecall/checklist.html", content: ledger("") })).toContain("CANARY")
     expect(await h.call("write", { path: ".hivecall/checklist.html", content: ledger("; CANARY: saved broken page still exits 1") })).toBeNull()
+    // An older canary does not cover a later commit that bends the check again.
+    writeFileSync(resolve(h.root, "check.ts"), "exit(0) // again\n")
+    git("commit -qam bend2")
+    const next = git("rev-parse --short HEAD")
+    const old = `<li>ISC-001: PASS; commit ${sha}; evidence .hivecall/proof.txt; CANARY: broken page exits 1</li>`
+    expect(await h.call("write", { path: ".hivecall/checklist.html", content: `${ledger("")}\n${old}\n<li>ISC-001: PASS; commit ${next}; evidence .hivecall/proof.txt</li>` })).toContain("CANARY")
+  })
+
+  const qa = async (h: Host, sha: string, text: string) => {
+    const id = `qa${++n}`
+    expect(h.before({ sessionID: "ses-root", id, tool: "subagent", input: { agent: "qa", description: "qa", prompt: brief("ISC-001", `candidate ${sha}`) } })).toBeUndefined()
+    await h.send("session.tool.success", { sessionID: "ses-root", id, metadata: { sessionID: `ses_${id}`, status: "completed" }, content: [{ type: "text", text }] })
+  }
+  const testOnly = async () => {
+    const { h, git } = await repo()
+    const base = git("rev-parse --short HEAD")
+    execSync("mkdir -p tests", { cwd: h.root })
+    writeFileSync(resolve(h.root, "tests/a.test.ts"), "test()\n")
+    git("add -A"); git("commit -qm tests")
+    return { h, base, sha: git("rev-parse --short HEAD") }
+  }
+  const tick = (sha: string, parentRow: string) => `<li id="ISC-001"><input type="checkbox" checked> a</li>\n<li>ISC-001: PASS; commit ${sha}; evidence .hivecall/proof.txt</li>\n${parentRow}`
+
+  test("a tests-only commit on a proven parent ticks on qa PASS alone, not on a repro or a failed parent", async () => {
+    const failRow = (base: string) => `<li id="ISC-002"><input type="checkbox"> b</li>\n| ISC-002 | FAIL | commit ${base} |`
+    const prove = (h: Host, base: string) => appendFileSync(resolve(h.root, ".hivecall/run.md"), `base: ${base}\n`)
+    let { h, base, sha } = await testOnly()
+    await qa(h, sha, "- Result: PASS")
+    // A parent named only by a FAIL row is not proven.
+    expect(await h.call("write", { path: ".hivecall/checklist.html", content: tick(sha, failRow(base)) })).toContain("ISC-001")
+    prove(h, base)
+    expect(await h.call("write", { path: ".hivecall/checklist.html", content: tick(sha, failRow(base)) })).toBeNull()
+    ;({ h, base, sha } = await testOnly())
+    prove(h, base)
+    await qa(h, sha, "- Result: REPRODUCED")
+    expect(await h.call("write", { path: ".hivecall/checklist.html", content: tick(sha, failRow(base)) })).toContain("ISC-001")
+  })
+
+  test("a bare qa FAIL line counts toward the hill-climb pause", async () => {
+    const { h, git } = await repo()
+    const sha = git("rev-parse --short HEAD")
+    for (let i = 0; i < 3; i++) await qa(h, sha, "ISC-001: FAIL — outline still missing")
+    expect(await build(h)).toContain("RE-PLAN item=ISC-001")
   })
 })

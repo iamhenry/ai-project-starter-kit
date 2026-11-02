@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process"
 import { existsSync, readFileSync } from "node:fs"
-import { isAbsolute, resolve } from "node:path"
+import { isAbsolute, relative, resolve } from "node:path"
 import { iscId, iscIds, parsePromise } from "./promise"
 
 export { iscId, parsePromise, parsePromiseRows, promiseDefaults } from "./promise"
@@ -46,9 +46,19 @@ export function reviewOutcome(text: string, scope: string[]): { approved: string
   return { approved, revised: overall === "revise" || (!overall && [...perItem.values()].includes("revise")) }
 }
 
+/** Items a qa result fails: those its negative lines name, or every item when a negative line names none. */
+function qaFailed(text: string, items: string[]): string[] {
+  const negative = text.split(/\r?\n/).filter((line) => /\b(?:FAIL|BLOCKED|NOT_REPRODUCED)\b/.test(line))
+  if (negative.some((line) => !iscIds(line).length)) return items
+  const named = new Set(negative.flatMap(iscIds))
+  return items.filter((id) => named.has(id))
+}
+
+/** `role` "pass" is a qa result read for PASS alone (REPRODUCED is a repro, not a verified pass). */
 function discoveryOutcome(text: string, scope: string[], role: string): string[] {
-  const approve = role === "qa" ? /\b(?:REPRODUCED|PASS)\b/ : /\b(?:APPROVE_PLAN|SELECTED)\b/
-  const revise = role === "qa" ? /\b(?:NOT_REPRODUCED|BLOCKED|FAIL)\b/ : /\b(?:REVISE_PLAN|ASK_USER)\b/
+  const qa = role === "qa" || role === "pass"
+  const approve = role === "pass" ? /\bPASS\b/ : qa ? /\b(?:REPRODUCED|PASS)\b/ : /\b(?:APPROVE_PLAN|SELECTED)\b/
+  const revise = qa ? /\b(?:NOT_REPRODUCED|BLOCKED|FAIL)\b/ : /\b(?:REVISE_PLAN|ASK_USER)\b/
   const verdict = (line: string): Verdict | null => {
     const yes = approve.test(line), no = revise.test(line)
     return yes === no ? null : yes ? "approve" : "revise"
@@ -56,7 +66,7 @@ function discoveryOutcome(text: string, scope: string[], role: string): string[]
   const lines = text.split(/\r?\n/)
   // A negative on a line naming no ISC id vetoes every scoped id, even after an approving Decision/Result line.
   if (lines.some((line) => !iscIds(line).length && revise.test(line))) return []
-  const token = role === "qa" ? "REPRODUCED|PASS|NOT_REPRODUCED|BLOCKED|FAIL" : "APPROVE_PLAN|SELECTED|REVISE_PLAN|ASK_USER"
+  const token = role === "pass" ? "PASS|NOT_REPRODUCED|BLOCKED|FAIL" : qa ? "REPRODUCED|PASS|NOT_REPRODUCED|BLOCKED|FAIL" : "APPROVE_PLAN|SELECTED|REVISE_PLAN|ASK_USER"
   const decision = lines.map((line) => new RegExp(`^\\W*(?:[Dd][Ee][Cc][Ii][Ss][Ii][Oo][Nn]|[Vv][Ee][Rr][Dd][Ii][Cc][Tt]|[Ss][Tt][Aa][Tt][Uu][Ss]|[Rr][Ee][Ss][Uu][Ll][Tt])\\b[^:=\\n]*[:=].*?\\b(${token})\\b`).exec(line)?.[1]).find(Boolean)
   const overall = decision ? verdict(decision) : verdict(lines.filter((line) => !iscIds(line).length).join("\n"))
   const perItem = new Map<string, Verdict>()
@@ -133,12 +143,13 @@ export function reviewEvent(sessionID: string, helperID: string, helper: Omit<He
   const scope = helper.rows ? helper.rows.split(",") : []
   const code = role === "reviewer" ? reviewOutcome(text, scope) : null
   const discovery = discoveryOutcome(text, helper.promise ? helper.promise.split(",") : [], role)
-  // A failed attempt for the hill-climb count: a REVISE_CODE, or a qa negative verdict, on the items the helper worked on.
-  const negative = role === "qa" && /^\W*(?:decision|verdict|status|result)\b[^:=\n]*[:=].*?\b(?:FAIL|BLOCKED|NOT_REPRODUCED)\b/im.test(text)
-  const failed = code?.revised || negative ? helperItems(helper).filter((id) => !code?.approved.includes(id)) : []
+  const passed = role === "qa" ? discoveryOutcome(text, helper.promise ? helper.promise.split(",") : [], "pass") : []
+  // A failed attempt for the hill-climb count: a REVISE_CODE, or a qa negative, on the items the helper worked on.
+  const failed = role === "qa" ? qaFailed(text, helperItems(helper)) : code?.revised ? helperItems(helper).filter((id) => !code.approved.includes(id)) : []
   if (!code && !discovery.length && !failed.length) return null
   return { type: "review-result", sessionID, helper: helperID, slice: helper.slice, approved: code?.approved.join(",") ?? "", revised: code?.revised ? 1 : 0,
-    ...(discovery.length ? { discovery: discovery.join(",") } : {}), ...(failed.length ? { failed: failed.join(",") } : {}) }
+    ...(discovery.length ? { discovery: discovery.join(",") } : {}), ...(passed.length ? { passed: passed.join(",") } : {}),
+    ...(failed.length ? { failed: failed.join(",") } : {}) }
 }
 
 /** Applies one neutral event to memory; used both live and when restoring `events.jsonl`. */
@@ -175,6 +186,7 @@ export function apply(state: Memory, event: HiveEvent): void {
     for (const id of failed) state.failures.set(iscId(id), (state.failures.get(iscId(id)) ?? 0) + 1)
     if (failed.length) state.sinceTick++
     for (const id of String(event.discovery ?? "").split(",").filter(Boolean)) state.approvals.add(`discovery:${iscId(id)}`)
+    for (const id of String(event.passed ?? "").split(",").filter(Boolean)) state.approvals.add(`pass:${iscId(id)}`)
     if (Number(event.revised) && event.slice) {
       const ref = `${sessionID}:${event.slice}`
       state.revisions.set(ref, (state.revisions.get(ref) ?? 0) + 1)
@@ -287,8 +299,8 @@ export function unearned(ledger: string, approvals: Set<string>, grandfathered: 
       for (const id of tickedItems(ledger.slice(headings[i].index! + headings[i][0].length, headings[i + 1]?.index ?? ledger.length))) discovery.add(id)
   }
   const canary = new Set(canaryMissing(ledger, root))
-  return tickedItems(ledger).filter((id) => !grandfathered.has(id) && !((approvals.has(id) || (approvals.has(`discovery:${id}`) &&
-    (discovery.has(id) || lowRisk(ledger, root, receiptCommit(ledger, id))))) && hasReceipt(ledger, id, root) && !canary.has(id)))
+  return tickedItems(ledger).filter((id) => !grandfathered.has(id) && !((approvals.has(id) || (approvals.has(`discovery:${id}`) && discovery.has(id)) ||
+    (approvals.has(`pass:${id}`) && lowRisk(ledger, root, receiptCommit(ledger, id)))) && hasReceipt(ledger, id, root) && !canary.has(id)))
 }
 
 function checkedItems(text: string): string[] {
@@ -370,22 +382,24 @@ export function canaryMissing(ledger: string, root: string): string[] {
     if (!commit || !named.length) return false
     const files = (changedBy(root, commit) ?? []).map((row) => row.split("\t").at(-1)!)
     const touched = files.some((file) => named.some((name) => file === name || file.endsWith(`/${name}`) || name.endsWith(`/${file}`)))
-    return touched && !receipts(ledger, id).some((segment) => /\bCANARY\s*:/i.test(segment))
+    // The canary must sit on a receipt for this commit; an older canary proves an older version of the check.
+    return touched && !receipts(ledger, id).some((segment) => segment.includes(commit) && /\bCANARY\s*:/i.test(segment))
   })
 }
 
 const lowRiskPath = /(?:^|\/)(?:tests?|__tests__|spec|specs|docs?)\/|\.(?:test|spec)\.\w+$|Tests?\.\w+$|\.(?:md|mdx|txt|rst)$/i
 /**
  * Proof sized to risk: a commit that only renames/moves files exactly, or changes tests or docs, on top of a commit already
- * proven (the run base or checkpoint, or another receipt's commit) needs no code review; its qa PASS ticks it.
+ * proven (the run base or checkpoint, or another ticked item's receipt commit) needs no code review; its qa PASS ticks it.
  */
 function lowRisk(ledger: string, root: string, commit: string): boolean {
   const rows = changedBy(root, commit)
   if (!rows?.length || !rows.every((row) => /^R100\t/.test(row) || lowRiskPath.test(row.split("\t").at(-1)!))) return false
   const parent = git(root, ["rev-parse", "--verify", "--quiet", `${commit}^1`])?.trim()
-  const runCard = card(root).text
-  const proven = [...`${ledger}\n${runCard.match(/^\s*(?:base|checkpoint)\s*:.*$/gim)?.join("\n") ?? ""}`.matchAll(/\b(?:commit|@|checkpoint:)\s*([0-9a-f]{7,40})\b/gi)]
-    .map((m) => m[1]).filter((sha) => !commit.startsWith(sha) && !sha.startsWith(commit))
+  const checkpoints = [...(card(root).text.match(/^\s*(?:base|checkpoint)\s*:.*$/gim)?.join("\n") ?? "").matchAll(/\b([0-9a-f]{7,40})\b/gi)].map((m) => m[1])
+  // A FAIL row's commit is not proven: only ticked items' receipt commits count.
+  const proven = [...checkpoints, ...tickedItems(ledger).map((id) => receiptCommit(ledger, id))]
+    .filter((sha) => sha && !commit.startsWith(sha) && !sha.startsWith(commit))
   return Boolean(parent && proven.some((sha) => parent.startsWith(sha)))
 }
 
@@ -492,7 +506,7 @@ const reason = (prompt: string) => /^\s*WHY\s*:\s*\S/im.test(prompt)
 function namedCommits(root: string, prompt: string): string[] | null {
   if (git(root, ["rev-parse", "--git-dir"]) === null) return null
   return [...new Set(prompt.match(/\b[0-9a-f]{7,40}\b/g) ?? [])].slice(0, 12)
-    .filter((sha) => /[a-f]/.test(sha) && git(root, ["rev-parse", "--verify", "--quiet", `${sha}^{commit}`]) !== null)
+    .filter((sha) => git(root, ["rev-parse", "--verify", "--quiet", `${sha}^{commit}`]) !== null)
 }
 
 /** Files with uncommitted edits in the run's checkout, other than the run's own `.hivecall/` and ledger. */
@@ -530,7 +544,10 @@ function progressGate(input: Record<string, unknown>, prompt: string, state: Mem
   if ((role === "reviewer" || role === "qa") && items.length && items.every((item) => ticked.has(item)) && !reason(prompt)) {
     const unchanged = items.every((item) => {
       const commit = receiptCommit(ledger, item)
-      const changed = commit ? git(root, ["diff", "--name-only", commit, "--", ".", ":(exclude).hivecall"]) : null
+      // The ledger and run files change with every tick; they are not the item's inputs.
+      const ledgerFile = relative(root, ledgerPath(root, card(root)))
+      const changed = commit ? git(root, ["diff", "--name-only", commit, "--", ".", ":(exclude).hivecall",
+        ...(ledgerFile && !ledgerFile.startsWith("..") ? [`:(exclude)${ledgerFile}`] : [])]) : null
       return changed !== null && !changed.trim()
     })
     if (unchanged) return { id: "no-redo", key: `no-redo:${items.join(",")}`, message: "", detail: `${items.join(", ")} already passed and nothing changed since their receipt commits` }
