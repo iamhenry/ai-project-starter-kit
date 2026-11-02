@@ -10,12 +10,13 @@ Use exactly this shape:
 
 ```
 - Current state: <existing user experience and behavior today, with file paths — facts only>
-- Ideal state: <desired user experience and visible outcome when done, not the implementation>
+- Ideal state: <desired user experience and visible outcome when done, not the implementation; say what it must hold for (for example "any article"), not only the test samples>
+- Keep working: <what already works and must not break, each as one step a user takes and what they see>
 - Narrow scope: IN: <files/behaviors covered> · OUT: <named things not touched>
 - Verification: <cheapest check that would fail if broken> → evidence: <output/log/screenshot/screen recording>
-- E2E smoke: <one real happy-path flow through the actual entry point → expected visible result>
+- E2E smoke: <one real happy-path flow through the actual entry point → expected visible result, then the Keep working steps>
 - Definition of done: scope held · implementation proven and working before regression test is written · check passed with evidence · smoke ran end to end
-- Exit criteria: <name the observable that makes this task impossible to finish truthfully, then the one-line status you report and stop — do not keep working a path that cannot succeed>
+- Exit criteria: <name the observable that makes this task impossible to finish truthfully, then the one-line status you report and stop — do not keep working a path that cannot succeed; never a way out that keeps the defect the run was asked to fix>
 
 Implementation Workflow Note: Validate and prove functionality or via smoke tests first. Write permanent automated tests only after the implementation is proven to work, using them to lock in behavior and prevent future regressions.
 ```
@@ -24,7 +25,9 @@ How the contract maps to the run:
 
 - **Verification** becomes one checklist item per check (`ISC-n`), each with its evidence. Evidence files go in `.hivecall/verification/`. For build items a fresh `qa` runs the checks, never the builder; discovery items use the fresh scoped verdict and receipt in [discovery.md](discovery.md).
 - **Definition of done** is the finish line the watchdog reads: every counted checklist item ticked with a PASS verdict, or parked.
-- **Exit criteria** is when the run stops early: set the run card to `waiting-owner`, report the one-line status, and stop. Items also park after three failed attempts with different approaches.
+- **Exit criteria** is when the run stops early: set the run card to `waiting-owner`, report the one-line status, and stop. Items also park after three failed attempts with different approaches. Only the owner accepts a gap between the result and the Ideal state; the orchestrator and helpers report it as FAIL, never as a tradeoff that passes.
+- **Keep working** is checked on the candidate, not recorded up front: the base commit already is the baseline. Run the steps on the candidate in the E2E smoke. Run the same step on the base build only when a step looks wrong, to tell a new break from an old one.
+- **Samples are not the goal.** When the Ideal state covers more than the test samples, add one unseen sample, picked after the code freezes and run once.
 - **Owner-only items** (physical device, accounts) go under OUT with a note "owner-only". They are not counted toward done. Prefer a simulator or scripted check over owner-only whenever one can prove the behavior.
 - Between items, pick the cheapest move that can raise the score (see HOW-TO-WORK.md).
 - **Every visual intent has a check.** If the spec has mocks, screenshots or a design doc, each screen they show is named by at least one item's check; otherwise add one before work starts.
