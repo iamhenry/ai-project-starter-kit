@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test"
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs"
-import { resolve } from "node:path"
-import { cleanups, host } from "./host"
+import { basename, resolve } from "node:path"
+import { archiveHome, cleanups, host } from "./host"
 
 // Count only earned ticks, block the close: the ledger is judged as it stands after every call and never changed.
 afterEach(() => { for (const cleanup of cleanups.splice(0)) cleanup() })
@@ -45,6 +45,11 @@ describe("earned ticks", () => {
     const ledger = "<h3>Discovery</h3>\n" + [1, 2, 3].map((n) => `<li id="ISC-00${n}"><input type="checkbox" checked> discovery</li>\n| ISC-00${n} | PASS | commit abcdef1 | evidence .hivecall/proof.txt |`).join("\n")
     expect(await h.call("write", { path: ".hivecall/checklist.html", content: ledger })).toBeNull()
     expect(await h.call("write", close)).toBeNull()
+    // The closed run's record survives the worktree: events, run card and ledger are copied to the home folder.
+    const archived = resolve(archiveHome, ".hivecall/runs", basename(h.root), "undated-run")
+    expect(readFileSync(resolve(archived, "run.md"), "utf8")).toContain("status: closed")
+    expect(readFileSync(resolve(archived, "checklist.html"), "utf8")).toContain("ISC-003")
+    expect(readFileSync(resolve(archived, "events.jsonl"), "utf8")).toContain('"action":"tick"')
   })
 
   test("discovery verdicts cannot approve build items or lowercase prose", async () => {

@@ -1,6 +1,6 @@
 import { spawnSync } from "node:child_process"
-import { existsSync, readFileSync } from "node:fs"
-import { isAbsolute, relative, resolve } from "node:path"
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
+import { basename, isAbsolute, relative, resolve } from "node:path"
 import { iscId, iscIds, parsePromise } from "./promise"
 
 export { iscId, parsePromise, parsePromiseRows, promiseDefaults } from "./promise"
@@ -286,6 +286,24 @@ function openItems(ledger: string): string[] {
 /** The active run's ledger file. */
 export function activeLedger(root: string): string {
   return ledgerPath(root, card(root))
+}
+
+/** Copies a closed run's record (events, run card, ledger) to `<home>/.hivecall/runs/<repo>/<run>/` so archiving the
+ *  worktree keeps it for the retro. Returns the folder, or null when there is no run card. */
+export function archiveRun(root: string, home: string): string | null {
+  const runCard = resolve(root, ".hivecall/run.md")
+  const text = readFile(runCard)
+  if (!text) return null
+  const owner = text.match(/^\s*orchestrator\s*:.*$/im)?.[0] ?? text
+  const run = owner.match(/\b(thr_[a-z0-9]+)/i)?.[1] ?? owner.match(/\b(ses_[A-Za-z0-9]+)/)?.[1] ?? "run"
+  const started = text.match(/^\s*started\s*:\s*(\d{4}-\d{2}-\d{2})/im)?.[1] ?? "undated"
+  const dir = resolve(home, ".hivecall/runs", basename(root), `${started}-${run}`)
+  mkdirSync(dir, { recursive: true })
+  const ledger = activeLedger(root)
+  for (const [from, name] of [[resolve(root, ".hivecall/events.jsonl"), "events.jsonl"], [runCard, "run.md"], [ledger, basename(ledger)]])
+    if (existsSync(from)) copyFileSync(from, resolve(dir, name))
+  writeFileSync(resolve(dir, "source.txt"), `${root}\n`)
+  return dir
 }
 
 /** Every item the ledger shows as ticked: a checked box or a PASS row. */
@@ -592,6 +610,10 @@ export function ruleFor(call: Call, state: Memory, root: string): Violation | nu
     const implementationFix = agent === "build" || (agent === "general" && /\b(?:implement|fix|repair|change)\b/i.test(`${String(input.description ?? "")}\n${prompt}`))
     if (implementationFix && key && (state.revisions.get(`${call.sessionID}:${key}`) ?? 0) >= 2)
       return { id: "third-fix", message: "Two REVISE_CODE results on this slice mean split it or change angle; do not send a third fix brief." }
+    // Right agent for the job: a brief that names a qa or reviewer role runs as that agent.
+    const role = briefRole(`${String(input.description ?? "")}\n${prompt}`)
+    if (!followup && agent && (role === "qa" || role === "reviewer") && agentMismatch(role, agent))
+      return { id: "right-agent", message: `This brief is ${role} work; spawn it with agent=${role}.`, detail: `agent=${agent}` }
     if (!followup) {
       const gate = progressGate(input, prompt, state, root)
       if (gate) return gate

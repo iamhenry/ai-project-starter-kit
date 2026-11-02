@@ -1,135 +1,108 @@
 # Hivecall retro
 
-Use for an explicitly requested retro of runs that invoked `hivecall`. The parent
-retro skill owns the questions, cause classes, verdicts, minimal-change order,
-redaction, and report. This module adds the goal, run selection, where to look,
-what good looks like, how to apply authorized edits, and two report tables. It is
-self-contained: a scheduled trigger only needs to invoke it and state authority.
+Use for an explicitly requested retro of runs that invoked `hivecall`. The weekly
+retro runs as the BB workflow `.bb/workflows/hivecall-retro.js`; it reads this
+file. The parent retro skill owns cause classes, redaction and minimal-change
+order. This file owns the expected behavior: one fixed set of stages every run
+is judged on, so every report covers the same ground.
 
 ## Goal
 
-Hivecall plus its watchdog should run autonomously for hours, reliably and
-honestly. It has two jobs:
+Hivecall should take a goal to a result the owner accepts, without the owner
+babysitting, honestly, and without wasted work. A retro answers two questions
+with evidence: which stages behaved as expected in each run, and what is
+systemically going well or wrong across runs and weeks.
 
-1. **Stay on track.** The watchdog tells the orchestrator whether agents are on
-   track, the orchestrator steers, and workers talk back when stuck.
-2. **Deliver the goal contract.** Finish every item with proof, or stop cleanly
-   on a hard blocker and say exactly what is left.
+## Where the evidence is
 
-Judge changes by both jobs and by time: hours lost to stalls, redo rounds, and
-the owner having to step in. Exclude owner idle time.
+- Run folder: `~/.hivecall/runs/<repo>/<started>-<thread>/` holds the run's
+  `events.jsonl`, `run.md` (run card with owner rules, lessons and final report)
+  and ledger, copied by the plugin every 10 minutes while the run is live and
+  once on close; a run that never closed is judged as it stands. `source.txt` names the
+  worktree; read its `.hivecall/verification/` and `git log` if it still exists.
+- `events.jsonl`: one row per helper launch (`helper-created`: agent, brief role,
+  items, commits), guardrail (`blocked`, `allowed`, `warning` with `rule`),
+  verdict (`review-result`: approved, failed, passed), tick (`allowed` with
+  `action: tick`) and `agent-mismatch`.
+- Orchestrator thread: the `orchestrator:` line of the run card. Save
+  `bb thread log <thread> --json --all > <tmp file>`; it holds the owner's
+  messages, watchdog alerts and replies. Briefs given to native helpers are in
+  `opencode session export <session id> > <tmp file>` (session id from the run
+  card or the log's `providerThreadId`). Always redirect to a file. If `bb` fails
+  on a stale `BB_CLI`, run `env -u BB_CLI bb ...`.
+- A run lasts from the skill load until `status: closed`. Owner messages after
+  close are the owner's verdict on the result; read them.
 
-## Finding the runs
+## Stages
 
-- Use the `bb` CLI (`bb thread list`, `bb thread log <id> --json --all`, redirected
-  to files). Default window: the past 7 days, all projects, active and archived.
-  If that finds fewer than 3 runs, widen to 30 days and say so.
-- Count a thread only when its log shows a completed `skill` tool call whose
-  argument is exactly `hivecall`. Titles, mentions, and claims don't count.
-- A run lasts from the skill load until the run card says `status: closed`; a
-  later non-closed status reopens it. Work after close is follow-up.
-- Follow each run's child threads, and their children, to see the whole run.
-- Record which version of `.opencode/plugins/hivecall/` each run loaded (match it
-  to `git log`), so a later drop can be traced to a change.
-- Hand-offs to OpenCode helper agents are not in BB logs. Read them from the
-  orchestrator's OpenCode session: `opencode session export <session id> > file`
-  (the session id is the `providerThreadId` in the BB log). Always redirect to a
-  file; piped output is truncated. Do not use `--sanitize`; it blanks the text.
-  Count hand-offs from both sources: BB-started threads and OpenCode helper calls
-  in the orchestrator's export. Check `PROMISE:` lines with the watchdog's own
-  reader (`parse_promise` in `watchdog/watch.py`), not just whether the word appears.
-- If `bb` fails with a stale `BB_CLI` setting, run it as `env -u BB_CLI bb ...`
-  or call the newest `bb` binary in the BB app's versions folder, and note it.
+Each stage gets PASS, FAIL or UNKNOWN with one evidence line (file plus line,
+event time, or log sequence). PASS needs evidence too. UNKNOWN names the command
+or file that was tried. A stage that did not occur in the run (for example no
+review was needed) is PASS with that reason.
 
-## Where to look
+### Setup
 
-Check the runs against everything the skill tells agents to do. Before reading
-runs, list every rule the skill itself states (in SKILL.md, HOW-TO-WORK.md and
-the references). For each rule, count how often runs followed it across every
-hand-off, tick and message, not a sample. Then read the runs for problems no
-rule covers, such as:
+- **kickoff**: The goal contract states the outcome for its full reach (for
+  example "any article", not only the samples), what must keep working, an
+  expected result taken from the original source, and exit criteria that cannot
+  keep the defect. FAIL when the owner later had to add one of these, or a gap
+  in the contract let the run pass without the goal.
+- **plan**: Items are thin steps toward the goal and the plan map stays current.
+  FAIL when an item was mostly tooling for its own sake, or the plan kept
+  pointing at work the evidence had ruled out.
 
-- The owner correcting, redirecting, or asking for status.
-- Watchdog alerts, read with the orchestrator's next reply: false alarm,
-  already handled, acted on, or ignored. A change to an alert must keep the real
-  problems it caught while cutting the false ones.
-- Stretches with open work and no agent working, and workers that ended stuck
-  without talking back.
-- Final reports and ledger ticks compared with the proof that exists.
-- Rules in SKILL.md or HOW-TO-WORK.md that runs kept breaking: is the rule
-  unclear, unenforced, or wrong?
-- Places the skill made runs slow or heavy: needless rebuilds, oversized
-  tasks, repeated work.
+### Work
 
-## Wishlist
+- **handoff**: Each brief has one checkable result, the delta since the last
+  attempt and the correct edit scope, and goes to the right agent: build work to
+  build (or the run's named implementation agent), review to `reviewer`, QA to
+  `qa`, research to a research agent. FAIL on any `agent-mismatch` or
+  `right-agent` block for review or QA, a brief that made a helper redo valid
+  work, or an edit outside the stated scope.
+- **build**: Behavior is made to work and proven before tests are written; no
+  unrelated changes. FAIL when tests came before proof or the owner corrected
+  scope.
+- **review**: Review is sized to risk: behavior-changing code is reviewed,
+  renames, tests and docs on proven work are not. FAIL on review rounds spent on
+  low-risk commits or more than two revise rounds on one slice.
 
-Read `.opencode/plugins/hivecall/WISHLIST.md`. For each item, report what this
-week's runs show: evidence for it (counts or events), evidence against it, or
-none. Propose an item as a change only when the evidence supports it and it is
-the smallest fix; then remove it from the wishlist in the same commit. Never
-build an item without evidence.
+### Proof
+
+- **proof**: Every tick rests on an independent QA result on a named commit,
+  checked against a reference that does not come from the code under change.
+  FAIL when a check compared the output with itself, a tick was later
+  contradicted, or a mismatch was accepted as a tradeoff without the owner.
+- **stuck**: When an item kept failing, the run changed angle, split it or parked
+  it with an unlock, and never widened scope or lowered the bar. FAIL on repeated
+  attempts with the same approach, or `replan` pauses that changed nothing.
+- **keep-working**: What worked before still works: the contract's keep-working
+  steps ran on the candidate. FAIL when the owner found a regression or the
+  steps never ran.
+
+### Oversight
+
+- **watchdog**: Alerts were real and acted on. FAIL when most alerts were false,
+  or a real alert was ignored.
+- **owner-channel**: The owner stayed hands-off and was told about blockers
+  clearly. FAIL on owner corrections or status questions mid-run that the
+  harness should have prevented.
+- **close**: The final report compares the result with the goal, says plainly
+  when the goal is unmet, and its claims match the receipts. FAIL when the owner
+  said after close that it was not solved, or the report read as success while a
+  parked item blocked the goal.
 
 ## Privacy
 
-Count and classify from the original records first, then redact. Before any run
-text goes into scratch notes, helper prompts, the report, or a commit, remove
-secrets and tokens, emails, personal paths (`/Users/<name>` -> `/Users/[user]`),
-IPs, and personal names. Paraphrase the owner; never quote verbatim. Redact only
-identifying or secret values, never the behavior (what happened, when, counts,
-alert names, statuses), so redaction cannot skew findings. Keep scratch files in
-a temp folder outside the repo and delete them at the end. Commits contain no run
-excerpts, thread or session IDs, or personal data.
+Judge from the original records, then redact what goes into the report: no
+secrets or tokens, emails, IPs or personal names; paraphrase the owner, never
+quote. Local file paths, thread ids and commit ids may stay. Redact only
+identifying values, never the behavior. Keep scratch files in a temp folder.
 
-## What good and bad look like
+## Proposed fixes
 
-Good:
-- Every rule the skill states is listed with followed / total per run, counted
-  across all hand-offs, ticks and messages. Subagents may split the counting.
-- Each change points at a count or a concrete event and names the rule or
-  friction it fixes.
-- A safeguard that caught real problems is kept; a noisy one is made more
-  accurate.
-- Every claim has evidence. What couldn't be checked says "unknown" and why.
-- Small, simple edits. The skill grows only with a stated reason.
-
-Bad:
-- Reading a few runs as stories, or sampling.
-- Skipping a count because logs are large, or calling a plain yes/no text check
-  "subjective".
-- Deleting an alert or rule because it was sometimes wrong.
-- Calling something a restored regression without the commit where it was lost.
-- Claiming nothing useful was removed without counting.
-- Proposing changes the skill already has.
-
-## Applying changes
-
-Only when the request authorizes edits:
-- Edit only `.opencode/plugins/hivecall/`. Do not read or modify its `eval/` folder.
-- The eval finds things by name: alert names, the ledger tick and verification
-  line format, the TALK-BACK and PROMISE words, and run card status words. If a
-  change renames or reshapes any of these, don't apply it. List it in the report
-  as `EVAL IMPACT: <old> → <new>` so the owner can change the skill and the eval
-  in one edit.
-- Keep the existing structure. Report words in SKILL.md, HOW-TO-WORK.md and
-  references/*.md before and after; justify each increase in one line.
-- If `watchdog/watch.py` changes, run every `--simulate` scenario, each with its
-  own temporary `REPO` folder; all must pass.
-- Bump the patch version in SKILL.md, commit locally on the current branch, and
-  never push, open a PR, or merge. Do not start a hivecall run.
-
-## Output shape
-
-Start with a 2–3 sentence problem statement. List the reviewed runs:
-
-| Thread | Name | Project | Skill version | Outcome |
-| --- | --- | --- | --- | --- |
-
-Use this table for proposed changes:
-
-| # | File | What to change | What happened in the runs | Why | What to expect |
-| --- | --- | --- | --- | --- | --- |
-
-Then the rule counts (rule, followed / total per run, or unknown and why). If
-edits were applied: commit, branch, skill size before/after, simulation result,
-what should improve and what could get worse, and run hiccups (anything in this
-profile, the retro skill or the tools that slowed the run or was unclear).
+At most three, each pointing at a FAIL that repeats across runs or weeks, as the
+smallest change to `.opencode/plugins/hivecall/` (prefer a guardrail in code for
+a repeated failure, a line of wording for a one-off). If a fix renames an alert,
+a ledger or verification line format, the TALK-BACK or PROMISE words or a run
+card status word, mark it `EVAL IMPACT`. The retro proposes only; it never edits,
+commits or starts a hivecall run.

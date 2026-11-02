@@ -1,9 +1,10 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs"
+import { homedir } from "node:os"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { Plugin } from "@opencode/plugin"
 import { bbAgentStamp, bbHelperSession, bbNoticeEvents, bbOutputRead, bbPinEvent, bbReadEvent, bbSpawnEvent, shellDelegation, stampSucceeded, type BbStamp } from "./watchdog/adapters"
-import { activeLedger, activeRun, agentMismatch, anchor, apply, blockDecision, briefRole, canaryMissing, dirtyFiles, helperIdentity, memory, replanEvents, reviewEvent, ruleFor, tickedItems, unearned, type HiveEvent, type Violation } from "./watchdog/policy"
+import { activeLedger, activeRun, agentMismatch, archiveRun, anchor, apply, blockDecision, briefRole, canaryMissing, dirtyFiles, helperIdentity, memory, replanEvents, reviewEvent, ruleFor, tickedItems, unearned, type HiveEvent, type Violation } from "./watchdog/policy"
 
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 const skillPath = resolve(pluginDir, "SKILL.md")
@@ -91,6 +92,13 @@ export default Plugin.define({
     const notices: string[] = [] // waiting for the orchestrator's next completed call
     const warnings: string[] = [] // warn-only notices, delivered the same way
     let wasActive = activeRun(root)
+    // The run's record is kept outside the worktree, which is deleted when it is archived: copied every 10 minutes
+    // while the run is live (runs that never close still reach the retro) and once more on close.
+    let archivedAt = 0
+    const archive = () => {
+      archivedAt = Date.now()
+      try { archiveRun(root, process.env.HIVECALL_HOME || homedir()) } catch (error) { logFailure("run archive", error) }
+    }
     // Ticks already on the ledger before the first call of an active run are grandfathered, judged before that call runs.
     const startRun = () => {
       if (started || !activeRun(root)) return
@@ -340,9 +348,12 @@ export default Plugin.define({
         apply(state, row) // a new earned tick restarts the run-wide hill-climb count
         record(row)
       }
-      if (active) wasActive = true
-      else {
+      if (active) {
+        wasActive = true
+        if (Date.now() - archivedAt > 10 * 60_000) archive()
+      } else {
         wasActive = false
+        archive()
         if (bad.size) {
           record({ type: "close-unearned", rule: "no-early-done", ids: [...bad].join(","), sessionID: event.sessionID, tool })
           notices.push(`The run card was closed while ${[...bad].join(", ")} ${bad.size === 1 ? "is" : "are"} ticked without approval and receipt; the close does not count them.`)

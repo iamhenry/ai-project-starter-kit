@@ -42,5 +42,9 @@
   {
     "id": "qa-dirty",
     "message": "QA must test the named commit in its own clean copy (a worktree); edits in this checkout are not part of that candidate."
+  },
+  {
+    "id": "right-agent",
+    "message": "Right agent for the job: review work runs as agent=reviewer and qa work as agent=qa, so the judge is the agent built for it. Respawn with that agent."
   }
 ]

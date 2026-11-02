@@ -5,6 +5,9 @@ import { resolve } from "node:path"
 
 // Drive the real plugin hooks with a fake OpenCode host; only the plugin wrapper is stubbed.
 mock.module("@opencode/plugin", () => ({ Plugin: { define: (plugin: unknown) => plugin } }))
+// Closed runs are archived under HIVECALL_HOME; keep tests out of the real home folder.
+export const archiveHome = mkdtempSync(resolve(tmpdir(), "hive-home-"))
+process.env.HIVECALL_HOME = archiveHome
 const plugin = (await import("../index")).default as unknown as { setup(ctx: unknown): Promise<() => void> }
 
 /** Teardown for every host; the test file runs these after each test. */
