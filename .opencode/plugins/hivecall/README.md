@@ -16,15 +16,39 @@ Not for: a quick fix, a one-file change, or research. It costs more than a norma
 ## How a run goes
 
 1. You type `hivecall` and give a goal: a few sentences, a spec file, or an ISA.html.
-2. For clear input, it shows a goal contract and plan; ambiguous input first gets a three-item Discovery ledger. It asks "Watchdog on?" and "Open a PR at the end?".
+2. For clear input, it shows a goal contract and plan, including what must keep working and how far the result must reach (for example "any article"); ambiguous input first gets a three-item Discovery ledger. It asks "Watchdog on?" and "Open a PR at the end?".
 3. Clear-task runs wait for contract approval. On discovery, your two answers authorize the run and a reviewer approves or revises the plan.
 4. It works through the checklist. Open `.hivecall/checklist.html` in a browser to see progress.
 5. It ends in one of three ways:
-   - **Done:** every item proven. You get a final report; the watchdog pauses first and removes itself on its next check after the run card is closed.
+   - **Done:** every item proven or parked. The final report compares the result with the goal and says "goal not met" when a parked item blocks it; the watchdog pauses first and removes itself on its next check after the run card is closed.
    - **Blocked:** it tells you what's in the way and what would unblock it.
    - **Stalled:** the watchdog pings you once and stops nudging.
 
 Every reply ends with a one-row status table, so you can catch up at a glance.
+
+## Guardrails
+
+The bundled plugin checks each helper launch and each tick before it happens. Messages live in `rules.json`. A blocked step is allowed on the third try with a warning, so a guardrail never freezes the run.
+
+```mermaid
+flowchart LR
+  O[Orchestrator launches a helper] --> G{Plugin checks}
+  G -->|item failed 3 times or run failed 5 times| RP[Pause - write RE-PLAN with tried, evidence, new angle]
+  G -->|QA or review on passed unchanged work| NR[Block - say WHY or move on]
+  G -->|QA brief names no saved commit| QC[Block - name the commit]
+  G -->|ok| H[Helper runs]
+  H --> T{Tick}
+  T -->|edits its own check without CANARY| X[Tick refused]
+  T -->|QA PASS on that commit, plus review for behavior changes| OK[Ticked]
+```
+
+| Guardrail | When it acts | What the agent must do |
+|---|---|---|
+| `replan` | An item fails 3 times, or the run fails 5 times without a tick | Write `RE-PLAN` with what it tried, an evidence file and a new angle, split or park; repeating the last plan is refused |
+| `no-redo` | QA or review on passed items whose files are unchanged | Skip it, or give a `WHY:` line |
+| `qa-commit` / `qa-dirty` | QA brief names no commit / unsaved product edits exist | Name the commit under test; commit first |
+| `CANARY` | A tick whose commit edits that item's check | Show the check still fails on a known-bad case |
+| Low-risk tick | Renames, tests or docs on proven work | A QA PASS on that exact commit is enough; a later failure cancels it |
 
 ## What's in this folder
 
@@ -33,6 +57,8 @@ Every reply ends with a one-row status table, so you can catch up at a glance.
 | `SKILL.md` | The rules the orchestrator follows |
 | `references/kickoff.md` | Goal contract, checklist, run card, how to end a run |
 | `references/checklist-template.html` | The progress page |
+| `index.ts`, `watchdog/policy.ts` | The plugin guardrails |
+| `rules.json` | Guardrail messages |
 | `watchdog/watch.py` | The watchdog script |
 | `watchdog/lessons.md` | Rules learned from past runs |
 
