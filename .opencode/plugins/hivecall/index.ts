@@ -1,9 +1,10 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs"
+import { homedir } from "node:os"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { Plugin } from "@opencode/plugin"
 import { bbAgentStamp, bbHelperSession, bbNoticeEvents, bbOutputRead, bbPinEvent, bbReadEvent, bbSpawnEvent, shellDelegation, stampSucceeded, type BbStamp } from "./watchdog/adapters"
-import { activeLedger, activeRun, agentMismatch, anchor, apply, blockDecision, briefRole, helperIdentity, memory, reviewEvent, ruleFor, tickedItems, unearned, type HiveEvent } from "./watchdog/policy"
+import { activeLedger, activeRun, agentMismatch, archiveRun, anchor, apply, blockDecision, briefRole, canaryMissing, dirtyFiles, helperIdentity, memory, replanEvents, reviewEvent, ruleFor, tickedItems, unearned, type HiveEvent, type Violation } from "./watchdog/policy"
 
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 const skillPath = resolve(pluginDir, "SKILL.md")
@@ -89,7 +90,15 @@ export default Plugin.define({
     }
     const flagged = new Set<string>(), earned = new Set<string>() // ids already logged as unearned / earned
     const notices: string[] = [] // waiting for the orchestrator's next completed call
+    const warnings: string[] = [] // warn-only notices, delivered the same way
     let wasActive = activeRun(root)
+    // The run's record is kept outside the worktree, which is deleted when it is archived: copied every 10 minutes
+    // while the run is live (runs that never close still reach the retro) and once more on close.
+    let archivedAt = 0
+    const archive = () => {
+      archivedAt = Date.now()
+      try { archiveRun(root, process.env.HIVECALL_HOME || homedir()) } catch (error) { logFailure("run archive", error) }
+    }
     // Ticks already on the ledger before the first call of an active run are grandfathered, judged before that call runs.
     const startRun = () => {
       if (started || !activeRun(root)) return
@@ -103,8 +112,8 @@ export default Plugin.define({
       : !childParents.has(sessionID) && !state.helpers.has(sessionID)
     const arm = (sessionID: string) => {
       armed = true
-      if (!activeRun(root) && (started || state.approvals.size)) { // a fresh run: forget the last run's tick state
-        state.approvals.clear(); state.grandfathered.clear(); started = false; orchestrators.clear(); flagged.clear(); earned.clear()
+      if (!activeRun(root) && (started || state.approvals.size || state.failures.size || state.sinceTick)) { // a fresh run: forget the last run's tick state
+        state.approvals.clear(); state.grandfathered.clear(); state.failures.clear(); state.replans.clear(); state.sinceTick = 0; started = false; orchestrators.clear(); flagged.clear(); earned.clear()
       }
       if (sessionID && !orchestrators.has(sessionID)) orchestrators.add(sessionID)
       save()
@@ -244,7 +253,7 @@ export default Plugin.define({
     })
 
     await ctx.tool.hook("execute.before", (event) => {
-      let violation: { id: string; message: string } | null = null
+      let violation: Violation | null = null
       const callID = `${event.sessionID}:${event.id}`
       try {
         const input = event.input && typeof event.input === "object" ? event.input as Record<string, unknown> : {}
@@ -282,19 +291,32 @@ export default Plugin.define({
         if (normalized?.kind && !normalized.call) record({ type: "allowed", action: normalized.kind, sessionID: event.sessionID, ungated: 1 })
         const action = call.tool === "subagent" ? normalized?.kind ?? "spawn" : undefined
         violation = ruleFor(call, state, root)
-        const decision = violation ? blockDecision(state, event.sessionID, violation.id) : null
+        const blockKey = violation ? violation.key ?? violation.id : ""
+        const decision = violation ? blockDecision(state, event.sessionID, blockKey) : null
         if (!violation || !decision?.block) {
           if (action) record({ type: "allowed", action, sessionID: event.sessionID, rule: violation?.id })
-          if (violation) warnOnce(event.sessionID, violation.id)
+          if (violation) warnOnce(event.sessionID, blockKey)
+          if (action === "spawn" || action === "tell") {
+            // A valid RE-PLAN in the brief is the reflection; it resets that item's hill-climb count.
+            for (const replan of replanEvents(call.input, state, root)) emit({ ...replan, sessionID: event.sessionID })
+            const identity = helperIdentity(call.input)
+            const dirty = identity.agent.includes("qa") || identity.role === "qa" ? dirtyFiles(root) : []
+            const mark = dirty.join(",")
+            if (dirty.length && !warned.has(key(event.sessionID, `qa-dirty:${mark}`))) {
+              warned.add(key(event.sessionID, `qa-dirty:${mark}`))
+              record({ type: "warning", rule: `qa-dirty:${mark}`, sessionID: event.sessionID })
+              warnings.push(`qa started while the checkout has uncommitted edits (${dirty.slice(0, 5).join(", ")}${dirty.length > 5 ? ", ..." : ""}). ${rules.find((r) => r.id === "qa-dirty")?.message ?? ""}`)
+            }
+          }
           return
         }
-        record({ type: "blocked", rule: violation.id, sessionID: event.sessionID, tool: event.tool, count: decision.count, action })
+        record({ type: "blocked", rule: blockKey, sessionID: event.sessionID, tool: event.tool, count: decision.count, action })
       } catch (error) {
         logFailure("tool hook", error)
         return
       }
       if (violation) {
-        throw new Error([rules.find((rule) => rule.id === violation?.id)?.message ?? violation.message, violation.detail && `(${violation.detail})`].filter(Boolean).join(" "))
+        throw new Error([rules.find((rule) => rule.id === violation?.id)?.message || violation.message, violation.detail && `(${violation.detail})`].filter(Boolean).join(" "))
       }
     })
 
@@ -309,22 +331,29 @@ export default Plugin.define({
       const ledger = activeLedger(root)
       const text = existsSync(ledger) ? readFileSync(ledger, "utf8") : ""
       const bad = new Set(unearned(text, state.approvals, state.grandfathered, root))
+      const canary = new Set(canaryMissing(text, root))
       const ticked = new Set(tickedItems(text))
       const tool = event.tool
       for (const id of bad) if (!flagged.has(id)) {
         flagged.add(id)
         record({ type: "tick-unearned", rule: "tick-gate", id, sessionID: event.sessionID, tool })
-        notices.push(`${id} is ticked without a verified reviewer APPROVE_CODE, APPROVE_PLAN or SELECTED, or qa REPRODUCED for Discovery items only, and its receipt, so it does not count.`)
+        notices.push(canary.has(id) ? `${id}'s commit edits a file its own check names, and its receipt has no CANARY: line showing a known-broken case still fails, so it does not count.`
+          : `${id} is ticked without a verified reviewer APPROVE_CODE, APPROVE_PLAN or SELECTED, or qa REPRODUCED for Discovery items only, or a qa PASS naming its commit when that commit only renames files or changes tests or docs on a proven parent, and its receipt, so it does not count.`)
       }
       for (const id of [...flagged]) if (!bad.has(id)) flagged.delete(id)
       for (const id of [...earned]) if (!ticked.has(id)) earned.delete(id)
       for (const id of ticked) if (!bad.has(id) && !state.grandfathered.has(id) && !earned.has(id)) {
         earned.add(id)
-        record({ type: "allowed", action: "tick", id, sessionID: event.sessionID, tool })
+        const row = { type: "allowed", action: "tick", id, sessionID: event.sessionID, tool }
+        apply(state, row) // a new earned tick restarts the run-wide hill-climb count
+        record(row)
       }
-      if (active) wasActive = true
-      else {
+      if (active) {
+        wasActive = true
+        if (Date.now() - archivedAt > 10 * 60_000) archive()
+      } else {
         wasActive = false
+        archive()
         if (bad.size) {
           record({ type: "close-unearned", rule: "no-early-done", ids: [...bad].join(","), sessionID: event.sessionID, tool })
           notices.push(`The run card was closed while ${[...bad].join(", ")} ${bad.size === 1 ? "is" : "are"} ticked without approval and receipt; the close does not count them.`)
@@ -335,9 +364,10 @@ export default Plugin.define({
       try { judge(event) } catch (error) { logFailure("tick check", error) }
       try {
         // Delivered whenever the orchestrator next completes a call, even after the run card closed.
-        if (notices.length && event.status === "completed" && isOrchestrator(event.sessionID)) {
-          const rule = rules.find((r) => r.id === "tick-gate")?.message ?? ""
-          event.result = { ...event.result, content: [...(event.result?.content ?? []), { type: "text", text: `[hivecall] ${notices.splice(0).join(" ")} ${rule}` }] }
+        if ((notices.length || warnings.length) && event.status === "completed" && isOrchestrator(event.sessionID)) {
+          const rule = notices.length ? ` ${rules.find((r) => r.id === "tick-gate")?.message ?? ""}` : ""
+          const text = [notices.length ? `[hivecall] ${notices.splice(0).join(" ")}${rule}` : "", ...warnings.splice(0).map((w) => `[hivecall] ${w}`)].filter(Boolean).join("\n")
+          event.result = { ...event.result, content: [...(event.result?.content ?? []), { type: "text", text }] }
         }
       } catch (error) { logFailure("tick check", error) }
     })

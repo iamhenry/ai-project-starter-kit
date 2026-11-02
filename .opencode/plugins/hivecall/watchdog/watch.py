@@ -419,6 +419,12 @@ def clear_done_state(state: dict) -> None:
 
 
 def parse_isa(path: str, root: str = "") -> dict:
+    # A ledger path is the repo's: a relative one (`.hivecall/checklist.html`), or one built from an empty $REPO
+    # (`/.hivecall/checklist.html`, which made the watchdog report "Proven 0/0" on a 10/16 run).
+    if root and path and not os.path.exists(path):
+        candidate = os.path.join(root, path.lstrip("/"))
+        if os.path.exists(candidate):
+            path = candidate
     try:
         source = Path(path).read_text(encoding="utf-8")
     except OSError as exc:

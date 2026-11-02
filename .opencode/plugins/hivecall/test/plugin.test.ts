@@ -28,12 +28,15 @@ describe("plugin hooks", () => {
       .toEqual([["skill-loaded", undefined, null], ["blocked", "spawn", "brief-check"], ["allowed", "spawn", null], ["helper-created", undefined, null], ["allowed", "spawn", 1]])
   })
 
-  test("a helper whose agent differs from its brief's role is warned about, not blocked", async () => {
+  test("review or qa work sent to another agent is blocked until it runs as the right agent", async () => {
     const { call, events } = await host({ card: true })
     await call("skill", { id: "subagent-delegation" })
-    expect(await call("subagent", { agent: "build", description: "review", prompt: `agent: reviewer\n${brief}` })).toBeNull()
+    expect(await call("subagent", { agent: "build", description: "review", prompt: `agent: reviewer\n${brief}` })).toContain("agent=reviewer")
+    expect(await call("subagent", { agent: "general", description: "qa", prompt: `agent: qa\n${brief}` })).toContain("agent=qa")
     expect(await call("subagent", { agent: "reviewer", description: "review", prompt: `agent: reviewer\n${brief}` })).toBeNull()
-    expect(events().filter((row) => row.type === "agent-mismatch").map((row) => [row.brief, row.agent])).toEqual([["reviewer", "build"]])
+    // Other roles keep their workaround (build briefs may run as another implementation agent): warned, not blocked.
+    expect(await call("subagent", { agent: "code", description: "build", prompt: `agent: build\n${brief}` })).toBeNull()
+    expect(events().filter((row) => row.type === "agent-mismatch").map((row) => [row.brief, row.agent])).toEqual([["reviewer", "build"], ["qa", "general"], ["build", "code"]])
   })
 
   test("an unreadable spawn's thread cannot be pinned, so its approval does not unlock a tick", async () => {

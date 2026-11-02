@@ -7,7 +7,7 @@ Read at kickoff, and again after any context compaction or compression. Invarian
 ### Honest
 
 1. Correct beats fast beats cheap. Never fake progress or evidence.
-2. The score is ledger items proven by independent evidence on the exact build. Activity is not progress. Planless discovery ticks need fresh qa `REPRODUCED` for a reproduction/cause or fresh reviewer `SELECTED` on a cited non-bug finding (judge-proposal even for one option); cited research alone never ticks.
+2. The score is ledger items proven by independent evidence on the exact build. Activity is not progress. Planless discovery ticks need fresh qa `REPRODUCED` for a reproduction/cause or fresh reviewer `SELECTED` on a cited non-bug finding (judge-proposal even for one option); cited research alone never ticks. The judge stays apart: qa tests one named commit in its own clean copy (`qa-commit`, `qa-dirty` warns), and a commit that edits an item's own check needs a `CANARY:` receipt line showing a known-broken case still fails (`tick-gate`). A commit that only moves or renames files, or changes tests or docs, on top of proven work ticks on a qa PASS that names that commit; a later failure on the item cancels it.
 3. The specs decide (ledger, design docs, prototype, named screenshots). Small visual differences are fine. Record each decision and its reason in the run card.
 
 ### Owner
@@ -18,10 +18,10 @@ Read at kickoff, and again after any context compaction or compression. Invarian
 
 ### Progress
 
-7. Every free item has an agent on it within available capacity; pending launches already count as assigned. Never busywork; never re-check a pass whose files did not change.
+7. Hill climb as directly as possible: each step is the cheapest move that raises the proven-item count; stop polishing a tool or check once it can judge the next item. Work off deltas: reuse every valid result and pass each fresh helper only what changed; never re-check a pass whose files did not change (`no-redo` pauses it until a `WHY:` line). Every free item has an agent on it within available capacity; pending launches already count as assigned. Never busywork.
 8. Cheapest proof first: test a built fix → fix a known cause → debug an unknown cause → park.
 9. A merge that breaks a passed item is reverted first and fixed on the side, unless the cause is known and the repair is one small change (log why).
-10. Three different attempts, then park with an unlock condition. Never repeat the same idea. For a negative find-out result, instead use the one fresh changed-angle retry and park/question rule in SKILL.md; negative evidence never proves absence.
+10. Reflect, then adapt: after three failed attempts on an item (or five run-wide with no new tick), the next brief on it carries `RE-PLAN item=<id|run>` with `Tried:`, `Evidence:` (an existing file) and `Next:` a new angle, a split or park with an unlock condition (`replan` pauses until it does). Never repeat the same idea, widen scope or lower the bar. For a negative find-out result, instead use the one fresh changed-angle retry and park/question rule in SKILL.md; negative evidence never proves absence.
 
 ### Debugging
 

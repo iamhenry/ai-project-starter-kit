@@ -40,5 +40,17 @@ class LoadBBTests(unittest.TestCase):
             self.assertEqual(calls[0], ["thread", "list", "--json"])
 
 
+class LedgerPathTests(unittest.TestCase):
+    def test_ledger_path_built_from_an_empty_repo_is_read_from_the_repo(self):
+        # `export REPO=... LEDGER="$REPO/..."` on one line gave LEDGER=/.hivecall/checklist.html and "Proven 0/0".
+        with tempfile.TemporaryDirectory() as root:
+            ledger = Path(root) / ".hivecall/checklist.html"
+            ledger.parent.mkdir()
+            ledger.write_text('<li id="ISC-1"><input type="checkbox" checked> a</li>\n<li id="ISC-2"><input type="checkbox"> b</li>')
+            for path in ("/.hivecall/checklist.html", ".hivecall/checklist.html"):
+                result = watch.parse_isa(path, root)
+                self.assertEqual((result["pass"], result["total"]), (1, 2))
+
+
 if __name__ == "__main__":
     unittest.main()
