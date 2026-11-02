@@ -15,8 +15,13 @@ systemically going well or wrong across runs and weeks.
 
 ## Where the evidence is
 
-- Run folder: `~/.hivecall/runs/<repo>/<started>-<thread>/` holds the run's
-  `events.jsonl`, `run.md` (run card with owner rules, lessons and final report)
+- A run is an archived BB thread whose log has a completed `skill` tool call
+  named exactly `hivecall` and writes a run card. Only archived threads count:
+  an active one may still be working. Its thread log and OpenCode session stay
+  readable after the thread and its worktree are archived. Follow its child
+  threads (`bb thread list --parent-thread <id>`) too.
+- Saved run folder, when the plugin version had it:
+  `~/.hivecall/runs/<repo>/<started>-<thread>/` holds the run's `events.jsonl`, `run.md` (run card with owner rules, lessons and final report)
   and ledger, copied by the plugin every 10 minutes while the run is live and
   once on close; a run that never closed is judged as it stands. `source.txt` names the
   worktree; read its `.hivecall/verification/` and `git log` if it still exists.

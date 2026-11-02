@@ -5,7 +5,7 @@ export const meta = {
     type: "object",
     additionalProperties: false,
     properties: {
-      // Run folders to judge; default: every folder under ~/.hivecall/runs with activity in the last `days` days.
+      // Thread ids to judge; default: every archived thread that loaded hivecall, archived in the last `days` days.
       runs: { type: "array", items: { type: "string" } },
       days: { type: "integer", minimum: 1, maximum: 60 },
       // Post the report as a GitHub issue; false returns it only.
@@ -13,7 +13,7 @@ export const meta = {
     },
   },
   phases: [
-    { title: "Find", detail: "List the week's runs" },
+    { title: "Find", detail: "Archived threads that loaded hivecall this week" },
     { title: "Judge", detail: "Four judges per run, every stage answered with evidence" },
     { title: "Synthesize", detail: "Patterns across runs and weeks, up to three fixes, draft issue" },
   ],
@@ -48,12 +48,19 @@ const groupSchema = (stages) => ({
 });
 
 phase("Find");
-let runs = Array.isArray(input.runs) ? input.runs : null;
+// A run is a BB thread that loaded the hivecall skill; its saved folder (if any) adds the plugin's records.
+let runs = Array.isArray(input.runs) ? input.runs.map((thread) => ({ thread, folder: "" })) : null;
 if (!runs) {
   const found = await agent(
-    `List hivecall run folders to judge. Each folder under ~/.hivecall/runs/*/* holds run.md. Return the absolute path of every folder whose events.jsonl (or run.md, if events are missing) was last modified within the last ${days} days, whatever its status: runs that never closed count too. Use only ls/stat/find; do not read run contents.`,
-    { provider: "opencode", model: "openai/gpt-6-luna", reasoningLevel: "low", label: "Find runs", phase: "Find",
-      schema: { type: "object", required: ["runs"], additionalProperties: false, properties: { runs: { type: "array", items: { type: "string" } } } } },
+    `Find every finished hivecall run: archived threads only, in all projects, archived in the last ${days} days. Active threads may still be working, so never include them.
+1. List threads: \`bb thread list --archived --json > <tmp>/archived.json\`; keep threads whose archivedAt is within the window.
+2. For each, save \`bb thread log <id> --json --all > <tmp file>\` and keep it only if it has a completed \`skill\` tool call whose name argument is exactly \`hivecall\`. Titles, mentions and claims do not count. Also drop threads whose log never writes a run card (`.hivecall/run.md`): they discussed hivecall but ran nothing.
+3. For each kept thread, folder = the directory under ~/.hivecall/runs/*/ whose name ends with that thread id, or "" if none.
+If \`bb\` fails on a stale BB_CLI, run \`env -u BB_CLI bb ...\`. Do not read run contents beyond this.`,
+    { provider: "opencode", model: "openai/gpt-6-luna", reasoningLevel: "medium", label: "Find runs", phase: "Find",
+      schema: { type: "object", required: ["runs"], additionalProperties: false, properties: { runs: { type: "array", items: {
+        type: "object", required: ["thread", "folder"], additionalProperties: false,
+        properties: { thread: { type: "string" }, folder: { type: "string" } } } } } } },
   );
   runs = found?.runs ?? [];
 }
@@ -62,7 +69,8 @@ log(`${runs.length} run(s) to judge`);
 phase("Judge");
 const judgePrompt = (run, group, stages) => `You judge one hivecall run on fixed stages. Read ${PROFILE} first: its "Where the evidence is" and the "${group}" stages are your contract.
 
-Run folder: ${run}
+Orchestrator thread: ${run.thread}
+Saved run folder: ${run.folder || "none (read the thread log and its worktree if it still exists)"}
 Stages: ${stages.join(", ")}
 
 Rules:
@@ -75,7 +83,7 @@ const grids = [];
 for (const run of runs) {
   const entries = Object.entries(GROUPS);
   const answers = await parallel(entries.map(([group, stages]) => () => agent(judgePrompt(run, group, stages), {
-    provider: "opencode", model: "openai/gpt-6-luna", reasoningLevel: "xhigh", label: `${run.split("/").slice(-2).join("/")} · ${group}`, phase: "Judge", schema: groupSchema(stages),
+    provider: "opencode", model: "openai/gpt-6-luna", reasoningLevel: "xhigh", label: `${run.thread} · ${group}`, phase: "Judge", schema: groupSchema(stages),
   })));
   const grid = {};
   entries.forEach(([group, stages], index) => {
@@ -83,11 +91,11 @@ for (const run of runs) {
       const cell = answers[index]?.[stage];
       // A missing or empty cell fails the workflow: no report may be half done.
       if (!cell || !["PASS", "FAIL", "UNKNOWN"].includes(cell.status) || !cell.evidence)
-        throw new Error(`Judge ${group} left stage ${stage} unanswered for ${run}`);
+        throw new Error(`Judge ${group} left stage ${stage} unanswered for ${run.thread}`);
       grid[stage] = cell;
     }
   });
-  grids.push({ run, grid });
+  grids.push({ thread: run.thread, folder: run.folder, grid });
 }
 
 phase("Synthesize");
@@ -100,7 +108,7 @@ Past weeks: read the last four GitHub issues titled "${ISSUE_TITLE}" on iamhenry
 
 Write a Markdown report:
 1. Two or three sentences: what is systemically going well and what is going wrong.
-2. A table: one row per run (run folder name, goal in a few words), one column per stage, PASS/FAIL/UNKNOWN.
+2. A table: one row per run (thread title, project, goal in a few words), one column per stage, PASS/FAIL/UNKNOWN.
 3. For each FAIL: one line with its evidence. Verify the evidence for each FAIL yourself before keeping it.
 4. Trend versus past weeks: which stages improved or got worse, and which recent harness change (git log -- .opencode/plugins/hivecall) likely explains it.
 5. Up to three proposed fixes, per the profile.
