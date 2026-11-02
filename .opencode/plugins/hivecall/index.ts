@@ -104,8 +104,8 @@ export default Plugin.define({
       : !childParents.has(sessionID) && !state.helpers.has(sessionID)
     const arm = (sessionID: string) => {
       armed = true
-      if (!activeRun(root) && (started || state.approvals.size)) { // a fresh run: forget the last run's tick state
-        state.approvals.clear(); state.grandfathered.clear(); started = false; orchestrators.clear(); flagged.clear(); earned.clear()
+      if (!activeRun(root) && (started || state.approvals.size || state.failures.size || state.sinceTick)) { // a fresh run: forget the last run's tick state
+        state.approvals.clear(); state.grandfathered.clear(); state.failures.clear(); state.replans.clear(); state.sinceTick = 0; started = false; orchestrators.clear(); flagged.clear(); earned.clear()
       }
       if (sessionID && !orchestrators.has(sessionID)) orchestrators.add(sessionID)
       save()
@@ -330,7 +330,7 @@ export default Plugin.define({
         flagged.add(id)
         record({ type: "tick-unearned", rule: "tick-gate", id, sessionID: event.sessionID, tool })
         notices.push(canary.has(id) ? `${id}'s commit edits a file its own check names, and its receipt has no CANARY: line showing a known-broken case still fails, so it does not count.`
-          : `${id} is ticked without a verified reviewer APPROVE_CODE, APPROVE_PLAN or SELECTED, or qa REPRODUCED for Discovery items only, and its receipt, so it does not count.`)
+          : `${id} is ticked without a verified reviewer APPROVE_CODE, APPROVE_PLAN or SELECTED, or qa REPRODUCED for Discovery items only, or a qa PASS naming its commit when that commit only renames files or changes tests or docs on a proven parent, and its receipt, so it does not count.`)
       }
       for (const id of [...flagged]) if (!bad.has(id)) flagged.delete(id)
       for (const id of [...earned]) if (!ticked.has(id)) earned.delete(id)

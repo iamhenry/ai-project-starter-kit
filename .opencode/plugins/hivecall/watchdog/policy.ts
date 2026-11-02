@@ -93,7 +93,7 @@ export function agentMismatch(role: string, agent: string): boolean {
   return Boolean(role && agent && !agent.toLowerCase().includes(role))
 }
 
-export type Helper = { parentSessionID: string; agent: string; role: string; slice: string; rows: string; promise?: string }
+export type Helper = { parentSessionID: string; agent: string; role: string; slice: string; rows: string; promise?: string; commits?: string }
 
 export type Memory = {
   blocks: Map<string, number>
@@ -133,7 +133,10 @@ export function helperIdentity(input: Record<string, unknown>): Omit<Helper, "pa
   const text = `${String(input.description ?? "")}\n${String(input.prompt ?? "")}`
   const promise = parsePromise(text)
   const rows = promise?.valid ? [...promise.rows].join(",") : ""
-  return { agent: String(input.agent ?? "").toLowerCase(), role: briefRole(text), slice: sliceKey(text) ?? "", rows: reviewScope(text).join(","), ...(rows ? { promise: rows } : {}) }
+  // Commit ids the brief names: a qa PASS is about those candidates only.
+  const commits = [...new Set(text.match(/\b[0-9a-f]{7,40}\b/gi) ?? [])].slice(0, 12).join(",")
+  return { agent: String(input.agent ?? "").toLowerCase(), role: briefRole(text), slice: sliceKey(text) ?? "", rows: reviewScope(text).join(","),
+    ...(rows ? { promise: rows } : {}), ...(commits ? { commits } : {}) }
 }
 
 /** Turns a finished reviewer or qa helper's result text into a `review-result` event; other helpers return null. */
@@ -148,7 +151,7 @@ export function reviewEvent(sessionID: string, helperID: string, helper: Omit<He
   const failed = role === "qa" ? qaFailed(text, helperItems(helper)) : code?.revised ? helperItems(helper).filter((id) => !code.approved.includes(id)) : []
   if (!code && !discovery.length && !failed.length) return null
   return { type: "review-result", sessionID, helper: helperID, slice: helper.slice, approved: code?.approved.join(",") ?? "", revised: code?.revised ? 1 : 0,
-    ...(discovery.length ? { discovery: discovery.join(",") } : {}), ...(passed.length ? { passed: passed.join(",") } : {}),
+    ...(discovery.length ? { discovery: discovery.join(",") } : {}), ...(passed.length && helper.commits ? { passed: passed.join(","), commits: helper.commits } : {}),
     ...(failed.length ? { failed: failed.join(",") } : {}) }
 }
 
@@ -163,7 +166,8 @@ export function apply(state: Memory, event: HiveEvent): void {
   if (event.type === "skill-loaded" && event.id === "subagent-delegation") state.skills.add(sessionID)
   if (event.type === "helper-created" && event.parentSessionID)
     state.helpers.set(sessionID, { parentSessionID: String(event.parentSessionID), agent: String(event.agent ?? ""),
-      role: String(event.role ?? ""), slice: String(event.slice ?? ""), rows: String(event.rows ?? ""), ...(event.promise ? { promise: String(event.promise) } : {}) })
+      role: String(event.role ?? ""), slice: String(event.slice ?? ""), rows: String(event.rows ?? ""), ...(event.promise ? { promise: String(event.promise) } : {}),
+      ...(event.commits ? { commits: String(event.commits) } : {}) })
   // The agent a helper really runs as (a harness pin), which outranks the role its brief names.
   if (event.type === "helper-agent" && event.agent) {
     const known = state.helpers.get(sessionID)
@@ -184,9 +188,12 @@ export function apply(state: Memory, event: HiveEvent): void {
     for (const id of String(event.approved ?? "").split(",").filter(Boolean)) state.approvals.add(iscId(id))
     const failed = String(event.failed ?? "").split(",").filter(Boolean)
     for (const id of failed) state.failures.set(iscId(id), (state.failures.get(iscId(id)) ?? 0) + 1)
+    // A later failure on an item supersedes its earlier qa PASSes.
+    for (const id of failed) for (const pass of [...state.approvals]) if (pass.startsWith(`pass:${iscId(id)}@`)) state.approvals.delete(pass)
     if (failed.length) state.sinceTick++
     for (const id of String(event.discovery ?? "").split(",").filter(Boolean)) state.approvals.add(`discovery:${iscId(id)}`)
-    for (const id of String(event.passed ?? "").split(",").filter(Boolean)) state.approvals.add(`pass:${iscId(id)}`)
+    for (const id of String(event.passed ?? "").split(",").filter(Boolean))
+      for (const sha of String(event.commits ?? "").split(",").filter(Boolean)) state.approvals.add(`pass:${iscId(id)}@${sha.toLowerCase()}`)
     if (Number(event.revised) && event.slice) {
       const ref = `${sessionID}:${event.slice}`
       state.revisions.set(ref, (state.revisions.get(ref) ?? 0) + 1)
@@ -300,7 +307,7 @@ export function unearned(ledger: string, approvals: Set<string>, grandfathered: 
   }
   const canary = new Set(canaryMissing(ledger, root))
   return tickedItems(ledger).filter((id) => !grandfathered.has(id) && !((approvals.has(id) || (approvals.has(`discovery:${id}`) && discovery.has(id)) ||
-    (approvals.has(`pass:${id}`) && lowRisk(ledger, root, receiptCommit(ledger, id)))) && hasReceipt(ledger, id, root) && !canary.has(id)))
+    (qaPassed(approvals, id, receiptCommit(ledger, id)) && lowRisk(ledger, root, receiptCommit(ledger, id)))) && hasReceipt(ledger, id, root) && !canary.has(id)))
 }
 
 function checkedItems(text: string): string[] {
@@ -387,9 +394,16 @@ export function canaryMissing(ledger: string, root: string): string[] {
   })
 }
 
-const lowRiskPath = /(?:^|\/)(?:tests?|__tests__|spec|specs|docs?)\/|\.(?:test|spec)\.\w+$|Tests?\.\w+$|\.(?:md|mdx|txt|rst)$/i
+/** A qa PASS on `id` whose brief named this exact commit (either id may be the short form). */
+function qaPassed(approvals: Set<string>, id: string, commit: string): boolean {
+  const sha = commit.toLowerCase()
+  return Boolean(sha) && [...approvals].some((key) => key.startsWith(`pass:${id}@`) &&
+    ((tested) => tested.startsWith(sha) || sha.startsWith(tested))(key.slice(`pass:${id}@`.length)))
+}
+
+const lowRiskPath = /(?:^|\/)(?:tests?|__tests__|spec|specs|docs?)\/|\.(?:test|spec)\.\w+$|Tests?\.\w+$|\.(?:md|mdx|rst)$/i
 /**
- * Proof sized to risk: a commit that only renames/moves files exactly, or changes tests or docs, on top of a commit already
+ * Proof sized to risk: a commit that only renames/moves files exactly, or changes tests or docs (Markdown/reST; never `.txt`, which is often config), on top of a commit already
  * proven (the run base or checkpoint, or another ticked item's receipt commit) needs no code review; its qa PASS ticks it.
  */
 function lowRisk(ledger: string, root: string, commit: string): boolean {

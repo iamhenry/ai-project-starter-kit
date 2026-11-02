@@ -46,6 +46,17 @@ describe("hill climb", () => {
     expect(await build(h, replan("new angle: build the outline from the DOM instead"))).toContain("repeats the previous RE-PLAN")
     expect(await build(h, replan("park until the owner picks the reference page"))).toBeNull()
   })
+
+  test("a new run starts with no failed attempts from the last one", async () => {
+    const h = await host({ card: true })
+    await h.call("skill", { id: "subagent-delegation" })
+    for (const slice of ["v1", "v2", "v3"]) await review(h, "REVISE_CODE", slice)
+    expect(await build(h)).toContain("RE-PLAN item=ISC-001")
+    writeFileSync(resolve(h.root, ".hivecall/run.md"), "status: done\n")
+    await h.call("skill", { id: "hivecall" })
+    writeFileSync(resolve(h.root, ".hivecall/run.md"), "status: running\ngoal: g2\nledger: .hivecall/checklist.html\n")
+    expect(await build(h)).toBeNull()
+  })
 })
 
 describe("the judge stays apart", () => {
@@ -90,7 +101,7 @@ describe("the judge stays apart", () => {
 
   const qa = async (h: Host, sha: string, text: string) => {
     const id = `qa${++n}`
-    expect(h.before({ sessionID: "ses-root", id, tool: "subagent", input: { agent: "qa", description: "qa", prompt: brief("ISC-001", `candidate ${sha}`) } })).toBeUndefined()
+    expect(h.before({ sessionID: "ses-root", id, tool: "subagent", input: { agent: "qa", description: "qa", prompt: brief("ISC-001", `candidate ${sha}\nWHY: re-test after the ledger changed`) } })).toBeUndefined()
     await h.send("session.tool.success", { sessionID: "ses-root", id, metadata: { sessionID: `ses_${id}`, status: "completed" }, content: [{ type: "text", text }] })
   }
   const testOnly = async () => {
@@ -116,6 +127,27 @@ describe("the judge stays apart", () => {
     prove(h, base)
     await qa(h, sha, "- Result: REPRODUCED")
     expect(await h.call("write", { path: ".hivecall/checklist.html", content: tick(sha, failRow(base)) })).toContain("ISC-001")
+    // A PASS on another commit does not cover this one, and a later FAIL cancels a PASS.
+    ;({ h, base, sha } = await testOnly())
+    prove(h, base)
+    await qa(h, base, "- Result: PASS")
+    expect(await h.call("write", { path: ".hivecall/checklist.html", content: tick(sha, failRow(base)) })).toContain("ISC-001")
+    ;({ h, base, sha } = await testOnly())
+    prove(h, base)
+    await qa(h, sha, "- Result: PASS")
+    await qa(h, sha, "ISC-001: FAIL — outline missing")
+    expect(await h.call("write", { path: ".hivecall/checklist.html", content: tick(sha, failRow(base)) })).toContain("ISC-001")
+  })
+
+  test("a .txt change still needs a code review", async () => {
+    const { h, git } = await repo()
+    const base = git("rev-parse --short HEAD")
+    appendFileSync(resolve(h.root, ".hivecall/run.md"), `base: ${base}\n`)
+    writeFileSync(resolve(h.root, "requirements.txt"), "left-pad==2\n")
+    git("add -A"); git("commit -qm deps")
+    const sha = git("rev-parse --short HEAD")
+    await qa(h, sha, "- Result: PASS")
+    expect(await h.call("write", { path: ".hivecall/checklist.html", content: tick(sha, "") })).toContain("ISC-001")
   })
 
   test("a bare qa FAIL line counts toward the hill-climb pause", async () => {
