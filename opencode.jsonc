@@ -39,5 +39,15 @@
   ],
   "compaction": {
     "auto": false
+  },
+  "mcp": {
+    "servers": {
+      "doop": {
+        "type": "remote",
+        "url": "https://doop.design/mcp",
+        // Off by default; turn on per session via /mcps, or set to false to always connect.
+        "disabled": true
+      }
+    }
   }
 }
