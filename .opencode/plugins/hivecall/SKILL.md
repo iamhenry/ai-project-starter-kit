@@ -1,6 +1,6 @@
 ---
 name: hivecall
-version: 1.4.8
+version: 1.4.9
 description: Autonomous multi-agent run that works through a large ledger of tasks until each is done or parked. Expensive. The user must explicitly invoke it by typing hivecall, /hivecall or @hivecall. Agents must never load or start it on their own, from inference, or from words like swarm, parallel or many tasks. Run by the orchestrator only.
 ---
 
@@ -35,7 +35,7 @@ When resuming in a fresh thread, read HOW-TO-WORK.md, the run card and ledger fi
 ## Ledger rules
 
 - The ledger is the only progress record. The run card holds lifecycle status only (running, waiting-owner, waiting-usage, closed). Create no other status file.
-- Only the orchestrator ticks items, and only on independent proof: for build items, a fresh `qa` result that ran the item's exact check on the exact candidate; for discovery items, the fresh scoped verdict and receipt in [discovery.md](references/discovery.md). A builder's own claim, passing tests, a compile, a mock, or a summary is not proof. A builder marking its own work verified is self-verification, not proof.
+- Only the orchestrator ticks items, and only on independent proof: for build items, a fresh `qa` result that ran the item's exact check on the exact candidate; for discovery items, the fresh scoped verdict and receipt in [discovery.md](references/discovery.md). For a comparison claim, the expected side must come from the owner's spec or original source, not the same transformation that produces the candidate; two paths sharing a mistake are not independent proof. A builder's own claim, passing tests, a compile, a mock, or a summary is not proof. A builder marking its own work verified is self-verification, not proof.
 - Never edit an item's text, check or threshold. Update the progress count with each tick.
 - On either discovery route, append implementation items in the same ledger edit that ticks the last discovery item; append later additions or replacements only after orchestrator vetting; never edit existing items. Follow the approval and superseding record in [kickoff.md](references/kickoff.md). Each build item still needs a falsifiable check and real-entry-point E2E smoke before build.
 - Keep the plan (critical path, lanes) in chat; only the Plan map lines go in the run card. Do not write the plan to the ledger.
@@ -107,7 +107,7 @@ The hard blockers in HOW-TO-WORK.md, sent as one `🚦` line: missing authority 
 
 ## End
 
-When every counted item is ticked or parked: if PR authority was yes, confirm cited verification evidence files exist, then finish with `create-pr` (push the branch and open a PR; never merge); otherwise use local commits only. Then write `## Final report` into the run card, set it to `status: closed`, and send the final report (confirmed with evidence, parked with unlock, owner-only items, uncertain). The watchdog pauses after closure and deletes its automation on the check after a successful pause; it retries a failed pause. Ledger completion before the card is closed only pauses the watchdog and sends `WATCH DONE`. On `WATCH DONE`, complete only an already-authorized `create-pr` closeout; otherwise report and stop. On `🚦 WATCH STALLED`, report and stop without new work.
+When every counted item is ticked or parked: compare the surviving goal contract and its E2E smoke with the receipts, not just the tick count. If a parked item prevents the promised user outcome, say plainly that the goal remains unmet and name the unlock; `status: closed` means the run stopped, not that the goal succeeded. If PR authority was yes, confirm cited verification evidence files exist, then finish with `create-pr` (push the branch and open a PR; never merge); otherwise use local commits only. Then write `## Final report` into the run card, set it to `status: closed`, and send the final report (confirmed with evidence, parked with unlock, owner-only items, uncertain). The watchdog pauses after closure and deletes its automation on the check after a successful pause; it retries a failed pause. Ledger completion before the card is closed only pauses the watchdog and sends `WATCH DONE`. On `WATCH DONE`, complete only an already-authorized `create-pr` closeout; otherwise report and stop. On `🚦 WATCH STALLED`, report and stop without new work.
 
 ## Workflow skills
 

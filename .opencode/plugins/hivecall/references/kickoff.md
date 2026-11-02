@@ -23,7 +23,7 @@ Implementation Workflow Note: Validate and prove functionality or via smoke test
 
 How the contract maps to the run:
 
-- **Verification** becomes one checklist item per check (`ISC-n`), each with its evidence. Evidence files go in `.hivecall/verification/`. For build items a fresh `qa` runs the checks, never the builder; discovery items use the fresh scoped verdict and receipt in [discovery.md](discovery.md).
+- **Verification** becomes one checklist item per check (`ISC-n`), each with its evidence. Evidence files go in `.hivecall/verification/`. For build items a fresh `qa` runs the checks, never the builder; discovery items use the fresh scoped verdict and receipt in [discovery.md](discovery.md). A comparison check uses a reference independent of the candidate's transformation (for example, the original page, not the app's imported copy).
 - **Definition of done** is the finish line the watchdog reads: every counted checklist item ticked with a PASS verdict, or parked.
 - **Exit criteria** is when the run stops early: set the run card to `waiting-owner`, report the one-line status, and stop. Items also park after three failed attempts with different approaches. Only the owner accepts a gap between the result and the Ideal state; the orchestrator and helpers report it as FAIL, never as a tradeoff that passes.
 - **Keep working** is checked on the candidate, not recorded up front: the base commit already is the baseline. Run the steps on the candidate in the E2E smoke. Run the same step on the base build only when a step looks wrong, to tell a new break from an old one.
