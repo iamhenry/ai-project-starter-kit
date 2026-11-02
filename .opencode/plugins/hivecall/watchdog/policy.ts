@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process"
 import { existsSync, readFileSync } from "node:fs"
 import { isAbsolute, resolve } from "node:path"
 import { iscId, iscIds, parsePromise } from "./promise"
@@ -94,12 +95,25 @@ export type Memory = {
   revisions: Map<string, number>
   helpers: Map<string, Helper>
   reviewed: Set<string>
+  /** Failed verdicts (REVISE_CODE, FAIL, BLOCKED, NOT_REPRODUCED) per item: attempts that did not raise the score. */
+  failures: Map<string, number>
+  /** Failed verdicts since the last earned tick, run-wide (hill climb). */
+  sinceTick: number
+  /** Accepted RE-PLANs per item (`run` for the run-wide one): its failure count at the time, and its Next. */
+  replans: Map<string, { at: number; next: string }>
 }
 
 export function memory(): Memory {
   return { blocks: new Map(), skills: new Set(), finished: new Set(), approvals: new Set(), grandfathered: new Set(), revisions: new Map(),
-    helpers: new Map(), reviewed: new Set() }
+    helpers: new Map(), reviewed: new Set(), failures: new Map(), sinceTick: 0, replans: new Map() }
 }
+
+/** Items a helper works on: its PROMISE rows and the rows its brief names. */
+function helperItems(helper: Pick<Helper, "rows" | "promise">): string[] {
+  return [...new Set([...(helper.promise ?? "").split(","), ...helper.rows.split(",")].filter(Boolean))]
+}
+
+
 
 /** Neutral event rows (the `events.jsonl` format any harness adapter can emit). */
 export type HiveEvent = { type: string } & Record<string, string | number | undefined>
@@ -119,9 +133,12 @@ export function reviewEvent(sessionID: string, helperID: string, helper: Omit<He
   const scope = helper.rows ? helper.rows.split(",") : []
   const code = role === "reviewer" ? reviewOutcome(text, scope) : null
   const discovery = discoveryOutcome(text, helper.promise ? helper.promise.split(",") : [], role)
-  if (!code && !discovery.length) return null
+  // A failed attempt for the hill-climb count: a REVISE_CODE, or a qa negative verdict, on the items the helper worked on.
+  const negative = role === "qa" && /^\W*(?:decision|verdict|status|result)\b[^:=\n]*[:=].*?\b(?:FAIL|BLOCKED|NOT_REPRODUCED)\b/im.test(text)
+  const failed = code?.revised || negative ? helperItems(helper).filter((id) => !code?.approved.includes(id)) : []
+  if (!code && !discovery.length && !failed.length) return null
   return { type: "review-result", sessionID, helper: helperID, slice: helper.slice, approved: code?.approved.join(",") ?? "", revised: code?.revised ? 1 : 0,
-    ...(discovery.length ? { discovery: discovery.join(",") } : {}) }
+    ...(discovery.length ? { discovery: discovery.join(",") } : {}), ...(failed.length ? { failed: failed.join(",") } : {}) }
 }
 
 /** Applies one neutral event to memory; used both live and when restoring `events.jsonl`. */
@@ -143,11 +160,20 @@ export function apply(state: Memory, event: HiveEvent): void {
     if (parentSessionID) state.helpers.set(sessionID, { role: "", slice: "", rows: "", ...known, parentSessionID, agent: String(event.agent).toLowerCase() })
   }
   if (event.type === "helper-finished") state.finished.add(sessionID)
+  if (event.type === "allowed" && event.action === "tick") state.sinceTick = 0
+  if (event.type === "replan" && event.item) {
+    const item = String(event.item)
+    if (item === "run") state.sinceTick = 0
+    state.replans.set(item, { at: item === "run" ? 0 : state.failures.get(item) ?? 0, next: String(event.next ?? "") })
+  }
   if (event.type === "review-result") {
     const helper = String(event.helper ?? "")
     if (helper && state.reviewed.has(helper)) return // the same helper result read twice is one review
     if (helper) state.reviewed.add(helper)
     for (const id of String(event.approved ?? "").split(",").filter(Boolean)) state.approvals.add(iscId(id))
+    const failed = String(event.failed ?? "").split(",").filter(Boolean)
+    for (const id of failed) state.failures.set(iscId(id), (state.failures.get(iscId(id)) ?? 0) + 1)
+    if (failed.length) state.sinceTick++
     for (const id of String(event.discovery ?? "").split(",").filter(Boolean)) state.approvals.add(`discovery:${iscId(id)}`)
     if (Number(event.revised) && event.slice) {
       const ref = `${sessionID}:${event.slice}`
@@ -260,7 +286,9 @@ export function unearned(ledger: string, approvals: Set<string>, grandfathered: 
     if ((headings[i][1] ?? headings[i][2]).trim().toLowerCase() === "discovery")
       for (const id of tickedItems(ledger.slice(headings[i].index! + headings[i][0].length, headings[i + 1]?.index ?? ledger.length))) discovery.add(id)
   }
-  return tickedItems(ledger).filter((id) => !grandfathered.has(id) && !((approvals.has(id) || (discovery.has(id) && approvals.has(`discovery:${id}`))) && hasReceipt(ledger, id, root)))
+  const canary = new Set(canaryMissing(ledger, root))
+  return tickedItems(ledger).filter((id) => !grandfathered.has(id) && !((approvals.has(id) || (approvals.has(`discovery:${id}`) &&
+    (discovery.has(id) || lowRisk(ledger, root, receiptCommit(ledger, id))))) && hasReceipt(ledger, id, root) && !canary.has(id)))
 }
 
 function checkedItems(text: string): string[] {
@@ -282,17 +310,83 @@ function passedItems(text: string): string[] {
  * A backtick-quoted path must exist exactly; an unquoted one may end in prose punctuation such as `.` or `)`.
  */
 function hasReceipt(text: string, id: string, root: string): boolean {
-  return text.split(/\r?\n|\\n/).some((line) => {
+  return receipts(text, id).some((segment) => {
+    if (!/\bcommit\s+[0-9a-f]{7,40}\b/i.test(segment)) return false
+    return [...segment.matchAll(/\bevidence\s*[:=]?\s*(?:`([^`\n]+)`|([^\s`;,|'"<>]+))/gi)].some(([, quoted, bare]) =>
+      (quoted ? [quoted] : [bare, bare.replace(/[)\]}.:]+$/, "")]).some((path) => path && existsSync(isAbsolute(path) ? path : resolve(root, path))))
+  })
+}
+
+/** Every ledger segment about `id`: from an exact `id` mention to the next ISC id on the same line, in file order. */
+function receipts(text: string, id: string): string[] {
+  const segments: string[] = []
+  for (const line of text.split(/\r?\n|\\n/)) {
     // An id inside a path (`verification/isc-1.log`) is part of that receipt, not the start of another item.
     const marks = [...line.matchAll(/(?<![/.-])\bISC-\d+(?:\.\d+)*\b(?![._-][a-z])/gi)]
-    return marks.some((mark, i) => {
-      if (iscId(mark[0]) !== id) return false
-      const segment = line.slice(mark.index!, marks[i + 1]?.index ?? line.length)
-      if (!/\bcommit\s+[0-9a-f]{7,40}\b/i.test(segment)) return false
-      return [...segment.matchAll(/\bevidence\s*[:=]?\s*(?:`([^`\n]+)`|([^\s`;,|'"<>]+))/gi)].some(([, quoted, bare]) =>
-        (quoted ? [quoted] : [bare, bare.replace(/[)\]}.:]+$/, "")]).some((path) => path && existsSync(isAbsolute(path) ? path : resolve(root, path))))
-    })
+    marks.forEach((mark, i) => { if (iscId(mark[0]) === id) segments.push(line.slice(mark.index!, marks[i + 1]?.index ?? line.length)) })
+  }
+  return segments
+}
+
+/** The commit the item's latest receipt names (the last line per id wins), or "". */
+function receiptCommit(text: string, id: string): string {
+  return receipts(text, id).map((segment) => /\bcommit\s+([0-9a-f]{7,40})\b/i.exec(segment)?.[1] ?? "").filter(Boolean).at(-1) ?? ""
+}
+
+/** Read-only git in the run's checkout; null when git or the repo is unavailable (gates never alarm on missing data). */
+function git(root: string, args: string[]): string | null {
+  try {
+    const result = spawnSync("git", args, { cwd: root, encoding: "utf8", timeout: 5000 })
+    return result.status === 0 ? result.stdout : null
+  } catch { return null }
+}
+
+const commitFiles = new Map<string, string[] | null>()
+/** `name-status` rows a commit changed against its first parent (renames detected only when exact); cached, commits never change. */
+function changedBy(root: string, commit: string): string[] | null {
+  const cacheKey = `${root}\n${commit}`
+  if (!commitFiles.has(cacheKey)) {
+    const out = git(root, ["diff", "--name-status", "-M100%", `${commit}^1`, commit])
+    commitFiles.set(cacheKey, out === null ? null : out.split("\n").filter(Boolean))
+  }
+  return commitFiles.get(cacheKey)!
+}
+
+/** The item's own text in the ledger: its `<li id>` body, else the first checkbox line naming it. */
+function itemText(ledger: string, id: string): string {
+  for (const match of ledger.matchAll(/<li\b[^>]*id=["'](ISC-\d+(?:\.\d+)*)["'][^>]*>([\s\S]*?)<\/li>/gi)) if (iscId(match[1]) === id) return match[2]
+  return ledger.split(/\r?\n/).find((line) => /^\s*[-*]\s+\[[ x]\]/i.test(line) && iscIds(line).includes(id)) ?? ""
+}
+
+/**
+ * A ticked item whose receipt commit edits a file its own `check:` names needs a `CANARY:` line in its receipt: proof that a
+ * known-broken case still fails, so a check is never bent until it passes.
+ */
+export function canaryMissing(ledger: string, root: string): string[] {
+  return tickedItems(ledger).filter((id) => {
+    const commit = receiptCommit(ledger, id)
+    const check = /\bcheck\s*:\s*([\s\S]*)/i.exec(itemText(ledger, id).replace(/<[^>]+>/g, " "))?.[1] ?? ""
+    const named = [...check.matchAll(/[\w@.-]*(?:\/[\w@.-]+)+|[\w@-]+\.[a-z]{1,6}\b/gi)].map((m) => m[0].replace(/^\.?\//, ""))
+    if (!commit || !named.length) return false
+    const files = (changedBy(root, commit) ?? []).map((row) => row.split("\t").at(-1)!)
+    const touched = files.some((file) => named.some((name) => file === name || file.endsWith(`/${name}`) || name.endsWith(`/${file}`)))
+    return touched && !receipts(ledger, id).some((segment) => /\bCANARY\s*:/i.test(segment))
   })
+}
+
+const lowRiskPath = /(?:^|\/)(?:tests?|__tests__|spec|specs|docs?)\/|\.(?:test|spec)\.\w+$|Tests?\.\w+$|\.(?:md|mdx|txt|rst)$/i
+/**
+ * Proof sized to risk: a commit that only renames/moves files exactly, or changes tests or docs, on top of a commit already
+ * proven (the run base or checkpoint, or another receipt's commit) needs no code review; its qa PASS ticks it.
+ */
+function lowRisk(ledger: string, root: string, commit: string): boolean {
+  const rows = changedBy(root, commit)
+  if (!rows?.length || !rows.every((row) => /^R100\t/.test(row) || lowRiskPath.test(row.split("\t").at(-1)!))) return false
+  const parent = git(root, ["rev-parse", "--verify", "--quiet", `${commit}^1`])?.trim()
+  const runCard = card(root).text
+  const proven = [...`${ledger}\n${runCard.match(/^\s*(?:base|checkpoint)\s*:.*$/gim)?.join("\n") ?? ""}`.matchAll(/\b(?:commit|@|checkpoint:)\s*([0-9a-f]{7,40})\b/gi)]
+    .map((m) => m[1]).filter((sha) => !commit.startsWith(sha) && !sha.startsWith(commit))
+  return Boolean(parent && proven.some((sha) => parent.startsWith(sha)))
 }
 
 function patchFile(patch: string, expected: string, root: string): string {
@@ -363,8 +457,92 @@ function reportText(tool: string, input: Record<string, unknown>, root: string):
 }
 
 export type Call = { tool: string; input: Record<string, unknown>; sessionID: string; action?: "spawn" | "tell" }
+/** `key` scopes the block-then-allow count (for example one item), so one paused item never spends another's pauses. */
+export type Violation = { id: string; message: string; detail?: string; key?: string }
 
-export function ruleFor(call: Call, state: Memory, root: string): { id: string; message: string; detail?: string } | null {
+const HILL_CLIMB_ITEM = 3, HILL_CLIMB_RUN = 5
+type Replan = { item: string; next: string; problem: string }
+
+/**
+ * `RE-PLAN item=<id|run>` blocks in a brief: `Tried:` what the last attempts did, `Evidence:` an existing file, and `Next:` a
+ * new angle, a split or park that differs from the item's previous Next. `problem` names what is missing; "" when valid.
+ */
+function replansIn(prompt: string, state: Memory, root: string): Replan[] {
+  return prompt.split(/^(?=\s*RE-?PLAN\b)/im).filter((block) => /^\s*RE-?PLAN\b/i.test(block)).map((block) => {
+    const raw = /^\s*RE-?PLAN\b[^\n]*?\bitem\s*=\s*([\w.-]+)/i.exec(block)?.[1] ?? ""
+    const item = /^run$/i.test(raw) ? "run" : /^ISC-/i.test(raw) ? iscId(raw) : raw
+    const field = (name: string) => new RegExp(`^\\s*${name}\\s*:\\s*(.+)$`, "im").exec(block)?.[1].trim() ?? ""
+    const tried = field("Tried"), evidence = field("Evidence").replace(/[`"']/g, "").split(/\s+/)[0], next = field("Next")
+    const normalized = next.toLowerCase().replace(/\s+/g, " ")
+    const problem = !item ? "no item=" : !tried ? "no Tried:" : !evidence || !existsSync(isAbsolute(evidence) ? evidence : resolve(root, evidence))
+      ? `Evidence: ${evidence || "(none)"} is not an existing file` : !/^(?:new angle|split|park)\b/i.test(next) ? "Next: must start with new angle, split or park"
+      : state.replans.get(item)?.next === normalized ? "Next: repeats the previous RE-PLAN word for word" : ""
+    return { item, next: normalized, problem }
+  })
+}
+
+/** Valid RE-PLAN blocks of an allowed brief, as `replan` events; recording one resets that item's hill-climb count. */
+export function replanEvents(input: Record<string, unknown>, state: Memory, root: string): HiveEvent[] {
+  return replansIn(String(input.prompt ?? ""), state, root).filter((plan) => !plan.problem).map((plan) => ({ type: "replan", item: plan.item, next: plan.next }))
+}
+
+const reason = (prompt: string) => /^\s*WHY\s*:\s*\S/im.test(prompt)
+
+/** The commit-like tokens a brief names that resolve to commits here; null when this is not a git checkout. */
+function namedCommits(root: string, prompt: string): string[] | null {
+  if (git(root, ["rev-parse", "--git-dir"]) === null) return null
+  return [...new Set(prompt.match(/\b[0-9a-f]{7,40}\b/g) ?? [])].slice(0, 12)
+    .filter((sha) => /[a-f]/.test(sha) && git(root, ["rev-parse", "--verify", "--quiet", `${sha}^{commit}`]) !== null)
+}
+
+/** Files with uncommitted edits in the run's checkout, other than the run's own `.hivecall/` and ledger. */
+export function dirtyFiles(root: string): string[] {
+  const ledger = activeLedger(root)
+  return (git(root, ["status", "--porcelain", "--untracked-files=no"]) ?? "").split("\n").map((line) => line.slice(3).trim()).filter(Boolean)
+    .filter((path) => !path.startsWith(".hivecall/") && resolve(root, path) !== ledger)
+}
+
+/**
+ * Progress gates on a new helper brief (HOW-TO-WORK.md, Hill climb and Reflect, then adapt). Each pauses the spawn once per
+ * key and clears with one line in the brief: a RE-PLAN block, or `WHY:`.
+ */
+function progressGate(input: Record<string, unknown>, prompt: string, state: Memory, root: string): Violation | null {
+  const identity = helperIdentity(input)
+  const items = helperItems(identity)
+  const role = identity.agent.includes("reviewer") || identity.role === "reviewer" ? "reviewer"
+    : identity.agent.includes("qa") || identity.role === "qa" ? "qa" : identity.agent || identity.role
+  const ledger = readFile(activeLedger(root))
+  const ticked = new Set(tickedItems(ledger))
+  const plans = new Map(replansIn(prompt, state, root).map((plan) => [plan.item, plan]))
+  const needs = (item: string, count: number): Violation | null => {
+    const plan = plans.get(item)
+    if (plan && !plan.problem) return null
+    return { id: "replan", key: `replan:${item}`, message: "", detail: `${count} failed attempts on ${item === "run" ? "the run" : item} with no new tick` +
+      (plan ? `; RE-PLAN item=${item}: ${plan.problem}` : `; add RE-PLAN item=${item}`) }
+  }
+  for (const item of items) {
+    if (ticked.has(item)) continue
+    const count = (state.failures.get(item) ?? 0) - (state.replans.get(item)?.at ?? 0)
+    if (count >= HILL_CLIMB_ITEM) { const gate = needs(item, count); if (gate) return gate }
+  }
+  if (state.sinceTick >= HILL_CLIMB_RUN) { const gate = needs("run", state.sinceTick); if (gate) return gate }
+
+  if ((role === "reviewer" || role === "qa") && items.length && items.every((item) => ticked.has(item)) && !reason(prompt)) {
+    const unchanged = items.every((item) => {
+      const commit = receiptCommit(ledger, item)
+      const changed = commit ? git(root, ["diff", "--name-only", commit, "--", ".", ":(exclude).hivecall"]) : null
+      return changed !== null && !changed.trim()
+    })
+    if (unchanged) return { id: "no-redo", key: `no-redo:${items.join(",")}`, message: "", detail: `${items.join(", ")} already passed and nothing changed since their receipt commits` }
+  }
+  if (role === "qa" && !reason(prompt)) {
+    const commits = namedCommits(root, prompt)
+    if (commits && !commits.length) return { id: "qa-commit", key: "qa-commit", message: "", detail: "the brief names no commit that exists in this checkout" }
+  }
+  return null
+}
+
+export function ruleFor(call: Call, state: Memory, root: string): Violation | null {
   if (call.tool === "subagent") {
     const input = call.input
     const prompt = String(input.prompt ?? "")
@@ -383,6 +561,10 @@ export function ruleFor(call: Call, state: Memory, root: string): { id: string; 
     const implementationFix = agent === "build" || (agent === "general" && /\b(?:implement|fix|repair|change)\b/i.test(`${String(input.description ?? "")}\n${prompt}`))
     if (implementationFix && key && (state.revisions.get(`${call.sessionID}:${key}`) ?? 0) >= 2)
       return { id: "third-fix", message: "Two REVISE_CODE results on this slice mean split it or change angle; do not send a third fix brief." }
+    if (!followup) {
+      const gate = progressGate(input, prompt, state, root)
+      if (gate) return gate
+    }
   }
 
   const proposedCard = reportWrite(call.tool, call.input, root)

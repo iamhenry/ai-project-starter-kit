@@ -116,7 +116,8 @@ Optional limits: `WATCH_LOAD_LIMIT` (150), `WATCH_DISK_FREE_GB` (10), `WATCH_LAR
 
 ```sh
 W="<path to this skill>/watchdog/watch.py"
-export REPO="$(pwd)" LEDGER="$REPO/.hivecall/checklist.html" VERIFY_DIR="$REPO/.hivecall/verification"
+export REPO="$(pwd)"   # its own line: one `export` expands $REPO before setting it
+export LEDGER="$REPO/.hivecall/checklist.html" VERIFY_DIR="$REPO/.hivecall/verification"
 export ORCH_THREAD='thr_...' ORCH_SESSION="$(python3 "$W" --find-session | head -1 | cut -f1)"
 python3 "$W" --once-report   # read-only summary
 python3 "$W" --dry-run       # prints messages instead of sending

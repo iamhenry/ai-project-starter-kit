@@ -38,7 +38,7 @@ Ask both questions in the same message: **"Watchdog on? (yes / no)"** and **"Ope
 - Anything else (free-form goal, spec.md): copy [checklist-template.html](checklist-template.html) to `.hivecall/checklist.html` and fill it in. It is the owner's one page: progress panel at the top, the approved goal contract, the checklist grouped by feature, owner-only items, and verification lines. It must survive thread changes and compaction.
 
 Rules:
-- One `<h3>` per feature, then `<ul class="isc">` with `<li id="ISC-n"><input type="checkbox" disabled> ISC-n: <observable behavior> — check: <exact check></li>`. The checkbox comes right after the `<li id>`.
+- One `<h3>` per feature, then `<ul class="isc">` with `<li id="ISC-n"><input type="checkbox" disabled> ISC-n: <observable behavior> — check: <exact check></li>`. The checkbox comes right after the `<li id>`. When the check is a script, name its path (`check: bun scripts/structure-check/check.ts …`): a tick whose commit edits that file needs a `CANARY:` receipt line (HOW-TO-WORK.md rule 2).
 - Only the orchestrator edits the page. Tick an item by adding `checked` to its checkbox. Append one `<li>ISC-n: PASS|FAIL|BLOCKED - <reason>; commit <sha>; evidence <path></li>` per result at the end of `#verification`; never insert above older lines. The last line per ID wins. A `BLOCKED` item stays unticked and counts as stuck.
 - Update the `progress` row (`done/total`) with each tick. The page warns when it disagrees.
 - Owner-only items go in `#owner-only`; they are never counted.

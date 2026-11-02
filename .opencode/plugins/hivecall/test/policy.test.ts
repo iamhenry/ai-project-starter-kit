@@ -162,7 +162,8 @@ describe("Hivecall rule fixtures", () => {
     const helper = { agent: "reviewer", role: "reviewer", slice: "ISC-001", rows: "ISC-001" }
     const discovery = reviewEvent("s", "plan", helper, "Decision: REVISE_PLAN")
     expect(discovery).toBeNull()
-    expect(reviewEvent("s", "qa", { ...helper, agent: "qa" }, "Result: NOT_REPRODUCED")).toBeNull()
+    // A qa negative earns nothing; it is recorded only as a failed attempt for the hill-climb count.
+    expect(reviewEvent("s", "qa", { ...helper, agent: "qa" }, "Result: NOT_REPRODUCED")).toMatchObject({ approved: "", failed: "ISC-001" })
     const revisions = memory(); revisions.skills.add("s")
     for (let i = 0; i < 2; i++) {
       const event = reviewEvent("s", `plan${i}`, helper, "Decision: REVISE_PLAN")
