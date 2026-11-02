@@ -66,6 +66,7 @@ they install with each project, not the machine.
 | --- | --- | --- |
 | `tmux` | Background processes, dev servers | `brew install tmux` |
 | `jq` | JSON processing in skill pipelines | ships with macOS (`/usr/bin/jq`) |
+| `blazediff-cli` | Pixel diff of two screenshots (verification-gate visual-diff) | `npm i -g @blazediff/cli` (macOS and Linux) |
 | `ffmpeg` | Frame extraction, video verification (viral/remotion/watch-video skills) | `brew install ffmpeg` |
 | `yt-dlp` | Video downloads (viral-research) | `brew install yt-dlp` |
 | `whisper-cli` | Speech transcript for watch-video | `brew install whisper-cpp` (may upgrade `sdl3`/`sdl2-compat`) |
