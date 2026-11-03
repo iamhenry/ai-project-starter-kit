@@ -43,31 +43,32 @@ Useful user instructions include:
 
 ### 3. Set version and build
 
-- Read the latest live version and uploaded builds from App Store Connect.
-- Keep the marketing version unless the requested release needs a new version.
-- Set the build number higher than every uploaded build for that marketing version.
+- Run `asc versions list` and `asc builds list`. If the current marketing version is already approved or released, Apple has closed it: bump the marketing version before building. `asc builds next-build-number` does not detect this.
+- Otherwise keep the marketing version unless the requested release needs a new one.
+- Set the build number from `asc builds next-build-number --version <version>`.
 - Change canonical project configuration, not generated Xcode files.
 
 ### 4. Prepare Xcode and signing
 
-- Regenerate ignored native output from canonical configuration only when the framework requires it.
+- After any version or build change, regenerate native output from canonical configuration (Expo: `expo prebuild --clean`; without `--clean`, extension targets keep old values). Stop if any app or extension target disagrees.
 - Use `xcodebuildmcp` help-first project discovery to find the workspace, scheme, and Release settings. Prefer the workspace when CocoaPods created one.
 - Use Xcode-managed signing unless the repository defines another signing workflow.
-- If Xcode's signed-in account is missing or expired, skip it: create an `IOS_APP_STORE` profile with `asc profiles create` (API key), install it, and archive with manual signing set on the app target only. Use Xcode UI only as a last resort.
+- If Xcode's account is missing or expired, first export with automatic signing and `--xcodebuild-flag=-allowProvisioningUpdates`; an expired-session warning alone is not a failure. Only if that export fails, create an `IOS_APP_STORE` profile with `asc profiles create` (API key), install it, and archive with manual signing set on the app target only. Use Xcode UI only as a last resort.
 - If signing requires Xcode UI, load `cua-driver` and follow its snapshot-before-action and snapshot-after-action loop. Do not use the App Store Connect website for operations supported by `asc`.
 
 ### 5. Archive and inspect
 
 - Inspect `asc xcode archive --help` and `asc xcode export --help`, then create a Release archive and export an App Store Connect IPA.
+- Run archive and export as background jobs. Wait on the process exit, never on text expected in a log. Cap each wait at 30 minutes; on timeout, stop and report.
 - Do not use an export option that uploads before inspection.
-- Verify the exported IPA has the intended bundle ID, display name, version, build, minimum OS, privacy strings, and encryption declaration.
+- Verify the exported IPA has the intended bundle ID, display name, version, build, minimum OS, privacy strings, and encryption declaration. Version and build must match in the app and every `PlugIns/*.appex` Info.plist.
 - Verify Apple Distribution signing, an App Store profile, no device list, and `get-task-allow=false`.
 - Inspect production code and linked native capabilities for required purpose strings. Indirect capability use still counts.
 
 ### 6. Upload and verify
 
 - Inspect `asc builds upload --help`, then upload the verified IPA once.
-- Poll with current `asc builds` commands until processing reaches a terminal state.
+- Use `asc builds upload --wait`; it waits until Apple finishes processing. Do not write a polling loop.
 - A successful TestFlight upload reports the build valid and ready for internal testing. Set What to Test notes when supplied.
 - For App Store review notes (not TestFlight What to Test), use `../aso-worker/references/review-notes-template.md`; it checks existing notes and asks before overwriting.
 - Report internal and external testing states separately. A processed build is not distributed until a group or tester receives it.
