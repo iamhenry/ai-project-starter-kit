@@ -134,7 +134,7 @@ When resolving referenced skills, agents, or commands, check the project's locat
 - Before treating the work as PR-ready, confirm the cited evidence is accessible (embedded or linked, paths resolve) and each artifact is labeled before/after where the claim depends on a state change, with stated limits. Evidence that does not open or does not support the claim is not PR-ready.
 - After it returns, run only a file-existence check: `test -f` on `{ISSUE_DIR}/verification/result.md` and every cited evidence path. Missing file = `FAIL`. This is not QA.
 - Continue only on `PASS` when every `test -f` succeeds. A `PASS` paragraph with missing files is `FAIL`.
-- After `PASS`, resume Build to add the smallest regression test that preserves the proven behavior, then get a `code-quality-gate` review of that test-only delta. Product code is unchanged, so verification is not rerun; a product-code change returns to step 6.
+- After `PASS`, resume Build to add the smallest regression test that preserves the proven behavior, then get a `code-quality-gate` review of that test-only delta. Product code is unchanged, so verification is not rerun; a product-code change returns to step 6. When the verification result names a `Saved test`, that regression test is the named file copied unchanged to the named destination, deleting the replaced test if one is named; on `none`, add nothing.
 - On `FAIL` or `BLOCKED`, route the verification owner's classified outcome and requested rechecks; enforce its declared ceiling across dispatches. Source corrections require fresh code-quality approval before acceptance. Do not redispatch against an unchanged blocker or add unrelated edits for a proof gap.
 - Do not run QA directly or define browser, iOS, macOS, or non-UI verification steps in this wrapper.
 
@@ -144,7 +144,6 @@ When resolving referenced skills, agents, or commands, check the project's locat
 - PR creation is publication: confirm the user's explicit authority before this dispatch; without it, stop at PR readiness with the verified candidate and evidence package.
 - Pass the exact candidate identity (branch, commit SHA, base), the verified evidence paths from `{ISSUE_DIR}/verification/`, and the issue title for the PR title.
 - Gate: `create-pr` returns the PR URL and pushed branch.
-- After `PASS`, resume Build to add the smallest regression test that preserves the proven behavior, then get a `code-quality-gate` review of that test-only delta. Product code is unchanged, so verification is not rerun; a product-code change returns to step 6. A test-only delta may ride the same PR via one `create-pr` body update in place of a second PR.
 - On `FAIL` at this stage (missing evidence, `gh` failure), route repairs to the owning gate per Revision Routing; do not patch bodies or retry `gh` from this wrapper.
 - Do not write PR bodies or define review/merge policy in this wrapper.
 

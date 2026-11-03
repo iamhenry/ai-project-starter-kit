@@ -14,8 +14,9 @@ Honor the target's named Mechanical command. On the native build route, use `xco
 
 ## Observable
 
-- With a reproduction flow from `reproduce-bug` (normally `{ISSUE_DIR}/reproduction/flows/<safe-name>.yaml`): load `argent` and replay that exact file with `argent flow run <path.yaml> --device <id> --platform ios --json`. A pass on the flow that triggered the bug is the strongest proof. Another path does not substitute.
-- Without one: the smallest direct check. On the Expo route, interact with the Metro-served app. On the build route, use the smallest XcodeBuildMCP UI check. Do not author a flow during verification.
+- With a reproduction flow from `reproduce-bug` (normally `{ISSUE_DIR}/reproduction/.argent/e2e/<safe-name>.yaml`): load `argent` and replay that exact file with `argent e2e run <path.yaml> --device <id> --platform ios --json`. A pass on the flow that triggered the bug is the strongest proof. Another path does not substitute.
+- With a saved test in the repo's `.argent/e2e/` for this same claim: replay it the same way. It counts only if it ends on the Pass Criteria's visible result. If it fails where the target says the screen changed on purpose, prove live (next bullet). Any other failure is `FAIL`. Never edit it.
+- Without either: drive the Primary Flow live through the Argent recorder (`e2e-start-recording` with `project_root` set to the evidence directory), so the proof run is also the recording. If Argent cannot drive the app, use the smallest direct check instead (Expo route: the Metro-served app; build route: the smallest XcodeBuildMCP UI check), report `Saved test: none`, and say why in Notes. Proof comes first; a missing recording never blocks a verdict.
 - Keep the device selection and replay report in the notes.
 - Good looks like: the user completes the flow on the simulator and the app-owned result is visible.
 - Anti-pattern: relying on only build and test output.

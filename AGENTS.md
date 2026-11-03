@@ -38,7 +38,7 @@ Never declare done from green tests while the user-visible surface was never exe
 
 ### Tests preserve proven behavior
 
-Do not write tests before the implementation produces the desired behavior for the user. First make the behavior work and prove it through the real user path. Only then add the smallest regression test that preserves that confirmed behavior. Tests freeze a working solution; they do not substitute for finding one. If the user explicitly says not to write tests yet, do not create or modify tests.
+Do not write tests before the implementation produces the desired behavior for the user. First make the behavior work and prove it through the real user path. Only then add the smallest regression test that preserves that confirmed behavior. For iOS and Android, that test is the Argent recording from the passing verification run, copied unchanged into `.argent/e2e/`. Tests freeze a working solution; they do not substitute for finding one. If the user explicitly says not to write tests yet, do not create or modify tests.
 
 Test the behavior, not the implementation. Assert what the user can observe or what a public contract guarantees, such as an output, visible state, or externally meaningful side effect. Do not test private functions, internal state, call order, or code structure unless that detail is itself part of the required behavior. A useful test fails when the proven behavior regresses and continues to pass through a harmless refactor.
 

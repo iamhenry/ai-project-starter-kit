@@ -113,7 +113,7 @@ Platform files list known examples.
 - A screenshot proves a static state. Use a short recording only when motion or timing is the claim.
 - Retain the minimum: screenshots by default, no duplicate media, no evidence theater. Capture the smallest app-owned area; never expose private desktop content.
 - Never record secrets, tokens, or personal data. Inspect the diff and evidence for them; sanitize or `FAIL`.
-- **One location rule:** write the result and retained evidence in `{ISSUE_DIR}/verification/` (`screenshots/`, `videos/`), or in the authorized durable directory for standalone calls. Never leave anything the caller consumes in OS temp. Raw snapshots, JSON, logs, and base64 stay in temp and are deleted before `PASS`, except sanitized output the target explicitly requires or that is itself the consumer receipt (for example an API response or an export); retain that in the evidence directory.
+- **One location rule:** write the result and retained evidence in `{ISSUE_DIR}/verification/` (`screenshots/`, `videos/`), or in the authorized durable directory for standalone calls. Never leave anything the caller consumes in OS temp. Raw snapshots, JSON, logs, and base64 stay in temp and are deleted before `PASS`, except sanitized output the target explicitly requires or that is itself the consumer receipt (for example an API response or an export); retain that in the evidence directory. A recording from the Primary Flow (`.argent/e2e/` under the evidence directory) is retained evidence.
 - Remove temporary diagnostic instrumentation from the candidate, or justify it in Notes, before `PASS`.
 
 ## Report
@@ -133,6 +133,7 @@ Write `{ISSUE_DIR}/verification/result.md` first (or `result.md` in the authoriz
 - Reach used: [exact steps and restore, or "default surface"; reusable on re-check]
 - Mechanical: [command] -> [exit code and quoted raw excerpt; fresh or reused, source, reuse rationale]
 - Observable: [artifact path or `n/a`]
+- Saved test: [iOS/Android only: on `PASS`, `<source path> -> .argent/e2e/<name>.yaml` for a new recording or reproduction flow, adding `(replaces <old path>)` when it supersedes a saved test that failed on an intended change; `none` when an existing saved test passed unchanged, on `FAIL`/`BLOCKED`, or when no clean recording was possible (a failed step or unrecorded recovery)]
 - Checks run: [concise list, including any observation window; name any shortcut taken and why it is equivalent]
 - Model-backed product operations: [provider/model, reasoning, turns; `n/a`; or `unknown`]
 - Verdict: `PASS|FAIL|BLOCKED`

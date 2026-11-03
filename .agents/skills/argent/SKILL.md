@@ -1,6 +1,6 @@
 ---
 name: argent
-description: Run Argent skills to drive, test, debug, profile, and prove iOS, Android, TV, and Chromium apps on simulators, emulators, and physical devices using the `argent` CLI without an LLM in the loop. Use whenever a task mentions Argent, a flow YAML, argent MCP tools, device interaction, UI testing, profiling, Metro debugging, screen recording, screenshot diffs, or on-device user-flow proof, or when an iOS repro or verification task needs a replayable device flow. Builds and mechanical proof stay with xcodebuildmcp-cli; use that skill instead for compile/build/test commands.
+description: Run Argent skills to drive, test, debug, profile, and prove iOS, Android, TV, and Chromium apps on simulators, emulators, and physical devices using the `argent` CLI without an LLM in the loop. Use whenever a task mentions Argent, an e2e test or flow YAML, argent MCP tools, device interaction, UI testing, profiling, Metro debugging, screen recording, screenshot diffs, or on-device user-flow proof, or when an iOS repro or verification task needs a replayable device flow. Builds and mechanical proof stay with xcodebuildmcp-cli; use that skill instead for compile/build/test commands.
 ---
 
 # Argent (bundled skills, CLI-only)
@@ -11,12 +11,12 @@ This parent bundles all official Argent skills from `@swmansion/argent` (see `UP
 
 - Everything an upstream skill phrases as "call tool X" runs as `argent run X --args '<json>'` (single-quoted JSON, matching the upstream examples verbatim), `argent run X --flag value` for simple flags, or `--args -` with JSON on stdin for large payloads. Discover exact flags with `argent tools describe <name>` — never guess from an MCP schema. (Note: `argent tools describe --help` treats `--help` as a tool name — use `argent tools --help` for help.)
 - Discover tools with `argent tools` and `argent tools describe <name>`.
-- Do not run `argent init`/`install`/`update`/`uninstall`, register MCP servers, or copy any argent config, skills, or rules into the repo — flows run without init; the tool server auto-starts.
+- Do not run `argent init`/`install`/`update`/`uninstall`, register MCP servers, or copy any argent config, skills, or rules into the repo — e2e tests run without init; the tool server auto-starts.
 - Keep telemetry disabled (set it with `argent telemetry disable --scope global` if not already); never read telemetry status (it may list personal identifiers).
 - Never put secrets, tokens, or private user data in flow YAML, run reports, or screenshots. Never type plaintext credentials — use the `{{secret:<NAME>}}` placeholder mechanism the nested skills document.
 - Nested skills may name side-effectful setup (permission grants/resets, service teardown, feature flags such as `argent enable argent-lens`). Never run an unapproved keychain change (e.g. the `errSecInternalComponent` keychain fix in `argent-ios-device-setup` asks for the login password — ask the user first), device wipe/`-wipe-data`, unrelated process termination, or feature-config enablement — those need explicit user approval first. Prefer in-app and on-dialog paths (e.g. `argent-settings-permissions` is a last resort, exactly as that skill states).
 - If the `argent` CLI is missing or no usable device exists, stop and report `BLOCKED` with the missing prerequisite.
-- Device pick: `argent run list-devices --json`. Simulator = iOS entry without `kind: "device"` (boot with `argent run boot-device --udid <UDID>`). Physical iPhone = iOS entry with `kind: "device"`; only `state: "connected"` (cabled, USB usable) can run — `paired` means not reachable, and there is no `boot-device` for phones. The first flow run on a phone builds and signs an on-device runner (minutes cold).
+- Device pick: `argent run list-devices --json`. Simulator = iOS entry without `kind: "device"` (boot with `argent run boot-device --udid <UDID>`). Physical iPhone = iOS entry with `kind: "device"`; only `state: "connected"` (cabled, USB usable) can run — `paired` means not reachable, and there is no `boot-device` for phones. The first e2e run on a phone builds and signs an on-device runner (minutes cold).
 
 ## CLI invocations for the tool calls in nested skills
 
@@ -24,13 +24,13 @@ This parent bundles all official Argent skills from `@swmansion/argent` (see `UP
 - Tool output images (screenshot, screenshot-diff): the CLI writes the PNG to a temp path and prints it instead of attaching an image; pass `--includeImageInContext false` + `--scale 1.0` for full-resolution baselines (per argent-screenshot-diff) and open the printed path when pixels matter.
 - Returned file paths (screenshots, recordings, profiler traces, log files) are real host paths — follow them with your file tools as the nested skill says.
 - Tools listed as unavailable in a context (e.g. on a physical iPhone) fail the same way through the CLI; the nested skill's limits still hold.
-- Flows: `argent flow run <path.yaml> --device <id> --platform ios --json` — always a file path, never a bare flow name (see the flow-policy override below).
+- E2E tests: `argent e2e run <name|path.yaml|dir> --device <id> --platform ios --json` (`argent flow run` is the older alias and still works). See the storage section below.
 
-## Flow storage override (overrides upstream path instructions)
+## E2E test storage
 
-Upstream skills default flows to `.argent/flows/<name>.yaml`. **In this repo, flow files live ONLY at `_ai/task/{SLUG}/reproduction/flows/<safe-name>.yaml`** (safe name: letters, numbers, `_`, `-`) so `reproduce-bug` and `verification-gate` can replay the exact file on the candidate; never save flows under `.argent/flows` (that includes recorder defaults, `run:` targets, and snapshot baselines — the latter live beside the flow when needed). Pass the file path to `argent flow run`, never a bare flow name. Where an upstream text says `.argent/flows/<name>.yaml`, read it as the file path form: `argent flow run <path.yaml>`.
+Use upstream's default: saved e2e tests live in `.argent/e2e/<safe-name>.yaml` (safe name: letters, numbers, `_`, `-`), committed with the repo so `reproduce-bug` and `verification-gate` can replay the exact file on the candidate. The legacy `.argent/flows/` is still read; save new tests only under `.argent/e2e/`. Snapshot baselines live beside the tests under `.argent/e2e/__baselines__/`, as upstream documents. The recorder tools (`e2e-start-recording`, `e2e-add-step`, `e2e-add-echo`, `e2e-add-script`, `e2e-finish-recording`) write there and are available through the CLI (`argent run <tool> --args '<json>'`). Never commit `.argent/secrets.env`; it is gitignored.
 
-**Recorder coverage:** the flow-recorder tools (`flow-start-recording`, `flow-add-step`, `flow-add-echo`, `flow-finish-recording`) are keyed by `name` + absolute `project_root` and always write under `<project_root>/.argent/flows/` — no flag redirects them. Under this repo's storage contract flow YAML lives ONLY at the task path, so the recorder is **unavailable**: author flow YAML directly with file tools at the task path against the upstream schema (`argent-create-flow/references/flow-yaml.md`), executing steps live as you build them. No temporary `.argent/flows` workaround is sanctioned — never create `.argent/` anywhere in this repo, and do not invent recorder flags.
+When to record or replay a saved test is owned by `reproduce-bug` and `verification-gate`, not by this bundle. QA records into its evidence directory (`project_root` set there); only a recording from a `PASS` is copied into the repo's `.argent/e2e/`. That recording is the proof run itself: promote it only if every recorded step succeeded with no unrecorded recovery, otherwise report `Saved test: none` (never edit or rerun just to get a recording). Skip `argent-create-e2e`'s polish-and-replay step and `argent-qa-e2e`'s two-pass proof for it. Those rules still apply when a task explicitly asks to author or harden a test.
 
 ## Candidate provenance before any replay (mandatory)
 
@@ -39,7 +39,7 @@ Before replaying a flow on an installed app, establish that the installed app **
 ## Division of labor
 
 - `xcodebuildmcp-cli` owns builds and mechanical proof; Argent owns user-flow proof. Do not run both routinely.
-- This bundle's sanctioned replay route is `argent flow run <path.yaml>` — never a bare name. `flow-execute` also supports an explicit `flow_path`; only its name form resolves `.argent/flows/`. Choosing the standalone task-path route is repo policy, not a tool limitation. The recorder tools, unlike `flow-execute`, have no output-path override and are unavailable under the flow-storage policy above; author YAML with file tools instead.
+- This bundle has no MCP client, so wherever a nested skill says `e2e-execute`, replay with `argent e2e run <name|path.yaml>`.
 
 ## iOS reproduction contract (with reproduce-bug)
 
@@ -59,11 +59,11 @@ Each nested skill is self-contained; load only what the current task needs, and 
 | iOS simulator boot / pick a UDID | `argent-ios-simulator-setup/SKILL.md` |
 | Android emulator boot / serial | `argent-android-emulator-setup/SKILL.md` |
 | Physical iPhone cabling/trust/signing setup | `argent-ios-device-setup/SKILL.md` |
-| Tap, swipe, type, screenshots, waits on any platform | `argent-device-interact/SKILL.md` (references: `references/gesture-examples.md`) |
+| Tap, swipe, type, screenshots, waits on any platform | `argent-device-interact/SKILL.md` (references: `references/gesture-examples.md`, `references/secrets.md`, `references/chromium.md`, `references/harmonyos.md`) |
 | Physical iPhone interaction contract | `argent-ios-device-interact/SKILL.md` |
 | Apple TV / Android TV / Fire TV control | `argent-tv-interact/SKILL.md` |
-| Create / record / edit / repair a flow YAML | `argent-create-flow/SKILL.md` (references: `references/flow-yaml.md`, `references/live-authoring.md`, `references/reliability-and-recovery.md`) |
-| QA regression flow with two-pass proof | `argent-qa-flows/SKILL.md` |
+| Create / record / edit / repair an e2e test YAML | `argent-create-e2e/SKILL.md` (references: `references/e2e-yaml.md`, `references/live-authoring.md`, `references/reliability-and-recovery.md`) |
+| QA regression e2e test with two-pass proof | `argent-qa-e2e/SKILL.md` |
 | Interactive UI testing loops | `argent-test-ui-flow/SKILL.md` |
 | Visual regression / before-after screenshot compare | `argent-screenshot-diff/SKILL.md` |
 | Record the screen as video | `argent-screen-recording/SKILL.md` |
@@ -75,7 +75,7 @@ Each nested skill is self-contained; load only what the current task needs, and 
 | RN performance optimization pipeline | `argent-react-native-optimization/SKILL.md` (references: `references/lint-rules.md`, `references/semantic-checklist.md`, `references/fix-reference.md`) |
 | Design variants with human pick (Lens) | `argent-lens/SKILL.md` |
 
-For iOS bug reproduction and user-flow verification, start with the `reproduce-bug` / `verification-gate` routing outside this bundle, then use `argent-create-flow` (authoring) and `argent-ios-simulator-setup` / `argent-ios-device-setup` (device pick) from here.
+For iOS bug reproduction and user-flow verification, start with the `reproduce-bug` / `verification-gate` routing outside this bundle, then use `argent-create-e2e` (authoring) and `argent-ios-simulator-setup` / `argent-ios-device-setup` (device pick) from here.
 
 ## License notice
 

@@ -5,7 +5,7 @@ description: Set up and connect to an iOS simulator using argent MCP tools. Use 
 
 ## 1. Setup Steps
 
-If you delegate simulator tasks to sub-agents, make sure they have MCP permissions. (In this bundle there is no MCP: call the tools through the parent skill's CLI translation — `argent run <tool> --args '<json>'`.)
+If you delegate simulator tasks to sub-agents, make sure they have MCP permissions. (In this bundle there is no MCP: call the tools through the parent skill's CLI translation, `argent run <tool> --args '<json>'`.)
 
 1. **Find a booted simulator**
    Use `list-devices`. Filter for entries with `platform: "ios"` and skip any with `kind: "device"` (a physical iPhone, never a simulator target): booted simulators are listed first.
