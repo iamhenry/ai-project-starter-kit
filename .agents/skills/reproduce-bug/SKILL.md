@@ -57,9 +57,9 @@ Choose exactly one primary mode:
    - Use when the bug is visible on load and a screenshot is enough to prove it.
 3. `non-browser`
    - Use when the bug is reproduced more directly through a command, API call, file output, log, or data check.
-   - iOS user journeys count here: load the `argent` skill and replay the reported entry point as a flow on a simulator or connected iPhone. Save the flow at `flows/<safe-name>.yaml` under the evidence directory defined below (safe name: letters, numbers, `_`, `-`) so `verification-gate` can replay the exact file on the candidate.
-   - The flow must assert the initial screen state and the expected behavior (not just that the actions ran) — the reproduction contract in the `argent` skill. Establish that the installed app matches the exact candidate before replay; missing/stale app means build/install via `xcodebuildmcp-cli` first, or `BLOCKED` if provenance cannot be established.
-   - The flow result plus `--json` report is the observable proof; mechanical proof (build, logs) stays with `xcodebuildmcp-cli`.
+   - iOS and Android user journeys count here: load the `argent` skill and replay the reported entry point as a flow on a simulator, emulator, or connected device, through the Argent recorder with `project_root` set to the evidence directory defined below, so the reproduction run is also the saved flow at `.argent/e2e/<safe-name>.yaml` there (safe name: letters, numbers, `_`, `-`). `verification-gate` replays that exact file on the candidate.
+   - The flow must assert the initial screen state and the expected behavior (not just that the actions ran) — the reproduction contract in the `argent` skill. Establish that the installed app matches the exact candidate before replay; missing/stale app means build/install first (iOS: `xcodebuildmcp-cli`; Android: the plan-named build/install command), or `BLOCKED` if provenance cannot be established.
+   - The flow result plus `--json` report is the observable proof; mechanical proof (build, logs) stays with `xcodebuildmcp-cli` on iOS and the plan-named build command on Android.
 
 Prefer the smallest repro path that still proves the bug clearly.
 ## Workflow
@@ -172,7 +172,7 @@ Prefer the smallest repro path that still proves the bug clearly.
 - Use a single full-sequence video only when timing or the action sequence is part of the symptom.
 - Never capture secrets, tokens, private user data, or unnecessary personal information.
 - Use `{ISSUE_DIR}/reproduction/` for pipeline evidence, preserving the supplied task directory including its date; for standalone calls, use the authorized evidence directory directly. Keep media in `screenshots/` and `videos/` subfolders.
-- For iOS flow reproduction, retain `flows/<safe-name>.yaml` in that same directory as durable evidence and return its exact path for replay.
+- For iOS and Android flow reproduction, retain `.argent/e2e/<safe-name>.yaml` in that same directory as durable evidence and return its exact path for replay.
 - Always include artifact paths when evidence exists.
 
 ## Output

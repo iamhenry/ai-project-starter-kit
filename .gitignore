@@ -33,3 +33,6 @@ dist/
 
 # Local task contracts
 _ai/task/
+
+# Argent local secrets (see .agents/skills/argent/argent-device-interact/references/secrets.md)
+.argent/secrets.env
