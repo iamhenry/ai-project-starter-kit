@@ -2,66 +2,88 @@
 
 ## The system at a glance
 
-One statechart. The outer states are the run as you see it. **Running** is a composite state with three regions that run at the same time: the orchestrator's work loop, the watchdog, and the owner channel. Any helper's turn ends when the item moves on; the run ends only when every item is ticked or parked.
+One statechart. Boxes are the condition the system is in; arrows are the event that moves it. **Running** holds three named regions that are all active at the same time: the orchestrator's work loop, the watchdog, and the channel you hear from. The run ends only when every item is proven or parked.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Kickoff : you type hivecall with a goal
-    Kickoff --> Discovery : goal fuzzy or raw bug
-    Discovery --> Kickoff : reproduced, cause proven, plan judged
-    Kickoff --> Running : contract approved, watchdog and PR answered
-    Running --> Closed : every item ticked or parked
-    Closed --> [*] : final report compares result with goal, watchdog deletes itself
+    [*] --> Kickoff
+    state "Drafting the goal contract" as Kickoff
+    state "Discovering (reproduce, prove cause, judge plan)" as Discovery
+    state "Running" as Running
+    state "Closed, final report sent" as Closed
+
+    Kickoff --> Discovery : goal is fuzzy or a raw bug
+    Discovery --> Kickoff : evidence in hand
+    Kickoff --> Running : you approve the contract
+    Running --> Closed : every item proven or parked
+    Closed --> [*]
 
     state Running {
-        [*] --> Pick
-        Pick --> Building : cheapest free item that raises the score
-        Building --> InReview : builder returns diff and command output
-        InReview --> Building : REVISE_CODE (second time means split or new angle)
-        InReview --> Committed : APPROVE_CODE, orchestrator commits
-        Committed --> InQA : fresh qa tests that commit in a clean copy
-        InQA --> Ticked : PASS with receipt naming the commit
-        InQA --> Failed : FAIL or BLOCKED with evidence
-        Failed --> Building : attempt 2 or 3, each a new angle
-        Failed --> Parked : third failure, keeps its unlock condition
-        Ticked --> Pick
-        Parked --> Pick
-        Ticked --> Failed : later merge breaks it, revert first
+        state "Orchestrator work loop (one item shown, several run in parallel)" as Work {
+            [*] --> Choosing
+            state "Choosing the next item" as Choosing
+            state "Being built by a fresh builder" as Building
+            state "Waiting for review" as InReview
+            state "Committed, waiting for QA" as Committed
+            state "Being proven by a fresh QA on that commit" as InQA
+            state "Proven (ticked)" as Ticked
+            state "Failed, attempt counted" as Failed
+            state "Parked with an unlock condition" as Parked
 
+            Choosing --> Building : cheapest free item picked
+            Building --> InReview : builder hands back diff and output
+            InReview --> Building : reviewer says revise (2nd time: split or new angle)
+            InReview --> Committed : reviewer approves
+            Committed --> InQA : QA brief names the commit
+            InQA --> Ticked : PASS with a receipt
+            InQA --> Failed : FAIL or BLOCKED with evidence
+            Failed --> Building : attempt 2 or 3, new angle
+            Failed --> Parked : third failure
+            Ticked --> Choosing
+            Parked --> Choosing
+            Ticked --> Failed : a later merge breaks it (revert first)
+        }
         --
+        state "Watchdog (facts only, never acts)" as Watchdog {
+            [*] --> Watching
+            state "Watching, heartbeat every 5 min" as Watching
+            state "Asking why no proof (10 min)" as Stall1
+            state "Interrupting (15 min)" as Stall2
+            state "Saying park, note left for you (20 min)" as Stall3
+            state "Re-anchoring the orchestrator" as Reanchor
 
-        [*] --> Watching
-        Watching --> Watching : every 5 min, heartbeat if proof moved
-        Watching --> Stall1 : 10 min without new proof, ask
-        Stall1 --> Watching : new proof
-        Stall1 --> Stall2 : 15 min, nothing changed, interrupt
-        Stall2 --> Watching : new proof
-        Stall2 --> Stall3 : 20 min, say park, leave you a note
-        Stall3 --> Watching : new proof
-        Watching --> Reanchor : orchestrator compacted its context
-        Reanchor --> Watching : goal and owner rules re-sent
-
+            Watching --> Stall1 : 10 min without new proof
+            Stall1 --> Stall2 : 5 more min, nothing changed
+            Stall2 --> Stall3 : 5 more min
+            Stall1 --> Watching : new proof
+            Stall2 --> Watching : new proof
+            Stall3 --> Watching : new proof
+            Watching --> Reanchor : orchestrator compacted its context
+            Reanchor --> Watching : goal and owner rules re-sent
+        }
         --
+        state "What you hear" as Owner {
+            [*] --> Quiet
+            state "Quiet, one line per pass, fail or park" as Quiet
+            state "Waiting for your answer" as WaitingOwner
+            state "Waiting for credits or usage limit" as WaitingUsage
 
-        [*] --> Quiet
-        Quiet --> Quiet : one line per pass, fail or park
-        Quiet --> WaitingOwner : hard blocker, one loud question
-        WaitingOwner --> Quiet : you answer
-        Quiet --> WaitingUsage : credits or usage limit hit
-        WaitingUsage --> Quiet : limit resets or backup model named
+            Quiet --> WaitingOwner : hard blocker, one loud question
+            WaitingOwner --> Quiet : you answer
+            Quiet --> WaitingUsage : limit hit
+            WaitingUsage --> Quiet : limit resets or backup model named
+        }
     }
 
     note right of Running
         Nobody holds two powers.
-        Builder never proves.
-        Reviewer never runs.
-        QA never fixes.
-        Orchestrator never edits the product.
+        Builder never proves. Reviewer never runs.
+        QA never fixes. Orchestrator never edits the product.
         Watchdog never acts on the run.
     end note
 ```
 
-Reading it: the top region is one checklist item at a time (the orchestrator runs several in parallel when their files do not overlap). The middle region never acts; it only asks, and it goes quiet while the bottom region is waiting on you. The bottom region is the only thing you hear from.
+Reading it: while the work loop moves items, the watchdog only watches and asks, and it stays silent whenever the bottom region is waiting. You only ever hear from the bottom region.
 
 Why this plugin exists and the rules it must never break, in one file a human can read without opening code. Read it to refresh on what hivecall is for, or when a change feels like it might bend the intent. It should rarely change.
 
