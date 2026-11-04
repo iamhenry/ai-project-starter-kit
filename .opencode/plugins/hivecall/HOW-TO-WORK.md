@@ -4,6 +4,8 @@ Read at kickoff, and again after any context compaction or compression. Invarian
 
 ## Invariants
 
+Mirrored in `VISION.md` §2.1 for human reading; when you change one here, update it there in the same commit.
+
 ### Honest
 
 1. Correct beats fast beats cheap. Never fake progress or evidence.

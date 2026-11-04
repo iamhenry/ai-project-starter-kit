@@ -1,6 +1,6 @@
 # Hivecall vision
 
-Why this plugin exists and the rules it must never break. Read it when a change feels like it might bend the intent. It should rarely change; when it does, the owner changes it.
+Why this plugin exists and the rules it must never break, in one file a human can read without opening code. Read it to refresh on what hivecall is for, or when a change feels like it might bend the intent. It should rarely change.
 
 ## 1. How the system should work
 
@@ -30,7 +30,7 @@ Nobody holds two powers. The maker can't judge, the judge can't prove, the prove
 
 ## 2. Invariants
 
-Copied verbatim from their source files, which stay the source of truth. Change them only with the owner's OK, and change both places.
+Mirrors of the two places the agents and the watchdog actually read. Those files are the source of truth; this section exists so a human sees both sets together. **Sync rule:** whoever edits an invariant in `HOW-TO-WORK.md` or `watchdog/watch.py` updates the matching subsection here in the same commit. Each source file carries a reminder.
 
 ### 2.1 Run invariants (`HOW-TO-WORK.md`, section "Invariants")
 
@@ -78,6 +78,7 @@ Copied verbatim from their source files, which stay the source of truth. Change 
 
 ```
 # INVARIANTS — what this script is and is not. Change these only with the user's OK.
+# Mirrored in ../VISION.md §2.2 for human reading; update both in the same commit.
 #
 # 1. Watch, never act on the run. It never stops agents, fixes code, records
 #    results or edits the ISA. It pauses its own automation when done and
@@ -121,4 +122,5 @@ Copied verbatim from their source files, which stay the source of truth. Change 
 # 13. Keep the orchestrator itself. When its session's latest turn runs as a
 #     different agent than the one it started as, alert it and leave the user
 #     a note. Only the user can switch it back.
+
 ```

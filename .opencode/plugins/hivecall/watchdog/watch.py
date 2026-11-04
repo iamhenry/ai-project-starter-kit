@@ -5,6 +5,7 @@
 # hard blockers remain, or the run card says the run is closed.
 #
 # INVARIANTS — what this script is and is not. Change these only with the user's OK.
+# Mirrored in ../VISION.md §2.2 for human reading; update both in the same commit.
 #
 # 1. Watch, never act on the run. It never stops agents, fixes code, records
 #    results or edits the ISA. It pauses its own automation when done and
