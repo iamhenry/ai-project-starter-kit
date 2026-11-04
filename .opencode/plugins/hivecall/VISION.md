@@ -1,5 +1,58 @@
 # Hivecall vision
 
+## The system at a glance
+
+**A whole run.** You approve a contract, then leave. The run works the scoreboard until every item is proven or parked, pauses only for you or for a usage limit, and ends with an honest report.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Kickoff : you type hivecall and give a goal
+    Kickoff --> Discovery : goal is fuzzy or a raw bug
+    Discovery --> Kickoff : reproduced, cause found, plan judged
+    Kickoff --> Running : you approve the contract and answer watchdog and PR questions
+    Running --> Running : loop over items (see the item chart)
+    Running --> WaitingOwner : hard blocker, one loud question
+    WaitingOwner --> Running : you answer
+    Running --> WaitingUsage : model credits or usage limit hit
+    WaitingUsage --> Running : limit resets or backup model named
+    Running --> Closed : every item ticked or parked
+    Closed --> [*] : final report compares result with the goal, watchdog removes itself
+
+    note right of Running
+        Watchdog checks every 5 minutes.
+        No new proof for 10, 15, 20 minutes
+        means ask, ask again, then say park.
+        It never nudges while waiting.
+    end note
+```
+
+**One checklist item.** Four different agents touch it and none holds two powers. Only the orchestrator ticks, and only on the inspector's receipt.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Open : item has a user-visible outcome and an exact check
+    Open --> Building : orchestrator briefs a fresh builder
+    Building --> InReview : builder returns a diff and command output
+    InReview --> Building : reviewer says REVISE_CODE (second time means split or change angle)
+    InReview --> Committed : reviewer says APPROVE_CODE, orchestrator commits
+    Committed --> InQA : fresh qa tests that exact commit in a clean copy
+    InQA --> Ticked : qa PASS with a receipt file naming the commit
+    InQA --> Failed : qa FAIL or BLOCKED with evidence
+    Failed --> Building : attempt 2 or 3, each with a new angle
+    Failed --> Parked : third failure, item keeps its unlock condition
+    Parked --> Building : unlock condition met
+    Ticked --> Failed : a later merge breaks it (regression) revert first
+    Ticked --> [*]
+    Parked --> [*] : counted as stuck, never as done
+
+    note right of InQA
+        Builder never proves.
+        Reviewer never runs.
+        QA never fixes.
+        Orchestrator never edits the product.
+    end note
+```
+
 Why this plugin exists and the rules it must never break, in one file a human can read without opening code. Read it to refresh on what hivecall is for, or when a change feels like it might bend the intent. It should rarely change.
 
 ## 1. How the system should work
