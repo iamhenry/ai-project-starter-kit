@@ -2,56 +2,66 @@
 
 ## The system at a glance
 
-**A whole run.** You approve a contract, then leave. The run works the scoreboard until every item is proven or parked, pauses only for you or for a usage limit, and ends with an honest report.
+One statechart. The outer states are the run as you see it. **Running** is a composite state with three regions that run at the same time: the orchestrator's work loop, the watchdog, and the owner channel. Any helper's turn ends when the item moves on; the run ends only when every item is ticked or parked.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Kickoff : you type hivecall and give a goal
-    Kickoff --> Discovery : goal is fuzzy or a raw bug
-    Discovery --> Kickoff : reproduced, cause found, plan judged
-    Kickoff --> Running : you approve the contract and answer watchdog and PR questions
-    Running --> Running : loop over items (see the item chart)
-    Running --> WaitingOwner : hard blocker, one loud question
-    WaitingOwner --> Running : you answer
-    Running --> WaitingUsage : model credits or usage limit hit
-    WaitingUsage --> Running : limit resets or backup model named
+    [*] --> Kickoff : you type hivecall with a goal
+    Kickoff --> Discovery : goal fuzzy or raw bug
+    Discovery --> Kickoff : reproduced, cause proven, plan judged
+    Kickoff --> Running : contract approved, watchdog and PR answered
     Running --> Closed : every item ticked or parked
-    Closed --> [*] : final report compares result with the goal, watchdog removes itself
+    Closed --> [*] : final report compares result with goal, watchdog deletes itself
+
+    state Running {
+        [*] --> Pick
+        Pick --> Building : cheapest free item that raises the score
+        Building --> InReview : builder returns diff and command output
+        InReview --> Building : REVISE_CODE (second time means split or new angle)
+        InReview --> Committed : APPROVE_CODE, orchestrator commits
+        Committed --> InQA : fresh qa tests that commit in a clean copy
+        InQA --> Ticked : PASS with receipt naming the commit
+        InQA --> Failed : FAIL or BLOCKED with evidence
+        Failed --> Building : attempt 2 or 3, each a new angle
+        Failed --> Parked : third failure, keeps its unlock condition
+        Ticked --> Pick
+        Parked --> Pick
+        Ticked --> Failed : later merge breaks it, revert first
+
+        --
+
+        [*] --> Watching
+        Watching --> Watching : every 5 min, heartbeat if proof moved
+        Watching --> Stall1 : 10 min without new proof, ask
+        Stall1 --> Watching : new proof
+        Stall1 --> Stall2 : 15 min, nothing changed, interrupt
+        Stall2 --> Watching : new proof
+        Stall2 --> Stall3 : 20 min, say park, leave you a note
+        Stall3 --> Watching : new proof
+        Watching --> Reanchor : orchestrator compacted its context
+        Reanchor --> Watching : goal and owner rules re-sent
+
+        --
+
+        [*] --> Quiet
+        Quiet --> Quiet : one line per pass, fail or park
+        Quiet --> WaitingOwner : hard blocker, one loud question
+        WaitingOwner --> Quiet : you answer
+        Quiet --> WaitingUsage : credits or usage limit hit
+        WaitingUsage --> Quiet : limit resets or backup model named
+    }
 
     note right of Running
-        Watchdog checks every 5 minutes.
-        No new proof for 10, 15, 20 minutes
-        means ask, ask again, then say park.
-        It never nudges while waiting.
-    end note
-```
-
-**One checklist item.** Four different agents touch it and none holds two powers. Only the orchestrator ticks, and only on the inspector's receipt.
-
-```mermaid
-stateDiagram-v2
-    [*] --> Open : item has a user-visible outcome and an exact check
-    Open --> Building : orchestrator briefs a fresh builder
-    Building --> InReview : builder returns a diff and command output
-    InReview --> Building : reviewer says REVISE_CODE (second time means split or change angle)
-    InReview --> Committed : reviewer says APPROVE_CODE, orchestrator commits
-    Committed --> InQA : fresh qa tests that exact commit in a clean copy
-    InQA --> Ticked : qa PASS with a receipt file naming the commit
-    InQA --> Failed : qa FAIL or BLOCKED with evidence
-    Failed --> Building : attempt 2 or 3, each with a new angle
-    Failed --> Parked : third failure, item keeps its unlock condition
-    Parked --> Building : unlock condition met
-    Ticked --> Failed : a later merge breaks it (regression) revert first
-    Ticked --> [*]
-    Parked --> [*] : counted as stuck, never as done
-
-    note right of InQA
+        Nobody holds two powers.
         Builder never proves.
         Reviewer never runs.
         QA never fixes.
         Orchestrator never edits the product.
+        Watchdog never acts on the run.
     end note
 ```
+
+Reading it: the top region is one checklist item at a time (the orchestrator runs several in parallel when their files do not overlap). The middle region never acts; it only asks, and it goes quiet while the bottom region is waiting on you. The bottom region is the only thing you hear from.
 
 Why this plugin exists and the rules it must never break, in one file a human can read without opening code. Read it to refresh on what hivecall is for, or when a change feels like it might bend the intent. It should rarely change.
 
