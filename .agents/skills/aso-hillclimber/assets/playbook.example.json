@@ -1,0 +1,16 @@
+{
+  "updated": "YYYY-MM-DD",
+  "keep": [
+    { "phrase": "brand name", "why": "Ranks top 10", "since": "YYYY-MM-DD" }
+  ],
+  "hold": [
+    { "phrase": "example phrase", "why": "#18 and rising", "since": "YYYY-MM-DD" }
+  ],
+  "drop": [
+    { "phrase": "example phrase", "why": "Popularity 5, no searches", "since": "YYYY-MM-DD" }
+  ],
+  "hit_rate": { "A": [0, 0], "B": [0, 0], "C": [0, 0] },
+  "learnings": [
+    { "date": "YYYY-MM-DD", "text": "One sentence the next run should act on." }
+  ]
+}

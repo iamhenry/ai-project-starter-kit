@@ -1,0 +1,29 @@
+{
+  "app_name": "Example App",
+  "app_store_id": "1234567890",
+  "bundle_id": "com.example.app",
+  "store": "us",
+  "locale": "en-US",
+  "astro": {
+    "real_app_id": "1234567890",
+    "research_app_id": "",
+    "research_app_name": "Example App ASO Research YYYY-MM-DD"
+  },
+  "business_model": "paid upfront $X | free trial N days then $X | free",
+  "goal": {
+    "metric": "sales | trial_starts | downloads",
+    "target": 5,
+    "window_days": 14
+  },
+  "seed_phrases": ["core job phrase", "problem phrasing"],
+  "core_phrases": ["phrases used to check whether competitors still rank with us"],
+  "competitors": [
+    {
+      "name": "Competitor App",
+      "app_store_id": "0000000000",
+      "ratings": 0,
+      "ratings_checked": "YYYY-MM-DD",
+      "why": "Same job, same user"
+    }
+  ]
+}
