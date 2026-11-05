@@ -158,4 +158,12 @@ Tag every targeted phrase **Proposed**. Append a `proposal` line to `log.jsonl` 
 
 ## Step 8 — Ship and record
 
-After approval only: stage in App Store Connect and ship with the next version. When the version is live, append a `shipped` line (live date, version, exact metadata). That date is day 0 for the next measure.
+After approval only, draft the new version in App Store Connect with `asc` (commands in `references/tools.md`). The human submits it; never submit for review.
+
+1. **Pick the build — don't assume.** `asc status --app <ID>` and list recent builds. Show the user the newest valid build (version, build number, upload date) and any existing draft version. If no valid build is newer than the live version, stop and say so. Use only the build the user confirms.
+2. **Create the version** with `--copy-metadata-from <live version>` so description, URLs, screenshots and release settings carry over. Reuse an existing draft instead of creating a second one.
+3. **Attach the confirmed build.**
+4. **Set only the approved fields:** keywords and promotional text on the version; title and subtitle on the editable (`PREPARE_FOR_SUBMISSION`) app info. "What's New" is required for updates: draft it from the build's changes and flag it for the user to review.
+5. **Verify** by reading back the draft and the live version: every field not in the proposal must match, and screenshot counts must match. Report the diff.
+
+Append a `proposal` line with `"approved": true` and the drafted version and build. When the version is live, append a `shipped` line (live date, version, exact metadata). That date is day 0 for the next measure.
