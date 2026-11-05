@@ -46,3 +46,6 @@ coverage/*
 *.woff
 *.woff2
 *.ttf
+
+# raw tool output saved as evidence (aso-hillclimber)
+_ai/aso/runs/*/evidence.json

@@ -9,7 +9,18 @@ asc status --app <APP_ID> --output json                       # live version, ve
 asc localizations list --app <APP_ID> --type app-info --output json   # title, subtitle
 asc localizations list --version <VERSION_ID> --output json   # keywords, description, promo text
 asc pricing current --app <APP_ID>
+
+# Draft a version (step 8). Never submit.
+asc builds list --app <APP_ID> --output json                  # pick a VALID build; user confirms
+asc versions list --app <APP_ID> --output json                # reuse an existing PREPARE_FOR_SUBMISSION draft
+asc versions create --app <APP_ID> --version <X.Y.Z> --copy-metadata-from <LIVE_VERSION> --release-type MANUAL
+asc versions attach-build --version-id <VERSION_ID> --build-id <BUILD_ID>
+asc localizations update --version <VERSION_ID> --locale en-US --keywords "..." --promotional-text "..." --whats-new "..."
+asc localizations update --app <APP_ID> --type app-info --locale en-US --name "..." --subtitle "..."   # targets the editable app info
+asc screenshots list --app <APP_ID> --version <X.Y.Z> --locale en-US   # compare counts with the live version
 ```
+
+`--release-type MANUAL` is an example; copy the live version's release type and copyright.
 
 Analytics (`asc analytics ...`) needs an API key with the Analytics/Sales role and a vendor number. If it returns forbidden, ask the user for App Store Connect screenshots: Analytics → Overview (window = test window) and Acquisition → Sources filtered to App Store Search.
 
