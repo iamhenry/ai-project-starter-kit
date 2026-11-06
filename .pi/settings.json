@@ -11,5 +11,10 @@
     "npm:@gotgenes/pi-anthropic-auth",
     "git:github.com/capyup/pi-auto-compact@2d8bde795191f1913618b315b104d8563821fd39"
   ],
-  "lastChangelogVersion": "0.84.3"
+  "lastChangelogVersion": "1.5.0",
+  "extensionChangelogVersions": {
+    "{\"source\":\"npm:pi-multimodal-proxy@1.15.0\",\"scope\":\"user\"}": "1.15.0",
+    "{\"source\":\"npm:pi-ollama-cloud\",\"scope\":\"user\"}": "0.13.1",
+    "{\"source\":\"npm:@gotgenes/pi-anthropic-auth\",\"scope\":\"user\"}": "3.4.4"
+  }
 }
