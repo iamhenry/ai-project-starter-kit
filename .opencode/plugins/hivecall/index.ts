@@ -1,11 +1,12 @@
 import { createHash } from "node:crypto"
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs"
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { homedir } from "node:os"
-import { dirname, resolve } from "node:path"
+import { dirname, relative, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { Plugin } from "@opencode/plugin"
+import { editCard, editLedger, type CardEdit, type LedgerEdit } from "./watchdog/tools"
 import { bbAgentStamp, bbHelperSession, bbNoticeEvents, bbOutputRead, bbPinEvent, bbReadEvent, bbSpawnEvent, shellDelegation, stampSucceeded, type BbStamp } from "./watchdog/adapters"
-import { activeLedger, activeRun, agentMismatch, archiveRun, anchor, apply, blockDecision, briefRole, canaryMissing, dirtyFiles, helperIdentity, memory, replanEvents, reviewEvent, ruleFor, tickedItems, unearned, type HiveEvent, type Violation } from "./watchdog/policy"
+import { activeLedger, activeRun, agentMismatch, archiveRun, anchor, apply, blockDecision, briefRole, canaryMissing, dirtyFiles, helperIdentity, iscId, memory, replanEvents, reviewEvent, ruleFor, tickedItems, tickProblems, unearned, type HiveEvent, type Violation } from "./watchdog/policy"
 
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 const skillPath = resolve(pluginDir, "SKILL.md")
@@ -255,6 +256,60 @@ export default Plugin.define({
       editor.add({ id: "hivecall", name: "Hivecall", description: "Run a user-authorized multi-agent ledger workflow", path: skillPath, content })
     })
 
+    // The orchestrator types ledger and run-card changes through these tools instead of one-off scripts (invariant 5: it
+    // decides the content; the tool checks the proof first, writes one fixed format, fails loudly, and knows its caller).
+    const cardPath = resolve(runDir, "run.md")
+    const toolText = (path: string) => existsSync(path) ? readFileSync(path, "utf8") : ""
+    const orchestratorOnly = (sessionID: string) => {
+      if (!existsSync(cardPath)) throw new Error("No hivecall run card (.hivecall/run.md) here; these tools work only inside a run.")
+      if (!isOrchestrator(sessionID)) throw new Error("Only the run's orchestrator edits the ledger and run card; report the result to it instead.")
+    }
+    const ledgerSchema = { type: "object", additionalProperties: false, required: ["action", "id"], properties: {
+      action: { type: "string", enum: ["tick", "fail", "park", "add"] }, id: { type: "string", description: "Item id, e.g. ISC-12" },
+      observed: { type: "string", description: "tick: what the verifier saw" }, evidence: { type: "string", description: "Existing evidence file path" },
+      commit: { type: "string", description: "Commit id the result is about" }, verifier: { type: "string", description: "Who verified (helper name or session)" },
+      canary: { type: "string", description: "tick: known-broken case that still fails, when the commit edits the item's own check" },
+      reason: { type: "string", description: "fail/park: why" }, unlock: { type: "string", description: "park: what unblocks it" },
+      text: { type: "string", description: "add: observable behavior — check: exact check" }, feature: { type: "string", description: "add: existing feature heading" } } }
+    const cardSchema = { type: "object", additionalProperties: false, required: ["action"], properties: {
+      action: { type: "string", enum: ["status", "note"] }, status: { type: "string", enum: ["running", "waiting-owner", "waiting-usage", "closed"] },
+      section: { type: "string", description: "note: run-card section heading without ##, e.g. Lessons, Answers, Final report" },
+      text: { type: "string", description: "note: the line(s) to append to that section" } } }
+    await ctx.tool.transform?.((editor) => {
+      editor.add({
+        name: "hivecall_ledger",
+        description: "Hivecall orchestrator only: tick, fail, park or add one checklist item. A tick is refused unless it would count (verified approval, existing commit and evidence file).",
+        input: ledgerSchema,
+        execute: async (input: unknown, context: { sessionID: string }) => {
+          orchestratorOnly(context.sessionID)
+          const edit = input as LedgerEdit
+          const path = activeLedger(root), before = toolText(path)
+          const result = editLedger(before, edit)
+          if ("error" in result) throw new Error(`hivecall_ledger: ${result.error}. Nothing was written.`)
+          const id = iscId(edit.id)
+          const problems = edit.action === "tick" ? tickProblems(result.text, id, state.approvals, state.grandfathered, root) : []
+          if (problems.length) throw new Error(`hivecall_ledger: ${id} would not count, so it was not ticked: ${problems.join("; ")}.`)
+          writeFileSync(path, result.text)
+          if (edit.action === "tick") tickedBy.set(id, context.sessionID)
+          observeLedger(context.sessionID)
+          record({ type: "ledger-tool", action: edit.action, id, sessionID: context.sessionID })
+          return { content: `${edit.action} ${id} written to ${relative(root, path) || path}.` }
+        },
+      })
+      editor.add({
+        name: "hivecall_card",
+        description: "Hivecall orchestrator only: set the run card status, or append a line to one of its sections. Closing is gated like any run-card write.",
+        input: cardSchema,
+        execute: async (input: unknown, context: { sessionID: string }) => {
+          orchestratorOnly(context.sessionID)
+          const result = editCard(toolText(cardPath), input as CardEdit)
+          if ("error" in result) throw new Error(`hivecall_card: ${result.error}. Nothing was written.`)
+          writeFileSync(cardPath, result.text)
+          return { content: "Run card updated." }
+        },
+      })
+    })
+
     await ctx.command.transform((editor) => {
       editor.add({
         name: "hivecall",
@@ -313,7 +368,10 @@ export default Plugin.define({
         const pin = command ? bbAgentStamp(command) : {}
         if (pin.warning) logFailure(pin.warning, new Error("unverified pin"))
         if (pin.stamp) bbStamps.set(callID, pin.stamp)
-        const policyCall = normalized?.call ?? { tool: event.tool, input }
+        // A card tool call is gated as the run-card write it makes.
+        const cardEdit = event.tool === "hivecall_card" ? editCard(existsSync(cardPath) ? readFileSync(cardPath, "utf8") : "", input as CardEdit) : null
+        const policyCall = normalized?.call ?? (cardEdit && "text" in cardEdit ? { tool: "write", input: { path: ".hivecall/run.md", content: cardEdit.text } as Record<string, unknown> }
+          : { tool: event.tool, input })
         const target = policyCall.input.sessionID
         if (normalized?.kind === "tell" && typeof target === "string" && !state.finished.has(target))
           policyCall.input.sessionID = bbHelperSession(state, event.sessionID, target) ?? target

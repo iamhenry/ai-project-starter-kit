@@ -332,6 +332,16 @@ export function unearned(ledger: string, approvals: Set<string>, grandfathered: 
     (qaPassed(approvals, id, receiptCommit(ledger, id)) && lowRisk(ledger, root, receiptCommit(ledger, id)))) && hasReceipt(ledger, id, root) && !canary.has(id)))
 }
 
+/** Why ticking `id` on `ledger` would not count; empty when it would. */
+export function tickProblems(ledger: string, id: string, approvals: Set<string>, grandfathered: Set<string>, root: string): string[] {
+  if (!unearned(ledger, approvals, grandfathered, root).includes(id)) return []
+  const problems: string[] = []
+  if (!hasReceipt(ledger, id, root)) problems.push("no receipt: the commit must exist in this checkout and the evidence file must exist")
+  if (canaryMissing(ledger, root).includes(id)) problems.push("its commit edits a file its own check names, so the receipt needs a CANARY: line")
+  if (!problems.length) problems.push(`no verified approval for ${id} from this run (reviewer APPROVE_CODE; APPROVE_PLAN, SELECTED or qa REPRODUCED/PASS for Discovery items; or a qa PASS naming a low-risk commit)`)
+  return problems
+}
+
 function checkedItems(text: string): string[] {
   const ids = [...text.matchAll(/<li\b[^>]*id=["'](ISC-\d+(?:\.\d+)*)["'][^>]*>([\s\S]*?)<\/li>/gi)]
     .filter((m) => /\bchecked\b/i.test(m[2])).map((m) => iscId(m[1]))

@@ -24,6 +24,7 @@ export async function host({ card = false, store = new Map<string, unknown>(), r
     writeFileSync(resolve(root, ".hivecall/proof.txt"), "proof")
   }
   const hooks: Record<string, (event: Record<string, unknown>) => unknown> = {}
+  const tools: Record<string, { execute(input: unknown, context: { sessionID: string }): Promise<{ content: string }> }> = {}
   const queue: Array<{ type: string; data: Record<string, unknown> }> = []
   let wake: (() => void) | undefined
   const ctx = {
@@ -38,7 +39,8 @@ export async function host({ card = false, store = new Map<string, unknown>(), r
     skill: { transform: async (edit: (editor: unknown) => void) => edit({ remove() {}, add() {} }) },
     command: { transform: async (edit: (editor: unknown) => void) => edit({ add() {} }) },
     session: { hook: async (name: string, fn: never) => { hooks[`session.${name}`] = fn }, prompt: async () => {} },
-    tool: { hook: async (name: string, fn: never) => { hooks[`tool.${name}`] = fn } },
+    tool: { hook: async (name: string, fn: never) => { hooks[`tool.${name}`] = fn },
+      transform: async (edit: (editor: unknown) => void) => edit({ add: (t: { name: string }) => { tools[t.name] = t as never } }) },
     storage: { get: async (k: string) => structuredClone(store.get(k)), set: async (k: string, v: unknown) => { store.set(k, structuredClone(v)) } },
   }
   const stop = await plugin.setup(ctx)
@@ -64,9 +66,19 @@ export async function host({ card = false, store = new Map<string, unknown>(), r
     const seen = after.result.content.map((part) => part.text).join("\n")
     return seen === output ? null : seen
   }
+  /** Runs one of the plugin's own tools between the real hooks; returns its output or the error the model would see. */
+  const tool = async (name: string, input: Record<string, unknown>) => {
+    const id = `call_${++n}`
+    try { hooks["tool.execute.before"]({ sessionID: session.id, id, tool: name, input }) } catch (error) { return (error as Error).message }
+    let text = "", status = "completed"
+    try { text = (await tools[name].execute(input, { sessionID: session.id })).content } catch (error) { text = (error as Error).message; status = "error" }
+    const after = { sessionID: session.id, id, tool: name, input, status, result: { content: [{ type: "text", text }] } }
+    hooks["tool.execute.after"]?.(after)
+    return after.result.content.map((part) => part.text).join("\n")
+  }
   const events = () => existsSync(resolve(root, ".hivecall/events.jsonl"))
     ? readFileSync(resolve(root, ".hivecall/events.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line)) : []
-  return { root, store, stop, session, call, send, events, hooks, before: (event: Record<string, unknown>) => hooks["tool.execute.before"](event),
+  return { root, store, stop, session, call, send, events, hooks, tool, tools, before: (event: Record<string, unknown>) => hooks["tool.execute.before"](event),
     after: (event: Record<string, unknown>) => hooks["tool.execute.after"](event),
     prompt: (text: string) => hooks["session.prompt"]({ sessionID: "ses-root", prompt: { text } }) }
 }
