@@ -184,7 +184,10 @@ describe("Hivecall rule fixtures", () => {
     expect(ruleFor(closed, memory(), root)?.detail).toBe("open: ISC-001")
     expect(ruleFor({ ...call, input: { ...call.input, content: "status: parked\ngoal: x\n## Final report\nDone" } }, memory(), root)).toBeNull()
     writeFileSync(resolve(root, ".hivecall/checklist.html"), '<li id="ISC-001"><input type="checkbox" checked> a</li>\n| ISC-001 | PASS | commit abcdef1 | evidence .hivecall/run.md |')
-    expect(ruleFor(closed, memory(), root)?.detail).toBe("ticked without approval and receipt: ISC-001")
+    expect(ruleFor(closed, memory(), root)?.detail).toBe("ticked without approval and receipt: ISC-001; to close with them still ticked, the run card must say `Not counted: ISC-001`")
+    expect(ruleFor(closed, memory(), root)?.hold).toBe(true)
+    const listed = { ...call, input: { ...call.input, content: "status: closed\ngoal: x\n## Final report\nNot counted: ISC-1 (no review)" } }
+    expect(ruleFor(listed, memory(), root)?.hold).toBeUndefined()
     const approved = memory()
     approved.approvals.add("ISC-001")
     expect(ruleFor(closed, approved, root)).toBeNull()

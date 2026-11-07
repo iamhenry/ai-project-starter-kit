@@ -97,14 +97,16 @@ describe("earned ticks", () => {
       expect(await h.call("write", tick)).toContain("ISC-001 is ticked without")
     })
   }
-  test("an unearned tick blocks the close three times, then the fourth goes through with one warning", async () => {
+  test("an unearned tick blocks the close three times, then until the card says Not counted, then goes through with one warning", async () => {
     const h = await host({ card: true })
     expect(await h.call("write", tick)).toContain("ISC-001 is ticked without")
-    for (let i = 0; i < 3; i++) expect(await h.call("write", close)).toContain("ticked without approval and receipt: ISC-001")
-    // Let through, the close is still logged and told: it does not count the unearned tick.
-    expect(await h.call("write", close)).toContain("The run card was closed while ISC-001")
+    for (let i = 0; i < 4; i++) expect(await h.call("write", close)).toContain("ticked without approval and receipt: ISC-001")
+    expect(await h.call("write", close)).toContain("the run card must say `Not counted: ISC-001`")
+    // Let through once the card names it, the close is still logged and told: it does not count the unearned tick.
+    const listed = { ...close, content: `${close.content}\nNot counted: ISC-001 (never reviewed)` }
+    expect(await h.call("write", listed)).toContain("The run card was closed while ISC-001")
     expect(h.events().filter((row) => row.rule === "no-early-done").map((row) => [row.type, row.count])).toEqual([
-      ["blocked", 1], ["blocked", 2], ["blocked", 3], ["warning", undefined], ["close-unearned", undefined]])
+      ["blocked", 1], ["blocked", 2], ["blocked", 3], ["blocked", 4], ["blocked", 4], ["warning", undefined], ["close-unearned", undefined]])
     expect(readFileSync(resolve(h.root, ".hivecall/checklist.html"), "utf8")).toBe(ticked)
   })
 

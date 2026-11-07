@@ -324,6 +324,7 @@ export default Plugin.define({
         violation = ruleFor(call, state, root)
         const blockKey = violation ? violation.key ?? violation.id : ""
         const decision = violation ? blockDecision(state, event.sessionID, blockKey) : null
+        if (decision && violation?.hold && !decision.block) { decision.block = true; decision.count += 1 }
         if (!violation || !decision?.block) {
           if (action) record({ type: "allowed", action, sessionID: event.sessionID, rule: violation?.id })
           if (violation) warnOnce(event.sessionID, blockKey)

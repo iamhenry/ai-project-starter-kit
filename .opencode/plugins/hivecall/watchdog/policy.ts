@@ -504,7 +504,13 @@ function reportText(tool: string, input: Record<string, unknown>, root: string):
 
 export type Call = { tool: string; input: Record<string, unknown>; sessionID: string; action?: "spawn" | "tell" }
 /** `key` scopes the block-then-allow count (for example one item), so one paused item never spends another's pauses. */
-export type Violation = { id: string; message: string; detail?: string; key?: string }
+/** `hold` keeps blocking after the 3-pause cap, because one line the caller can write clears it. */
+export type Violation = { id: string; message: string; detail?: string; key?: string; hold?: boolean }
+
+/** Ids the run card lists on `Not counted:` lines. */
+export function notCounted(text: string): Set<string> {
+  return new Set([...text.matchAll(/^.*\bnot counted\s*:(.*)$/gim)].flatMap((m) => iscIds(m[1])))
+}
 
 const HILL_CLIMB_ITEM = 3, HILL_CLIMB_RUN = 5
 type Replan = { item: string; next: string; problem: string }
@@ -629,9 +635,15 @@ export function ruleFor(call: Call, state: Memory, root: string): Violation | nu
       const ledger = readFile(path)
       const open = openItems(ledger), bad = unearned(ledger, state.approvals, state.grandfathered, root)
       if (!existsSync(path) || open.length || bad.length) {
+        // A checked box the plugin did not count stays visible as such (invariant 1): after the usual three pauses the close
+        // still waits until the run card names every such id on a `Not counted:` line.
+        const listed = notCounted(`${run.text}\n${proposedCard.text}`)
+        const unlisted = bad.filter((id) => !listed.has(id))
         const detail = [open.length ? `open: ${open.join(", ")}` : "", bad.length ? `ticked without approval and receipt: ${bad.join(", ")}` : "",
-          existsSync(path) ? "" : "ledger missing"].filter(Boolean).join("; ")
-        return { id: "no-early-done", message: "Do not close the run or write the final report while counted ledger items are open or ticked without approval and receipt.", detail }
+          existsSync(path) ? "" : "ledger missing",
+          unlisted.length ? `to close with them still ticked, the run card must say \`Not counted: ${unlisted.join(", ")}\`` : ""].filter(Boolean).join("; ")
+        return { id: "no-early-done", message: "Do not close the run or write the final report while counted ledger items are open or ticked without approval and receipt.", detail,
+          ...(unlisted.length ? { hold: true } : {}) }
       }
     }
   }
