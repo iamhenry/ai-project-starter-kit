@@ -370,6 +370,29 @@ describe("Hivecall rule fixtures", () => {
     expect(reviewOutcome("Decision: APPROVE_CODE for ISC-2 and ISC-3, REVISE_CODE for ISC-1", ["ISC-001", "ISC-002", "ISC-003"]))
       .toMatchObject({ approved: ["ISC-002", "ISC-003"], withheld: ["ISC-001"] })
     expect(reviewOutcome("Decision: ISC-1: REVISE_CODE (bug); ISC-2: APPROVE_CODE", ["ISC-001", "ISC-002"])).toMatchObject({ approved: ["ISC-002"], withheld: ["ISC-001"] })
+    // Sixth audit: a direction switch inside one comma clause; bound ids take their bound verdict, the rest need agreement.
+    const two = ["ISC-001", "ISC-002"]
+    expect(reviewOutcome("Decision: APPROVE_CODE for ISC-1, ISC-2: REVISE_CODE", two)).toMatchObject({ approved: ["ISC-001"], withheld: ["ISC-002"] })
+    expect(reviewOutcome("Decision: ISC-1 APPROVE_CODE, ISC-2 REVISE_CODE", two)).toMatchObject({ approved: ["ISC-001"], withheld: ["ISC-002"] })
+    expect(reviewOutcome("Decision: APPROVE_CODE, ISC-1, REVISE_CODE, ISC-2", two)?.approved).toEqual([])
+  })
+
+  test("realistic reviewer wordings approve exactly what the reviewer clearly approved", () => {
+    const all = ["ISC-001", "ISC-002", "ISC-003"]
+    const cases: [string, string[]][] = [
+      ["Decision: REVISE_CODE for ISC-2; APPROVE_CODE for ISC-1 and ISC-3", ["ISC-001", "ISC-003"]],
+      ["Decision: APPROVE_CODE (ISC-1, ISC-2, ISC-3)", all],
+      ["- ISC-1 — `APPROVE_CODE`\n- ISC-2 — `REVISE_CODE`\n- ISC-3 — `APPROVE_CODE`\nDecision: REVISE_CODE", ["ISC-001", "ISC-003"]],
+      ["| ISC-1 | APPROVE_CODE |\n| ISC-2 | REVISE_CODE |\nDecision: REVISE_CODE", ["ISC-001"]],
+      ["Decision: APPROVE_CODE for ISC-1 and ISC-3, REVISE_CODE for ISC-2", ["ISC-001", "ISC-003"]],
+      ["Decision: ISC-1 and ISC-3 APPROVE_CODE, ISC-2 REVISE_CODE", ["ISC-001", "ISC-003"]],
+      ["Decision: **REVISE_CODE** on ISC-2 (null check); **APPROVE_CODE** on ISC-1, ISC-3", ["ISC-001", "ISC-003"]],
+      ["Decision: APPROVE_CODE\nISC-2 not approved: still wrong", ["ISC-001", "ISC-003"]],
+      ["Decision: APPROVE_CODE except ISC-2 which is REVISE_CODE", ["ISC-001", "ISC-003"]],
+      ["Decision: REVISE_CODE. ISC-1 would be APPROVE_CODE once ISC-2 is fixed", []],
+      ["Decision: ASK_USER (ISC-1 APPROVE_CODE pending owner)", []],
+    ]
+    for (const [text, want] of cases) expect([text, reviewOutcome(text, all)?.approved ?? []]).toEqual([text, want])
   })
 
   test("a later plan review that sends a Discovery item back removes its plan approval, without a code revision", () => {

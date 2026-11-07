@@ -22,6 +22,10 @@ export function reviewScope(text: string): string[] {
 
 type Verdict = "approve" | "revise"
 
+const word = (token: string): Verdict | null => token === "APPROVE_CODE" ? "approve" : token === "REVISE_CODE" ? "revise" : null
+/** A list of ids joined by commas, "and" or "&". */
+const LIST = String.raw`ISC-\d+(?:\.\d+)*(?:\s*(?:,|\band\b|&)\s*ISC-\d+(?:\.\d+)*)*`
+
 function verdictOf(text: string): Verdict | null {
   const approve = /\bAPPROVE_CODE\b/.test(text), revise = /\bREVISE_CODE\b/.test(text)
   return approve === revise ? null : approve ? "approve" : "revise"
@@ -36,30 +40,47 @@ export function reviewOutcome(text: string, scope: string[]): { approved: string
   // The last Decision/Verdict line wins: a reviewer that corrects itself ends with its real verdict. A last decision that is
   // neither APPROVE_CODE nor REVISE_CODE (ASK_USER, BLOCKED, ...) is unclear, and unclear is never an approval (invariant 4).
   const last = lines.filter((line) => /^\W*(?:decision|verdict)\b[^:=\n]*[:=]/i.test(line)).at(-1)
-  if (last && !/\b(?:APPROVE|REVISE)_CODE\b/i.test(last)) return null
+  // The decision is the first verdict-like word after the colon: "Decision: ASK_USER (ISC-1 APPROVE_CODE pending)" is unclear.
+  const head = last && /[:=].*?\b(APPROVE_CODE|REVISE_CODE|ASK_USER|BLOCKED|APPROVE_PLAN|REVISE_PLAN|SELECTED|NEEDS_[A-Z_]+)\b/i.exec(last)?.[1].toUpperCase()
+  if (last && !/^(?:APPROVE|REVISE)_CODE$/.test(head || "")) return null
   // A decision naming no id takes its first verdict word ("REVISE_CODE. Earlier draft said APPROVE_CODE."); one naming ids
   // with both words is per-item ("ISC-1 APPROVE_CODE; ISC-2 REVISE_CODE") and sets no overall verdict.
   const mixed = (line: string) => /\bAPPROVE_CODE\b/i.test(line) && /\bREVISE_CODE\b/i.test(line)
-  const said = last && !(mixed(last) && iscIds(last).length) && /[:=].*?\b(APPROVE|REVISE)_CODE\b/i.exec(last)?.[1].toUpperCase()
+  // "APPROVE_CODE except ISC-2 ..." keeps its first verdict as the overall one for the ids it does not name.
+  const except = !!last && /\b(?:APPROVE|REVISE)_CODE\b[^;|]*?\b(?:except|but not|other than)\b/i.test(last)
+  const said = last && (except || !(mixed(last) && iscIds(last).length)) && /[:=].*?\b(APPROVE|REVISE)_CODE\b/i.exec(last)?.[1].toUpperCase()
   const overall: Verdict | null = said ? (said === "APPROVE" ? "approve" : "revise")
     : last ? null : verdictOf(lines.filter((line) => !iscIds(line).length).join("\n"))
   const perItem = new Map<string, Verdict | "unclear">()
   const set = (id: string, verdict: Verdict | "unclear") => perItem.set(id, perItem.get(id) === "revise" ? "revise" : perItem.get(id) === "unclear" && verdict === "approve" ? "unclear" : verdict)
+  // A verdict hedged by a condition ("would be APPROVE_CODE once ISC-2 is fixed") is not given yet: its ids are unclear.
+  const hedged = (text: string) => /\b(?:would|once|if|unless|pending|until)\b/i.test(text)
   for (const line of lines) {
     const verdict = verdictOf(line)
-    if (verdict) for (const id of iscIds(line)) set(id, verdict)
+    if (verdict && hedged(line)) for (const id of iscIds(line)) set(id, "unclear")
+    else if (verdict) for (const id of iscIds(line)) set(id, verdict)
     else if (mixed(line)) {
-      // Per clause (split at ; | or a sentence end; commas keep id lists together): one verdict word sets all its ids. With
-      // both words, read in order: verdict-first ("APPROVE_CODE for ISC-2, ISC-3, REVISE_CODE for ISC-1") gives each id the
-      // verdict before it, id-first ("ISC-1 APPROVE_CODE, ISC-2 REVISE_CODE") the one after it. No verdict: unclear.
-      const word = (token: string): Verdict | null => token === "APPROVE_CODE" ? "approve" : token === "REVISE_CODE" ? "revise" : null
+      // Per clause (split at ; | or a sentence end): one verdict word sets all its ids. With both words, an id takes a verdict
+      // it is bound to ("APPROVE_CODE for ISC-1, ISC-2" or "ISC-2: REVISE_CODE"); bound both ways it is held back. An unbound id
+      // takes the nearest verdicts before and after only when they agree; otherwise it is unclear, never approved (invariant 4).
       for (const clause of line.split(/[;|]|\.\s/)) {
+        const one = verdictOf(clause.toUpperCase())
+        if (one || hedged(clause)) { for (const id of iscIds(clause)) set(id, one && !hedged(clause) ? one : "unclear"); continue }
+        if (!mixed(clause)) { for (const id of iscIds(clause)) set(id, "unclear"); continue }
+        const bound = new Map<string, Verdict>()
+        const bind = (ids: string[], token: string) => { for (const id of ids) bound.set(id, bound.get(id) && bound.get(id) !== word(token) ? "revise" : word(token)!) }
+        for (const m of clause.matchAll(new RegExp(`\\b(APPROVE_CODE|REVISE_CODE)\\b[\`*\\s]*(?:for|on)\\s+(${LIST})`, "gi"))) bind(iscIds(m[2]), m[1].toUpperCase())
+        const after = new Set(bound.keys()) // ids a "VERDICT for" list already took: of those, only the one right before a later verdict switches
+        for (const m of clause.matchAll(new RegExp(`(${LIST})[\\s:=\u2014\u2013\`*-]*\\b(APPROVE_CODE|REVISE_CODE)\\b`, "gi"))) {
+          const ids = iscIds(m[1])
+          if (ids.some((id) => after.has(id))) ids.slice(-1).forEach((id) => bound.set(id, word(m[2].toUpperCase())!))
+          else bind(ids, m[2].toUpperCase())
+        }
         const tokens = [...clause.matchAll(/\b(APPROVE_CODE|REVISE_CODE|ISC-\d+(?:\.\d+)*)\b/gi)].map((m) => m[1].toUpperCase())
-        const one = verdictOf(clause.toUpperCase()), first = !!word(tokens[0] ?? "")
         tokens.forEach((token, i) => {
           if (word(token)) return
-          const near = one ? null : first ? tokens.slice(0, i).reverse().find(word) : tokens.slice(i + 1).find(word)
-          set(iscId(token), one ?? (near ? word(near)! : "unclear"))
+          const id = iscId(token), before = tokens.slice(0, i).reverse().find(word), after = tokens.slice(i + 1).find(word)
+          set(id, bound.get(id) ?? (before && after && before !== after ? "unclear" : word(before ?? after ?? "") ?? "unclear"))
         })
       }
     }
