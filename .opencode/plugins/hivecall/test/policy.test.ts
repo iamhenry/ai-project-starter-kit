@@ -365,6 +365,11 @@ describe("Hivecall rule fixtures", () => {
       .toMatchObject({ approved: ["ISC-002", "ISC-003"], withheld: ["ISC-001"] })
     expect(reviewOutcome("Decision: ISC-1, ISC-2 APPROVE_CODE; ISC-3 REVISE_CODE", ["ISC-001", "ISC-002", "ISC-003"]))
       .toMatchObject({ approved: ["ISC-001", "ISC-002"], withheld: ["ISC-003"] })
+    // Fifth audit: direction is per clause, not per line.
+    expect(reviewOutcome("Decision: APPROVE_CODE for ISC-1; ISC-2: REVISE_CODE", ["ISC-001", "ISC-002"])).toMatchObject({ approved: ["ISC-001"], withheld: ["ISC-002"] })
+    expect(reviewOutcome("Decision: APPROVE_CODE for ISC-2 and ISC-3, REVISE_CODE for ISC-1", ["ISC-001", "ISC-002", "ISC-003"]))
+      .toMatchObject({ approved: ["ISC-002", "ISC-003"], withheld: ["ISC-001"] })
+    expect(reviewOutcome("Decision: ISC-1: REVISE_CODE (bug); ISC-2: APPROVE_CODE", ["ISC-001", "ISC-002"])).toMatchObject({ approved: ["ISC-002"], withheld: ["ISC-001"] })
   })
 
   test("a later plan review that sends a Discovery item back removes its plan approval, without a code revision", () => {

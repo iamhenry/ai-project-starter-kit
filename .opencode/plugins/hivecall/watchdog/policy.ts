@@ -49,16 +49,19 @@ export function reviewOutcome(text: string, scope: string[]): { approved: string
     const verdict = verdictOf(line)
     if (verdict) for (const id of iscIds(line)) set(id, verdict)
     else if (mixed(line)) {
-      // Read verdict words and ids in order. Verdict-first wording ("REVISE_CODE ISC-1; APPROVE_CODE ISC-2, ISC-3") gives each id
-      // the verdict before it; id-first wording ("ISC-1 APPROVE_CODE; ISC-2 REVISE_CODE") the verdict after it. An id with none is unclear.
-      const tokens = [...line.matchAll(/\b(APPROVE_CODE|REVISE_CODE|ISC-\d+(?:\.\d+)*)\b/gi)].map((m) => m[1].toUpperCase())
+      // Per clause (split at ; | or a sentence end; commas keep id lists together): one verdict word sets all its ids. With
+      // both words, read in order: verdict-first ("APPROVE_CODE for ISC-2, ISC-3, REVISE_CODE for ISC-1") gives each id the
+      // verdict before it, id-first ("ISC-1 APPROVE_CODE, ISC-2 REVISE_CODE") the one after it. No verdict: unclear.
       const word = (token: string): Verdict | null => token === "APPROVE_CODE" ? "approve" : token === "REVISE_CODE" ? "revise" : null
-      const first = !!word(tokens[0] ?? "")
-      tokens.forEach((token, i) => {
-        if (word(token)) return
-        const near = first ? tokens.slice(0, i).reverse().find(word) : tokens.slice(i + 1).find(word)
-        set(iscId(token), near ? word(near)! : "unclear")
-      })
+      for (const clause of line.split(/[;|]|\.\s/)) {
+        const tokens = [...clause.matchAll(/\b(APPROVE_CODE|REVISE_CODE|ISC-\d+(?:\.\d+)*)\b/gi)].map((m) => m[1].toUpperCase())
+        const one = verdictOf(clause.toUpperCase()), first = !!word(tokens[0] ?? "")
+        tokens.forEach((token, i) => {
+          if (word(token)) return
+          const near = one ? null : first ? tokens.slice(0, i).reverse().find(word) : tokens.slice(i + 1).find(word)
+          set(iscId(token), one ?? (near ? word(near)! : "unclear"))
+        })
+      }
     }
     // "ISC-30 not approved" (or `| ISC-30 | NOT APPROVED |`) withholds that id even on a line whose verdict token approves
     // the others (Nov 1, review-wrap). Only words right after the id count, never a mention of an older review.
