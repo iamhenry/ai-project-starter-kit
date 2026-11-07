@@ -224,6 +224,16 @@ class EvalRegression(unittest.TestCase):
         self.assertEqual(windows, [(100, 200), (300, 400)])
         self.assertEqual([s for _, s in events], ["running", "running", "closed", "closed", "running", "running", "closed"])
 
+    def test_run_card_tool_close_counts_direct_and_from_code_mode(self):
+        sessions = {"root": [
+            message("assistant", 100, tools=[("hivecall_card", {"action": "status", "status": "running"})]),
+            message("assistant", 200, tools=[("execute", {"code": 'await tools.hivecall_card({action:"status", status:"closed"})'})]),
+            message("assistant", 300),
+        ]}
+        windows, events, _ = E.run_windows(sessions, {"loaded_at": 100})
+        self.assertEqual([s for _, s in events], ["running", "closed"])
+        self.assertEqual(windows, [(100, 200)])
+
     def test_gate_faults_change_only_their_own_gate(self):
         baseline = fixture()
         before = E.grade(baseline)

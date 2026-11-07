@@ -80,6 +80,7 @@ WORKER_OTHER = re.compile(r"^((CORRECTION )?RESULT\b|Acknowledged\b)")  # worker
 BB_MSG = re.compile(r"^\[bb message from thread:\S+\]\s*")
 STATUS = re.compile(r"status\s*:\s*(running|waiting-owner|waiting-usage|closed)\b", re.I)
 STATUS_ASSIGN = re.compile(r"status\s*=\s*['\"](running|waiting-owner|waiting-usage|closed)['\"]", re.I)
+CARD_STATUS = re.compile(r"\bstatus\s*:\s*['\"](running|waiting-owner|waiting-usage|closed)['\"]", re.I)
 STUCK_FINAL = re.compile(r"^\W*(?:(?:result|verdict|status)\s*[:=-]\s*)?\W*BLOCKED\b", re.I)  # checked on the start of the final result
 TICK = re.compile(r"ISC-0*(\d+)\b[^\n<]{0,40}?\b(PASS|FAIL|BLOCKED|REOPENED)\b")
 CODE_EXT = re.compile(r"\.(swift|tsx?|jsx?|mjs|py|kt|java|rb|go|rs|m|mm|c|cc|cpp|h|css|scss|sql)$")
@@ -306,6 +307,10 @@ def run_windows(sessions: dict, run: dict) -> tuple[list, list, int]:
                 cmd = str(inp.get("command", "")) if name == "shell" else ""
                 if "run.md" in cmd.lower() and SHELL_MUTATION.search(cmd):
                     blob = cmd
+                if name == "hivecall_card" and inp.get("action") == "status":  # the plugin's run-card tool
+                    blob = f"status: {inp.get('status', '')}"
+                elif name == "execute" and "hivecall_card" in str(inp.get("code", "")):  # the same tool from code mode
+                    blob = "\n".join(f"status: {s}" for s in CARD_STATUS.findall(str(inp["code"])))
                 matches = [(x.start(), x.group(1).lower()) for rx in (STATUS, STATUS_ASSIGN) for x in rx.finditer(blob)]
                 for _, status in sorted(matches):
                     if m["time"] >= run["loaded_at"]:
