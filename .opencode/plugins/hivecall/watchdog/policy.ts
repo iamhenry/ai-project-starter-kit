@@ -49,9 +49,9 @@ export function reviewOutcome(text: string, scope: string[]): { approved: string
     const verdict = verdictOf(line)
     if (verdict) for (const id of iscIds(line)) set(id, verdict)
     else if (mixed(line)) {
-      // Each id takes the one verdict word in its own clause (up to the next id); an id whose clause has none or both is unclear.
-      const marks = [...line.matchAll(/\bISC-\d+(?:\.\d+)*\b/gi)]
-      marks.forEach((mark, i) => set(iscId(mark[0]), verdictOf(line.slice(mark.index!, marks[i + 1]?.index ?? line.length).toUpperCase()) ?? "unclear"))
+      // Each clause (split at ; , | or a sentence end) gives its ids its one verdict word, before or after them; a clause with
+      // none or both leaves its ids unclear, never approved.
+      for (const clause of line.split(/[;,|]|\.\s/)) for (const id of iscIds(clause)) set(id, verdictOf(clause.toUpperCase()) ?? "unclear")
     }
     // "ISC-30 not approved" (or `| ISC-30 | NOT APPROVED |`) withholds that id even on a line whose verdict token approves
     // the others (Nov 1, review-wrap). Only words right after the id count, never a mention of an older review.
@@ -206,10 +206,12 @@ export function reviewEvent(sessionID: string, helperID: string, helper: Omit<He
   // A result file with its own Decision line is final, even when that decision is unclear (then nothing is approved).
   const decided = !!file && /^\W*(?:decision|verdict)\b[^:=\n]*[:=]/im.test(file)
   const code = role === "reviewer" ? (decided ? reviewOutcome(file, scope) : (file && reviewOutcome(file, scope)) || reviewOutcome(text, scope)) : null
-  const discovery = discoveryOutcome(text, helper.promise ? helper.promise.split(",") : [], role)
+  // A plan verdict in the reviewer's result file is its record too, over the chat text.
+  const planText = file && /\b(?:APPROVE_PLAN|SELECTED|REVISE_PLAN|ASK_USER)\b/.test(file) ? file : text
+  const discovery = discoveryOutcome(role === "reviewer" ? planText : text, helper.promise ? helper.promise.split(",") : [], role)
   // A plan review that sends Discovery items back (REVISE_PLAN, ASK_USER) removes their earlier plan approval;
   // it is not a code revision, so the hill-climb counts are untouched.
-  const planNo = role === "reviewer" ? text.split(/\r?\n/).filter((line) => /\b(?:REVISE_PLAN|ASK_USER)\b/.test(line)) : []
+  const planNo = role === "reviewer" ? planText.split(/\r?\n/).filter((line) => /\b(?:REVISE_PLAN|ASK_USER)\b/.test(line)) : []
   const undiscovered = (planNo.some((line) => !iscIds(line).length) ? (helper.promise ? helper.promise.split(",") : []) : planNo.flatMap(iscIds))
     .map(iscId).filter((id) => !discovery.map(iscId).includes(id))
   const passed = role === "qa" ? discoveryOutcome(text, helper.promise ? helper.promise.split(",") : [], "pass") : []
@@ -595,11 +597,11 @@ function reportText(tool: string, input: Record<string, unknown>, root: string):
     if (!target) return null
     const original = readFile(resolve(root, ".hivecall/run.md"))
     added = !/##\s+Final report\b/i.test(original) && /##\s+Final report\b/i.test(command)
-    // Only a plain `>> run.md` append is known to keep the old card; any other shell write (sed -i, write_text, `>`) may drop
-    // lines, so the card it leaves is judged by what the command itself says.
+    // Only a plain `>> run.md` append is known to keep the old card. Any other shell write (sed -i, write_text, `>`) leaves a
+    // card the plugin cannot read in advance, so it shows no `Not counted:` line; hivecall_card or the write tool can.
     const appendOnly = /(?<![\d&])>>\s*['"]?[^\s;|&'"]*run\.md\b/.test(command) &&
       !/(?<![>\d&])>(?!>)\s*['"]?[^\s;|&'"]*run\.md\b|\b(?:sed|perl)\s+-i|write_text|write_bytes|open\s*\([^)]*['"][wa]|\.replace\s*\(/.test(command)
-    return { text: command, added, card: appendOnly ? `${original}\n${command}` : command }
+    return { text: command, added, card: appendOnly ? `${original}\n${command}` : "" }
   }
   return null
 }
@@ -743,7 +745,8 @@ export function ruleFor(call: Call, state: Memory, root: string): Violation | nu
         const unlisted = bad.filter((id) => !listed.has(id))
         const detail = [open.length ? `open: ${open.join(", ")}` : "", bad.length ? `ticked without approval and receipt: ${bad.join(", ")}` : "",
           existsSync(path) ? "" : "ledger missing",
-          unlisted.length ? `to close with them still ticked, the run card must say \`Not counted: ${unlisted.join(", ")}\`` : ""].filter(Boolean).join("; ")
+          unlisted.length ? `to close with them still ticked, the run card must say \`Not counted: ${unlisted.join(", ")}\`` +
+            (call.tool === "shell" ? " (write the card with hivecall_card or the write tool; a shell rewrite cannot show that line)" : "") : ""].filter(Boolean).join("; ")
         return { id: "no-early-done", message: "Do not close the run or write the final report while counted ledger items are open or ticked without approval and receipt.", detail,
           ...(unlisted.length ? { hold: true } : {}) }
       }

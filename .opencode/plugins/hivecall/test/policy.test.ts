@@ -358,6 +358,8 @@ describe("Hivecall rule fixtures", () => {
   test("a decision line naming items with mixed verdicts is read per item", () => {
     expect(reviewOutcome("Decision: ISC-1 APPROVE_CODE; ISC-2 REVISE_CODE", ["ISC-001", "ISC-002"])).toMatchObject({ approved: ["ISC-001"], withheld: ["ISC-002"] })
     expect(reviewOutcome("Decision: APPROVE_CODE and REVISE_CODE for ISC-1", ["ISC-001"])?.approved ?? []).toEqual([])
+    // Third audit: verdict-first clauses.
+    expect(reviewOutcome("Decision: REVISE_CODE ISC-1; APPROVE_CODE ISC-2", ["ISC-001", "ISC-002"])).toMatchObject({ approved: ["ISC-002"], withheld: ["ISC-001"] })
   })
 
   test("a later plan review that sends a Discovery item back removes its plan approval, without a code revision", () => {
@@ -367,6 +369,12 @@ describe("Hivecall rule fixtures", () => {
     apply(state, reviewEvent("ses-root", "p2", helper, "Decision: REVISE_PLAN")!)
     expect(state.approvals.has("discovery:ISC-001")).toBe(false)
     expect(state.revisions.size).toBe(0)
+    // Third audit: the plan verdict may live only in the reviewer's result file.
+    const root = setup()
+    writeFileSync(resolve(root, ".hivecall/plan-review.md"), "Decision: REVISE_PLAN\n")
+    apply(state, reviewEvent("ses-root", "p3", helper, "Decision: APPROVE_PLAN")!)
+    apply(state, reviewEvent("ses-root", "p4", { ...helper, result: ".hivecall/plan-review.md" }, "Needs changes; see the file.", root)!)
+    expect(state.approvals.has("discovery:ISC-001")).toBe(false)
   })
 
   test("a later review that holds an item back removes that item's earlier approval", () => {
@@ -386,6 +394,8 @@ describe("Hivecall rule fixtures", () => {
     const shell = (command: string) => ruleFor({ tool: "shell", sessionID: "ses-root", input: { command } }, memory(), root)
     expect(shell(`python3 -c "from pathlib import Path; Path('.hivecall/run.md').write_text('status: closed\\n## Final report')"`)?.hold).toBe(true)
     expect(shell("printf 'status: closed\\n## Final report\\n' >> .hivecall/run.md")?.hold).toBeUndefined()
+    // Third audit: a script that names the line only to delete it does not keep it.
+    expect(shell(`python3 -c "from pathlib import Path; Path('.hivecall/run.md').write_text(Path('.hivecall/run.md').read_text().replace('Not counted: ISC-1 (no review)','').replace('status: running','status: closed'))"`)?.hold).toBe(true)
   })
 
   test("only the latest receipt counts: a newer line naming a missing commit is not rescued by an older good one", () => {
