@@ -227,4 +227,16 @@ describe("earned ticks", () => {
     o.after({ sessionID: "ses-root", id: "a", tool: "shell", input: {}, status: "completed", result: { content: [] } })
     expect(o.events().filter((row) => row.type === "tick-unearned").map((row) => row.sessionID)).toEqual(["unknown"])
   })
+
+  test("a later qa FAIL un-counts a reviewer-approved tick", async () => {
+    const h = await host({ card: true })
+    await approve(h)
+    expect(await h.call("write", tick)).toBeNull()
+    h.before({ sessionID: "ses-root", id: "qa", tool: "subagent", input: { agent: "qa", description: "verify ISC-001",
+      prompt: "PROMISE: kind=helper rows=ISC-001 result=- lane=-\nTALK-BACK: report BUG only." } })
+    await h.send("session.tool.success", { sessionID: "ses-root", id: "qa", metadata: { sessionID: "ses_qa", status: "completed" },
+      content: [{ type: "text", text: "Result: FAIL - the total is still wrong" }] })
+    expect(await h.call("shell", { command: "ls" })).toContain("ISC-001 is ticked without")
+    expect(await h.call("write", close)).toContain("ticked without approval and receipt: ISC-001")
+  })
 })

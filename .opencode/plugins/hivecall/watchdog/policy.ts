@@ -188,8 +188,12 @@ export function apply(state: Memory, event: HiveEvent): void {
     for (const id of String(event.approved ?? "").split(",").filter(Boolean)) state.approvals.add(iscId(id))
     const failed = String(event.failed ?? "").split(",").filter(Boolean)
     for (const id of failed) state.failures.set(iscId(id), (state.failures.get(iscId(id)) ?? 0) + 1)
-    // A later failure on an item supersedes its earlier qa PASSes.
-    for (const id of failed) for (const pass of [...state.approvals]) if (pass.startsWith(`pass:${iscId(id)}@`)) state.approvals.delete(pass)
+    // A later failure on an item supersedes everything that counted it before: reviewer and discovery approvals and qa PASSes.
+    for (const id of failed.map(iscId)) {
+      state.approvals.delete(id)
+      state.approvals.delete(`discovery:${id}`)
+      for (const pass of [...state.approvals]) if (pass.startsWith(`pass:${id}@`)) state.approvals.delete(pass)
+    }
     if (failed.length) state.sinceTick++
     for (const id of String(event.discovery ?? "").split(",").filter(Boolean)) state.approvals.add(`discovery:${iscId(id)}`)
     for (const id of String(event.passed ?? "").split(",").filter(Boolean))
