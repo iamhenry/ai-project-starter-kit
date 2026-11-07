@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url"
 import { Plugin } from "@opencode/plugin"
 import { editCard, editLedger, type CardEdit, type LedgerEdit } from "./watchdog/tools"
 import { bbAgentStamp, bbHelperSession, bbNoticeEvents, bbOutputRead, bbPinEvent, bbReadEvent, bbSpawnEvent, shellDelegation, stampSucceeded, type BbStamp } from "./watchdog/adapters"
-import { activeLedger, activeRun, agentMismatch, archiveRun, anchor, apply, blockDecision, briefRole, canaryMissing, dirtyFiles, helperIdentity, iscId, memory, replanEvents, reviewEvent, ruleFor, tickedItems, tickProblems, unearned, type HiveEvent, type Violation } from "./watchdog/policy"
+import { activeLedger, activeRun, agentMismatch, archiveRun, anchor, apply, blockDecision, briefRole, canaryMissing, dirtyFiles, fillBrief, helperIdentity, iscId, memory, replanEvents, reviewEvent, ruleFor, tickedItems, tickProblems, unearned, type HiveEvent, type Violation } from "./watchdog/policy"
 
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 const skillPath = resolve(pluginDir, "SKILL.md")
@@ -350,6 +350,15 @@ export default Plugin.define({
         const projectPin = projectPins.get(event.sessionID)
         projectPins.delete(event.sessionID)
         if (event.tool === "subagent") {
+          // Fill a missing TALK-BACK block or PROMISE line rather than block the spawn; the orchestrator is told.
+          const brief = fillBrief(String(input.prompt ?? ""), event.sessionID)
+          if (brief.filled.length) {
+            input.prompt = brief.prompt
+            event.input = input
+            record({ type: "brief-filled", sessionID: event.sessionID, filled: brief.filled.join(",") })
+            warnings.push(`Added a default ${brief.filled.join(" and ")} to the brief "${String(input.description ?? "").slice(0, 60)}".` +
+              (brief.filled.includes("PROMISE") ? " Its PROMISE rows=- claims no items, so a qa PASS from it cannot tick anything; name the rows in the next brief." : ""))
+          }
           const identity = helperIdentity(input)
           toolCalls.set(callID, { identity, background: input.background === true })
           mismatch(event.sessionID, callID, identity.role, identity.agent)

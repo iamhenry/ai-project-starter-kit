@@ -162,6 +162,25 @@ export function resultText(root: string, result: string | undefined, message: st
   return ""
 }
 
+/**
+ * Fills what a native brief is missing instead of blocking it: the TALK-BACK block (OpenCode channel to `parentSessionID`)
+ * and a PROMISE line that claims no rows. A present but invalid PROMISE is left for brief-check: it is a typo, not a gap.
+ */
+export function fillBrief(prompt: string, parentSessionID: string): { prompt: string; filled: string[] } {
+  const filled: string[] = []
+  let text = prompt
+  if (!parsePromise(text)) { text = `${text.replace(/\s*$/, "")}\n\nPROMISE: kind=helper rows=- result=- lane=-`; filled.push("PROMISE") }
+  if (!/talk[- ]?back/i.test(text)) {
+    text += `\n\nTALK-BACK: Reach the parent mid-run without stopping: opencode api post /api/session/${parentSessionID}/prompt --data '{"text":"<msg>","delivery":"queue"}'.
+Send only BUG / BLOCKED / QUESTION, once per issue, then keep doing independent work.
+Only for emergencies, send STOP: <reason> as steer ("delivery":"steer").
+If the command fails, put the issue in your final result. The parent may steer you; follow it.
+Your final result still lists everything.`
+    filled.push("TALK-BACK")
+  }
+  return { prompt: text, filled }
+}
+
 /** Turns a finished reviewer or qa helper's result text into a `review-result` event; other helpers return null. */
 export function reviewEvent(sessionID: string, helperID: string, helper: Omit<Helper, "parentSessionID">, text: string, root = ""): HiveEvent | null {
   const role = helper.agent.includes("reviewer") ? "reviewer" : helper.agent.includes("qa") ? "qa" : ""

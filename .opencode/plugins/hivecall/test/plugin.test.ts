@@ -28,6 +28,19 @@ describe("plugin hooks", () => {
       .toEqual([["skill-loaded", undefined, null], ["blocked", "spawn", "brief-check"], ["allowed", "spawn", null], ["helper-created", undefined, null], ["allowed", "spawn", 1]])
   })
 
+  // Nov 1: brief-check blocked 6 native spawns that only lacked the boilerplate; it is filled in instead, and the orchestrator told.
+  test("a native brief missing TALK-BACK and PROMISE is filled in, not blocked", async () => {
+    const { call, events } = await host({ card: true })
+    await call("skill", { id: "subagent-delegation" })
+    const input = { agent: "build", description: "fix rounding", prompt: "Fix the rounding in total()." }
+    expect(await call("subagent", input)).toContain("Added a default PROMISE and TALK-BACK")
+    expect(input.prompt).toContain("PROMISE: kind=helper rows=- result=- lane=-")
+    expect(input.prompt).toContain("opencode api post /api/session/ses-root/prompt")
+    expect(events().filter((row) => row.type === "blocked")).toEqual([])
+    const typo = { agent: "build", description: "x", prompt: "PROMISE: kind=review rows=- result=- lane=-" }
+    expect(await call("subagent", typo)).toContain("valid PROMISE")
+  })
+
   test("review or qa work sent to another agent is blocked until it runs as the right agent", async () => {
     const { call, events } = await host({ card: true })
     await call("skill", { id: "subagent-delegation" })
