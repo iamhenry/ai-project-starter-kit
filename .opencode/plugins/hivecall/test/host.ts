@@ -14,7 +14,8 @@ const plugin = (await import("../index")).default as unknown as { setup(ctx: unk
 export const cleanups: Array<() => void> = []
 
 /** `store` is the plugin's private storage; pass the same map and `root` to restart the plugin on an existing run. */
-export async function host({ card = false, store = new Map<string, unknown>(), root = "" } = {}) {
+/** `live` adds the session APIs that deliver at once (synthetic messages, instruction entries); they are recorded in `sent`. */
+export async function host({ card = false, store = new Map<string, unknown>(), root = "", live = false } = {}) {
   const restart = Boolean(root)
   root ||= mkdtempSync(resolve(tmpdir(), "hive-plugin-"))
   if (!restart) {
@@ -26,6 +27,7 @@ export async function host({ card = false, store = new Map<string, unknown>(), r
   const hooks: Record<string, (event: Record<string, unknown>) => unknown> = {}
   const tools: Record<string, { execute(input: unknown, context: { sessionID: string }): Promise<{ content: string }> }> = {}
   const queue: Array<{ type: string; data: Record<string, unknown> }> = []
+  const sent: Array<Record<string, unknown>> = []
   let wake: (() => void) | undefined
   const ctx = {
     location: { directory: root },
@@ -38,7 +40,9 @@ export async function host({ card = false, store = new Map<string, unknown>(), r
     })() },
     skill: { transform: async (edit: (editor: unknown) => void) => edit({ remove() {}, add() {} }) },
     command: { transform: async (edit: (editor: unknown) => void) => edit({ add() {} }) },
-    session: { hook: async (name: string, fn: never) => { hooks[`session.${name}`] = fn }, prompt: async () => {} },
+    session: { hook: async (name: string, fn: never) => { hooks[`session.${name}`] = fn }, prompt: async () => {},
+      ...(live ? { synthetic: async (input: unknown) => { sent.push({ kind: "synthetic", ...(input as object) }) },
+        instructions: { entry: { put: async (input: unknown) => { sent.push({ kind: "instruction", ...(input as object) }) } } } } : {}) },
     tool: { hook: async (name: string, fn: never) => { hooks[`tool.${name}`] = fn },
       transform: async (edit: (editor: unknown) => void) => edit({ add: (t: { name: string }) => { tools[t.name] = t as never } }) },
     storage: { get: async (k: string) => structuredClone(store.get(k)), set: async (k: string, v: unknown) => { store.set(k, structuredClone(v)) } },
@@ -78,7 +82,7 @@ export async function host({ card = false, store = new Map<string, unknown>(), r
   }
   const events = () => existsSync(resolve(root, ".hivecall/events.jsonl"))
     ? readFileSync(resolve(root, ".hivecall/events.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line)) : []
-  return { root, store, stop, session, call, send, events, hooks, tool, tools, before: (event: Record<string, unknown>) => hooks["tool.execute.before"](event),
+  return { root, store, stop, session, call, send, events, hooks, tool, tools, sent, before: (event: Record<string, unknown>) => hooks["tool.execute.before"](event),
     after: (event: Record<string, unknown>) => hooks["tool.execute.after"](event),
     prompt: (text: string) => hooks["session.prompt"]({ sessionID: "ses-root", prompt: { text } }) }
 }

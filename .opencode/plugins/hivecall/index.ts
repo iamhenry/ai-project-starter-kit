@@ -4,12 +4,14 @@ import { homedir } from "node:os"
 import { dirname, relative, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import { Plugin } from "@opencode/plugin"
+import { allowedModels, modelPolicy, usageLimit } from "./watchdog/models"
 import { editCard, editLedger, type CardEdit, type LedgerEdit } from "./watchdog/tools"
 import { bbAgentStamp, bbHelperSession, bbNoticeEvents, bbOutputRead, bbPinEvent, bbReadEvent, bbSpawnEvent, shellDelegation, stampSucceeded, type BbStamp } from "./watchdog/adapters"
 import { activeLedger, activeRun, agentMismatch, archiveRun, anchor, apply, blockDecision, briefRole, canaryMissing, dirtyFiles, fillBrief, helperIdentity, iscId, memory, replanEvents, reviewEvent, ruleFor, tickedItems, tickProblems, unearned, type HiveEvent, type Violation } from "./watchdog/policy"
 
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 const skillPath = resolve(pluginDir, "SKILL.md")
+const howToPath = resolve(pluginDir, "HOW-TO-WORK.md")
 const rulePath = resolve(pluginDir, "rules.json")
 const rules = JSON.parse(readFileSync(rulePath, "utf8")) as Array<{ id: string; message: string }>
 
@@ -28,6 +30,7 @@ export default Plugin.define({
     const root = ctx.location.directory
     const runDir = resolve(root, ".hivecall")
     const eventsPath = resolve(runDir, "events.jsonl")
+    const cardPath = resolve(runDir, "run.md")
     const state = memory()
     const warned = new Set<string>()
     const skillCalls = new Map<string, string>()
@@ -48,7 +51,7 @@ export default Plugin.define({
     const sessionAgents = new Map<string, string>()
     const sessionRoles = new Map<string, string>()
     const mismatched = new Set<string>()
-    const pendingCalls = [skillCalls, toolCalls, bbSpawns, bbReads, bbStamps, spawnPins]
+    const pendingCalls: Array<Map<string, unknown>> = [skillCalls, toolCalls, bbSpawns, bbReads, bbStamps, spawnPins]
     const forget = (callID: string) => { for (const pending of pendingCalls) pending.delete(callID) }
     // Loading the hivecall skill arms the hooks before the run card exists; after that the card's status decides.
     let armed = false
@@ -140,8 +143,41 @@ export default Plugin.define({
         state.approvals.clear(); state.grandfathered.clear(); state.failures.clear(); state.replans.clear(); state.sinceTick = 0; started = false; orchestrators.clear(); flagged.clear(); earned.clear()
       }
       if (sessionID && !orchestrators.has(sessionID)) orchestrators.add(sessionID)
+      putRules(sessionID)
       save()
     }
+
+    // Notices reach the orchestrator at once as a synthetic message (P9); when that is unavailable or fails they wait for
+    // its next completed call, as before.
+    const session = ctx.session as unknown as { synthetic?: (input: { sessionID: string; text: string }) => Promise<unknown>
+      instructions?: { entry?: { put?: (input: { sessionID: string; key: string; value: string }) => Promise<void> } } }
+    const orchestratorID = () => [...orchestrators].at(-1)
+    const flush = (exceptSessionID = "") => {
+      const target = orchestratorID()
+      if (!(notices.length || warnings.length) || !session.synthetic || !target || target === exceptSessionID) return
+      const text = outbox()
+      void session.synthetic.call(ctx.session, { sessionID: target, text }).catch((error) => { logFailure("notice delivery", error); warnings.push(text) })
+    }
+    const outbox = () => {
+      const rule = notices.length ? ` ${rules.find((r) => r.id === "tick-gate")?.message ?? ""}` : ""
+      return [notices.length ? `[hivecall] ${notices.splice(0).join(" ")}${rule}` : "", ...warnings.splice(0).map((w) => w.startsWith("[hivecall]") ? w : `[hivecall] ${w}`)]
+        .filter(Boolean).join("\n")
+    }
+    // The working rules survive compaction as a session instruction entry, not a re-read the model may skip (P8).
+    const rulesText = () => {
+      const text = readFileSync(howToPath, "utf8")
+      const start = text.indexOf("## Invariants"), end = text.indexOf("## Defaults")
+      return `Hivecall working rules (HOW-TO-WORK.md):\n${text.slice(start < 0 ? 0 : start, end < 0 ? undefined : end).trim()}`
+    }
+    const putRules = (sessionID: string) => {
+      if (!sessionID || !session.instructions?.entry?.put) return
+      try { void session.instructions.entry.put.call(ctx.session, { sessionID, key: "hivecall-rules", value: rulesText() }).catch((error) => logFailure("rules entry", error)) }
+      catch (error) { logFailure("rules entry", error) }
+    }
+    // Model each native helper runs on, by call then by session, and models builders used per item (P5-P7).
+    const spawnModels = new Map<string, { agent: string; model: string }>()
+    const helperModels = new Map<string, { agent: string; model: string; parent: string }>()
+    const builderModels = new Map<string, Set<string>>()
 
     try {
       if (existsSync(eventsPath)) {
@@ -173,6 +209,20 @@ export default Plugin.define({
           if ((event.type === "session.created" || event.type === "session.agent.selected") && typeof data.sessionID === "string" && typeof data.agent === "string")
             sessionAgents.set(data.sessionID, data.agent)
           if (event.type === "session.skill.activated" && data.id === "hivecall") arm(typeof data.sessionID === "string" ? data.sessionID : "")
+          if (event.type === "session.compaction.ended" && typeof data.sessionID === "string" && orchestrators.has(data.sessionID) && live()) putRules(data.sessionID)
+          // A helper stopped by a usage limit: tell the orchestrator now, with the run card's next allowed model (P6).
+          if (event.type === "session.execution.failed" && typeof data.sessionID === "string" && live()) {
+            const helper = helperModels.get(data.sessionID)
+            const parent = helper?.parent ?? childParents.get(data.sessionID) ?? state.helpers.get(data.sessionID)?.parentSessionID
+            if (parent && usageLimit(JSON.stringify(data))) {
+              const agent = helper?.agent || state.helpers.get(data.sessionID)?.agent || ""
+              const next = allowedModels(modelPolicy(existsSync(cardPath) ? readFileSync(cardPath, "utf8") : ""), agent).filter((model) => model !== helper?.model)
+              record({ type: "helper-usage-limit", sessionID: data.sessionID, parentSessionID: parent, agent, model: helper?.model ?? "" })
+              warnings.push(`Helper ${data.sessionID}${agent ? ` (${agent})` : ""} stopped on a usage limit${helper?.model ? ` on ${helper.model}` : ""}. ` +
+                (next.length ? `Start a fresh helper with a Delta on the run card's next model for ${agent}: ${next[0]}.` : `The run card lists no other model for ${agent || "this agent"}; add one under backup models: or set status: waiting-usage.`))
+              flush()
+            }
+          }
           if (event.type === "session.created" && typeof data.sessionID === "string" && typeof data.parentID === "string") {
             childParents.set(data.sessionID, data.parentID)
             // Skip when the spawn result already recorded this helper with its identity; a bare row would erase it on restore.
@@ -227,6 +277,8 @@ export default Plugin.define({
                 : native.background || /working in the background/i.test(result)
               if (child && child !== data.sessionID) {
                 emit({ type: "helper-created", sessionID: child, parentSessionID: data.sessionID, ...native.identity })
+                const spawned = spawnModels.get(callID)
+                if (spawned) helperModels.set(child, { ...spawned, parent: data.sessionID })
                 if (background) backgroundHelpers.add(child)
               }
               if (!background) emit(reviewEvent(data.sessionID, callID, native.identity, result, root))
@@ -258,7 +310,6 @@ export default Plugin.define({
 
     // The orchestrator types ledger and run-card changes through these tools instead of one-off scripts (invariant 5: it
     // decides the content; the tool checks the proof first, writes one fixed format, fails loudly, and knows its caller).
-    const cardPath = resolve(runDir, "run.md")
     const toolText = (path: string) => existsSync(path) ? readFileSync(path, "utf8") : ""
     const orchestratorOnly = (sessionID: string) => {
       if (!existsSync(cardPath)) throw new Error("No hivecall run card (.hivecall/run.md) here; these tools work only inside a run.")
@@ -337,7 +388,7 @@ export default Plugin.define({
     })
 
     await ctx.tool.hook("execute.before", (event) => {
-      let violation: Violation | null = null
+      let violation: Violation | null = null, modelViolation: Violation | null = null
       const callID = `${event.sessionID}:${event.id}`
       try { observeLedger() } catch (error) { logFailure("ledger observation", error) }
       inFlight.set(callID, event.sessionID)
@@ -362,6 +413,29 @@ export default Plugin.define({
           const identity = helperIdentity(input)
           toolCalls.set(callID, { identity, background: input.background === true })
           mismatch(event.sessionID, callID, identity.role, identity.agent)
+          // Model policy from the run card (P5): fill the agent's model when none is passed; pause once on an off-list one.
+          const policy = modelPolicy(existsSync(cardPath) ? readFileSync(cardPath, "utf8") : "")
+          const agent = identity.agent
+          let model = typeof input.model === "string" ? input.model : ""
+          if (!model && policy.primary.get(agent)) {
+            model = policy.primary.get(agent)!
+            input.model = model
+            event.input = input
+            record({ type: "model-filled", sessionID: event.sessionID, agent, model })
+          }
+          const allowed = allowedModels(policy, agent)
+          if (model && !allowed.includes(model)) modelViolation = { id: "model-policy", key: `model-policy:${agent}:${model}`, cap: 1, message: "",
+            detail: allowed.length ? `${agent} may run on ${allowed.join(" or ")} (run card models: / backup models:)` : `the run card names no model for ${agent}` }
+          if (model) spawnModels.set(callID, { agent, model })
+          // The judge should not share the builder's model (P7): warn when qa or a reviewer runs on a model a builder used for its items.
+          const items = [...new Set([...(identity.promise ?? "").split(","), ...identity.rows.split(",")].filter(Boolean))]
+          if (model && /^(?:build|code|general)$/.test(agent)) for (const item of items) builderModels.set(item, (builderModels.get(item) ?? new Set()).add(model))
+          const shared = model && (agent === "qa" || agent === "reviewer") ? items.filter((item) => builderModels.get(item)?.has(model)) : []
+          if (shared.length && !warned.has(key(event.sessionID, `same-model:${agent}:${shared.join(",")}`))) {
+            warned.add(key(event.sessionID, `same-model:${agent}:${shared.join(",")}`))
+            record({ type: "warning", rule: `same-model:${agent}:${shared.join(",")}`, sessionID: event.sessionID })
+            warnings.push(`${agent} for ${shared.join(", ")} runs on ${model}, the model that built ${shared.length === 1 ? "it" : "them"}; an independent judge should use another model from the run card.`)
+          }
         }
         const command = event.tool === "shell" ? String(input.command ?? "") : ""
         const cwd = typeof input.workdir === "string" ? resolve(root, input.workdir) : root
@@ -388,9 +462,9 @@ export default Plugin.define({
         // One decision line per spawn (ticks are logged after the call); a BB delegation the hook cannot read is logged as ungated.
         if (normalized?.kind && !normalized.call) record({ type: "allowed", action: normalized.kind, sessionID: event.sessionID, ungated: 1 })
         const action = call.tool === "subagent" ? normalized?.kind ?? "spawn" : undefined
-        violation = ruleFor(call, state, root)
+        violation = ruleFor(call, state, root) ?? modelViolation
         const blockKey = violation ? violation.key ?? violation.id : ""
-        const decision = violation ? blockDecision(state, event.sessionID, blockKey) : null
+        const decision = violation ? blockDecision(state, event.sessionID, blockKey, violation.cap) : null
         if (decision && violation?.hold && !decision.block) { decision.block = true; decision.count += 1 }
         if (!violation || !decision?.block) {
           if (action) record({ type: "allowed", action, sessionID: event.sessionID, rule: violation?.id })
@@ -468,12 +542,10 @@ export default Plugin.define({
       inFlight.delete(callID)
       try { judge(closer) } catch (error) { logFailure("tick check", error) }
       try {
-        // Delivered whenever the orchestrator next completes a call, even after the run card closed.
+        // On the orchestrator's own completed call the notice rides on its result; otherwise it is sent at once (flush).
         if ((notices.length || warnings.length) && event.status === "completed" && isOrchestrator(event.sessionID)) {
-          const rule = notices.length ? ` ${rules.find((r) => r.id === "tick-gate")?.message ?? ""}` : ""
-          const text = [notices.length ? `[hivecall] ${notices.splice(0).join(" ")}${rule}` : "", ...warnings.splice(0).map((w) => `[hivecall] ${w}`)].filter(Boolean).join("\n")
-          event.result = { ...event.result, content: [...(event.result?.content ?? []), { type: "text", text }] }
-        }
+          event.result = { ...event.result, content: [...(event.result?.content ?? []), { type: "text", text: outbox() }] }
+        } else flush(event.sessionID)
       } catch (error) { logFailure("tick check", error) }
     })
 

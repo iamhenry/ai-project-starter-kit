@@ -249,10 +249,10 @@ export function apply(state: Memory, event: HiveEvent): void {
   }
 }
 
-export function blockDecision(state: Memory, sessionID: string, rule: string): { block: boolean; count: number; warn: boolean } {
+export function blockDecision(state: Memory, sessionID: string, rule: string, cap = 3): { block: boolean; count: number; warn: boolean } {
   const key = `${sessionID}:${rule}`
   const count = state.blocks.get(key) ?? 0
-  if (count >= 3) return { block: false, count, warn: count === 3 }
+  if (count >= cap) return { block: false, count, warn: count === cap }
   state.blocks.set(key, count + 1)
   return { block: true, count: count + 1, warn: false }
 }
@@ -573,7 +573,7 @@ function reportText(tool: string, input: Record<string, unknown>, root: string):
 export type Call = { tool: string; input: Record<string, unknown>; sessionID: string; action?: "spawn" | "tell" }
 /** `key` scopes the block-then-allow count (for example one item), so one paused item never spends another's pauses. */
 /** `hold` keeps blocking after the 3-pause cap, because one line the caller can write clears it. */
-export type Violation = { id: string; message: string; detail?: string; key?: string; hold?: boolean }
+export type Violation = { id: string; message: string; detail?: string; key?: string; hold?: boolean; cap?: number }
 
 /** Ids the run card lists on `Not counted:` lines. */
 export function notCounted(text: string): Set<string> {
