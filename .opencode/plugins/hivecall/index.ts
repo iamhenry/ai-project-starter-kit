@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto"
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs"
 import { homedir } from "node:os"
 import { dirname, resolve } from "node:path"
@@ -88,6 +89,28 @@ export default Plugin.define({
       void Promise.resolve(ctx.storage?.set(storeKey, { approvals: [...state.approvals], grandfathered: [...state.grandfathered],
         started, orchestrators: [...orchestrators] })).catch((error) => logFailure("storage write", error))
     }
+    // Who changed the ledger (invariant 3): the ledger is hashed before and after every call; a change is blamed on the
+    // one session with calls in flight, else "unknown", never a guess. `tickedBy` keeps that blame per newly ticked id.
+    const inFlight = new Map<string, string>() // callID -> sessionID
+    const tickedBy = new Map<string, string>()
+    let seen: { path: string; hash: string; ticked: Set<string> } | null = null
+    const inFlightActor = () => {
+      const sessions = new Set(inFlight.values())
+      return sessions.size === 1 ? [...sessions][0] : "unknown"
+    }
+    const observeLedger = (actor = inFlightActor()) => {
+      if (!live()) return
+      const path = activeLedger(root)
+      const text = existsSync(path) ? readFileSync(path, "utf8") : ""
+      const hash = createHash("sha1").update(text).digest("hex")
+      if (seen && seen.path === path && seen.hash === hash) return
+      const ticked = new Set(tickedItems(text))
+      if (seen) {
+        for (const id of ticked) if (!seen.ticked.has(id)) tickedBy.set(id, actor)
+        record({ type: "ledger-changed", sessionID: actor, calls: inFlight.size })
+      }
+      seen = { path, hash, ticked }
+    }
     const flagged = new Set<string>(), earned = new Set<string>() // ids already logged as unearned / earned
     const notices: string[] = [] // waiting for the orchestrator's next completed call
     const warnings: string[] = [] // warn-only notices, delivered the same way
@@ -175,7 +198,13 @@ export default Plugin.define({
             if (body !== null) emit(reviewEvent(helper.parentSessionID, childID, helper, body))
             else if (metadata.state === "completed") logFailure("background helper result envelope not recognised", new Error("unrecognised envelope"))
           }
-          if (event.type === "session.tool.failed" && typeof data.sessionID === "string" && typeof data.id === "string") forget(`${data.sessionID}:${data.id}`)
+          if (event.type === "session.tool.failed" && typeof data.sessionID === "string" && typeof data.id === "string") {
+            forget(`${data.sessionID}:${data.id}`)
+            inFlight.delete(`${data.sessionID}:${data.id}`)
+          }
+          // A session that stopped has no calls in flight, even if a hook never saw their end.
+          if (/^session\.(?:execution\.(?:succeeded|failed)|deleted)$/.test(event.type) && typeof data.sessionID === "string")
+            for (const [callID, owner] of inFlight) if (owner === data.sessionID) inFlight.delete(callID)
           if (event.type === "session.deleted" && typeof data.sessionID === "string") {
             const gone = data.sessionID
             for (const table of [childParents, sessionAgents, sessionRoles, projectPins]) table.delete(gone)
@@ -255,6 +284,8 @@ export default Plugin.define({
     await ctx.tool.hook("execute.before", (event) => {
       let violation: Violation | null = null
       const callID = `${event.sessionID}:${event.id}`
+      try { observeLedger() } catch (error) { logFailure("ledger observation", error) }
+      inFlight.set(callID, event.sessionID)
       try {
         const input = event.input && typeof event.input === "object" ? event.input as Record<string, unknown> : {}
         if (event.tool === "skill" && typeof input.id === "string") skillCalls.set(callID, input.id)
@@ -316,6 +347,7 @@ export default Plugin.define({
         return
       }
       if (violation) {
+        inFlight.delete(callID)
         throw new Error([rules.find((rule) => rule.id === violation?.id)?.message || violation.message, violation.detail && `(${violation.detail})`].filter(Boolean).join(" "))
       }
     })
@@ -323,7 +355,8 @@ export default Plugin.define({
     // Tick check: after every call while the run card is (or just was) active, judge the ledger as it now stands. A tick
     // without approval and receipt is logged once and does not count; the orchestrator is told and cannot close the run
     // until it is earned or unticked. The ledger and run card are never changed.
-    const judge = (event: { sessionID: string; tool: string }) => {
+    // `closer` is the session blamed for a run-card close seen now (the one session with calls in flight, else "unknown").
+    const judge = (closer: string) => {
       if (!existsSync(resolve(runDir, "run.md"))) return
       const active = activeRun(root)
       if (!active && !wasActive) return
@@ -333,10 +366,10 @@ export default Plugin.define({
       const bad = new Set(unearned(text, state.approvals, state.grandfathered, root))
       const canary = new Set(canaryMissing(text, root))
       const ticked = new Set(tickedItems(text))
-      const tool = event.tool
+      const by = (id: string) => tickedBy.get(id) ?? "unknown"
       for (const id of bad) if (!flagged.has(id)) {
         flagged.add(id)
-        record({ type: "tick-unearned", rule: "tick-gate", id, sessionID: event.sessionID, tool })
+        record({ type: "tick-unearned", rule: "tick-gate", id, sessionID: by(id) })
         notices.push(canary.has(id) ? `${id}'s commit edits a file its own check names, and its receipt has no CANARY: line showing a known-broken case still fails, so it does not count.`
           : `${id} is ticked without a verified reviewer APPROVE_CODE, APPROVE_PLAN or SELECTED, or qa REPRODUCED for Discovery items only, or a qa PASS naming its commit when that commit only renames files or changes tests or docs on a proven parent, and its receipt, so it does not count.`)
       }
@@ -344,7 +377,7 @@ export default Plugin.define({
       for (const id of [...earned]) if (!ticked.has(id)) earned.delete(id)
       for (const id of ticked) if (!bad.has(id) && !state.grandfathered.has(id) && !earned.has(id)) {
         earned.add(id)
-        const row = { type: "allowed", action: "tick", id, sessionID: event.sessionID, tool }
+        const row = { type: "allowed", action: "tick", id, sessionID: by(id) }
         apply(state, row) // a new earned tick restarts the run-wide hill-climb count
         record(row)
       }
@@ -355,13 +388,17 @@ export default Plugin.define({
         wasActive = false
         archive()
         if (bad.size) {
-          record({ type: "close-unearned", rule: "no-early-done", ids: [...bad].join(","), sessionID: event.sessionID, tool })
+          record({ type: "close-unearned", rule: "no-early-done", ids: [...bad].join(","), sessionID: closer })
           notices.push(`The run card was closed while ${[...bad].join(", ")} ${bad.size === 1 ? "is" : "are"} ticked without approval and receipt; the close does not count them.`)
         }
       }
     }
     await ctx.tool.hook("execute.after", (event) => {
-      try { judge(event) } catch (error) { logFailure("tick check", error) }
+      const callID = `${event.sessionID}:${(event as { id?: string }).id ?? ""}`
+      try { observeLedger() } catch (error) { logFailure("ledger observation", error) }
+      const closer = inFlightActor()
+      inFlight.delete(callID)
+      try { judge(closer) } catch (error) { logFailure("tick check", error) }
       try {
         // Delivered whenever the orchestrator next completes a call, even after the run card closed.
         if ((notices.length || warnings.length) && event.status === "completed" && isOrchestrator(event.sessionID)) {

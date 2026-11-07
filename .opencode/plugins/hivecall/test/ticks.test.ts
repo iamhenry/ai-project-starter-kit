@@ -205,4 +205,24 @@ describe("earned ticks", () => {
     expect(await h.call("write", { path: ".hivecall/checklist.html", content: "- [x] ISC-001 commit abcdef1 evidence `ISC-002.log`\n" })).toBeNull()
     expect(await h.call("write", close)).toBeNull()
   })
+
+  // Nov 1, 17:36Z: the orchestrator's tick was blamed on a reviewer whose `git diff` finished next.
+  test("a ledger change is blamed on the one session with calls in flight, else unknown", async () => {
+    const h = await host({ card: true })
+    await h.call("shell", { command: "ls" })
+    await h.call("shell", { command: "python3 tick.py" }, "", () => writeFileSync(resolve(h.root, ".hivecall/checklist.html"), ticked))
+    h.before({ sessionID: "ses-rev", id: "diff", tool: "shell", input: { command: "git diff" } })
+    h.after({ sessionID: "ses-rev", id: "diff", tool: "shell", input: {}, status: "completed", result: { content: [] } })
+    const unearned = h.events().filter((row) => row.type === "tick-unearned" || row.type === "ledger-changed")
+    expect(unearned.map((row) => [row.type, row.sessionID])).toEqual([["ledger-changed", "ses-root"], ["tick-unearned", "ses-root"]])
+
+    const o = await host({ card: true })
+    await o.call("shell", { command: "ls" })
+    o.before({ sessionID: "ses-root", id: "a", tool: "shell", input: { command: "python3 tick.py" } })
+    o.before({ sessionID: "ses-rev", id: "b", tool: "shell", input: { command: "git diff" } })
+    writeFileSync(resolve(o.root, ".hivecall/checklist.html"), ticked)
+    o.after({ sessionID: "ses-rev", id: "b", tool: "shell", input: {}, status: "completed", result: { content: [] } })
+    o.after({ sessionID: "ses-root", id: "a", tool: "shell", input: {}, status: "completed", result: { content: [] } })
+    expect(o.events().filter((row) => row.type === "tick-unearned").map((row) => row.sessionID)).toEqual(["unknown"])
+  })
 })
