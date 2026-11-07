@@ -54,6 +54,16 @@ describe("immediate delivery", () => {
       .toContain("stopped on a usage limit on acme/fast#high. Start a fresh helper with a Delta on the run card's next model for build: acme/spare.")
   })
 
+  test("with two open same-agent spawns on different models, a usage-limit stop names every allowed model", async () => {
+    const h = await run(true)
+    h.before({ sessionID: "ses-root", id: "s1", tool: "subagent", input: { agent: "build", description: "fix 1", prompt: brief("ISC-1") } })
+    h.before({ sessionID: "ses-root", id: "s2", tool: "subagent", input: { agent: "build", description: "fix 2", prompt: brief("ISC-1"), model: "acme/spare" } })
+    await h.send("session.created", { sessionID: "ses_b1", parentID: "ses-root", agent: "build" })
+    await h.send("session.execution.failed", { sessionID: "ses_b1", error: { message: "You have hit your usage limit for this model." } })
+    expect(h.sent.filter((row) => row.kind === "synthetic").map((row) => row.text).join("\n"))
+      .toContain("on a run-card model for build other than the one that hit the limit: acme/fast#high, acme/spare.")
+  })
+
   test("a helper's unearned tick reaches the orchestrator at once, and the working rules are kept as an instruction entry", async () => {
     const h = await run(true)
     expect(h.sent.find((row) => row.kind === "instruction")).toMatchObject({ sessionID: "ses-root", key: "hivecall-rules" })

@@ -37,12 +37,22 @@ export function reviewOutcome(text: string, scope: string[]): { approved: string
   // neither APPROVE_CODE nor REVISE_CODE (ASK_USER, BLOCKED, ...) is unclear, and unclear is never an approval (invariant 4).
   const last = lines.filter((line) => /^\W*(?:decision|verdict)\b[^:=\n]*[:=]/i.test(line)).at(-1)
   if (last && !/\b(?:APPROVE|REVISE)_CODE\b/i.test(last)) return null
-  const said = last && /[:=].*?\b(APPROVE|REVISE)_CODE\b/i.exec(last)?.[1].toUpperCase() // the first verdict word after the colon
-  const overall: Verdict | null = said ? (said === "APPROVE" ? "approve" : "revise") : verdictOf(lines.filter((line) => !iscIds(line).length).join("\n"))
-  const perItem = new Map<string, Verdict>()
+  // A decision naming no id takes its first verdict word ("REVISE_CODE. Earlier draft said APPROVE_CODE."); one naming ids
+  // with both words is per-item ("ISC-1 APPROVE_CODE; ISC-2 REVISE_CODE") and sets no overall verdict.
+  const mixed = (line: string) => /\bAPPROVE_CODE\b/i.test(line) && /\bREVISE_CODE\b/i.test(line)
+  const said = last && !(mixed(last) && iscIds(last).length) && /[:=].*?\b(APPROVE|REVISE)_CODE\b/i.exec(last)?.[1].toUpperCase()
+  const overall: Verdict | null = said ? (said === "APPROVE" ? "approve" : "revise")
+    : last ? null : verdictOf(lines.filter((line) => !iscIds(line).length).join("\n"))
+  const perItem = new Map<string, Verdict | "unclear">()
+  const set = (id: string, verdict: Verdict | "unclear") => perItem.set(id, perItem.get(id) === "revise" ? "revise" : perItem.get(id) === "unclear" && verdict === "approve" ? "unclear" : verdict)
   for (const line of lines) {
     const verdict = verdictOf(line)
-    if (verdict) for (const id of iscIds(line)) perItem.set(id, perItem.get(id) === "revise" ? "revise" : verdict)
+    if (verdict) for (const id of iscIds(line)) set(id, verdict)
+    else if (mixed(line)) {
+      // Each id takes the one verdict word in its own clause (up to the next id); an id whose clause has none or both is unclear.
+      const marks = [...line.matchAll(/\bISC-\d+(?:\.\d+)*\b/gi)]
+      marks.forEach((mark, i) => set(iscId(mark[0]), verdictOf(line.slice(mark.index!, marks[i + 1]?.index ?? line.length).toUpperCase()) ?? "unclear"))
+    }
     // "ISC-30 not approved" (or `| ISC-30 | NOT APPROVED |`) withholds that id even on a line whose verdict token approves
     // the others (Nov 1, review-wrap). Only words right after the id count, never a mention of an older review.
     for (const mark of line.matchAll(/\b(ISC-\d+(?:\.\d+)*)\b[^\w\n]{0,8}(?:is\s+)?(?:not[\s_]+approved?|held\s+back|withheld)\b/gi))
@@ -197,12 +207,17 @@ export function reviewEvent(sessionID: string, helperID: string, helper: Omit<He
   const decided = !!file && /^\W*(?:decision|verdict)\b[^:=\n]*[:=]/im.test(file)
   const code = role === "reviewer" ? (decided ? reviewOutcome(file, scope) : (file && reviewOutcome(file, scope)) || reviewOutcome(text, scope)) : null
   const discovery = discoveryOutcome(text, helper.promise ? helper.promise.split(",") : [], role)
+  // A plan review that sends Discovery items back (REVISE_PLAN, ASK_USER) removes their earlier plan approval;
+  // it is not a code revision, so the hill-climb counts are untouched.
+  const planNo = role === "reviewer" ? text.split(/\r?\n/).filter((line) => /\b(?:REVISE_PLAN|ASK_USER)\b/.test(line)) : []
+  const undiscovered = (planNo.some((line) => !iscIds(line).length) ? (helper.promise ? helper.promise.split(",") : []) : planNo.flatMap(iscIds))
+    .map(iscId).filter((id) => !discovery.map(iscId).includes(id))
   const passed = role === "qa" ? discoveryOutcome(text, helper.promise ? helper.promise.split(",") : [], "pass") : []
   // A failed attempt for the hill-climb count: a REVISE_CODE, or a qa negative, on the items the helper worked on.
   const failed = role === "qa" ? qaFailed(text, helperItems(helper)) : code?.revised ? helperItems(helper).filter((id) => !code.approved.includes(id)) : []
-  if (!code && !discovery.length && !failed.length) return null
+  if (!code && !discovery.length && !failed.length && !undiscovered.length) return null
   return { type: "review-result", sessionID, helper: helperID, slice: helper.slice, approved: code?.approved.join(",") ?? "", revised: code?.revised ? 1 : 0,
-    ...(code?.withheld.length ? { withheld: code.withheld.join(",") } : {}),
+    ...(code?.withheld.length ? { withheld: code.withheld.join(",") } : {}), ...(undiscovered.length ? { undiscovered: [...new Set(undiscovered)].join(",") } : {}),
     ...(discovery.length ? { discovery: discovery.join(",") } : {}), ...(passed.length && helper.commits ? { passed: passed.join(","), commits: helper.commits } : {}),
     ...(failed.length ? { failed: failed.join(",") } : {}) }
 }
@@ -238,6 +253,7 @@ export function apply(state: Memory, event: HiveEvent): void {
     if (helper && state.reviewed.has(helper)) return // the same helper result read twice is one review
     if (helper) state.reviewed.add(helper)
     for (const id of String(event.withheld ?? "").split(",").filter(Boolean)) state.approvals.delete(iscId(id))
+    for (const id of String(event.undiscovered ?? "").split(",").filter(Boolean)) state.approvals.delete(`discovery:${iscId(id)}`)
     for (const id of String(event.approved ?? "").split(",").filter(Boolean)) state.approvals.add(iscId(id))
     const failed = String(event.failed ?? "").split(",").filter(Boolean)
     for (const id of failed) state.failures.set(iscId(id), (state.failures.get(iscId(id)) ?? 0) + 1)
@@ -416,7 +432,8 @@ function passedItems(text: string): string[] {
 function hasReceipt(text: string, id: string, root: string): boolean {
   // Only the latest receipt counts (the same one receiptCommit reads): a newer line naming a bad commit is not rescued by an older one.
   return receipts(text, id).filter((segment) => /\bcommit\s+[0-9a-f]{7,40}\b/i.test(segment)).slice(-1).some((segment) => {
-    if (![...segment.matchAll(/\bcommit\s+([0-9a-f]{7,40})\b/gi)].some((m) => commitExists(root, m[1]))) return false
+    // The exact commit receiptCommit reads (the segment's first `commit <sha>`) must exist; another sha later in the line does not stand in.
+    if (!commitExists(root, /\bcommit\s+([0-9a-f]{7,40})\b/i.exec(segment)![1])) return false
     return [...segment.matchAll(/\bevidence\s*[:=]?\s*(?:`([^`\n]+)`|([^\s`;,|'"<>]+))/gi)].some(([, quoted, bare]) =>
       (quoted ? [quoted] : [bare, bare.replace(/[)\]}.:]+$/, "")]).some((path) => path && existsSync(isAbsolute(path) ? path : resolve(root, path))))
   })
@@ -578,9 +595,11 @@ function reportText(tool: string, input: Record<string, unknown>, root: string):
     if (!target) return null
     const original = readFile(resolve(root, ".hivecall/run.md"))
     added = !/##\s+Final report\b/i.test(original) && /##\s+Final report\b/i.test(command)
-    // `> run.md` replaces the card with what the command writes; an append or in-place edit keeps the old lines.
-    const overwrite = /(?<![>\d&])>\s*['"]?[^\s;|&'"]*run\.md\b/.test(command)
-    return { text: command, added, card: overwrite ? command : `${original}\n${command}` }
+    // Only a plain `>> run.md` append is known to keep the old card; any other shell write (sed -i, write_text, `>`) may drop
+    // lines, so the card it leaves is judged by what the command itself says.
+    const appendOnly = /(?<![\d&])>>\s*['"]?[^\s;|&'"]*run\.md\b/.test(command) &&
+      !/(?<![>\d&])>(?!>)\s*['"]?[^\s;|&'"]*run\.md\b|\b(?:sed|perl)\s+-i|write_text|write_bytes|open\s*\([^)]*['"][wa]|\.replace\s*\(/.test(command)
+    return { text: command, added, card: appendOnly ? `${original}\n${command}` : command }
   }
   return null
 }

@@ -215,11 +215,14 @@ export default Plugin.define({
             const helper = helperModels.get(data.sessionID)
             const parent = helper?.parent ?? childParents.get(data.sessionID) ?? state.helpers.get(data.sessionID)?.parentSessionID
             if (parent && usageLimit(JSON.stringify(data))) {
-              const agent = helper?.agent || state.helpers.get(data.sessionID)?.agent || ""
+              const agent = helper?.agent || state.helpers.get(data.sessionID)?.agent || sessionAgents.get(data.sessionID) || ""
               const next = allowedModels(modelPolicy(existsSync(cardPath) ? readFileSync(cardPath, "utf8") : ""), agent).filter((model) => model !== helper?.model)
               record({ type: "helper-usage-limit", sessionID: data.sessionID, parentSessionID: parent, agent, model: helper?.model ?? "" })
+              // When the helper's own model is unknown (several open spawns on different models), name every allowed model.
               warnings.push(`Helper ${data.sessionID}${agent ? ` (${agent})` : ""} stopped on a usage limit${helper?.model ? ` on ${helper.model}` : ""}. ` +
-                (next.length ? `Start a fresh helper with a Delta on the run card's next model for ${agent}: ${next[0]}.` : `The run card lists no other model for ${agent || "this agent"}; add one under backup models: or set status: waiting-usage.`))
+                (!next.length ? `The run card lists no other model for ${agent || "this agent"}; add one under backup models: or set status: waiting-usage.`
+                  : helper?.model ? `Start a fresh helper with a Delta on the run card's next model for ${agent}: ${next[0]}.`
+                  : `Start a fresh helper with a Delta on a run-card model for ${agent} other than the one that hit the limit: ${next.join(", ")}.`))
               flush()
             }
           }
@@ -229,9 +232,10 @@ export default Plugin.define({
             // from this parent, for this agent, carries one (the spawn result binds it otherwise).
             const open = [...spawnModels].filter(([callID, spawned]) => callID.startsWith(`${data.parentID}:`) &&
               (typeof data.agent !== "string" || spawned.agent === data.agent))
-            if (open.length === 1 && !helperModels.has(data.sessionID)) {
+            // Several open spawns with one shared model still name that model; with different models the helper's is unknown.
+            if (open.length && new Set(open.map(([, spawned]) => spawned.model)).size === 1 && !helperModels.has(data.sessionID)) {
               helperModels.set(data.sessionID, { ...open[0][1], parent: data.parentID })
-              spawnModels.delete(open[0][0])
+              if (open.length === 1) spawnModels.delete(open[0][0])
             }
             // Skip when the spawn result already recorded this helper with its identity; a bare row would erase it on restore.
             if (live() && !state.helpers.has(data.sessionID)) record({ type: "helper-created", sessionID: data.sessionID, parentSessionID: data.parentID })

@@ -354,6 +354,21 @@ describe("Hivecall rule fixtures", () => {
     expect(reviewEvent("ses-root", "h1", helper, "Decision: APPROVE_CODE", root)).toBeNull()
   })
 
+  // Second audit 2026-11-07.
+  test("a decision line naming items with mixed verdicts is read per item", () => {
+    expect(reviewOutcome("Decision: ISC-1 APPROVE_CODE; ISC-2 REVISE_CODE", ["ISC-001", "ISC-002"])).toMatchObject({ approved: ["ISC-001"], withheld: ["ISC-002"] })
+    expect(reviewOutcome("Decision: APPROVE_CODE and REVISE_CODE for ISC-1", ["ISC-001"])?.approved ?? []).toEqual([])
+  })
+
+  test("a later plan review that sends a Discovery item back removes its plan approval, without a code revision", () => {
+    const state = memory(), helper = { agent: "reviewer", role: "reviewer", slice: "plan", rows: "", promise: "ISC-001" }
+    apply(state, reviewEvent("ses-root", "p1", helper, "Decision: APPROVE_PLAN")!)
+    expect(state.approvals.has("discovery:ISC-001")).toBe(true)
+    apply(state, reviewEvent("ses-root", "p2", helper, "Decision: REVISE_PLAN")!)
+    expect(state.approvals.has("discovery:ISC-001")).toBe(false)
+    expect(state.revisions.size).toBe(0)
+  })
+
   test("a later review that holds an item back removes that item's earlier approval", () => {
     const state = memory(), helper = { agent: "reviewer", role: "reviewer", slice: "", rows: "ISC-001,ISC-002" }
     apply(state, reviewEvent("ses-root", "h1", helper, "Decision: APPROVE_CODE")!)
@@ -368,6 +383,9 @@ describe("Hivecall rule fixtures", () => {
     const close = (content: string) => ruleFor({ tool: "write", sessionID: "ses-root", input: { path: ".hivecall/run.md", content } }, memory(), root)
     expect(close("status: closed\ngoal: x\n## Final report\nDone")?.hold).toBe(true)
     expect(close("status: closed\ngoal: x\nNot counted: ISC-1 (no review)\n## Final report\nDone")?.hold).toBeUndefined()
+    const shell = (command: string) => ruleFor({ tool: "shell", sessionID: "ses-root", input: { command } }, memory(), root)
+    expect(shell(`python3 -c "from pathlib import Path; Path('.hivecall/run.md').write_text('status: closed\\n## Final report')"`)?.hold).toBe(true)
+    expect(shell("printf 'status: closed\\n## Final report\\n' >> .hivecall/run.md")?.hold).toBeUndefined()
   })
 
   test("only the latest receipt counts: a newer line naming a missing commit is not rescued by an older good one", () => {
@@ -378,5 +396,7 @@ describe("Hivecall rule fixtures", () => {
     const ledger = `<li id="ISC-001"><input type="checkbox" checked> a</li>\n<li>ISC-001: PASS - ok; evidence proof.txt; commit ${sha}</li>\n` +
       "<li>ISC-001: PASS - again; evidence proof.txt; commit abcdef1</li>"
     expect(unearned(ledger, new Set(["ISC-001"]), new Set(), root)).toEqual(["ISC-001"])
+    const tail = `<li id="ISC-001"><input type="checkbox" checked> a</li>\n<li>ISC-001: PASS - ok; evidence proof.txt; commit abcdef1, previous commit ${sha}</li>`
+    expect(unearned(tail, new Set(["ISC-001"]), new Set(), root)).toEqual(["ISC-001"])
   })
 })
