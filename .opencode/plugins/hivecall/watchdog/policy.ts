@@ -31,12 +31,14 @@ function verdictOf(text: string): Verdict | null {
  * Reads a reviewer result. A `Decision:`/`Verdict:` line sets the overall verdict (else the only verdict used on lines naming no id);
  * a line naming ISC ids with one verdict sets those ids. Approval is per exact id inside the review scope.
  */
-export function reviewOutcome(text: string, scope: string[]): { approved: string[]; revised: boolean } | null {
+export function reviewOutcome(text: string, scope: string[]): { approved: string[]; revised: boolean; withheld: string[] } | null {
   const lines = text.split(/\r?\n/)
-  // The last Decision/Verdict line wins: a reviewer that corrects itself ends with its real verdict.
-  const decision = lines.map((line) => /^\W*(?:decision|verdict)\b[^:=\n]*[:=].*?\b(APPROVE|REVISE)_CODE\b/i.exec(line)?.[1]).filter(Boolean).at(-1)
-  const overall: Verdict | null = decision ? (decision.toUpperCase() === "APPROVE" ? "approve" : "revise")
-    : verdictOf(lines.filter((line) => !iscIds(line).length).join("\n"))
+  // The last Decision/Verdict line wins: a reviewer that corrects itself ends with its real verdict. A last decision that is
+  // neither APPROVE_CODE nor REVISE_CODE (ASK_USER, BLOCKED, ...) is unclear, and unclear is never an approval (invariant 4).
+  const last = lines.filter((line) => /^\W*(?:decision|verdict)\b[^:=\n]*[:=]/i.test(line)).at(-1)
+  if (last && !/\b(?:APPROVE|REVISE)_CODE\b/i.test(last)) return null
+  const said = last && /[:=].*?\b(APPROVE|REVISE)_CODE\b/i.exec(last)?.[1].toUpperCase() // the first verdict word after the colon
+  const overall: Verdict | null = said ? (said === "APPROVE" ? "approve" : "revise") : verdictOf(lines.filter((line) => !iscIds(line).length).join("\n"))
   const perItem = new Map<string, Verdict>()
   for (const line of lines) {
     const verdict = verdictOf(line)
@@ -47,8 +49,11 @@ export function reviewOutcome(text: string, scope: string[]): { approved: string
       perItem.set(iscId(mark[1]), "revise")
   }
   if (!overall && !perItem.size) return null
-  const approved = (scope.length ? scope : [...perItem.keys()]).filter((id) => (perItem.get(id) ?? overall) === "approve")
-  return { approved, revised: overall === "revise" || (!overall && [...perItem.values()].includes("revise")) }
+  const ids = scope.length ? scope : [...perItem.keys()]
+  const approved = ids.filter((id) => (perItem.get(id) ?? overall) === "approve")
+  // Ids this review explicitly sends back: they lose any approval an earlier review gave them.
+  const withheld = ids.filter((id) => (perItem.get(id) ?? overall) === "revise")
+  return { approved, revised: overall === "revise" || (!overall && [...perItem.values()].includes("revise")), withheld }
 }
 
 /** Items a qa result fails: those its negative lines name, or every item when a negative line names none. */
@@ -188,13 +193,16 @@ export function reviewEvent(sessionID: string, helperID: string, helper: Omit<He
   const scope = helper.rows ? helper.rows.split(",") : []
   // A reviewer's result file is its record: its verdict wins over the chat message, which may be prose ("I approve ...").
   const file = role === "reviewer" && root ? resultText(root, helper.result, text) : ""
-  const code = role === "reviewer" ? (file && reviewOutcome(file, scope)) || reviewOutcome(text, scope) : null
+  // A result file with its own Decision line is final, even when that decision is unclear (then nothing is approved).
+  const decided = !!file && /^\W*(?:decision|verdict)\b[^:=\n]*[:=]/im.test(file)
+  const code = role === "reviewer" ? (decided ? reviewOutcome(file, scope) : (file && reviewOutcome(file, scope)) || reviewOutcome(text, scope)) : null
   const discovery = discoveryOutcome(text, helper.promise ? helper.promise.split(",") : [], role)
   const passed = role === "qa" ? discoveryOutcome(text, helper.promise ? helper.promise.split(",") : [], "pass") : []
   // A failed attempt for the hill-climb count: a REVISE_CODE, or a qa negative, on the items the helper worked on.
   const failed = role === "qa" ? qaFailed(text, helperItems(helper)) : code?.revised ? helperItems(helper).filter((id) => !code.approved.includes(id)) : []
   if (!code && !discovery.length && !failed.length) return null
   return { type: "review-result", sessionID, helper: helperID, slice: helper.slice, approved: code?.approved.join(",") ?? "", revised: code?.revised ? 1 : 0,
+    ...(code?.withheld.length ? { withheld: code.withheld.join(",") } : {}),
     ...(discovery.length ? { discovery: discovery.join(",") } : {}), ...(passed.length && helper.commits ? { passed: passed.join(","), commits: helper.commits } : {}),
     ...(failed.length ? { failed: failed.join(",") } : {}) }
 }
@@ -229,6 +237,7 @@ export function apply(state: Memory, event: HiveEvent): void {
     const helper = String(event.helper ?? "")
     if (helper && state.reviewed.has(helper)) return // the same helper result read twice is one review
     if (helper) state.reviewed.add(helper)
+    for (const id of String(event.withheld ?? "").split(",").filter(Boolean)) state.approvals.delete(iscId(id))
     for (const id of String(event.approved ?? "").split(",").filter(Boolean)) state.approvals.add(iscId(id))
     const failed = String(event.failed ?? "").split(",").filter(Boolean)
     for (const id of failed) state.failures.set(iscId(id), (state.failures.get(iscId(id)) ?? 0) + 1)
@@ -405,7 +414,8 @@ function passedItems(text: string): string[] {
  * A backtick-quoted path must exist exactly; an unquoted one may end in prose punctuation such as `.` or `)`.
  */
 function hasReceipt(text: string, id: string, root: string): boolean {
-  return receipts(text, id).some((segment) => {
+  // Only the latest receipt counts (the same one receiptCommit reads): a newer line naming a bad commit is not rescued by an older one.
+  return receipts(text, id).filter((segment) => /\bcommit\s+[0-9a-f]{7,40}\b/i.test(segment)).slice(-1).some((segment) => {
     if (![...segment.matchAll(/\bcommit\s+([0-9a-f]{7,40})\b/gi)].some((m) => commitExists(root, m[1]))) return false
     return [...segment.matchAll(/\bevidence\s*[:=]?\s*(?:`([^`\n]+)`|([^\s`;,|'"<>]+))/gi)].some(([, quoted, bare]) =>
       (quoted ? [quoted] : [bare, bare.replace(/[)\]}.:]+$/, "")]).some((path) => path && existsSync(isAbsolute(path) ? path : resolve(root, path))))
@@ -526,12 +536,13 @@ function nextStatus(tool: string, text: string, original: string): string {
   return statusLine.exec(text)?.[1]?.toLowerCase() ?? ""
 }
 
-function reportWrite(tool: string, input: Record<string, unknown>, root: string): { text: string; added: boolean; status: string } | null {
+function reportWrite(tool: string, input: Record<string, unknown>, root: string): { text: string; added: boolean; status: string; card: string } | null {
   const result = reportText(tool, input, root)
   return result && { ...result, status: nextStatus(tool, result.text, readFile(resolve(root, ".hivecall/run.md"))) }
 }
 
-function reportText(tool: string, input: Record<string, unknown>, root: string): { text: string; added: boolean } | null {
+/** `card` is the run card as it will read after the call, as near as the call shows it. */
+function reportText(tool: string, input: Record<string, unknown>, root: string): { text: string; added: boolean; card: string } | null {
   let text = "", path = "", added = false
   if (tool === "write" || tool === "edit") {
     path = String(input.path ?? "")
@@ -546,7 +557,7 @@ function reportText(tool: string, input: Record<string, unknown>, root: string):
       text = original && original.includes(old) ? original.replace(old, next) : next
       added = !/##\s+Final report\b/i.test(original) && /##\s+Final report\b/i.test(text)
     }
-    return { text, added }
+    return { text, added, card: text }
   }
   if (tool === "patch") {
     const patch = String(input.patchText ?? "")
@@ -557,7 +568,9 @@ function reportText(tool: string, input: Record<string, unknown>, root: string):
     const additions = block.split(/\r?\n/).filter((line) => line.startsWith("+") && !line.startsWith("+++"))
       .map((line) => line.slice(1)).join("\n")
     added = !/##\s+Final report\b/i.test(original) && /##\s+Final report\b/i.test(additions)
-    return { text: `${additions}\n${original}`, added }
+    const removed = new Set(block.split(/\r?\n/).filter((line) => line.startsWith("-") && !line.startsWith("---")).map((line) => line.slice(1)))
+    const kept = original.split(/\r?\n/).filter((line) => !removed.has(line)).join("\n")
+    return { text: `${additions}\n${original}`, added, card: `${kept}\n${additions}` }
   }
   if (tool === "shell") {
     const command = String(input.command ?? "")
@@ -565,7 +578,9 @@ function reportText(tool: string, input: Record<string, unknown>, root: string):
     if (!target) return null
     const original = readFile(resolve(root, ".hivecall/run.md"))
     added = !/##\s+Final report\b/i.test(original) && /##\s+Final report\b/i.test(command)
-    return { text: command, added }
+    // `> run.md` replaces the card with what the command writes; an append or in-place edit keeps the old lines.
+    const overwrite = /(?<![>\d&])>\s*['"]?[^\s;|&'"]*run\.md\b/.test(command)
+    return { text: command, added, card: overwrite ? command : `${original}\n${command}` }
   }
   return null
 }
@@ -705,7 +720,7 @@ export function ruleFor(call: Call, state: Memory, root: string): Violation | nu
       if (!existsSync(path) || open.length || bad.length) {
         // A checked box the plugin did not count stays visible as such (invariant 1): after the usual three pauses the close
         // still waits until the run card names every such id on a `Not counted:` line.
-        const listed = notCounted(`${run.text}\n${proposedCard.text}`)
+        const listed = notCounted(proposedCard.card) // the card as it will read after this call, so a rewrite cannot drop the line
         const unlisted = bad.filter((id) => !listed.has(id))
         const detail = [open.length ? `open: ${open.join(", ")}` : "", bad.length ? `ticked without approval and receipt: ${bad.join(", ")}` : "",
           existsSync(path) ? "" : "ledger missing",

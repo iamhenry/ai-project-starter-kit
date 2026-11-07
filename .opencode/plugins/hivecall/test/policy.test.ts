@@ -153,11 +153,11 @@ describe("Hivecall rule fixtures", () => {
   })
 
   test("review outcomes approve exact scoped ids and honour the overall decision", () => {
-    expect(reviewOutcome("Decision: `APPROVE_CODE`", ["ISC-001", "ISC-002"])).toEqual({ approved: ["ISC-001", "ISC-002"], revised: false })
+    expect(reviewOutcome("Decision: `APPROVE_CODE`", ["ISC-001", "ISC-002"])).toMatchObject({ approved: ["ISC-001", "ISC-002"], revised: false })
     expect(reviewOutcome("- Decision: `REVISE_CODE`\n- ISC-001 — `APPROVE_CODE`\n- ISC-002 — `REVISE_CODE`", ["ISC-001", "ISC-002"]))
-      .toEqual({ approved: ["ISC-001"], revised: true })
-    expect(reviewOutcome("Decision: REVISE_CODE. Earlier draft said APPROVE_CODE.", ["ISC-001"])).toEqual({ approved: [], revised: true })
-    expect(reviewOutcome("ISC-002 APPROVE_CODE", ["ISC-001"])).toEqual({ approved: [], revised: false })
+      .toMatchObject({ approved: ["ISC-001"], revised: true })
+    expect(reviewOutcome("Decision: REVISE_CODE. Earlier draft said APPROVE_CODE.", ["ISC-001"])).toMatchObject({ approved: [], revised: true })
+    expect(reviewOutcome("ISC-002 APPROVE_CODE", ["ISC-001"])).toMatchObject({ approved: [], revised: false })
     expect(reviewOutcome("No verdict here", ["ISC-001"])).toBeNull()
     const helper = { agent: "reviewer", role: "reviewer", slice: "ISC-001", rows: "ISC-001" }
     const discovery = reviewEvent("s", "plan", helper, "Decision: REVISE_PLAN")
@@ -343,5 +343,40 @@ describe("Hivecall rule fixtures", () => {
       .toEqual(["ISC-026", "ISC-036"])
     expect(reviewOutcome("Scope: the last review withheld ISC-30 on one point\n## Decision: APPROVE_CODE ISC-30", ["ISC-030"])?.approved).toEqual(["ISC-030"])
     expect(reviewOutcome("Decision: REVISE_CODE\nfixed in place, re-checked\nDecision: APPROVE_CODE", ["ISC-001"])?.approved).toEqual(["ISC-001"])
+  })
+
+  // Audit 2026-11-07: the six findings of the fresh branch review.
+  test("an unclear last decision approves nothing, even after an earlier APPROVE_CODE", () => {
+    expect(reviewOutcome("Decision: APPROVE_CODE\nthen found a question\nDecision: ASK_USER", ["ISC-001"])).toBeNull()
+    const root = setup()
+    writeFileSync(resolve(root, ".hivecall/review.md"), "Decision: ASK_USER\n")
+    const helper = { agent: "reviewer", role: "reviewer", slice: "", rows: "ISC-001", result: ".hivecall/review.md" }
+    expect(reviewEvent("ses-root", "h1", helper, "Decision: APPROVE_CODE", root)).toBeNull()
+  })
+
+  test("a later review that holds an item back removes that item's earlier approval", () => {
+    const state = memory(), helper = { agent: "reviewer", role: "reviewer", slice: "", rows: "ISC-001,ISC-002" }
+    apply(state, reviewEvent("ses-root", "h1", helper, "Decision: APPROVE_CODE")!)
+    expect([...state.approvals].sort()).toEqual(["ISC-001", "ISC-002"])
+    apply(state, reviewEvent("ses-root", "h2", helper, "Decision: APPROVE_CODE\nISC-2 not approved: the total is still wrong")!)
+    expect([...state.approvals]).toEqual(["ISC-001"])
+  })
+
+  test("a close that rewrites the run card without its Not counted line is held", () => {
+    const root = setup('<li id="ISC-001"><input type="checkbox" checked> a</li>')
+    writeFileSync(resolve(root, ".hivecall/run.md"), "status: running\ngoal: x\nNot counted: ISC-1 (no review)\n")
+    const close = (content: string) => ruleFor({ tool: "write", sessionID: "ses-root", input: { path: ".hivecall/run.md", content } }, memory(), root)
+    expect(close("status: closed\ngoal: x\n## Final report\nDone")?.hold).toBe(true)
+    expect(close("status: closed\ngoal: x\nNot counted: ISC-1 (no review)\n## Final report\nDone")?.hold).toBeUndefined()
+  })
+
+  test("only the latest receipt counts: a newer line naming a missing commit is not rescued by an older good one", () => {
+    const root = setup()
+    const git = (...args: string[]) => Bun.spawnSync(["git", "-c", "user.email=t@t", "-c", "user.name=t", ...args], { cwd: root }).stdout.toString().trim()
+    git("init", "-q"); writeFileSync(resolve(root, "proof.txt"), "x"); git("add", "proof.txt"); git("commit", "-qm", "c")
+    const sha = git("rev-parse", "--short", "HEAD")
+    const ledger = `<li id="ISC-001"><input type="checkbox" checked> a</li>\n<li>ISC-001: PASS - ok; evidence proof.txt; commit ${sha}</li>\n` +
+      "<li>ISC-001: PASS - again; evidence proof.txt; commit abcdef1</li>"
+    expect(unearned(ledger, new Set(["ISC-001"]), new Set(), root)).toEqual(["ISC-001"])
   })
 })

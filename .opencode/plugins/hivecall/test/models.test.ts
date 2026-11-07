@@ -45,6 +45,15 @@ describe("immediate delivery", () => {
       .toContain("stopped on a usage limit on acme/fast#high. Start a fresh helper with a Delta on the run card's next model for build: acme/spare.")
   })
 
+  test("a foreground helper that hits its usage limit before its spawn returns still gets the next model", async () => {
+    const h = await run(true)
+    h.before({ sessionID: "ses-root", id: "spawn", tool: "subagent", input: { agent: "build", description: "fix", prompt: brief("ISC-1") } })
+    await h.send("session.created", { sessionID: "ses_build", parentID: "ses-root", agent: "build" })
+    await h.send("session.execution.failed", { sessionID: "ses_build", error: { message: "You have hit your usage limit for this model." } })
+    expect(h.sent.filter((row) => row.kind === "synthetic").map((row) => row.text).join("\n"))
+      .toContain("stopped on a usage limit on acme/fast#high. Start a fresh helper with a Delta on the run card's next model for build: acme/spare.")
+  })
+
   test("a helper's unearned tick reaches the orchestrator at once, and the working rules are kept as an instruction entry", async () => {
     const h = await run(true)
     expect(h.sent.find((row) => row.kind === "instruction")).toMatchObject({ sessionID: "ses-root", key: "hivecall-rules" })

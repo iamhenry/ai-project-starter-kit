@@ -225,6 +225,14 @@ export default Plugin.define({
           }
           if (event.type === "session.created" && typeof data.sessionID === "string" && typeof data.parentID === "string") {
             childParents.set(data.sessionID, data.parentID)
+            // A foreground helper can fail before its spawn call returns: bind its model now when exactly one open spawn
+            // from this parent, for this agent, carries one (the spawn result binds it otherwise).
+            const open = [...spawnModels].filter(([callID, spawned]) => callID.startsWith(`${data.parentID}:`) &&
+              (typeof data.agent !== "string" || spawned.agent === data.agent))
+            if (open.length === 1 && !helperModels.has(data.sessionID)) {
+              helperModels.set(data.sessionID, { ...open[0][1], parent: data.parentID })
+              spawnModels.delete(open[0][0])
+            }
             // Skip when the spawn result already recorded this helper with its identity; a bare row would erase it on restore.
             if (live() && !state.helpers.has(data.sessionID)) record({ type: "helper-created", sessionID: data.sessionID, parentSessionID: data.parentID })
           }
@@ -252,6 +260,7 @@ export default Plugin.define({
           if (event.type === "session.tool.failed" && typeof data.sessionID === "string" && typeof data.id === "string") {
             forget(`${data.sessionID}:${data.id}`)
             inFlight.delete(`${data.sessionID}:${data.id}`)
+            spawnModels.delete(`${data.sessionID}:${data.id}`)
           }
           // A session that stopped has no calls in flight, even if a hook never saw their end.
           if (/^session\.(?:execution\.(?:succeeded|failed)|deleted)$/.test(event.type) && typeof data.sessionID === "string")
@@ -278,9 +287,10 @@ export default Plugin.define({
               if (child && child !== data.sessionID) {
                 emit({ type: "helper-created", sessionID: child, parentSessionID: data.sessionID, ...native.identity })
                 const spawned = spawnModels.get(callID)
-                if (spawned) helperModels.set(child, { ...spawned, parent: data.sessionID })
+                if (spawned && !helperModels.has(child)) helperModels.set(child, { ...spawned, parent: data.sessionID })
                 if (background) backgroundHelpers.add(child)
               }
+              spawnModels.delete(callID)
               if (!background) emit(reviewEvent(data.sessionID, callID, native.identity, result, root))
             }
             const created = spawn ? bbSpawnEvent(data.sessionID, spawn, result) : null
