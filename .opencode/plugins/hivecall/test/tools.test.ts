@@ -41,6 +41,16 @@ describe("hivecall_ledger", () => {
     expect(h.events().find((row) => row.action === "tick" && row.type === "allowed")).toMatchObject({ id: "ISC-001", sessionID: "ses-root" })
   })
 
+  test("a literal \\n in observed text stays on the receipt line (live smoke 2026-11-07)", async () => {
+    const h = await run()
+    await h.call("skill", { id: "subagent-delegation" })
+    h.before({ sessionID: "ses-root", id: "rev", tool: "subagent", input: { agent: "reviewer", description: "review ISC-1",
+      prompt: "PROMISE: kind=helper rows=ISC-1 result=- lane=-\nTALK-BACK: report BUG only." } })
+    await h.send("session.tool.success", { sessionID: "ses-root", id: "rev", metadata: { sessionID: "ses_rev", status: "completed" },
+      content: [{ type: "text", text: "Decision: APPROVE_CODE" }] })
+    expect(await h.tool("hivecall_ledger", { ...tick, observed: "od -c 'a l p h a \\n'" })).toBe("tick ISC-001 written to .hivecall/checklist.html.")
+  })
+
   test("fail, park and add use the kickoff formats; misses are loud", async () => {
     const h = await run()
     expect(await h.tool("hivecall_ledger", { action: "add", id: "ISC-2", text: "second — check: npm test", feature: "Feature name" })).toContain("add ISC-002")

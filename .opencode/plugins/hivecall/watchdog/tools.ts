@@ -15,7 +15,7 @@ export type LedgerEdit = {
 export type CardEdit = { action: "status" | "note"; status?: string; section?: string; text?: string }
 type Result = { text: string } | { error: string }
 
-const escape = (value: string) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\s*\n\s*/g, " ").trim()
+const escape = (value: string) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\s*(?:\n|\\n)\s*/g, " ").trim() // the receipt reader also splits on a literal \n
 const path = (value: string) => /\s/.test(value) ? `\`${value}\`` : value
 
 /** The `<li id>` opening tag of an item and its checkbox input, by canonical id. */
