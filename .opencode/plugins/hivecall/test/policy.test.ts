@@ -319,4 +319,14 @@ describe("Hivecall rule fixtures", () => {
       blockDecision(state, "ses-root", "brief-check").block]).toEqual([true, true, true])
     expect(blockDecision(state, "ses-root", "brief-check")).toEqual({ block: false, count: 3, warn: true })
   })
+
+  test("a receipt counts only when its commit exists in the run's git checkout", () => {
+    const root = setup()
+    const git = (...args: string[]) => Bun.spawnSync(["git", "-c", "user.email=t@t", "-c", "user.name=t", ...args], { cwd: root }).stdout.toString().trim()
+    git("init", "-q"); writeFileSync(resolve(root, "proof.txt"), "x"); git("add", "proof.txt"); git("commit", "-qm", "c")
+    const sha = git("rev-parse", "--short", "HEAD"), approved = new Set(["ISC-001"])
+    const ledger = (commit: string) => `<li id="ISC-001"><input type="checkbox" checked> a</li>\n<li>ISC-001: PASS - ok; evidence proof.txt; commit ${commit}</li>`
+    expect(unearned(ledger(sha), approved, new Set(), root)).toEqual([])
+    expect(unearned(ledger("abcdef1"), approved, new Set(), root)).toEqual(["ISC-001"])
+  })
 })

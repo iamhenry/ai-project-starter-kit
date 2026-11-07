@@ -352,7 +352,7 @@ function passedItems(text: string): string[] {
  */
 function hasReceipt(text: string, id: string, root: string): boolean {
   return receipts(text, id).some((segment) => {
-    if (!/\bcommit\s+[0-9a-f]{7,40}\b/i.test(segment)) return false
+    if (![...segment.matchAll(/\bcommit\s+([0-9a-f]{7,40})\b/gi)].some((m) => commitExists(root, m[1]))) return false
     return [...segment.matchAll(/\bevidence\s*[:=]?\s*(?:`([^`\n]+)`|([^\s`;,|'"<>]+))/gi)].some(([, quoted, bare]) =>
       (quoted ? [quoted] : [bare, bare.replace(/[)\]}.:]+$/, "")]).some((path) => path && existsSync(isAbsolute(path) ? path : resolve(root, path))))
   })
@@ -380,6 +380,16 @@ function git(root: string, args: string[]): string | null {
     const result = spawnSync("git", args, { cwd: root, encoding: "utf8", timeout: 5000 })
     return result.status === 0 ? result.stdout : null
   } catch { return null }
+}
+
+const realCommits = new Set<string>(), repos = new Map<string, boolean>()
+/** The receipt's commit is in this checkout; true when the run is not in a git checkout (no data, no alarm). */
+function commitExists(root: string, sha: string): boolean {
+  if (!repos.has(root)) repos.set(root, git(root, ["rev-parse", "--git-dir"]) !== null)
+  if (!repos.get(root)) return true
+  const key = `${root}\n${sha.toLowerCase()}`
+  if (!realCommits.has(key) && git(root, ["cat-file", "-e", `${sha}^{commit}`]) !== null) realCommits.add(key)
+  return realCommits.has(key)
 }
 
 const commitFiles = new Map<string, string[] | null>()
