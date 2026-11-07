@@ -313,19 +313,19 @@ export function bbOutputRead(command: string): { thread: string; json: boolean }
   return match ? { thread: match[1], json: /--json/.test(match[0]) } : null
 }
 
-export function bbReadEvent(state: Memory, read: { thread: string; json: boolean }, output: string): HiveEvent | null {
+export function bbReadEvent(state: Memory, read: { thread: string; json: boolean }, output: string, root = ""): HiveEvent | null {
   const helper = state.helpers.get(read.thread)
   if (!helper) return null
   let text = output
   if (read.json) try { text = String(JSON.parse(output).output ?? "") } catch { text = "" }
-  return reviewEvent(helper.parentSessionID, read.thread, helper, text)
+  return reviewEvent(helper.parentSessionID, read.thread, helper, text, root)
 }
 
 /**
  * BB lifecycle notices reach the parent session as a prompt: `[bb system]`, then `@thread:thr_… completed:` and the
  * child's final output, or a `Child thread updates:` list. Only `completed` marks a helper finished.
  */
-export function bbNoticeEvents(state: Memory, sessionID: string, text: string): HiveEvent[] {
+export function bbNoticeEvents(state: Memory, sessionID: string, text: string, root = ""): HiveEvent[] {
   if (!/^\s*"?\[bb system\]/.test(text)) return [] // `opencode run` was seen wrapping prompt text in quotes
   const marks = [...text.matchAll(new RegExp(`@thread:(${threadID}) (completed|failed|was interrupted)\\b([^\\n]*)`, "g"))]
   return marks.flatMap((mark, i) => {
@@ -333,7 +333,7 @@ export function bbNoticeEvents(state: Memory, sessionID: string, text: string): 
     const body = mark[3].trimStart().startsWith(":") ? text.slice(mark.index! + mark[0].length, marks[i + 1]?.index ?? text.length) : ""
     const events: Array<HiveEvent | null> = [
       mark[2] === "completed" ? { type: "helper-finished", sessionID: thread, parentSessionID: helper?.parentSessionID ?? sessionID } : null,
-      helper && body.trim() ? reviewEvent(helper.parentSessionID, thread, helper, body) : null,
+      helper && body.trim() ? reviewEvent(helper.parentSessionID, thread, helper, body, root) : null,
     ]
     return events.filter((event): event is HiveEvent => event !== null)
   })

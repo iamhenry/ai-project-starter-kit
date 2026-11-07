@@ -329,4 +329,19 @@ describe("Hivecall rule fixtures", () => {
     expect(unearned(ledger(sha), approved, new Set(), root)).toEqual([])
     expect(unearned(ledger("abcdef1"), approved, new Set(), root)).toEqual(["ISC-001"])
   })
+
+  // Nov 1: four reviews approved in prose with the Decision line only in their result file, and one withheld an id inline.
+  test("a reviewer's result file decides over prose; an id marked not approved is withheld; the last Decision line wins", () => {
+    const root = setup()
+    mkdirSync(resolve(root, ".hivecall/verification"))
+    writeFileSync(resolve(root, ".hivecall/verification/review-ho2b.md"), "# review\n- Decision: `APPROVE_CODE` (ISC-8, ISC-10)\n")
+    const helper = { agent: "reviewer", role: "reviewer", slice: "", rows: "ISC-008,ISC-010", promise: "ISC-008,ISC-010", result: "review-ho2b.md" }
+    const prose = "I approve 7de7e05 for ISC-8 and ISC-10.\n\nDetails: `.hivecall/verification/review-ho2b.md`"
+    expect(reviewEvent("ses-root", "h1", helper, prose)?.approved ?? null).toBeNull()
+    expect(reviewEvent("ses-root", "h1", helper, prose, root)?.approved).toBe("ISC-008,ISC-010")
+    expect(reviewOutcome("- Decision: `APPROVE_CODE` — approve ISC-26, ISC-36; **ISC-30 not approved** (header)", ["ISC-026", "ISC-030", "ISC-036"])?.approved)
+      .toEqual(["ISC-026", "ISC-036"])
+    expect(reviewOutcome("Scope: the last review withheld ISC-30 on one point\n## Decision: APPROVE_CODE ISC-30", ["ISC-030"])?.approved).toEqual(["ISC-030"])
+    expect(reviewOutcome("Decision: REVISE_CODE\nfixed in place, re-checked\nDecision: APPROVE_CODE", ["ISC-001"])?.approved).toEqual(["ISC-001"])
+  })
 })

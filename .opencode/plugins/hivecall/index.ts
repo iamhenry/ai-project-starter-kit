@@ -196,7 +196,7 @@ export default Plugin.define({
             // Only the child's own text is a verdict; the envelope also echoes the parent's `description`.
             const body = metadata.state === "completed" ? subagentBody(String(synthetic?.text ?? ""),
               `<subagent sessionID="${childID}" state="completed" description="${String(synthetic?.description ?? "")}">`) : null
-            if (body !== null) emit(reviewEvent(helper.parentSessionID, childID, helper, body))
+            if (body !== null) emit(reviewEvent(helper.parentSessionID, childID, helper, body, root))
             else if (metadata.state === "completed") logFailure("background helper result envelope not recognised", new Error("unrecognised envelope"))
           }
           if (event.type === "session.tool.failed" && typeof data.sessionID === "string" && typeof data.id === "string") {
@@ -229,13 +229,13 @@ export default Plugin.define({
                 emit({ type: "helper-created", sessionID: child, parentSessionID: data.sessionID, ...native.identity })
                 if (background) backgroundHelpers.add(child)
               }
-              if (!background) emit(reviewEvent(data.sessionID, callID, native.identity, result))
+              if (!background) emit(reviewEvent(data.sessionID, callID, native.identity, result, root))
             }
             const created = spawn ? bbSpawnEvent(data.sessionID, spawn, result) : null
             emit(created)
             if (created && spawnPins.has(callID))
               emit({ type: "helper-agent", sessionID: created.sessionID, parentSessionID: data.sessionID, agent: spawnPins.get(callID) })
-            if (read) emit(bbReadEvent(state, read, result))
+            if (read) emit(bbReadEvent(state, read, result, root))
             const stamp = bbStamps.get(callID)
             if (stamp?.project && stampSucceeded(result)) projectPins.set(data.sessionID, stamp)
             else if (stamp?.thread) {
@@ -332,7 +332,7 @@ export default Plugin.define({
         const text = String(event.prompt?.text ?? "")
         // A session's first prompt is its brief when it carries a TALK-BACK block.
         if (!sessionRoles.has(event.sessionID)) sessionRoles.set(event.sessionID, /talk[- ]?back/i.test(text) ? briefRole(text) : "")
-        for (const notice of bbNoticeEvents(state, event.sessionID, text)) emit(notice)
+        for (const notice of bbNoticeEvents(state, event.sessionID, text, root)) emit(notice)
       } catch (error) { logFailure("prompt hook", error) }
     })
 

@@ -33,13 +33,18 @@ function verdictOf(text: string): Verdict | null {
  */
 export function reviewOutcome(text: string, scope: string[]): { approved: string[]; revised: boolean } | null {
   const lines = text.split(/\r?\n/)
-  const decision = lines.map((line) => /^\W*(?:decision|verdict)\b[^:=\n]*[:=].*?\b(APPROVE|REVISE)_CODE\b/i.exec(line)?.[1]).find(Boolean)
+  // The last Decision/Verdict line wins: a reviewer that corrects itself ends with its real verdict.
+  const decision = lines.map((line) => /^\W*(?:decision|verdict)\b[^:=\n]*[:=].*?\b(APPROVE|REVISE)_CODE\b/i.exec(line)?.[1]).filter(Boolean).at(-1)
   const overall: Verdict | null = decision ? (decision.toUpperCase() === "APPROVE" ? "approve" : "revise")
     : verdictOf(lines.filter((line) => !iscIds(line).length).join("\n"))
   const perItem = new Map<string, Verdict>()
   for (const line of lines) {
     const verdict = verdictOf(line)
     if (verdict) for (const id of iscIds(line)) perItem.set(id, perItem.get(id) === "revise" ? "revise" : verdict)
+    // "ISC-30 not approved" (or `| ISC-30 | NOT APPROVED |`) withholds that id even on a line whose verdict token approves
+    // the others (Nov 1, review-wrap). Only words right after the id count, never a mention of an older review.
+    for (const mark of line.matchAll(/\b(ISC-\d+(?:\.\d+)*)\b[^\w\n]{0,8}(?:is\s+)?(?:not[\s_]+approved?|held\s+back|withheld)\b/gi))
+      perItem.set(iscId(mark[1]), "revise")
   }
   if (!overall && !perItem.size) return null
   const approved = (scope.length ? scope : [...perItem.keys()]).filter((id) => (perItem.get(id) ?? overall) === "approve")
@@ -93,7 +98,7 @@ export function agentMismatch(role: string, agent: string): boolean {
   return Boolean(role && agent && !agent.toLowerCase().includes(role))
 }
 
-export type Helper = { parentSessionID: string; agent: string; role: string; slice: string; rows: string; promise?: string; commits?: string }
+export type Helper = { parentSessionID: string; agent: string; role: string; slice: string; rows: string; promise?: string; commits?: string; result?: string }
 
 export type Memory = {
   blocks: Map<string, number>
@@ -135,16 +140,36 @@ export function helperIdentity(input: Record<string, unknown>): Omit<Helper, "pa
   const rows = promise?.valid ? [...promise.rows].join(",") : ""
   // Commit ids the brief names: a qa PASS is about those candidates only.
   const commits = [...new Set(text.match(/\b[0-9a-f]{7,40}\b/gi) ?? [])].slice(0, 12).join(",")
+  const result = promise?.result && promise.result !== "-" ? promise.result : ""
   return { agent: String(input.agent ?? "").toLowerCase(), role: briefRole(text), slice: sliceKey(text) ?? "", rows: reviewScope(text).join(","),
-    ...(rows ? { promise: rows } : {}), ...(commits ? { commits } : {}) }
+    ...(rows ? { promise: rows } : {}), ...(commits ? { commits } : {}), ...(result ? { result } : {}) }
+}
+
+/**
+ * The helper's result file (its PROMISE `result=`), found as given, under `.hivecall/` or the card's verification folder, or
+ * as a path its message names with the same file name; "" when none exists.
+ */
+export function resultText(root: string, result: string | undefined, message: string): string {
+  if (!result) return ""
+  const name = basename(result)
+  const folder = readFile(resolve(root, ".hivecall/run.md")).match(/^\s*verification\s*:\s*`?([^`\s]+)/im)?.[1]
+  const named = [...message.matchAll(/`([^`\n]+)`/g)].map((m) => m[1]).filter((path) => basename(path) === name)
+  for (const candidate of [result, `.hivecall/${result}`, `.hivecall/verification/${result}`, ...(folder ? [`${folder}/${result}`] : []), ...named]) {
+    const full = isAbsolute(candidate) ? candidate : resolve(root, candidate)
+    const text = existsSync(full) ? readFile(full) : ""
+    if (text) return text.slice(0, 200_000)
+  }
+  return ""
 }
 
 /** Turns a finished reviewer or qa helper's result text into a `review-result` event; other helpers return null. */
-export function reviewEvent(sessionID: string, helperID: string, helper: Omit<Helper, "parentSessionID">, text: string): HiveEvent | null {
+export function reviewEvent(sessionID: string, helperID: string, helper: Omit<Helper, "parentSessionID">, text: string, root = ""): HiveEvent | null {
   const role = helper.agent.includes("reviewer") ? "reviewer" : helper.agent.includes("qa") ? "qa" : ""
   if (!role) return null
   const scope = helper.rows ? helper.rows.split(",") : []
-  const code = role === "reviewer" ? reviewOutcome(text, scope) : null
+  // A reviewer's result file is its record: its verdict wins over the chat message, which may be prose ("I approve ...").
+  const file = role === "reviewer" && root ? resultText(root, helper.result, text) : ""
+  const code = role === "reviewer" ? (file && reviewOutcome(file, scope)) || reviewOutcome(text, scope) : null
   const discovery = discoveryOutcome(text, helper.promise ? helper.promise.split(",") : [], role)
   const passed = role === "qa" ? discoveryOutcome(text, helper.promise ? helper.promise.split(",") : [], "pass") : []
   // A failed attempt for the hill-climb count: a REVISE_CODE, or a qa negative, on the items the helper worked on.
@@ -167,7 +192,7 @@ export function apply(state: Memory, event: HiveEvent): void {
   if (event.type === "helper-created" && event.parentSessionID)
     state.helpers.set(sessionID, { parentSessionID: String(event.parentSessionID), agent: String(event.agent ?? ""),
       role: String(event.role ?? ""), slice: String(event.slice ?? ""), rows: String(event.rows ?? ""), ...(event.promise ? { promise: String(event.promise) } : {}),
-      ...(event.commits ? { commits: String(event.commits) } : {}) })
+      ...(event.commits ? { commits: String(event.commits) } : {}), ...(event.result ? { result: String(event.result) } : {}) })
   // The agent a helper really runs as (a harness pin), which outranks the role its brief names.
   if (event.type === "helper-agent" && event.agent) {
     const known = state.helpers.get(sessionID)
