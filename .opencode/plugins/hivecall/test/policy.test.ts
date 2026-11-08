@@ -191,10 +191,10 @@ describe("Hivecall rule fixtures", () => {
     expect(state.approvals.has("pass:ISC-004@abcdef1")).toBe(true)
     apply(state, verdictEvent("s", "q2", helper, [{ id: "ISC-4", verdict: "FAIL" }]))
     expect([...state.approvals].filter((a) => a.includes("ISC-004"))).toEqual([])
-    // The same event read twice is one review.
-    const event = verdictEvent("s", "same", { slice: "x" }, [{ id: "ISC-5", verdict: "REVISE_CODE" }])
-    apply(state, event); apply(state, event)
-    expect(state.revisions.get("s:x")).toBe(1)
+    // A qa PASS keeps a reviewer's approval; ASK_USER withdraws it.
+    apply(state, verdictEvent("s", "h5", helper, [{ id: "ISC-7", verdict: "APPROVE_CODE" }]))
+    apply(state, verdictEvent("s", "q3", helper, [{ id: "ISC-7", verdict: "PASS" }]))
+    expect(state.approvals.has("ISC-007")).toBe(true)
   })
 
   test("no-early-done blocks a final report or a close with open work, allows a parked run and an earned close", () => {

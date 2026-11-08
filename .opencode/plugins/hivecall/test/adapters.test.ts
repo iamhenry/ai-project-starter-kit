@@ -210,6 +210,14 @@ describe("BB child-thread lifecycle feeds the neutral helper state", () => {
     }
   })
 
+  test("a BB qa result FAIL, then PASS, then FAIL ends failed", () => {
+    const { root, state } = run()
+    spawn(state, root, "qa", "thr_qa")
+    for (const verdict of ["FAIL", "PASS", "FAIL"]) emit(state, bbReadEvent(state, { thread: "thr_qa", json: false }, `VERDICT ISC-001 ${verdict}`))
+    expect([...state.approvals]).toEqual([])
+    expect(state.failures.get("ISC-001")).toBe(2)
+  })
+
   test("the pinned agent, not the brief text, decides whether a result is a reviewer approval", () => {
     const { root, state } = run()
     spawn(state, root, "reviewer", "thr_pinned")
@@ -234,8 +242,6 @@ describe("BB child-thread lifecycle feeds the neutral helper state", () => {
       spawn(state, root, "reviewer", thread)
       const text = `[bb system]\n\nChild thread updates:\n- @thread:${thread}fix completed.\n- @thread:${thread} completed:\n\nVERDICT ISC-001 REVISE_CODE`
       for (const event of bbNoticeEvents(state, "ses-root", text)) emit(state, event)
-      // Re-reading the same result does not count as another revision.
-      emit(state, bbReadEvent(state, { thread, json: false }, "VERDICT ISC-001 REVISE_CODE"))
     }
     expect(state.revisions.get("ses-root:ISC-001")).toBe(2)
     expect(spawn(state, root, "build", "thr_fix3")).toBe("third-fix")

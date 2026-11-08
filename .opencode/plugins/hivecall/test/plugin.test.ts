@@ -103,6 +103,18 @@ describe("plugin hooks", () => {
     ]) expect([pin.command, await approvedAfter(pin)]).toEqual([pin.command, false])
   })
 
+  test("a BB result read twice is one review; a changed result is a correction", async () => {
+    const { call, prompt, events } = await host({ card: true })
+    await call("skill", { id: "subagent-delegation" })
+    await call("shell", { command: `bb thread spawn --parent-self --title review --prompt 'agent: reviewer\n${brief}'` }, "Thread spawned: thr_b1\n")
+    await call("shell", { command: `printf '%s' '${pinJson}' | ${rpc}` }, '{"ok":true}')
+    prompt("[bb system]\n\n@thread:thr_b1 completed:\n\nVERDICT ISC-001 REVISE_CODE")
+    await call("shell", { command: "bb thread output thr_b1" }, "VERDICT ISC-001 REVISE_CODE")
+    await call("shell", { command: "bb thread output thr_b1" }, "VERDICT ISC-001 APPROVE_CODE")
+    expect(events().filter((row) => row.type === "review-result").map((row) => row.verdicts)).toEqual(["ISC-001=REVISE_CODE", "ISC-001=APPROVE_CODE"])
+    expect(await call("write", tick)).toBeNull()
+  })
+
   test("a real executed pin of the briefed role verifies the helper, so its approval unlocks the tick", async () => {
     expect(await approvedAfter({ command: `printf '%s' '${pinJson}' | ${rpc}`, output: '{\n  "ok": true\n}\n' })).toBe(true)
     // A pin naming another role than the brief does not verify it.

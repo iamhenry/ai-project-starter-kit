@@ -138,4 +138,24 @@ describe("hivecall_verdict", () => {
     expect(await h.verdict("ses_b", "ISC-1 APPROVE_CODE")).toContain("ISC-001 is not one of the items your brief assigned (ISC-002)")
   })
 
+  // Delta review of f11c87c.
+  test("two foreground reviewers with the same description get distinct titles and both link", async () => {
+    const h = await run()
+    await h.call("skill", { id: "subagent-delegation" })
+    const inputs = ["ISC-1", "ISC-2"].map((row) => ({ agent: "reviewer", description: "review", prompt: `PROMISE: kind=helper rows=${row} result=- lane=-\nTALK-BACK: report BUG only.` }))
+    inputs.forEach((input, i) => h.before({ sessionID: "ses-root", id: `s${i}`, tool: "subagent", input }))
+    expect(inputs.map((input) => input.description)).toEqual(["review", "review (2)"])
+    for (const [i, input] of inputs.entries()) await h.send("session.created", { sessionID: `ses_${i}`, parentID: "ses-root", agent: "reviewer", title: input.description })
+    expect(await h.verdict("ses_1", "ISC-2 APPROVE_CODE")).toBe("Recorded: ISC-002 APPROVE_CODE.")
+    expect(await h.verdict("ses_0", "ISC-1 APPROVE_CODE")).toBe("Recorded: ISC-001 APPROVE_CODE.")
+  })
+
+  test("a reviewer approval survives a later qa PASS", async () => {
+    const h = await run()
+    await h.call("skill", { id: "subagent-delegation" })
+    await h.helper({ id: "rev", agent: "reviewer", prompt: brief, verdicts: "ISC-1 APPROVE_CODE" })
+    await h.helper({ id: "qa", agent: "qa", prompt: brief, verdicts: "ISC-1 PASS" })
+    expect(await h.tool("hivecall_ledger", tick)).toBe("tick ISC-001 written to .hivecall/checklist.html.")
+  })
+
 })

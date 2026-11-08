@@ -55,9 +55,10 @@ export function verdictEvent(sessionID: string, key: string, helper: Pick<Helper
   const ids = (...tokens: string[]) => verdicts.filter((v) => tokens.includes(v.verdict)).map((v) => iscId(v.id))
   const list = (values: string[]) => values.length ? values.join(",") : undefined
   const passed = ids("PASS")
-  // Every named item first loses what it earned before: a new verdict replaces the helper's earlier one in full.
+  // A plan send-back (REVISE_PLAN, ASK_USER) withdraws the item's code and plan approvals; negatives cancel everything
+  // through `failed`; a positive verdict never removes another helper's approval.
   return { type: "review-result", sessionID, helper: key, slice: helper.slice, approved: ids("APPROVE_CODE").join(","),
-    revised: ids("REVISE_CODE").length ? 1 : 0, reset: list(verdicts.map((v) => iscId(v.id))),
+    revised: ids("REVISE_CODE").length ? 1 : 0, reset: list(ids("REVISE_PLAN", "ASK_USER")),
     verdicts: verdicts.map((v) => `${iscId(v.id)}=${v.verdict}`).join(","),
     discovery: list(ids("APPROVE_PLAN", "SELECTED", "REPRODUCED", "PASS")),
     ...(passed.length && helper.commits ? { passed: passed.join(","), commits: helper.commits } : {}),

@@ -47,7 +47,6 @@ export type Memory = {
   grandfathered: Set<string>
   revisions: Map<string, number>
   helpers: Map<string, Helper>
-  reviewed: Set<string>
   /** Failed verdicts (REVISE_CODE, FAIL, BLOCKED, NOT_REPRODUCED) per item: attempts that did not raise the score. */
   failures: Map<string, number>
   /** Failed verdicts since the last earned tick, run-wide (hill climb). */
@@ -58,7 +57,7 @@ export type Memory = {
 
 export function memory(): Memory {
   return { blocks: new Map(), skills: new Set(), finished: new Set(), approvals: new Set(), grandfathered: new Set(), revisions: new Map(),
-    helpers: new Map(), reviewed: new Set(), failures: new Map(), sinceTick: 0, replans: new Map() }
+    helpers: new Map(), failures: new Map(), sinceTick: 0, replans: new Map() }
 }
 
 /** Items a helper works on: its PROMISE rows and the rows its brief names. */
@@ -129,8 +128,6 @@ export function apply(state: Memory, event: HiveEvent): void {
   }
   if (event.type === "review-result") {
     const helper = String(event.helper ?? "")
-    if (helper && state.reviewed.has(helper)) return // the same helper result read twice is one review
-    if (helper) state.reviewed.add(helper)
     for (const id of String(event.reset ?? "").split(",").filter(Boolean).map(iscId)) {
       state.approvals.delete(id); state.approvals.delete(`discovery:${id}`)
       for (const pass of [...state.approvals]) if (pass.startsWith(`pass:${id}@`)) state.approvals.delete(pass)

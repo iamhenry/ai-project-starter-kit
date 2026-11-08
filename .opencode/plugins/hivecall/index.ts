@@ -62,6 +62,13 @@ export default Plugin.define({
     // State always follows what happened; the log is only written while a run is active.
     const emit = (event: HiveEvent | null) => {
       if (!event) return
+      // A helper's verdicts equal to its latest recorded ones are the same review read again (memory only: the event
+      // log is writable, so it never decides what counts).
+      if (event.type === "review-result" && event.verdicts) {
+        const helper = String(event.helper).split(/[@:]/)[0]
+        if (latestVerdicts.get(helper) === event.verdicts) return
+        latestVerdicts.set(helper, String(event.verdicts))
+      }
       if (event.type === "verdict-missing") verdictMissing(String(event.helper), String(event.problems ?? ""))
       const approved = state.approvals.size
       apply(state, event)
@@ -86,6 +93,7 @@ export default Plugin.define({
     const storeKey = `hivecall:${root}`
     const orchestrators = new Set<string>()
     let started = false // the grandfathered ticks were recorded for this run
+    const latestVerdicts = new Map<string, string>() // helper -> its latest recorded verdicts
     const save = () => {
       void Promise.resolve(ctx.storage?.set(storeKey, { approvals: [...state.approvals], grandfathered: [...state.grandfathered],
         started, orchestrators: [...orchestrators] })).catch((error) => logFailure("storage write", error))
@@ -137,7 +145,7 @@ export default Plugin.define({
     const arm = (sessionID: string) => {
       armed = true
       if (!activeRun(root) && (started || state.approvals.size || state.failures.size || state.sinceTick)) { // a fresh run: forget the last run's tick state
-        state.approvals.clear(); state.grandfathered.clear(); state.failures.clear(); state.replans.clear(); state.sinceTick = 0; started = false; orchestrators.clear(); flagged.clear(); earned.clear(); linked.clear(); lastVerdict.clear()
+        state.approvals.clear(); state.grandfathered.clear(); state.failures.clear(); state.replans.clear(); state.sinceTick = 0; started = false; orchestrators.clear(); flagged.clear(); earned.clear(); linked.clear(); lastVerdict.clear(); latestVerdicts.clear()
       }
       if (sessionID && !orchestrators.has(sessionID)) orchestrators.add(sessionID)
       putRules(sessionID)
@@ -198,8 +206,6 @@ export default Plugin.define({
             const event = JSON.parse(line)
             if (event.type === "warning" && event.sessionID && event.rule) warned.add(key(event.sessionID, event.rule))
             if (event.type === "tick-unearned" && event.id) flagged.add(String(event.id))
-            if (event.type === "review-result" && event.verdicts) for (const pair of String(event.verdicts).split(","))
-              lastVerdict.set(`${String(event.helper).split("@")[0]}:${pair.split("=")[0]}`, pair.split("=")[1])
             if (event.type === "allowed" && event.action === "tick" && event.id) { earned.add(String(event.id)); flagged.delete(String(event.id)) }
             apply(state, event)
           } catch { /* Ignore a partial final JSONL row. */ }
@@ -478,7 +484,12 @@ export default Plugin.define({
               (brief.filled.includes("PROMISE") ? " Its PROMISE rows=- claims no items, so a qa PASS from it cannot tick anything; name the rows in the next brief." : ""))
           }
           const identity = helperIdentity(input)
-          toolCalls.set(callID, { identity, background: input.background === true, description: String(input.description ?? "") })
+          // Open spawns of one parent and agent need distinct descriptions: the host's session title links each child to its brief.
+          let description = String(input.description ?? "")
+          const taken = new Set([...toolCalls].filter(([id, call]) => id.startsWith(`${event.sessionID}:`) && call.identity.agent === identity.agent).map(([, call]) => call.description))
+          for (let n = 2; taken.has(description); n++) description = `${String(input.description ?? "")} (${n})`
+          if (description !== String(input.description ?? "")) { input.description = description; event.input = input }
+          toolCalls.set(callID, { identity, background: input.background === true, description })
           mismatch(event.sessionID, callID, identity.role, identity.agent)
           // Model policy from the run card (P5): fill the agent's model when none is passed; pause once on an off-list one.
           const policy = modelPolicy(existsSync(cardPath) ? readFileSync(cardPath, "utf8") : "")
