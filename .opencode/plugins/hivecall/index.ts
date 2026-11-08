@@ -7,7 +7,8 @@ import { Plugin } from "@opencode/plugin"
 import { allowedModels, modelPolicy, usageLimit } from "./watchdog/models"
 import { editCard, editLedger, type CardEdit, type LedgerEdit } from "./watchdog/tools"
 import { bbAgentStamp, bbHelperSession, bbNoticeEvents, bbOutputRead, bbPinEvent, bbReadEvent, bbSpawnEvent, shellDelegation, stampSucceeded, type BbStamp } from "./watchdog/adapters"
-import { activeLedger, activeRun, agentMismatch, archiveRun, anchor, apply, blockDecision, briefRole, canaryMissing, dirtyFiles, fillBrief, helperIdentity, iscId, memory, replanEvents, reviewEvent, ruleFor, tickedItems, tickProblems, unearned, type HiveEvent, type Violation } from "./watchdog/policy"
+import { helperRole, VERDICTS, verdictEvent, verdictProblems, type Verdict } from "./watchdog/verdicts"
+import { activeLedger, activeRun, agentMismatch, archiveRun, anchor, apply, blockDecision, briefRole, canaryMissing, dirtyFiles, fillBrief, helperIdentity, iscId, memory, replanEvents, ruleFor, tickedItems, tickProblems, unearned, type HiveEvent, type Violation } from "./watchdog/policy"
 
 const pluginDir = dirname(fileURLToPath(import.meta.url))
 const skillPath = resolve(pluginDir, "SKILL.md")
@@ -17,11 +18,6 @@ const rules = JSON.parse(readFileSync(rulePath, "utf8")) as Array<{ id: string; 
 
 function logFailure(operation: string, error: unknown) {
   try { console.error(`[hivecall] ${operation} failed (${error instanceof Error ? error.name : "unknown error"})`) } catch {}
-}
-
-/** The child's own result inside the exact `<subagent …>` envelope the host built; null if the text is not that envelope. */
-function subagentBody(text: string, header: string): string | null {
-  return text.startsWith(`${header}\n`) && text.endsWith("\n</subagent>") ? text.slice(header.length + 1, -"\n</subagent>".length) : null
 }
 
 export default Plugin.define({
@@ -66,6 +62,7 @@ export default Plugin.define({
     // State always follows what happened; the log is only written while a run is active.
     const emit = (event: HiveEvent | null) => {
       if (!event) return
+      if (event.type === "verdict-missing") verdictMissing(String(event.helper), String(event.problems ?? ""))
       const approved = state.approvals.size
       apply(state, event)
       if (live()) record(event)
@@ -174,6 +171,18 @@ export default Plugin.define({
       try { void session.instructions.entry.put.call(ctx.session, { sessionID, key: "hivecall-rules", value: rulesText() }).catch((error) => logFailure("rules entry", error)) }
       catch (error) { logFailure("rules entry", error) }
     }
+    // A reviewer or qa that ends with no recorded verdict approved nothing; the orchestrator hears it at once (invariant 4).
+    const verdicted = new Set<string>()
+    let verdictCount = 0
+    const verdictMissing = (child: string, problems = "") => {
+      const helper = state.helpers.get(child)
+      const role = helperRole(helper?.agent ?? "") || helperRole(helper?.role ?? "")
+      if (!helper || !role || verdicted.has(child) || !live()) return
+      record({ type: "verdict-missing", sessionID: helper.parentSessionID, helper: child })
+      warnings.push(`${role} ${child} finished without a recorded verdict${problems ? ` (${problems})` : ""}, so it approved nothing. ` +
+        `Ask it, or a fresh ${role}, to record one: a native helper calls hivecall_verdict; a BB helper ends with one line per item, e.g. VERDICT ISC-2 APPROVE_CODE.`)
+      flush()
+    }
     // Model each native helper runs on, by call then by session, and models builders used per item (P5-P7).
     const spawnModels = new Map<string, { agent: string; model: string }>()
     const helperModels = new Map<string, { agent: string; model: string; parent: string }>()
@@ -238,6 +247,11 @@ export default Plugin.define({
               if (open.length === 1) spawnModels.delete(open[0][0])
             }
             // Skip when the spawn result already recorded this helper with its identity; a bare row would erase it on restore.
+            // Link a native helper to its brief now, so it can record verdicts before its spawn call returns: the one open
+            // spawn from this parent for this agent. With several, it stays unlinked until the spawn result names it.
+            const briefs = [...toolCalls].filter(([callID, call]) => callID.startsWith(`${data.parentID}:`) &&
+              (typeof data.agent !== "string" || call.identity.agent === data.agent))
+            if (briefs.length === 1 && !state.helpers.has(data.sessionID)) emit({ type: "helper-created", sessionID: data.sessionID, parentSessionID: data.parentID, ...briefs[0][1].identity })
             if (live() && !state.helpers.has(data.sessionID)) record({ type: "helper-created", sessionID: data.sessionID, parentSessionID: data.parentID })
           }
           if (event.type === "session.execution.succeeded" && typeof data.sessionID === "string") {
@@ -255,11 +269,7 @@ export default Plugin.define({
           const helper = backgroundHelpers.has(childID) ? state.helpers.get(childID) : undefined
           if (metadata.source === "subagent" && metadata.state !== "running" && helper?.parentSessionID === data.sessionID) {
             backgroundHelpers.delete(childID)
-            // Only the child's own text is a verdict; the envelope also echoes the parent's `description`.
-            const body = metadata.state === "completed" ? subagentBody(String(synthetic?.text ?? ""),
-              `<subagent sessionID="${childID}" state="completed" description="${String(synthetic?.description ?? "")}">`) : null
-            if (body !== null) emit(reviewEvent(helper.parentSessionID, childID, helper, body, root))
-            else if (metadata.state === "completed") logFailure("background helper result envelope not recognised", new Error("unrecognised envelope"))
+            if (metadata.state === "completed") verdictMissing(childID)
           }
           if (event.type === "session.tool.failed" && typeof data.sessionID === "string" && typeof data.id === "string") {
             forget(`${data.sessionID}:${data.id}`)
@@ -289,19 +299,20 @@ export default Plugin.define({
               const background = typeof metadata.status === "string" ? metadata.status === "running"
                 : native.background || /working in the background/i.test(result)
               if (child && child !== data.sessionID) {
-                emit({ type: "helper-created", sessionID: child, parentSessionID: data.sessionID, ...native.identity })
+                // Already linked at session.created when it was the one open spawn; the identity is the same.
+                if (state.helpers.get(child)?.parentSessionID !== data.sessionID) emit({ type: "helper-created", sessionID: child, parentSessionID: data.sessionID, ...native.identity })
                 const spawned = spawnModels.get(callID)
                 if (spawned && !helperModels.has(child)) helperModels.set(child, { ...spawned, parent: data.sessionID })
                 if (background) backgroundHelpers.add(child)
               }
               spawnModels.delete(callID)
-              if (!background) emit(reviewEvent(data.sessionID, callID, native.identity, result, root))
+              if (!background && child) verdictMissing(child)
             }
             const created = spawn ? bbSpawnEvent(data.sessionID, spawn, result) : null
             emit(created)
             if (created && spawnPins.has(callID))
               emit({ type: "helper-agent", sessionID: created.sessionID, parentSessionID: data.sessionID, agent: spawnPins.get(callID) })
-            if (read) emit(bbReadEvent(state, read, result, root))
+            if (read) emit(bbReadEvent(state, read, result))
             const stamp = bbStamps.get(callID)
             if (stamp?.project && stampSucceeded(result)) projectPins.set(data.sessionID, stamp)
             else if (stamp?.thread) {
@@ -340,7 +351,26 @@ export default Plugin.define({
       action: { type: "string", enum: ["status", "note"] }, status: { type: "string", enum: ["running", "waiting-owner", "waiting-usage", "closed"] },
       section: { type: "string", description: "note: run-card section heading without ##, e.g. Lessons, Answers, Final report" },
       text: { type: "string", description: "note: the line(s) to append to that section" } } }
+    const verdictSchema = { type: "object", additionalProperties: false, required: ["verdicts"], properties: { verdicts: { type: "array", minItems: 1,
+      items: { type: "object", additionalProperties: false, required: ["id", "verdict"], properties: { id: { type: "string", description: "Item id from your brief, e.g. ISC-2" },
+        verdict: { type: "string", enum: [...new Set([...VERDICTS.reviewer, ...VERDICTS.qa])] } } } } } }
     await ctx.tool.transform?.((editor) => {
+      editor.add({
+        name: "hivecall_verdict",
+        description: "Hivecall reviewer or qa only: record your verdict for each item your brief assigned. Only recorded verdicts count; your message text is never read as a verdict. Call again to correct one.",
+        input: verdictSchema,
+        execute: async (input: unknown, context: { sessionID: string }) => {
+          const helper = state.helpers.get(context.sessionID)
+          if (!live() || !helper) throw new Error("hivecall_verdict: this session is not a reviewer or qa helper linked to an active hivecall run, so nothing was recorded. Say so in your result.")
+          const verdicts = ((input as { verdicts?: Verdict[] }).verdicts ?? []).map((v) => ({ id: String(v.id), verdict: String(v.verdict) }))
+          const actual = sessionAgents.get(context.sessionID)
+          const problems = actual && helperRole(actual) !== helperRole(helper.agent) ? [`this session runs as ${actual}, not ${helper.agent}`] : verdictProblems(helper, verdicts)
+          if (problems.length) throw new Error(`hivecall_verdict: nothing recorded: ${problems.join("; ")}.`)
+          emit(verdictEvent(helper.parentSessionID, `${context.sessionID}#${++verdictCount}`, helper, verdicts))
+          verdicted.add(context.sessionID)
+          return { content: `Recorded: ${verdicts.map((v) => `${iscId(v.id)} ${v.verdict}`).join(", ")}.` }
+        },
+      })
       editor.add({
         name: "hivecall_ledger",
         description: "Hivecall orchestrator only: tick, fail, park or add one checklist item. A tick is refused unless it would count (verified approval, existing commit and evidence file).",
@@ -397,7 +427,7 @@ export default Plugin.define({
         const text = String(event.prompt?.text ?? "")
         // A session's first prompt is its brief when it carries a TALK-BACK block.
         if (!sessionRoles.has(event.sessionID)) sessionRoles.set(event.sessionID, /talk[- ]?back/i.test(text) ? briefRole(text) : "")
-        for (const notice of bbNoticeEvents(state, event.sessionID, text, root)) emit(notice)
+        for (const notice of bbNoticeEvents(state, event.sessionID, text)) emit(notice)
       } catch (error) { logFailure("prompt hook", error) }
     })
 
@@ -417,6 +447,12 @@ export default Plugin.define({
         if (event.tool === "subagent") {
           // Fill a missing TALK-BACK block or PROMISE line rather than block the spawn; the orchestrator is told.
           const brief = fillBrief(String(input.prompt ?? ""), event.sessionID)
+          // A native reviewer or qa is told how its verdict counts: only through the verdict tool.
+          if (helperRole(String(input.agent ?? "")) && !/hivecall_verdict/.test(brief.prompt)) {
+            brief.prompt += "\n\nVERDICT: record your verdict for each item in your PROMISE rows with the hivecall_verdict tool before you finish. Only recorded verdicts count; your message text is not read as a verdict."
+            input.prompt = brief.prompt
+            event.input = input
+          }
           if (brief.filled.length) {
             input.prompt = brief.prompt
             event.input = input
@@ -503,7 +539,8 @@ export default Plugin.define({
         return
       }
       if (violation) {
-        inFlight.delete(callID)
+        // A blocked call never runs: drop what it registered, so a later spawn's helper is not mistaken for it.
+        inFlight.delete(callID); forget(callID); spawnModels.delete(callID)
         throw new Error([rules.find((rule) => rule.id === violation?.id)?.message || violation.message, violation.detail && `(${violation.detail})`].filter(Boolean).join(" "))
       }
     })

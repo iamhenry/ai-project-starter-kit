@@ -28,10 +28,7 @@ describe("hivecall_ledger", () => {
   test("ticks an approved item in the template format, keeps progress true, and blames the caller", async () => {
     const h = await run()
     await h.call("skill", { id: "subagent-delegation" })
-    h.before({ sessionID: "ses-root", id: "rev", tool: "subagent", input: { agent: "reviewer", description: "review ISC-1",
-      prompt: "PROMISE: kind=helper rows=ISC-1 result=- lane=-\nTALK-BACK: report BUG only." } })
-    await h.send("session.tool.success", { sessionID: "ses-root", id: "rev", metadata: { sessionID: "ses_rev", status: "completed" },
-      content: [{ type: "text", text: "Decision: APPROVE_CODE" }] })
+    await h.helper({ id: "rev", agent: "reviewer", prompt: "PROMISE: kind=helper rows=ISC-1 result=- lane=-\nTALK-BACK: report BUG only.", verdicts: "ISC-1 APPROVE_CODE" })
     expect(await h.tool("hivecall_ledger", tick)).toBe("tick ISC-001 written to .hivecall/checklist.html.")
     const text = ledger(h)
     expect(text).toContain('<li id="ISC-1"><input type="checkbox" disabled checked>')
@@ -44,10 +41,7 @@ describe("hivecall_ledger", () => {
   test("a literal \\n in observed text stays on the receipt line (live smoke 2026-11-07)", async () => {
     const h = await run()
     await h.call("skill", { id: "subagent-delegation" })
-    h.before({ sessionID: "ses-root", id: "rev", tool: "subagent", input: { agent: "reviewer", description: "review ISC-1",
-      prompt: "PROMISE: kind=helper rows=ISC-1 result=- lane=-\nTALK-BACK: report BUG only." } })
-    await h.send("session.tool.success", { sessionID: "ses-root", id: "rev", metadata: { sessionID: "ses_rev", status: "completed" },
-      content: [{ type: "text", text: "Decision: APPROVE_CODE" }] })
+    await h.helper({ id: "rev", agent: "reviewer", prompt: "PROMISE: kind=helper rows=ISC-1 result=- lane=-\nTALK-BACK: report BUG only.", verdicts: "ISC-1 APPROVE_CODE" })
     expect(await h.tool("hivecall_ledger", { ...tick, observed: "od -c 'a l p h a \\n'" })).toBe("tick ISC-001 written to .hivecall/checklist.html.")
   })
 
@@ -78,5 +72,34 @@ describe("hivecall_card", () => {
     expect(readFileSync(resolve(h.root, ".hivecall/run.md"), "utf8")).toContain("## Lessons\n- builds need a clean cache")
     expect(await h.tool("hivecall_card", { action: "status", status: "closed" })).toContain("(open: ISC-1)")
     expect(await h.tool("hivecall_card", { action: "status", status: "done" })).toContain("status must be one of")
+  })
+})
+
+describe("hivecall_verdict", () => {
+  const brief = "PROMISE: kind=helper rows=ISC-1 result=- lane=-\nTALK-BACK: report BUG only."
+
+  test("only a linked reviewer or qa helper records a verdict; its brief is told how", async () => {
+    const h = await run()
+    await h.call("skill", { id: "subagent-delegation" })
+    // The orchestrator cannot approve its own work, and a reviewer running as another agent cannot either.
+    expect(await h.verdict("ses-root", "ISC-1 APPROVE_CODE")).toContain("not a reviewer or qa helper linked")
+    expect(await h.helper({ id: "rev", agent: "reviewer", prompt: brief, verdicts: "ISC-1 APPROVE_CODE" })).toBe("Recorded: ISC-001 APPROVE_CODE.")
+    const input = { agent: "reviewer", description: "rev2", prompt: brief }
+    h.before({ sessionID: "ses-root", id: "rev2", tool: "subagent", input })
+    expect(input.prompt).toContain("VERDICT: record your verdict for each item in your PROMISE rows with the hivecall_verdict tool")
+    await h.send("session.created", { sessionID: "ses_rev2", parentID: "ses-root", agent: "build" })
+    expect(await h.verdict("ses_rev2", "ISC-1 APPROVE_CODE")).toContain("not a reviewer or qa helper linked")
+  })
+
+  test("a reviewer that finishes without a recorded verdict approves nothing and the orchestrator is told at once", async () => {
+    const h = await host({ card: true, live: true })
+    copyFileSync(template, resolve(h.root, ".hivecall/checklist.html"))
+    await h.call("skill", { id: "hivecall" })
+    await h.call("skill", { id: "subagent-delegation" })
+    await h.helper({ id: "rev", agent: "reviewer", prompt: brief })
+    const told = h.sent.filter((m) => m.kind === "synthetic").map((m) => String(m.text)).join("\n")
+    expect(told).toContain("reviewer ses_rev finished without a recorded verdict, so it approved nothing")
+    expect(h.events().some((row) => row.type === "verdict-missing" && row.helper === "ses_rev")).toBe(true)
+    expect(await h.tool("hivecall_ledger", tick)).toContain("would not count")
   })
 })

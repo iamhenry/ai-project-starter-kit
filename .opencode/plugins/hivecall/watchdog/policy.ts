@@ -20,114 +20,6 @@ export function reviewScope(text: string): string[] {
   return slice?.startsWith("ISC-") ? slice.split(",") : []
 }
 
-type Verdict = "approve" | "revise"
-
-const word = (token: string): Verdict | null => token === "APPROVE_CODE" ? "approve" : token === "REVISE_CODE" ? "revise" : null
-/** A list of ids joined by commas, "and" or "&". */
-const LIST = String.raw`ISC-\d+(?:\.\d+)*(?:\s*(?:,|\band\b|&)\s*ISC-\d+(?:\.\d+)*)*`
-
-function verdictOf(text: string): Verdict | null {
-  const approve = /\bAPPROVE_CODE\b/.test(text), revise = /\bREVISE_CODE\b/.test(text)
-  return approve === revise ? null : approve ? "approve" : "revise"
-}
-
-/**
- * Reads a reviewer result. A `Decision:`/`Verdict:` line sets the overall verdict (else the only verdict used on lines naming no id);
- * a line naming ISC ids with one verdict sets those ids. Approval is per exact id inside the review scope.
- */
-export function reviewOutcome(text: string, scope: string[]): { approved: string[]; revised: boolean; withheld: string[] } | null {
-  const lines = text.split(/\r?\n/)
-  // The last Decision/Verdict line wins: a reviewer that corrects itself ends with its real verdict. A last decision that is
-  // neither APPROVE_CODE nor REVISE_CODE (ASK_USER, BLOCKED, ...) is unclear, and unclear is never an approval (invariant 4).
-  const last = lines.filter((line) => /^\W*(?:decision|verdict)\b[^:=\n]*[:=]/i.test(line)).at(-1)
-  // The decision is the first verdict-like word after the colon: "Decision: ASK_USER (ISC-1 APPROVE_CODE pending)" is unclear.
-  const head = last && /[:=].*?\b(APPROVE_CODE|REVISE_CODE|ASK_USER|BLOCKED|APPROVE_PLAN|REVISE_PLAN|SELECTED|NEEDS_[A-Z_]+)\b/i.exec(last)?.[1].toUpperCase()
-  if (last && !/^(?:APPROVE|REVISE)_CODE$/.test(head || "")) return null
-  // A decision naming no id takes its first verdict word ("REVISE_CODE. Earlier draft said APPROVE_CODE."); one naming ids
-  // with both words is per-item ("ISC-1 APPROVE_CODE; ISC-2 REVISE_CODE") and sets no overall verdict.
-  const mixed = (line: string) => /\bAPPROVE_CODE\b/i.test(line) && /\bREVISE_CODE\b/i.test(line)
-  // "APPROVE_CODE except ISC-2 ..." keeps its first verdict as the overall one for the ids it does not name.
-  const except = !!last && /\b(?:APPROVE|REVISE)_CODE\b[^;|]*?\b(?:except|but not|other than)\b/i.test(last)
-  const said = last && (except || !(mixed(last) && iscIds(last).length)) && /[:=].*?\b(APPROVE|REVISE)_CODE\b/i.exec(last)?.[1].toUpperCase()
-  const overall: Verdict | null = said ? (said === "APPROVE" ? "approve" : "revise")
-    : last ? null : verdictOf(lines.filter((line) => !iscIds(line).length).join("\n"))
-  const perItem = new Map<string, Verdict | "unclear">()
-  const set = (id: string, verdict: Verdict | "unclear") => perItem.set(id, perItem.get(id) === "revise" ? "revise" : perItem.get(id) === "unclear" && verdict === "approve" ? "unclear" : verdict)
-  // A verdict hedged by a condition ("would be APPROVE_CODE once ISC-2 is fixed") is not given yet: its ids are unclear.
-  const hedged = (text: string) => /\b(?:would|once|if|unless|pending|until)\b/i.test(text)
-  for (const line of lines) {
-    const verdict = verdictOf(line)
-    if (verdict && hedged(line)) for (const id of iscIds(line)) set(id, "unclear")
-    else if (verdict) for (const id of iscIds(line)) set(id, verdict)
-    else if (mixed(line)) {
-      // Per clause (split at ; | or a sentence end): one verdict word sets all its ids. With both words, an id takes a verdict
-      // it is bound to ("APPROVE_CODE for ISC-1, ISC-2" or "ISC-2: REVISE_CODE"); bound both ways it is held back. An unbound id
-      // takes the nearest verdicts before and after only when they agree; otherwise it is unclear, never approved (invariant 4).
-      for (const clause of line.split(/[;|]|\.\s/)) {
-        const one = verdictOf(clause.toUpperCase())
-        if (one || hedged(clause)) { for (const id of iscIds(clause)) set(id, one && !hedged(clause) ? one : "unclear"); continue }
-        if (!mixed(clause)) { for (const id of iscIds(clause)) set(id, "unclear"); continue }
-        const bound = new Map<string, Verdict>()
-        const bind = (ids: string[], token: string) => { for (const id of ids) bound.set(id, bound.get(id) && bound.get(id) !== word(token) ? "revise" : word(token)!) }
-        for (const m of clause.matchAll(new RegExp(`\\b(APPROVE_CODE|REVISE_CODE)\\b[\`*\\s]*(?:for|on)\\s+(${LIST})`, "gi"))) bind(iscIds(m[2]), m[1].toUpperCase())
-        const after = new Set(bound.keys()) // ids a "VERDICT for" list already took: of those, only the one right before a later verdict switches
-        for (const m of clause.matchAll(new RegExp(`(${LIST})[\\s:=\u2014\u2013\`*-]*\\b(APPROVE_CODE|REVISE_CODE)\\b`, "gi"))) {
-          const ids = iscIds(m[1])
-          if (ids.some((id) => after.has(id))) ids.slice(-1).forEach((id) => bound.set(id, word(m[2].toUpperCase())!))
-          else bind(ids, m[2].toUpperCase())
-        }
-        const tokens = [...clause.matchAll(/\b(APPROVE_CODE|REVISE_CODE|ISC-\d+(?:\.\d+)*)\b/gi)].map((m) => m[1].toUpperCase())
-        tokens.forEach((token, i) => {
-          if (word(token)) return
-          const id = iscId(token), before = tokens.slice(0, i).reverse().find(word), after = tokens.slice(i + 1).find(word)
-          set(id, bound.get(id) ?? (before && after && before !== after ? "unclear" : word(before ?? after ?? "") ?? "unclear"))
-        })
-      }
-    }
-    // "ISC-30 not approved" (or `| ISC-30 | NOT APPROVED |`) withholds that id even on a line whose verdict token approves
-    // the others (Nov 1, review-wrap). Only words right after the id count, never a mention of an older review.
-    for (const mark of line.matchAll(/\b(ISC-\d+(?:\.\d+)*)\b[^\w\n]{0,8}(?:is\s+)?(?:not[\s_]+approved?|held\s+back|withheld)\b/gi))
-      perItem.set(iscId(mark[1]), "revise")
-  }
-  if (!overall && !perItem.size) return null
-  const ids = scope.length ? scope : [...perItem.keys()]
-  const approved = ids.filter((id) => (perItem.get(id) ?? overall) === "approve")
-  // Ids this review explicitly sends back: they lose any approval an earlier review gave them.
-  const withheld = ids.filter((id) => (perItem.get(id) ?? overall) === "revise")
-  return { approved, revised: overall === "revise" || (!overall && [...perItem.values()].includes("revise")), withheld }
-}
-
-/** Items a qa result fails: those its negative lines name, or every item when a negative line names none. */
-function qaFailed(text: string, items: string[]): string[] {
-  const negative = text.split(/\r?\n/).filter((line) => /\b(?:FAIL|BLOCKED|NOT_REPRODUCED)\b/.test(line))
-  if (negative.some((line) => !iscIds(line).length)) return items
-  const named = new Set(negative.flatMap(iscIds))
-  return items.filter((id) => named.has(id))
-}
-
-/** `role` "pass" is a qa result read for PASS alone (REPRODUCED is a repro, not a verified pass). */
-function discoveryOutcome(text: string, scope: string[], role: string): string[] {
-  const qa = role === "qa" || role === "pass"
-  const approve = role === "pass" ? /\bPASS\b/ : qa ? /\b(?:REPRODUCED|PASS)\b/ : /\b(?:APPROVE_PLAN|SELECTED)\b/
-  const revise = qa ? /\b(?:NOT_REPRODUCED|BLOCKED|FAIL)\b/ : /\b(?:REVISE_PLAN|ASK_USER)\b/
-  const verdict = (line: string): Verdict | null => {
-    const yes = approve.test(line), no = revise.test(line)
-    return yes === no ? null : yes ? "approve" : "revise"
-  }
-  const lines = text.split(/\r?\n/)
-  // A negative on a line naming no ISC id vetoes every scoped id, even after an approving Decision/Result line.
-  if (lines.some((line) => !iscIds(line).length && revise.test(line))) return []
-  const token = role === "pass" ? "PASS|NOT_REPRODUCED|BLOCKED|FAIL" : qa ? "REPRODUCED|PASS|NOT_REPRODUCED|BLOCKED|FAIL" : "APPROVE_PLAN|SELECTED|REVISE_PLAN|ASK_USER"
-  const decision = lines.map((line) => new RegExp(`^\\W*(?:[Dd][Ee][Cc][Ii][Ss][Ii][Oo][Nn]|[Vv][Ee][Rr][Dd][Ii][Cc][Tt]|[Ss][Tt][Aa][Tt][Uu][Ss]|[Rr][Ee][Ss][Uu][Ll][Tt])\\b[^:=\\n]*[:=].*?\\b(${token})\\b`).exec(line)?.[1]).find(Boolean)
-  const overall = decision ? verdict(decision) : verdict(lines.filter((line) => !iscIds(line).length).join("\n"))
-  const perItem = new Map<string, Verdict>()
-  for (const line of lines) {
-    const result = revise.test(line) ? "revise" : verdict(line)
-    if (result) for (const id of iscIds(line)) perItem.set(id, perItem.get(id) === "revise" ? "revise" : result)
-  }
-  return scope.filter((id) => (perItem.get(id) ?? overall) === "approve")
-}
-
 /** Role a brief names for its helper: an `agent:`/`role:` line, `You are <Name> (<role>)`, or the one gate it says to run; "" if none. */
 export function briefRole(text: string): string {
   const role = "(build|general|reviewer|qa|research)"
@@ -144,7 +36,7 @@ export function agentMismatch(role: string, agent: string): boolean {
   return Boolean(role && agent && !agent.toLowerCase().includes(role))
 }
 
-export type Helper = { parentSessionID: string; agent: string; role: string; slice: string; rows: string; promise?: string; commits?: string; result?: string }
+export type Helper = { parentSessionID: string; agent: string; role: string; slice: string; rows: string; promise?: string; commits?: string }
 
 export type Memory = {
   blocks: Map<string, number>
@@ -170,7 +62,7 @@ export function memory(): Memory {
 }
 
 /** Items a helper works on: its PROMISE rows and the rows its brief names. */
-function helperItems(helper: Pick<Helper, "rows" | "promise">): string[] {
+export function helperItems(helper: Pick<Helper, "rows" | "promise">): string[] {
   return [...new Set([...(helper.promise ?? "").split(","), ...helper.rows.split(",")].filter(Boolean))]
 }
 
@@ -186,26 +78,8 @@ export function helperIdentity(input: Record<string, unknown>): Omit<Helper, "pa
   const rows = promise?.valid ? [...promise.rows].join(",") : ""
   // Commit ids the brief names: a qa PASS is about those candidates only.
   const commits = [...new Set(text.match(/\b[0-9a-f]{7,40}\b/gi) ?? [])].slice(0, 12).join(",")
-  const result = promise?.result && promise.result !== "-" ? promise.result : ""
   return { agent: String(input.agent ?? "").toLowerCase(), role: briefRole(text), slice: sliceKey(text) ?? "", rows: reviewScope(text).join(","),
-    ...(rows ? { promise: rows } : {}), ...(commits ? { commits } : {}), ...(result ? { result } : {}) }
-}
-
-/**
- * The helper's result file (its PROMISE `result=`), found as given, under `.hivecall/` or the card's verification folder, or
- * as a path its message names with the same file name; "" when none exists.
- */
-export function resultText(root: string, result: string | undefined, message: string): string {
-  if (!result) return ""
-  const name = basename(result)
-  const folder = readFile(resolve(root, ".hivecall/run.md")).match(/^\s*verification\s*:\s*`?([^`\s]+)/im)?.[1]
-  const named = [...message.matchAll(/`([^`\n]+)`/g)].map((m) => m[1]).filter((path) => basename(path) === name)
-  for (const candidate of [result, `.hivecall/${result}`, `.hivecall/verification/${result}`, ...(folder ? [`${folder}/${result}`] : []), ...named]) {
-    const full = isAbsolute(candidate) ? candidate : resolve(root, candidate)
-    const text = existsSync(full) ? readFile(full) : ""
-    if (text) return text.slice(0, 200_000)
-  }
-  return ""
+    ...(rows ? { promise: rows } : {}), ...(commits ? { commits } : {}) }
 }
 
 /**
@@ -227,34 +101,6 @@ Your final result still lists everything.`
   return { prompt: text, filled }
 }
 
-/** Turns a finished reviewer or qa helper's result text into a `review-result` event; other helpers return null. */
-export function reviewEvent(sessionID: string, helperID: string, helper: Omit<Helper, "parentSessionID">, text: string, root = ""): HiveEvent | null {
-  const role = helper.agent.includes("reviewer") ? "reviewer" : helper.agent.includes("qa") ? "qa" : ""
-  if (!role) return null
-  const scope = helper.rows ? helper.rows.split(",") : []
-  // A reviewer's result file is its record: its verdict wins over the chat message, which may be prose ("I approve ...").
-  const file = role === "reviewer" && root ? resultText(root, helper.result, text) : ""
-  // A result file with its own Decision line is final, even when that decision is unclear (then nothing is approved).
-  const decided = !!file && /^\W*(?:decision|verdict)\b[^:=\n]*[:=]/im.test(file)
-  const code = role === "reviewer" ? (decided ? reviewOutcome(file, scope) : (file && reviewOutcome(file, scope)) || reviewOutcome(text, scope)) : null
-  // A plan verdict in the reviewer's result file is its record too, over the chat text.
-  const planText = file && /\b(?:APPROVE_PLAN|SELECTED|REVISE_PLAN|ASK_USER)\b/.test(file) ? file : text
-  const discovery = discoveryOutcome(role === "reviewer" ? planText : text, helper.promise ? helper.promise.split(",") : [], role)
-  // A plan review that sends Discovery items back (REVISE_PLAN, ASK_USER) removes their earlier plan approval;
-  // it is not a code revision, so the hill-climb counts are untouched.
-  const planNo = role === "reviewer" ? planText.split(/\r?\n/).filter((line) => /\b(?:REVISE_PLAN|ASK_USER)\b/.test(line)) : []
-  const undiscovered = (planNo.some((line) => !iscIds(line).length) ? (helper.promise ? helper.promise.split(",") : []) : planNo.flatMap(iscIds))
-    .map(iscId).filter((id) => !discovery.map(iscId).includes(id))
-  const passed = role === "qa" ? discoveryOutcome(text, helper.promise ? helper.promise.split(",") : [], "pass") : []
-  // A failed attempt for the hill-climb count: a REVISE_CODE, or a qa negative, on the items the helper worked on.
-  const failed = role === "qa" ? qaFailed(text, helperItems(helper)) : code?.revised ? helperItems(helper).filter((id) => !code.approved.includes(id)) : []
-  if (!code && !discovery.length && !failed.length && !undiscovered.length) return null
-  return { type: "review-result", sessionID, helper: helperID, slice: helper.slice, approved: code?.approved.join(",") ?? "", revised: code?.revised ? 1 : 0,
-    ...(code?.withheld.length ? { withheld: code.withheld.join(",") } : {}), ...(undiscovered.length ? { undiscovered: [...new Set(undiscovered)].join(",") } : {}),
-    ...(discovery.length ? { discovery: discovery.join(",") } : {}), ...(passed.length && helper.commits ? { passed: passed.join(","), commits: helper.commits } : {}),
-    ...(failed.length ? { failed: failed.join(",") } : {}) }
-}
-
 /** Applies one neutral event to memory; used both live and when restoring `events.jsonl`. */
 export function apply(state: Memory, event: HiveEvent): void {
   const sessionID = String(event.sessionID ?? "")
@@ -267,7 +113,7 @@ export function apply(state: Memory, event: HiveEvent): void {
   if (event.type === "helper-created" && event.parentSessionID)
     state.helpers.set(sessionID, { parentSessionID: String(event.parentSessionID), agent: String(event.agent ?? ""),
       role: String(event.role ?? ""), slice: String(event.slice ?? ""), rows: String(event.rows ?? ""), ...(event.promise ? { promise: String(event.promise) } : {}),
-      ...(event.commits ? { commits: String(event.commits) } : {}), ...(event.result ? { result: String(event.result) } : {}) })
+      ...(event.commits ? { commits: String(event.commits) } : {}) })
   // The agent a helper really runs as (a harness pin), which outranks the role its brief names.
   if (event.type === "helper-agent" && event.agent) {
     const known = state.helpers.get(sessionID)

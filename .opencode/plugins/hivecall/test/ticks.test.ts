@@ -9,15 +9,12 @@ afterEach(() => { for (const cleanup of cleanups.splice(0)) cleanup() })
 const ticked = '<li id="ISC-001"><input type="checkbox" checked> a</li>\n| ISC-001 | PASS | commit abcdef1 | evidence .hivecall/proof.txt |'
 const tick = { path: ".hivecall/checklist.html", content: ticked }
 const close = { path: ".hivecall/run.md", content: "status: closed\ngoal: g\nledger: .hivecall/checklist.html\n## Final report\nDone" }
-const approval = "## Code Quality Gate Result\n\n- Decision: `APPROVE_CODE`"
+const brief = (rows: string) => `PROMISE: kind=helper rows=${rows} result=- lane=-\nTALK-BACK: report BUG only.`
 
-/** A verified native reviewer approves ISC-001. */
+/** A verified native reviewer approves ISC-001 with the verdict tool. */
 async function approve(h: Awaited<ReturnType<typeof host>>) {
   await h.call("skill", { id: "subagent-delegation" })
-  h.before({ sessionID: "ses-root", id: "rev", tool: "subagent", input: { agent: "reviewer", description: "review ISC-001",
-    prompt: "slice=ISC-001\nPROMISE: kind=helper rows=ISC-001 result=- lane=-\nTALK-BACK: report BUG only." } })
-  await h.send("session.tool.success", { sessionID: "ses-root", id: "rev", metadata: { sessionID: "ses_rev", status: "completed" },
-    content: [{ type: "text", text: approval }] })
+  await h.helper({ id: "rev", agent: "reviewer", prompt: `slice=ISC-001\n${brief("ISC-001")}`, verdicts: "ISC-001 APPROVE_CODE" })
 }
 const tickRows = (h: Awaited<ReturnType<typeof host>>) => h.events()
   .filter((row) => row.type === "tick-unearned" || row.action === "tick" || row.type === "close-unearned").map((row) => `${row.type} ${row.id ?? row.ids}`)
@@ -27,21 +24,18 @@ describe("earned ticks", () => {
     for (const [rows, count] of [["-", 1], ["ISC-001,ISC-002", 2]] as const) {
       const h = await host({ card: true })
       await h.call("skill", { id: "subagent-delegation" })
-      h.before({ sessionID: "ses-root", id: "qa", tool: "subagent", input: { agent: "qa", description: "slice=ISC-001", prompt: `PROMISE: kind=helper rows=${rows} result=- lane=-\nTALK-BACK: report BUG only.` } })
-      await h.send("session.tool.success", { sessionID: "ses-root", id: "qa", metadata: { sessionID: "ses_qa", status: "completed" }, content: [{ type: "text", text: "Result: REPRODUCED" }] })
+      const answer = await h.helper({ id: "qa", agent: "qa", prompt: brief(rows), verdicts: count === 1 ? "ISC-001 REPRODUCED" : "ISC-001 REPRODUCED, ISC-002 REPRODUCED" })
       const ledger = "<h3>Discovery</h3>\n" + Array.from({ length: count }, (_, i) => `<li id="ISC-00${i + 1}"><input type="checkbox" checked> discovery</li>\n| ISC-00${i + 1} | PASS | commit abcdef1 | evidence .hivecall/proof.txt |`).join("\n")
       const result = await h.call("write", { path: ".hivecall/checklist.html", content: ledger })
-      if (rows === "-") expect(result).toContain("ISC-001 is ticked without")
+      if (rows === "-") { expect(answer).toContain("ISC-001 is not one of the items your brief assigned"); expect(result).toContain("ISC-001 is ticked without") }
       else expect(result).toBeNull()
     }
   })
   test("discovery verdicts earn scoped ticks and allow close", async () => {
     const h = await host({ card: true })
     await h.call("skill", { id: "subagent-delegation" })
-    for (const [id, agent, rows, result] of [["qa", "qa", "ISC-001", "- Result: `REPRODUCED`"], ["rev", "reviewer", "ISC-002,ISC-003", "- Decision: `APPROVE_PLAN`"]]) {
-      h.before({ sessionID: "ses-root", id, tool: "subagent", input: { agent, description: "discovery", prompt: `PROMISE: kind=helper rows=${rows} result=- lane=-\nTALK-BACK: report BUG only.` } })
-      await h.send("session.tool.success", { sessionID: "ses-root", id, metadata: { sessionID: `ses_${id}`, status: "completed" }, content: [{ type: "text", text: result }] })
-    }
+    await h.helper({ id: "qa", agent: "qa", prompt: brief("ISC-001"), verdicts: "ISC-001 REPRODUCED" })
+    await h.helper({ id: "rev", agent: "reviewer", prompt: brief("ISC-002,ISC-003"), verdicts: "ISC-002 APPROVE_PLAN, ISC-003 SELECTED" })
     const ledger = "<h3>Discovery</h3>\n" + [1, 2, 3].map((n) => `<li id="ISC-00${n}"><input type="checkbox" checked> discovery</li>\n| ISC-00${n} | PASS | commit abcdef1 | evidence .hivecall/proof.txt |`).join("\n")
     expect(await h.call("write", { path: ".hivecall/checklist.html", content: ledger })).toBeNull()
     expect(await h.call("write", close)).toBeNull()
@@ -52,49 +46,21 @@ describe("earned ticks", () => {
     expect(readFileSync(resolve(archived, "events.jsonl"), "utf8")).toContain('"action":"tick"')
   })
 
-  test("discovery verdicts cannot approve build items or lowercase prose", async () => {
-    for (const [agent, result, heading] of [["reviewer", "Decision: APPROVE_PLAN", "Build"], ["qa", "Result: bug reproduced", "Discovery"]]) {
+  // Each case: the verdicts a helper records, in order (a later call corrects an earlier one), and whether the tick counts.
+  for (const [agent, verdicts, heading, earned] of [
+    ["qa", ["ISC-001 PASS"], "Discovery", true], ["qa", ["ISC-001 PASS"], "Build", false], ["qa", ["ISC-001 FAIL"], "Discovery", false],
+    ["qa", ["ISC-001 NOT_REPRODUCED"], "Discovery", false], ["qa", ["ISC-001 PASS", "ISC-001 BLOCKED"], "Discovery", false],
+    ["reviewer", ["ISC-001 APPROVE_PLAN"], "Build", false], ["reviewer", ["ISC-001 APPROVE_PLAN", "ISC-001 REVISE_PLAN"], "Discovery", false],
+    ["reviewer", ["ISC-001 ASK_USER"], "Discovery", false], ["reviewer", ["ISC-001 REPRODUCED"], "Discovery", false],
+    ["reviewer", ["ISC-001 REVISE_CODE", "ISC-001 APPROVE_CODE"], "Build", true], ["reviewer", ["ISC-001 APPROVE_CODE", "ISC-001 REVISE_CODE"], "Build", false],
+    ["reviewer", [], "Build", false]] as const) {
+    test(`${agent} ${JSON.stringify(verdicts)} on a ${heading} item ${earned ? "earns" : "does not earn"} a tick`, async () => {
       const h = await host({ card: true })
       await h.call("skill", { id: "subagent-delegation" })
-      h.before({ sessionID: "ses-root", id: "helper", tool: "subagent", input: { agent, description: "ISC-001", prompt: "PROMISE: kind=helper rows=ISC-001 result=- lane=-\nTALK-BACK: report BUG only." } })
-      await h.send("session.tool.success", { sessionID: "ses-root", id: "helper", metadata: { sessionID: "ses_helper", status: "completed" }, content: [{ type: "text", text: result }] })
-      expect(await h.call("write", { ...tick, content: `<h3>${heading}</h3>\n${ticked}` })).toContain("ISC-001 is ticked without")
-    }
-  })
-
-  // qa.md lets qa answer only PASS/FAIL/BLOCKED: PASS on a Discovery item's check earns it; FAIL or a later negative does not.
-  for (const [result, heading, earned] of [["Result: PASS", "Discovery", true], ["Result: PASS", "Build", false], ["Result: FAIL", "Discovery", false],
-    ["Result: PASS\nISC-001 NOT_REPRODUCED", "Discovery", false], ["Result: PASS\nISC-001 BLOCKED", "Discovery", false],
-    // An overall negative on a line naming no id vetoes, even after a PASS; another id's negative does not.
-    ["Result: PASS\nResult: FAIL", "Discovery", false], ["Result: PASS; BLOCKED", "Discovery", false], ["Result: PASS\nISC-002 FAIL", "Discovery", true]] as const) {
-    test(`qa ${JSON.stringify(result)} on a ${heading} item ${earned ? "earns" : "does not earn"} a tick`, async () => {
-      const h = await host({ card: true })
-      await h.call("skill", { id: "subagent-delegation" })
-      h.before({ sessionID: "ses-root", id: "qa", tool: "subagent", input: { agent: "qa", description: "ISC-001", prompt: "PROMISE: kind=helper rows=ISC-001 result=- lane=-\nTALK-BACK: report BUG only." } })
-      await h.send("session.tool.success", { sessionID: "ses-root", id: "qa", metadata: { sessionID: "ses_qa", status: "completed" }, content: [{ type: "text", text: result }] })
+      await h.helper({ id: "helper", agent, prompt: brief("ISC-001"), verdicts: [...verdicts] })
       const written = await h.call("write", { ...tick, content: `<h3>${heading}</h3>\n${ticked}` })
       if (earned) expect(written).toBeNull()
       else expect(written).toContain("ISC-001 is ticked without")
-    })
-  }
-
-  for (const result of ["Decision: APPROVE_PLAN\nDecision: REVISE_PLAN", "Decision: APPROVE_PLAN; ASK_USER"]) {
-    test(`reviewer ${JSON.stringify(result)} does not earn a Discovery tick`, async () => {
-      const h = await host({ card: true })
-      await h.call("skill", { id: "subagent-delegation" })
-      h.before({ sessionID: "ses-root", id: "rev", tool: "subagent", input: { agent: "reviewer", description: "ISC-001", prompt: "PROMISE: kind=helper rows=ISC-001 result=- lane=-\nTALK-BACK: report BUG only." } })
-      await h.send("session.tool.success", { sessionID: "ses-root", id: "rev", metadata: { sessionID: "ses_rev", status: "completed" }, content: [{ type: "text", text: result }] })
-      expect(await h.call("write", { ...tick, content: `<h3>Discovery</h3>\n${ticked}` })).toContain("ISC-001 is ticked without")
-    })
-  }
-
-  for (const [agent, verdict] of [["qa", "PASS"], ["qa", "NOT_REPRODUCED"], ["reviewer", "REPRODUCED"]]) {
-    test(`${agent} ${verdict} does not earn a tick`, async () => {
-      const h = await host({ card: true })
-      await h.call("skill", { id: "subagent-delegation" })
-      h.before({ sessionID: "ses-root", id: "helper", tool: "subagent", input: { agent, description: "ISC-001", prompt: "PROMISE: kind=helper rows=ISC-001 result=- lane=-\nTALK-BACK: report BUG only." } })
-      await h.send("session.tool.success", { sessionID: "ses-root", id: "helper", metadata: { sessionID: "ses_helper", status: "completed" }, content: [{ type: "text", text: `- Result: \`${verdict}\`` }] })
-      expect(await h.call("write", tick)).toContain("ISC-001 is ticked without")
     })
   }
   test("an unearned tick blocks the close three times, then until the card says Not counted, then goes through with one warning", async () => {
@@ -232,10 +198,7 @@ describe("earned ticks", () => {
     const h = await host({ card: true })
     await approve(h)
     expect(await h.call("write", tick)).toBeNull()
-    h.before({ sessionID: "ses-root", id: "qa", tool: "subagent", input: { agent: "qa", description: "verify ISC-001",
-      prompt: "PROMISE: kind=helper rows=ISC-001 result=- lane=-\nTALK-BACK: report BUG only." } })
-    await h.send("session.tool.success", { sessionID: "ses-root", id: "qa", metadata: { sessionID: "ses_qa", status: "completed" },
-      content: [{ type: "text", text: "Result: FAIL - the total is still wrong" }] })
+    await h.helper({ id: "qa", agent: "qa", prompt: brief("ISC-001"), verdicts: "ISC-001 FAIL" })
     expect(await h.call("shell", { command: "ls" })).toContain("ISC-001 is ticked without")
     expect(await h.call("write", close)).toContain("ticked without approval and receipt: ISC-001")
   })

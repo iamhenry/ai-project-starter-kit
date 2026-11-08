@@ -2,7 +2,8 @@ import { afterEach, describe, expect, test } from "bun:test"
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { resolve } from "node:path"
-import { activeRun, anchor, apply, blockDecision, memory, parsePromise, reviewEvent, reviewOutcome, ruleFor, tickedItems, unearned } from "../watchdog/policy"
+import { activeRun, anchor, apply, blockDecision, memory, parsePromise, ruleFor, tickedItems, unearned } from "../watchdog/policy"
+import { verdictEvent, verdictLines, verdictProblems } from "../watchdog/verdicts"
 
 const parity = await Bun.file(resolve(import.meta.dir, "promise-parity.json")).json() as Array<Record<string, unknown>>
 const canary = await Bun.file(resolve(import.meta.dir, "canary-false-blocks.json")).json() as Record<"runCardWrite" | "tickWrite", { command: string }>
@@ -152,28 +153,39 @@ describe("Hivecall rule fixtures", () => {
     expect(tickGate(after("ISC-002 commit abcdef2 evidence .hivecall/proof-2.txt"), state, root)).toBe("tick-gate")
   })
 
-  test("review outcomes approve exact scoped ids and honour the overall decision", () => {
-    expect(reviewOutcome("Decision: `APPROVE_CODE`", ["ISC-001", "ISC-002"])).toMatchObject({ approved: ["ISC-001", "ISC-002"], revised: false })
-    expect(reviewOutcome("- Decision: `REVISE_CODE`\n- ISC-001 — `APPROVE_CODE`\n- ISC-002 — `REVISE_CODE`", ["ISC-001", "ISC-002"]))
-      .toMatchObject({ approved: ["ISC-001"], revised: true })
-    expect(reviewOutcome("Decision: REVISE_CODE. Earlier draft said APPROVE_CODE.", ["ISC-001"])).toMatchObject({ approved: [], revised: true })
-    expect(reviewOutcome("ISC-002 APPROVE_CODE", ["ISC-001"])).toMatchObject({ approved: [], revised: false })
-    expect(reviewOutcome("No verdict here", ["ISC-001"])).toBeNull()
-    const helper = { agent: "reviewer", role: "reviewer", slice: "ISC-001", rows: "ISC-001" }
-    const discovery = reviewEvent("s", "plan", helper, "Decision: REVISE_PLAN")
-    expect(discovery).toBeNull()
-    // A qa negative earns nothing; it is recorded only as a failed attempt for the hill-climb count.
-    expect(reviewEvent("s", "qa", { ...helper, agent: "qa" }, "Result: NOT_REPRODUCED")).toMatchObject({ approved: "", failed: "ISC-001" })
-    const revisions = memory(); revisions.skills.add("s")
-    for (let i = 0; i < 2; i++) {
-      const event = reviewEvent("s", `plan${i}`, helper, "Decision: REVISE_PLAN")
-      if (event) apply(revisions, event)
-    }
-    expect(revisions.revisions.size).toBe(0)
-    const state = memory()
-    const event = { type: "review-result", sessionID: "s", helper: "thr_a", slice: "ISC-001", approved: "", revised: 1 }
+  test("verdicts are checked against the helper's role and assigned items, never guessed", () => {
+    const reviewer = { agent: "reviewer", rows: "ISC-001,ISC-002" }
+    expect(verdictProblems(reviewer, [{ id: "ISC-1", verdict: "APPROVE_CODE" }, { id: "ISC-2", verdict: "REVISE_CODE" }])).toEqual([])
+    expect(verdictProblems(reviewer, [{ id: "ISC-3", verdict: "APPROVE_CODE" }])).toEqual(["ISC-003 is not one of the items your brief assigned (ISC-001, ISC-002)"])
+    expect(verdictProblems(reviewer, [{ id: "ISC-1", verdict: "PASS" }])[0]).toContain("PASS is not a reviewer verdict")
+    expect(verdictProblems(reviewer, [{ id: "ISC-1", verdict: "APPROVE_CODE" }, { id: "ISC-001", verdict: "REVISE_CODE" }])).toEqual(["ISC-001 is given twice"])
+    expect(verdictProblems({ agent: "build", rows: "ISC-001" }, [{ id: "ISC-1", verdict: "APPROVE_CODE" }])).toEqual(["only a verified reviewer or qa helper of this run records verdicts"])
+    expect(verdictProblems({ agent: "qa", rows: "" }, [{ id: "ISC-1", verdict: "PASS" }])[0]).toContain("(none)")
+    // BB lines: exact format only; a later line for an id replaces an earlier one; prose and decorated lines are not verdicts.
+    expect(verdictLines("VERDICT ISC-1 APPROVE_CODE\nVERDICT ISC-2 APPROVE_CODE\nVERDICT ISC-1 REVISE_CODE")).toEqual([{ id: "ISC-001", verdict: "REVISE_CODE" }, { id: "ISC-002", verdict: "APPROVE_CODE" }])
+    expect(verdictLines("Decision: APPROVE_CODE\n- VERDICT ISC-1 APPROVE_CODE\nVERDICT ISC-1 APPROVE_CODE for now\n`VERDICT ISC-1 APPROVE_CODE`")).toEqual([])
+  })
+
+  test("a recorded verdict maps to approvals, failures and revisions", () => {
+    const state = memory(), helper = { slice: "ISC-001", commits: "abcdef1" }
+    apply(state, verdictEvent("s", "h1", helper, [{ id: "ISC-1", verdict: "APPROVE_CODE" }, { id: "ISC-2", verdict: "REVISE_CODE" }]))
+    expect([...state.approvals]).toEqual(["ISC-001"])
+    expect([state.failures.get("ISC-002"), state.revisions.get("s:ISC-001")]).toEqual([1, 1])
+    // A later REVISE_CODE removes an earlier approval; a plan send-back removes a plan approval without a code revision.
+    apply(state, verdictEvent("s", "h2", helper, [{ id: "ISC-1", verdict: "REVISE_CODE" }]))
+    expect(state.approvals.has("ISC-001")).toBe(false)
+    apply(state, verdictEvent("s", "p1", { slice: "plan" }, [{ id: "ISC-3", verdict: "APPROVE_PLAN" }]))
+    apply(state, verdictEvent("s", "p2", { slice: "plan" }, [{ id: "ISC-3", verdict: "ASK_USER" }]))
+    expect([state.approvals.has("discovery:ISC-003"), state.revisions.has("s:plan")]).toEqual([false, false])
+    // qa PASS is bound to the brief's commits; a later FAIL cancels it and any approval.
+    apply(state, verdictEvent("s", "q1", helper, [{ id: "ISC-4", verdict: "PASS" }]))
+    expect(state.approvals.has("pass:ISC-004@abcdef1")).toBe(true)
+    apply(state, verdictEvent("s", "q2", helper, [{ id: "ISC-4", verdict: "FAIL" }]))
+    expect([...state.approvals].filter((a) => a.includes("ISC-004"))).toEqual([])
+    // The same event read twice is one review.
+    const event = verdictEvent("s", "same", { slice: "x" }, [{ id: "ISC-5", verdict: "REVISE_CODE" }])
     apply(state, event); apply(state, event)
-    expect(state.revisions.get("s:ISC-001")).toBe(1) // the same helper result read twice counts once
+    expect(state.revisions.get("s:x")).toBe(1)
   })
 
   test("no-early-done blocks a final report or a close with open work, allows a parked run and an earned close", () => {
@@ -328,94 +340,6 @@ describe("Hivecall rule fixtures", () => {
     const ledger = (commit: string) => `<li id="ISC-001"><input type="checkbox" checked> a</li>\n<li>ISC-001: PASS - ok; evidence proof.txt; commit ${commit}</li>`
     expect(unearned(ledger(sha), approved, new Set(), root)).toEqual([])
     expect(unearned(ledger("abcdef1"), approved, new Set(), root)).toEqual(["ISC-001"])
-  })
-
-  // Nov 1: four reviews approved in prose with the Decision line only in their result file, and one withheld an id inline.
-  test("a reviewer's result file decides over prose; an id marked not approved is withheld; the last Decision line wins", () => {
-    const root = setup()
-    mkdirSync(resolve(root, ".hivecall/verification"))
-    writeFileSync(resolve(root, ".hivecall/verification/review-ho2b.md"), "# review\n- Decision: `APPROVE_CODE` (ISC-8, ISC-10)\n")
-    const helper = { agent: "reviewer", role: "reviewer", slice: "", rows: "ISC-008,ISC-010", promise: "ISC-008,ISC-010", result: "review-ho2b.md" }
-    const prose = "I approve 7de7e05 for ISC-8 and ISC-10.\n\nDetails: `.hivecall/verification/review-ho2b.md`"
-    expect(reviewEvent("ses-root", "h1", helper, prose)?.approved ?? null).toBeNull()
-    expect(reviewEvent("ses-root", "h1", helper, prose, root)?.approved).toBe("ISC-008,ISC-010")
-    expect(reviewOutcome("- Decision: `APPROVE_CODE` — approve ISC-26, ISC-36; **ISC-30 not approved** (header)", ["ISC-026", "ISC-030", "ISC-036"])?.approved)
-      .toEqual(["ISC-026", "ISC-036"])
-    expect(reviewOutcome("Scope: the last review withheld ISC-30 on one point\n## Decision: APPROVE_CODE ISC-30", ["ISC-030"])?.approved).toEqual(["ISC-030"])
-    expect(reviewOutcome("Decision: REVISE_CODE\nfixed in place, re-checked\nDecision: APPROVE_CODE", ["ISC-001"])?.approved).toEqual(["ISC-001"])
-  })
-
-  // Audit 2026-11-07: the six findings of the fresh branch review.
-  test("an unclear last decision approves nothing, even after an earlier APPROVE_CODE", () => {
-    expect(reviewOutcome("Decision: APPROVE_CODE\nthen found a question\nDecision: ASK_USER", ["ISC-001"])).toBeNull()
-    const root = setup()
-    writeFileSync(resolve(root, ".hivecall/review.md"), "Decision: ASK_USER\n")
-    const helper = { agent: "reviewer", role: "reviewer", slice: "", rows: "ISC-001", result: ".hivecall/review.md" }
-    expect(reviewEvent("ses-root", "h1", helper, "Decision: APPROVE_CODE", root)).toBeNull()
-  })
-
-  // Second audit 2026-11-07.
-  test("a decision line naming items with mixed verdicts is read per item", () => {
-    expect(reviewOutcome("Decision: ISC-1 APPROVE_CODE; ISC-2 REVISE_CODE", ["ISC-001", "ISC-002"])).toMatchObject({ approved: ["ISC-001"], withheld: ["ISC-002"] })
-    expect(reviewOutcome("Decision: APPROVE_CODE and REVISE_CODE for ISC-1", ["ISC-001"])?.approved ?? []).toEqual([])
-    // Third audit: verdict-first clauses.
-    expect(reviewOutcome("Decision: REVISE_CODE ISC-1; APPROVE_CODE ISC-2", ["ISC-001", "ISC-002"])).toMatchObject({ approved: ["ISC-002"], withheld: ["ISC-001"] })
-    // Fourth audit: grouped ids keep their clause's verdict.
-    expect(reviewOutcome("Decision: REVISE_CODE ISC-1; APPROVE_CODE ISC-2, ISC-3", ["ISC-001", "ISC-002", "ISC-003"]))
-      .toMatchObject({ approved: ["ISC-002", "ISC-003"], withheld: ["ISC-001"] })
-    expect(reviewOutcome("Decision: ISC-1, ISC-2 APPROVE_CODE; ISC-3 REVISE_CODE", ["ISC-001", "ISC-002", "ISC-003"]))
-      .toMatchObject({ approved: ["ISC-001", "ISC-002"], withheld: ["ISC-003"] })
-    // Fifth audit: direction is per clause, not per line.
-    expect(reviewOutcome("Decision: APPROVE_CODE for ISC-1; ISC-2: REVISE_CODE", ["ISC-001", "ISC-002"])).toMatchObject({ approved: ["ISC-001"], withheld: ["ISC-002"] })
-    expect(reviewOutcome("Decision: APPROVE_CODE for ISC-2 and ISC-3, REVISE_CODE for ISC-1", ["ISC-001", "ISC-002", "ISC-003"]))
-      .toMatchObject({ approved: ["ISC-002", "ISC-003"], withheld: ["ISC-001"] })
-    expect(reviewOutcome("Decision: ISC-1: REVISE_CODE (bug); ISC-2: APPROVE_CODE", ["ISC-001", "ISC-002"])).toMatchObject({ approved: ["ISC-002"], withheld: ["ISC-001"] })
-    // Sixth audit: a direction switch inside one comma clause; bound ids take their bound verdict, the rest need agreement.
-    const two = ["ISC-001", "ISC-002"]
-    expect(reviewOutcome("Decision: APPROVE_CODE for ISC-1, ISC-2: REVISE_CODE", two)).toMatchObject({ approved: ["ISC-001"], withheld: ["ISC-002"] })
-    expect(reviewOutcome("Decision: ISC-1 APPROVE_CODE, ISC-2 REVISE_CODE", two)).toMatchObject({ approved: ["ISC-001"], withheld: ["ISC-002"] })
-    expect(reviewOutcome("Decision: APPROVE_CODE, ISC-1, REVISE_CODE, ISC-2", two)?.approved).toEqual([])
-  })
-
-  test("realistic reviewer wordings approve exactly what the reviewer clearly approved", () => {
-    const all = ["ISC-001", "ISC-002", "ISC-003"]
-    const cases: [string, string[]][] = [
-      ["Decision: REVISE_CODE for ISC-2; APPROVE_CODE for ISC-1 and ISC-3", ["ISC-001", "ISC-003"]],
-      ["Decision: APPROVE_CODE (ISC-1, ISC-2, ISC-3)", all],
-      ["- ISC-1 — `APPROVE_CODE`\n- ISC-2 — `REVISE_CODE`\n- ISC-3 — `APPROVE_CODE`\nDecision: REVISE_CODE", ["ISC-001", "ISC-003"]],
-      ["| ISC-1 | APPROVE_CODE |\n| ISC-2 | REVISE_CODE |\nDecision: REVISE_CODE", ["ISC-001"]],
-      ["Decision: APPROVE_CODE for ISC-1 and ISC-3, REVISE_CODE for ISC-2", ["ISC-001", "ISC-003"]],
-      ["Decision: ISC-1 and ISC-3 APPROVE_CODE, ISC-2 REVISE_CODE", ["ISC-001", "ISC-003"]],
-      ["Decision: **REVISE_CODE** on ISC-2 (null check); **APPROVE_CODE** on ISC-1, ISC-3", ["ISC-001", "ISC-003"]],
-      ["Decision: APPROVE_CODE\nISC-2 not approved: still wrong", ["ISC-001", "ISC-003"]],
-      ["Decision: APPROVE_CODE except ISC-2 which is REVISE_CODE", ["ISC-001", "ISC-003"]],
-      ["Decision: REVISE_CODE. ISC-1 would be APPROVE_CODE once ISC-2 is fixed", []],
-      ["Decision: ASK_USER (ISC-1 APPROVE_CODE pending owner)", []],
-    ]
-    for (const [text, want] of cases) expect([text, reviewOutcome(text, all)?.approved ?? []]).toEqual([text, want])
-  })
-
-  test("a later plan review that sends a Discovery item back removes its plan approval, without a code revision", () => {
-    const state = memory(), helper = { agent: "reviewer", role: "reviewer", slice: "plan", rows: "", promise: "ISC-001" }
-    apply(state, reviewEvent("ses-root", "p1", helper, "Decision: APPROVE_PLAN")!)
-    expect(state.approvals.has("discovery:ISC-001")).toBe(true)
-    apply(state, reviewEvent("ses-root", "p2", helper, "Decision: REVISE_PLAN")!)
-    expect(state.approvals.has("discovery:ISC-001")).toBe(false)
-    expect(state.revisions.size).toBe(0)
-    // Third audit: the plan verdict may live only in the reviewer's result file.
-    const root = setup()
-    writeFileSync(resolve(root, ".hivecall/plan-review.md"), "Decision: REVISE_PLAN\n")
-    apply(state, reviewEvent("ses-root", "p3", helper, "Decision: APPROVE_PLAN")!)
-    apply(state, reviewEvent("ses-root", "p4", { ...helper, result: ".hivecall/plan-review.md" }, "Needs changes; see the file.", root)!)
-    expect(state.approvals.has("discovery:ISC-001")).toBe(false)
-  })
-
-  test("a later review that holds an item back removes that item's earlier approval", () => {
-    const state = memory(), helper = { agent: "reviewer", role: "reviewer", slice: "", rows: "ISC-001,ISC-002" }
-    apply(state, reviewEvent("ses-root", "h1", helper, "Decision: APPROVE_CODE")!)
-    expect([...state.approvals].sort()).toEqual(["ISC-001", "ISC-002"])
-    apply(state, reviewEvent("ses-root", "h2", helper, "Decision: APPROVE_CODE\nISC-2 not approved: the total is still wrong")!)
-    expect([...state.approvals]).toEqual(["ISC-001"])
   })
 
   test("a close that rewrites the run card without its Not counted line is held", () => {

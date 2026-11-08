@@ -12,9 +12,7 @@ const brief = (rows: string, extra = "") => `PROMISE: kind=helper rows=${rows} r
 let n = 0
 async function review(h: Host, verdict: string, slice: string, extra = "") {
   const id = `rev${++n}`
-  expect(h.before({ sessionID: "ses-root", id, tool: "subagent", input: { agent: "reviewer", description: `slice=${slice}`, prompt: brief("ISC-001", extra) } })).toBeUndefined()
-  await h.send("session.tool.success", { sessionID: "ses-root", id, metadata: { sessionID: `ses_${id}`, status: "completed" },
-    content: [{ type: "text", text: `- Decision: \`${verdict}\`` }] })
+  expect(await h.helper({ id, agent: "reviewer", prompt: `slice=${slice}\n${brief("ISC-001", extra)}`, verdicts: `ISC-001 ${verdict}` })).toContain("Recorded")
 }
 const build = (h: Host, extra = "") => h.call("subagent", { agent: "build", description: "slice=next", prompt: brief("ISC-001", extra) })
 const replan = (next: string) => `RE-PLAN item=ISC-001\nTried: three fixes to the outline walker\nEvidence: .hivecall/proof.txt\nNext: ${next}`
@@ -99,10 +97,9 @@ describe("the judge stays apart", () => {
     expect(await h.call("write", { path: ".hivecall/checklist.html", content: `${ledger("")}\n${old}\n<li>ISC-001: PASS; commit ${next}; evidence .hivecall/proof.txt</li>` })).toContain("CANARY")
   })
 
-  const qa = async (h: Host, sha: string, text: string) => {
+  const qa = async (h: Host, sha: string, verdict: string) => {
     const id = `qa${++n}`
-    expect(h.before({ sessionID: "ses-root", id, tool: "subagent", input: { agent: "qa", description: "qa", prompt: brief("ISC-001", `candidate ${sha}\nWHY: re-test after the ledger changed`) } })).toBeUndefined()
-    await h.send("session.tool.success", { sessionID: "ses-root", id, metadata: { sessionID: `ses_${id}`, status: "completed" }, content: [{ type: "text", text }] })
+    expect(await h.helper({ id, agent: "qa", prompt: brief("ISC-001", `candidate ${sha}\nWHY: re-test after the ledger changed`), verdicts: `ISC-001 ${verdict}` })).toContain("Recorded")
   }
   const testOnly = async () => {
     const { h, git } = await repo()
@@ -118,24 +115,24 @@ describe("the judge stays apart", () => {
     const failRow = (base: string) => `<li id="ISC-002"><input type="checkbox"> b</li>\n| ISC-002 | FAIL | commit ${base} |`
     const prove = (h: Host, base: string) => appendFileSync(resolve(h.root, ".hivecall/run.md"), `base: ${base}\n`)
     let { h, base, sha } = await testOnly()
-    await qa(h, sha, "- Result: PASS")
+    await qa(h, sha, "PASS")
     // A parent named only by a FAIL row is not proven.
     expect(await h.call("write", { path: ".hivecall/checklist.html", content: tick(sha, failRow(base)) })).toContain("ISC-001")
     prove(h, base)
     expect(await h.call("write", { path: ".hivecall/checklist.html", content: tick(sha, failRow(base)) })).toBeNull()
     ;({ h, base, sha } = await testOnly())
     prove(h, base)
-    await qa(h, sha, "- Result: REPRODUCED")
+    await qa(h, sha, "REPRODUCED")
     expect(await h.call("write", { path: ".hivecall/checklist.html", content: tick(sha, failRow(base)) })).toContain("ISC-001")
     // A PASS on another commit does not cover this one, and a later FAIL cancels a PASS.
     ;({ h, base, sha } = await testOnly())
     prove(h, base)
-    await qa(h, base, "- Result: PASS")
+    await qa(h, base, "PASS")
     expect(await h.call("write", { path: ".hivecall/checklist.html", content: tick(sha, failRow(base)) })).toContain("ISC-001")
     ;({ h, base, sha } = await testOnly())
     prove(h, base)
-    await qa(h, sha, "- Result: PASS")
-    await qa(h, sha, "ISC-001: FAIL — outline missing")
+    await qa(h, sha, "PASS")
+    await qa(h, sha, "FAIL")
     expect(await h.call("write", { path: ".hivecall/checklist.html", content: tick(sha, failRow(base)) })).toContain("ISC-001")
   })
 
@@ -146,14 +143,14 @@ describe("the judge stays apart", () => {
     writeFileSync(resolve(h.root, "requirements.txt"), "left-pad==2\n")
     git("add -A"); git("commit -qm deps")
     const sha = git("rev-parse --short HEAD")
-    await qa(h, sha, "- Result: PASS")
+    await qa(h, sha, "PASS")
     expect(await h.call("write", { path: ".hivecall/checklist.html", content: tick(sha, "") })).toContain("ISC-001")
   })
 
-  test("a bare qa FAIL line counts toward the hill-climb pause", async () => {
+  test("a qa FAIL verdict counts toward the hill-climb pause", async () => {
     const { h, git } = await repo()
     const sha = git("rev-parse --short HEAD")
-    for (let i = 0; i < 3; i++) await qa(h, sha, "ISC-001: FAIL — outline still missing")
+    for (let i = 0; i < 3; i++) await qa(h, sha, "FAIL")
     expect(await build(h)).toContain("RE-PLAN item=ISC-001")
   })
 })
