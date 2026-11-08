@@ -115,6 +115,17 @@ describe("plugin hooks", () => {
     expect(await call("write", tick)).toBeNull()
   })
 
+  test("a BB correction of one item applies only that item; unchanged or reordered lines are not counted again", async () => {
+    const { call, prompt, events } = await host({ card: true })
+    await call("skill", { id: "subagent-delegation" })
+    await call("shell", { command: `bb thread spawn --parent-self --title review --prompt 'agent: reviewer\n${brief.replace("rows=ISC-001", "rows=ISC-001,ISC-002")}'` }, "Thread spawned: thr_b1\n")
+    await call("shell", { command: `printf '%s' '${pinJson}' | ${rpc}` }, '{"ok":true}')
+    prompt("[bb system]\n\n@thread:thr_b1 completed:\n\nVERDICT ISC-001 APPROVE_CODE\nVERDICT ISC-002 ASK_USER")
+    await call("shell", { command: "bb thread output thr_b1" }, "VERDICT ISC-002 APPROVE_CODE\nVERDICT ISC-001 APPROVE_CODE")
+    expect(events().filter((row) => row.type === "review-result").map((row) => row.verdicts)).toEqual(["ISC-001=APPROVE_CODE,ISC-002=ASK_USER", "ISC-002=APPROVE_CODE"])
+    expect(await call("write", tick)).toBeNull()
+  })
+
   test("a real executed pin of the briefed role verifies the helper, so its approval unlocks the tick", async () => {
     expect(await approvedAfter({ command: `printf '%s' '${pinJson}' | ${rpc}`, output: '{\n  "ok": true\n}\n' })).toBe(true)
     // A pin naming another role than the brief does not verify it.

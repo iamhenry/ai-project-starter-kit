@@ -60,14 +60,18 @@ export default Plugin.define({
       } catch (error) { logFailure("event recording", error) }
     }
     // State always follows what happened; the log is only written while a run is active.
-    const emit = (event: HiveEvent | null) => {
+    const emit = (input: HiveEvent | null) => {
+      let event = input
       if (!event) return
-      // A helper's verdicts equal to its latest recorded ones are the same review read again (memory only: the event
-      // log is writable, so it never decides what counts).
+      // Per helper and item, a verdict equal to its latest recorded one is the same review read again; only changed
+      // items are applied (memory only: the event log is writable, so it never decides what counts).
       if (event.type === "review-result" && event.verdicts) {
         const helper = String(event.helper).split(/[@:]/)[0]
-        if (latestVerdicts.get(helper) === event.verdicts) return
-        latestVerdicts.set(helper, String(event.verdicts))
+        const changed = String(event.verdicts).split(",").map((pair) => ({ id: pair.split("=")[0], verdict: pair.split("=")[1] }))
+          .filter((v) => lastVerdict.get(`${helper}:${v.id}`) !== v.verdict)
+        if (!changed.length) return
+        for (const v of changed) lastVerdict.set(`${helper}:${v.id}`, v.verdict)
+        event = verdictEvent(String(event.sessionID), String(event.helper), { slice: String(event.slice ?? ""), commits: event.commits as string | undefined }, changed)
       }
       if (event.type === "verdict-missing") verdictMissing(String(event.helper), String(event.problems ?? ""))
       const approved = state.approvals.size
@@ -93,7 +97,7 @@ export default Plugin.define({
     const storeKey = `hivecall:${root}`
     const orchestrators = new Set<string>()
     let started = false // the grandfathered ticks were recorded for this run
-    const latestVerdicts = new Map<string, string>() // helper -> its latest recorded verdicts
+    const lastVerdict = new Map<string, string>() // `${helper}:${id}` -> its latest recorded verdict
     const save = () => {
       void Promise.resolve(ctx.storage?.set(storeKey, { approvals: [...state.approvals], grandfathered: [...state.grandfathered],
         started, orchestrators: [...orchestrators] })).catch((error) => logFailure("storage write", error))
@@ -145,7 +149,7 @@ export default Plugin.define({
     const arm = (sessionID: string) => {
       armed = true
       if (!activeRun(root) && (started || state.approvals.size || state.failures.size || state.sinceTick)) { // a fresh run: forget the last run's tick state
-        state.approvals.clear(); state.grandfathered.clear(); state.failures.clear(); state.replans.clear(); state.sinceTick = 0; started = false; orchestrators.clear(); flagged.clear(); earned.clear(); linked.clear(); lastVerdict.clear(); latestVerdicts.clear()
+        state.approvals.clear(); state.grandfathered.clear(); state.failures.clear(); state.replans.clear(); state.sinceTick = 0; started = false; orchestrators.clear(); flagged.clear(); earned.clear(); linked.clear(); lastVerdict.clear()
       }
       if (sessionID && !orchestrators.has(sessionID)) orchestrators.add(sessionID)
       putRules(sessionID)
@@ -184,7 +188,6 @@ export default Plugin.define({
     // Native helpers linked to a brief by this process (never from the writable event log), and each one's last
     // recorded verdict per item, so a repeated identical call is one attempt and a different one is a correction.
     const linked = new Set<string>()
-    const lastVerdict = new Map<string, string>() // `${child}:${id}` -> verdict
     const verdictMissing = (child: string, problems = "") => {
       const helper = state.helpers.get(child)
       const role = helperRole(helper?.agent ?? "") || helperRole(helper?.role ?? "")
@@ -385,12 +388,8 @@ export default Plugin.define({
           const actual = sessionAgents.get(context.sessionID)
           const problems = actual && helperRole(actual) !== helperRole(helper.agent) ? [`this session runs as ${actual}, not ${helper.agent}`] : verdictProblems(helper, verdicts)
           if (problems.length) throw new Error(`hivecall_verdict: nothing recorded: ${problems.join("; ")}.`)
-          const changed = verdicts.filter((v) => lastVerdict.get(`${context.sessionID}:${iscId(v.id)}`) !== v.verdict)
           verdicted.add(context.sessionID)
-          if (changed.length) {
-            emit(verdictEvent(helper.parentSessionID, `${context.sessionID}@${randomUUID()}`, helper, changed))
-            for (const v of changed) lastVerdict.set(`${context.sessionID}:${iscId(v.id)}`, v.verdict)
-          }
+          emit(verdictEvent(helper.parentSessionID, `${context.sessionID}@${randomUUID()}`, helper, verdicts))
           return { content: `Recorded: ${verdicts.map((v) => `${iscId(v.id)} ${v.verdict}`).join(", ")}.` }
         },
       })
