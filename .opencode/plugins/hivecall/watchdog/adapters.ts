@@ -321,9 +321,11 @@ export function bbOutputRead(command: string): { thread: string; json: boolean }
 export function bbVerdictEvent(helperID: string, helper: Helper, text: string): HiveEvent | null {
   if (!helperRole(helper.agent) && !helperRole(helper.role)) return null
   const verdicts = verdictLines(text)
-  const problems = verdicts.length ? verdictProblems(helper, verdicts) : ["no VERDICT lines"]
+  const problems = verdicts.length ? verdictProblems(helper, verdicts)
+    : [text.trim() ? "its result does not end with VERDICT lines" : `the completion notice carried no result; read it with bb thread output ${helperID}`]
+  // Keyed by thread and verdicts: re-reading the same result is one review, a different result is a correction.
   return problems.length ? { type: "verdict-missing", sessionID: helper.parentSessionID, helper: helperID, problems: problems.join("; ") }
-    : verdictEvent(helper.parentSessionID, helperID, helper, verdicts)
+    : verdictEvent(helper.parentSessionID, `${helperID}:${verdicts.map((v) => `${v.id}=${v.verdict}`).join(",")}`, helper, verdicts)
 }
 
 export function bbReadEvent(state: Memory, read: { thread: string; json: boolean }, output: string): HiveEvent | null {
@@ -346,7 +348,7 @@ export function bbNoticeEvents(state: Memory, sessionID: string, text: string): 
     const body = mark[3].trimStart().startsWith(":") ? text.slice(mark.index! + mark[0].length, marks[i + 1]?.index ?? text.length) : ""
     const events: Array<HiveEvent | null> = [
       mark[2] === "completed" ? { type: "helper-finished", sessionID: thread, parentSessionID: helper?.parentSessionID ?? sessionID } : null,
-      helper && body.trim() ? bbVerdictEvent(thread, helper, body) : null,
+      helper && (body.trim() || mark[2] === "completed") ? bbVerdictEvent(thread, helper, body) : null,
     ]
     return events.filter((event): event is HiveEvent => event !== null)
   })

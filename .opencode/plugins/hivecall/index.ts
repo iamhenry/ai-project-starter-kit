@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto"
+import { createHash, randomUUID } from "node:crypto"
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { homedir } from "node:os"
 import { dirname, relative, resolve } from "node:path"
@@ -32,7 +32,7 @@ export default Plugin.define({
     const skillCalls = new Map<string, string>()
     const childParents = new Map<string, string>()
     // Pending tool calls whose success output feeds helper state: native reviewers, BB spawns and BB output reads.
-    const toolCalls = new Map<string, { identity: ReturnType<typeof helperIdentity>; background: boolean }>()
+    const toolCalls = new Map<string, { identity: ReturnType<typeof helperIdentity>; background: boolean; description: string }>()
     // Background native helpers (identity in `state.helpers`) still awaiting their result, which arrives later as a
     // synthetic message in the parent.
     const backgroundHelpers = new Set<string>()
@@ -137,7 +137,7 @@ export default Plugin.define({
     const arm = (sessionID: string) => {
       armed = true
       if (!activeRun(root) && (started || state.approvals.size || state.failures.size || state.sinceTick)) { // a fresh run: forget the last run's tick state
-        state.approvals.clear(); state.grandfathered.clear(); state.failures.clear(); state.replans.clear(); state.sinceTick = 0; started = false; orchestrators.clear(); flagged.clear(); earned.clear()
+        state.approvals.clear(); state.grandfathered.clear(); state.failures.clear(); state.replans.clear(); state.sinceTick = 0; started = false; orchestrators.clear(); flagged.clear(); earned.clear(); linked.clear(); lastVerdict.clear()
       }
       if (sessionID && !orchestrators.has(sessionID)) orchestrators.add(sessionID)
       putRules(sessionID)
@@ -173,7 +173,10 @@ export default Plugin.define({
     }
     // A reviewer or qa that ends with no recorded verdict approved nothing; the orchestrator hears it at once (invariant 4).
     const verdicted = new Set<string>()
-    let verdictCount = 0
+    // Native helpers linked to a brief by this process (never from the writable event log), and each one's last
+    // recorded verdict per item, so a repeated identical call is one attempt and a different one is a correction.
+    const linked = new Set<string>()
+    const lastVerdict = new Map<string, string>() // `${child}:${id}` -> verdict
     const verdictMissing = (child: string, problems = "") => {
       const helper = state.helpers.get(child)
       const role = helperRole(helper?.agent ?? "") || helperRole(helper?.role ?? "")
@@ -195,6 +198,8 @@ export default Plugin.define({
             const event = JSON.parse(line)
             if (event.type === "warning" && event.sessionID && event.rule) warned.add(key(event.sessionID, event.rule))
             if (event.type === "tick-unearned" && event.id) flagged.add(String(event.id))
+            if (event.type === "review-result" && event.verdicts) for (const pair of String(event.verdicts).split(","))
+              lastVerdict.set(`${String(event.helper).split("@")[0]}:${pair.split("=")[0]}`, pair.split("=")[1])
             if (event.type === "allowed" && event.action === "tick" && event.id) { earned.add(String(event.id)); flagged.delete(String(event.id)) }
             apply(state, event)
           } catch { /* Ignore a partial final JSONL row. */ }
@@ -249,9 +254,15 @@ export default Plugin.define({
             // Skip when the spawn result already recorded this helper with its identity; a bare row would erase it on restore.
             // Link a native helper to its brief now, so it can record verdicts before its spawn call returns: the one open
             // spawn from this parent for this agent. With several, it stays unlinked until the spawn result names it.
-            const briefs = [...toolCalls].filter(([callID, call]) => callID.startsWith(`${data.parentID}:`) &&
+            // Several open spawns are told apart by the session title the host sets from the spawn's description.
+            const pending = [...toolCalls].filter(([callID, call]) => callID.startsWith(`${data.parentID}:`) &&
               (typeof data.agent !== "string" || call.identity.agent === data.agent))
-            if (briefs.length === 1 && !state.helpers.has(data.sessionID)) emit({ type: "helper-created", sessionID: data.sessionID, parentSessionID: data.parentID, ...briefs[0][1].identity })
+            const titled = pending.filter(([, call]) => typeof data.title === "string" && call.description === data.title)
+            const briefs = pending.length === 1 ? pending : titled
+            if (briefs.length === 1 && !state.helpers.has(data.sessionID)) {
+              emit({ type: "helper-created", sessionID: data.sessionID, parentSessionID: data.parentID, ...briefs[0][1].identity })
+              linked.add(data.sessionID)
+            }
             if (live() && !state.helpers.has(data.sessionID)) record({ type: "helper-created", sessionID: data.sessionID, parentSessionID: data.parentID })
           }
           if (event.type === "session.execution.succeeded" && typeof data.sessionID === "string") {
@@ -300,7 +311,8 @@ export default Plugin.define({
                 : native.background || /working in the background/i.test(result)
               if (child && child !== data.sessionID) {
                 // Already linked at session.created when it was the one open spawn; the identity is the same.
-                if (state.helpers.get(child)?.parentSessionID !== data.sessionID) emit({ type: "helper-created", sessionID: child, parentSessionID: data.sessionID, ...native.identity })
+                if (state.helpers.get(child)?.parentSessionID !== data.sessionID || !linked.has(child)) emit({ type: "helper-created", sessionID: child, parentSessionID: data.sessionID, ...native.identity })
+                linked.add(child)
                 const spawned = spawnModels.get(callID)
                 if (spawned && !helperModels.has(child)) helperModels.set(child, { ...spawned, parent: data.sessionID })
                 if (background) backgroundHelpers.add(child)
@@ -360,14 +372,19 @@ export default Plugin.define({
         description: "Hivecall reviewer or qa only: record your verdict for each item your brief assigned. Only recorded verdicts count; your message text is never read as a verdict. Call again to correct one.",
         input: verdictSchema,
         execute: async (input: unknown, context: { sessionID: string }) => {
-          const helper = state.helpers.get(context.sessionID)
-          if (!live() || !helper) throw new Error("hivecall_verdict: this session is not a reviewer or qa helper linked to an active hivecall run, so nothing was recorded. Say so in your result.")
+          const helper = linked.has(context.sessionID) ? state.helpers.get(context.sessionID) : undefined
+          // Only a helper this run's orchestrator spawned, linked to its brief by this plugin, records a verdict.
+          if (!live() || !helper || !isOrchestrator(helper.parentSessionID)) throw new Error("hivecall_verdict: this session is not a reviewer or qa helper linked to an active hivecall run, so nothing was recorded. Say so in your result.")
           const verdicts = ((input as { verdicts?: Verdict[] }).verdicts ?? []).map((v) => ({ id: String(v.id), verdict: String(v.verdict) }))
           const actual = sessionAgents.get(context.sessionID)
           const problems = actual && helperRole(actual) !== helperRole(helper.agent) ? [`this session runs as ${actual}, not ${helper.agent}`] : verdictProblems(helper, verdicts)
           if (problems.length) throw new Error(`hivecall_verdict: nothing recorded: ${problems.join("; ")}.`)
-          emit(verdictEvent(helper.parentSessionID, `${context.sessionID}#${++verdictCount}`, helper, verdicts))
+          const changed = verdicts.filter((v) => lastVerdict.get(`${context.sessionID}:${iscId(v.id)}`) !== v.verdict)
           verdicted.add(context.sessionID)
+          if (changed.length) {
+            emit(verdictEvent(helper.parentSessionID, `${context.sessionID}@${randomUUID()}`, helper, changed))
+            for (const v of changed) lastVerdict.set(`${context.sessionID}:${iscId(v.id)}`, v.verdict)
+          }
           return { content: `Recorded: ${verdicts.map((v) => `${iscId(v.id)} ${v.verdict}`).join(", ")}.` }
         },
       })
@@ -461,7 +478,7 @@ export default Plugin.define({
               (brief.filled.includes("PROMISE") ? " Its PROMISE rows=- claims no items, so a qa PASS from it cannot tick anything; name the rows in the next brief." : ""))
           }
           const identity = helperIdentity(input)
-          toolCalls.set(callID, { identity, background: input.background === true })
+          toolCalls.set(callID, { identity, background: input.background === true, description: String(input.description ?? "") })
           mismatch(event.sessionID, callID, identity.role, identity.agent)
           // Model policy from the run card (P5): fill the agent's model when none is passed; pause once on an off-list one.
           const policy = modelPolicy(existsSync(cardPath) ? readFileSync(cardPath, "utf8") : "")

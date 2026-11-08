@@ -154,16 +154,21 @@ describe("Hivecall rule fixtures", () => {
   })
 
   test("verdicts are checked against the helper's role and assigned items, never guessed", () => {
-    const reviewer = { agent: "reviewer", rows: "ISC-001,ISC-002" }
+    const reviewer = { agent: "reviewer", promise: "ISC-001,ISC-002" }
     expect(verdictProblems(reviewer, [{ id: "ISC-1", verdict: "APPROVE_CODE" }, { id: "ISC-2", verdict: "REVISE_CODE" }])).toEqual([])
     expect(verdictProblems(reviewer, [{ id: "ISC-3", verdict: "APPROVE_CODE" }])).toEqual(["ISC-003 is not one of the items your brief assigned (ISC-001, ISC-002)"])
     expect(verdictProblems(reviewer, [{ id: "ISC-1", verdict: "PASS" }])[0]).toContain("PASS is not a reviewer verdict")
     expect(verdictProblems(reviewer, [{ id: "ISC-1", verdict: "APPROVE_CODE" }, { id: "ISC-001", verdict: "REVISE_CODE" }])).toEqual(["ISC-001 is given twice"])
-    expect(verdictProblems({ agent: "build", rows: "ISC-001" }, [{ id: "ISC-1", verdict: "APPROVE_CODE" }])).toEqual(["only a verified reviewer or qa helper of this run records verdicts"])
-    expect(verdictProblems({ agent: "qa", rows: "" }, [{ id: "ISC-1", verdict: "PASS" }])[0]).toContain("(none)")
+    expect(verdictProblems({ agent: "build", promise: "ISC-001" }, [{ id: "ISC-1", verdict: "APPROVE_CODE" }])).toEqual(["only a verified reviewer or qa helper of this run records verdicts"])
+    expect(verdictProblems({ agent: "qa" }, [{ id: "ISC-1", verdict: "PASS" }])[0]).toContain("(none)")
     // BB lines: exact format only; a later line for an id replaces an earlier one; prose and decorated lines are not verdicts.
     expect(verdictLines("VERDICT ISC-1 APPROVE_CODE\nVERDICT ISC-2 APPROVE_CODE\nVERDICT ISC-1 REVISE_CODE")).toEqual([{ id: "ISC-001", verdict: "REVISE_CODE" }, { id: "ISC-002", verdict: "APPROVE_CODE" }])
     expect(verdictLines("Decision: APPROVE_CODE\n- VERDICT ISC-1 APPROVE_CODE\nVERDICT ISC-1 APPROVE_CODE for now\n`VERDICT ISC-1 APPROVE_CODE`")).toEqual([])
+    // Only the closing block counts: a quoted example earlier in the result is not a verdict.
+    expect(verdictLines("Example:\n```\nVERDICT ISC-1 APPROVE_CODE\n```\nI am blocked.")).toEqual([])
+    expect(verdictLines("Example: VERDICT ISC-1 APPROVE_CODE\nVERDICT ISC-2 REVISE_CODE\n\n")).toEqual([{ id: "ISC-002", verdict: "REVISE_CODE" }])
+    // A brief with rows=- but naming ISC-1 elsewhere assigns nothing.
+    expect(verdictProblems({ agent: "reviewer", promise: undefined }, [{ id: "ISC-1", verdict: "APPROVE_CODE" }])[0]).toContain("(none)")
   })
 
   test("a recorded verdict maps to approvals, failures and revisions", () => {
@@ -174,6 +179,10 @@ describe("Hivecall rule fixtures", () => {
     // A later REVISE_CODE removes an earlier approval; a plan send-back removes a plan approval without a code revision.
     apply(state, verdictEvent("s", "h2", helper, [{ id: "ISC-1", verdict: "REVISE_CODE" }]))
     expect(state.approvals.has("ISC-001")).toBe(false)
+    // Any later verdict replaces an earlier approval in full, even a non-negative one such as ASK_USER.
+    apply(state, verdictEvent("s", "h3", helper, [{ id: "ISC-6", verdict: "APPROVE_CODE" }]))
+    apply(state, verdictEvent("s", "h4", helper, [{ id: "ISC-6", verdict: "ASK_USER" }]))
+    expect(state.approvals.has("ISC-006")).toBe(false)
     apply(state, verdictEvent("s", "p1", { slice: "plan" }, [{ id: "ISC-3", verdict: "APPROVE_PLAN" }]))
     apply(state, verdictEvent("s", "p2", { slice: "plan" }, [{ id: "ISC-3", verdict: "ASK_USER" }]))
     expect([state.approvals.has("discovery:ISC-003"), state.revisions.has("s:plan")]).toEqual([false, false])

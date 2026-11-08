@@ -200,7 +200,7 @@ describe("BB child-thread lifecycle feeds the neutral helper state", () => {
   })
 
   test("a BB result without exact VERDICT lines records nothing and becomes a verdict-missing notice", () => {
-    for (const output of ["Decision: APPROVE_CODE", "- VERDICT ISC-001 APPROVE_CODE", "VERDICT ISC-001 APPROVE_CODE\nVERDICT ISC-002 APPROVE_CODE", "VERDICT ISC-001 PASS"]) {
+    for (const output of ["", "Decision: APPROVE_CODE", "- VERDICT ISC-001 APPROVE_CODE", "VERDICT ISC-001 APPROVE_CODE\nBlocked after all.", "VERDICT ISC-001 APPROVE_CODE\nVERDICT ISC-002 APPROVE_CODE", "VERDICT ISC-001 PASS"]) {
       const { root, state } = run()
       spawn(state, root, "reviewer", "thr_rev")
       const events = bbNoticeEvents(state, "ses-root", notice("thr_rev", output))

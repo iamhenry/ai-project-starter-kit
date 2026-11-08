@@ -1,5 +1,5 @@
 import { iscId } from "./promise"
-import { helperItems, type Helper, type HiveEvent } from "./policy"
+import type { Helper, HiveEvent } from "./policy"
 
 /**
  * Verdicts are structured data, never read from prose (invariant 4). A native reviewer or qa records them with the
@@ -17,11 +17,12 @@ export function helperRole(agent: string): "reviewer" | "qa" | "" {
 }
 
 /** Why these verdicts cannot be recorded for this helper; empty when they all can. */
-export function verdictProblems(helper: Pick<Helper, "agent" | "rows" | "promise">, verdicts: Verdict[]): string[] {
+export function verdictProblems(helper: Pick<Helper, "agent" | "promise">, verdicts: Verdict[]): string[] {
   const role = helperRole(helper.agent)
   if (!role) return ["only a verified reviewer or qa helper of this run records verdicts"]
   const allowed: readonly string[] = VERDICTS[role]
-  const scope = new Set(helperItems(helper).map(iscId))
+  // Only a valid PROMISE line assigns items; ids merely mentioned in the brief do not.
+  const scope = new Set((helper.promise ?? "").split(",").filter(Boolean).map(iscId))
   const seen = new Set<string>()
   const problems: string[] = []
   if (!verdicts.length) problems.push("no verdicts given")
@@ -36,10 +37,16 @@ export function verdictProblems(helper: Pick<Helper, "agent" | "rows" | "promise
   return problems
 }
 
-/** The exact `VERDICT ISC-n TOKEN` lines in a BB helper's result; a later line for an id replaces an earlier one. */
+/**
+ * The exact `VERDICT ISC-n TOKEN` lines that end a BB helper's result (the closing block only, so an example quoted
+ * earlier never counts); a later line for an id replaces an earlier one.
+ */
 export function verdictLines(text: string): Verdict[] {
   const byId = new Map<string, string>()
-  for (const m of text.matchAll(/^[ \t]*VERDICT[ \t]+(ISC-\d+(?:\.\d+)*)[ \t]+([A-Z_]+)[ \t]*$/gm)) byId.set(iscId(m[1]), m[2])
+  const lines = text.trimEnd().split(/\r?\n/)
+  const block: RegExpExecArray[] = []
+  for (let m; (m = /^[ \t]*VERDICT[ \t]+(ISC-\d+(?:\.\d+)*)[ \t]+([A-Z_]+)[ \t]*$/.exec(lines.at(-1) ?? "")); lines.pop()) block.unshift(m)
+  for (const m of block) byId.set(iscId(m[1]), m[2])
   return [...byId].map(([id, verdict]) => ({ id, verdict }))
 }
 
@@ -48,8 +55,10 @@ export function verdictEvent(sessionID: string, key: string, helper: Pick<Helper
   const ids = (...tokens: string[]) => verdicts.filter((v) => tokens.includes(v.verdict)).map((v) => iscId(v.id))
   const list = (values: string[]) => values.length ? values.join(",") : undefined
   const passed = ids("PASS")
+  // Every named item first loses what it earned before: a new verdict replaces the helper's earlier one in full.
   return { type: "review-result", sessionID, helper: key, slice: helper.slice, approved: ids("APPROVE_CODE").join(","),
-    revised: ids("REVISE_CODE").length ? 1 : 0, withheld: list(ids("REVISE_CODE")), undiscovered: list(ids("REVISE_PLAN", "ASK_USER")),
+    revised: ids("REVISE_CODE").length ? 1 : 0, reset: list(verdicts.map((v) => iscId(v.id))),
+    verdicts: verdicts.map((v) => `${iscId(v.id)}=${v.verdict}`).join(","),
     discovery: list(ids("APPROVE_PLAN", "SELECTED", "REPRODUCED", "PASS")),
     ...(passed.length && helper.commits ? { passed: passed.join(","), commits: helper.commits } : {}),
     failed: list(ids("REVISE_CODE", "FAIL", "BLOCKED", "NOT_REPRODUCED")) }

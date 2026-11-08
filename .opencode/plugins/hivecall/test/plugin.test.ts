@@ -167,7 +167,7 @@ describe("plugin hooks", () => {
     return { ...h, answer }
   }
   const approval = "ISC-001 APPROVE_CODE"
-  const helperOf = (row: Record<string, unknown>) => String(row.helper).split("#")[0]
+  const helperOf = (row: Record<string, unknown>) => String(row.helper).split("@")[0]
 
   test("a native background reviewer with a valid brief is verified and its later APPROVE_CODE unlocks the tick", async () => {
     for (const createdFirst of [true, false]) {

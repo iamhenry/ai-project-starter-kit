@@ -102,4 +102,40 @@ describe("hivecall_verdict", () => {
     expect(h.events().some((row) => row.type === "verdict-missing" && row.helper === "ses_rev")).toBe(true)
     expect(await h.tool("hivecall_ledger", tick)).toContain("would not count")
   })
+
+  // Review of bc3d004.
+  test("a helper spawned by another session, or known only from the event log, cannot record", async () => {
+    const h = await run()
+    await h.call("skill", { id: "subagent-delegation" })
+    h.session.id = "ses-other-parent"
+    await h.call("skill", { id: "subagent-delegation" })
+    h.session.id = "ses-root"
+    await h.helper({ id: "x", agent: "reviewer", prompt: brief, parent: "ses-other-parent" })
+    expect(await h.verdict("ses_x", "ISC-1 APPROVE_CODE")).toContain("not a reviewer or qa helper linked")
+    // A helper the event log names, after a restart, was never linked by this process.
+    await h.helper({ id: "r", agent: "reviewer", prompt: brief })
+    h.stop()
+    const restarted = await host({ root: h.root, store: h.store })
+    expect(await restarted.verdict("ses_r", "ISC-1 APPROVE_CODE")).toContain("not a reviewer or qa helper linked")
+  })
+
+  test("a repeated verdict is one attempt; a changed one corrects the earlier one", async () => {
+    const h = await run()
+    await h.call("skill", { id: "subagent-delegation" })
+    await h.helper({ id: "rev", agent: "reviewer", prompt: brief, verdicts: ["ISC-1 REVISE_CODE", "ISC-1 REVISE_CODE", "ISC-1 APPROVE_CODE"] })
+    const rows = h.events().filter((row) => row.type === "review-result")
+    expect(rows.map((row) => row.verdicts)).toEqual(["ISC-001=REVISE_CODE", "ISC-001=APPROVE_CODE"])
+    expect(await h.tool("hivecall_ledger", tick)).toBe("tick ISC-001 written to .hivecall/checklist.html.")
+  })
+
+  test("two foreground reviewers of one parent are told apart by their session title", async () => {
+    const h = await run()
+    await h.call("skill", { id: "subagent-delegation" })
+    for (const id of ["a", "b"]) h.before({ sessionID: "ses-root", id, tool: "subagent", input: { agent: "reviewer", description: `review ${id}`,
+      prompt: `PROMISE: kind=helper rows=ISC-${id === "a" ? 1 : 2} result=- lane=-\nTALK-BACK: report BUG only.` } })
+    for (const id of ["a", "b"]) await h.send("session.created", { sessionID: `ses_${id}`, parentID: "ses-root", agent: "reviewer", title: `review ${id}` })
+    expect(await h.verdict("ses_a", "ISC-1 APPROVE_CODE")).toBe("Recorded: ISC-001 APPROVE_CODE.")
+    expect(await h.verdict("ses_b", "ISC-1 APPROVE_CODE")).toContain("ISC-001 is not one of the items your brief assigned (ISC-002)")
+  })
+
 })

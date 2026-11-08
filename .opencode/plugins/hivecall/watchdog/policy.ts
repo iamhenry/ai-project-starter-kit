@@ -62,7 +62,7 @@ export function memory(): Memory {
 }
 
 /** Items a helper works on: its PROMISE rows and the rows its brief names. */
-export function helperItems(helper: Pick<Helper, "rows" | "promise">): string[] {
+function helperItems(helper: Pick<Helper, "rows" | "promise">): string[] {
   return [...new Set([...(helper.promise ?? "").split(","), ...helper.rows.split(",")].filter(Boolean))]
 }
 
@@ -131,8 +131,10 @@ export function apply(state: Memory, event: HiveEvent): void {
     const helper = String(event.helper ?? "")
     if (helper && state.reviewed.has(helper)) return // the same helper result read twice is one review
     if (helper) state.reviewed.add(helper)
-    for (const id of String(event.withheld ?? "").split(",").filter(Boolean)) state.approvals.delete(iscId(id))
-    for (const id of String(event.undiscovered ?? "").split(",").filter(Boolean)) state.approvals.delete(`discovery:${iscId(id)}`)
+    for (const id of String(event.reset ?? "").split(",").filter(Boolean).map(iscId)) {
+      state.approvals.delete(id); state.approvals.delete(`discovery:${id}`)
+      for (const pass of [...state.approvals]) if (pass.startsWith(`pass:${id}@`)) state.approvals.delete(pass)
+    }
     for (const id of String(event.approved ?? "").split(",").filter(Boolean)) state.approvals.add(iscId(id))
     const failed = String(event.failed ?? "").split(",").filter(Boolean)
     for (const id of failed) state.failures.set(iscId(id), (state.failures.get(iscId(id)) ?? 0) + 1)
