@@ -22,7 +22,7 @@ If the goal is missing, ask for it and stop.
 
 ## Kickoff
 
-Read [HOW-TO-WORK.md](HOW-TO-WORK.md) first: the owner's constants for every run. Read [watchdog/lessons.md](watchdog/lessons.md) before the first delegation, not only when resuming. After any context compaction or compression, and on a watchdog `REANCHOR` message, re-read HOW-TO-WORK.md and the run card (Owner rules, Proven recipes, Answers) before the next delegation. Then follow [references/kickoff.md](references/kickoff.md):
+Read [HOW-TO-WORK.md](HOW-TO-WORK.md) first: the owner's constants for every run. Read [watchdog/lessons.md](watchdog/lessons.md) before the first delegation, not only when resuming. After any context compaction or compression, and on a watchdog `REANCHOR` message, re-read HOW-TO-WORK.md and the run card (Owner rules, Proven recipes, Answers) and reload the `subagent-delegation` skill before the next delegation. Then follow [references/kickoff.md](references/kickoff.md):
 
 1. Apply the four judgment gates per item: **Clarity** (kickoff falsifiability), **Understanding** (discovery as needed), **Readiness** (judge a real plan if needed), and **Verification** (tick-gate and independent proof). Mixed lists may use clear and discovery routes together; size each gate to the evidence, not a fixed sequence. Planless discovery still needs a fresh qa `REPRODUCED` (or `PASS` on the item's check) for a reproduction/cause or a fresh reviewer `SELECTED` on a cited non-bug finding (judge-proposal even for one option); cited research alone never ticks.
 2. On a clear-task route, show both and ask "Watchdog on? (yes / no)" and "Open a PR at the end? (yes / no)"; wait for contract approval. On discovery, those answers authorize the run; judges approve or revise a plan when needed.

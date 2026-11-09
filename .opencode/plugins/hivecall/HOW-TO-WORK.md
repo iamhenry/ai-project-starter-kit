@@ -37,7 +37,7 @@ Mirrored in `VISION.md` §2.1 for human reading; when you change one here, updat
 
 ### Agents
 
-15. Every running agent is visible in BB, briefed with a `PROMISE:` line and the full TALK-BACK block. Never resume a finished helper; continue its work in a fresh visible child with a Delta.
+15. Every running agent is visible in BB, briefed with the `subagent-delegation` skill (reload it after any compaction, before the next brief), a `PROMISE:` line and the full TALK-BACK block. Never resume a finished helper; continue its work in a fresh visible child with a Delta.
 16. Talk back early through `bb thread tell`: confused, the brief is ambiguous, stuck for 5 minutes, or about to guess means a `QUESTION` to the orchestrator. Ask, then keep doing the parts that don't depend on the answer.
 17. A talk-back line names the build it is about; a line about an older build is history.
 18. Stop a helper's BB thread as soon as its result arrives.
