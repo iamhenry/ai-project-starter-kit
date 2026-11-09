@@ -54,7 +54,7 @@ if (!runs) {
   const found = await agent(
     `Find every finished hivecall run: archived threads only, in all projects, archived in the last ${days} days. Active threads may still be working, so never include them.
 1. List threads: \`bb thread list --archived --json > <tmp>/archived.json\`; keep threads whose archivedAt is within the window.
-2. For each, save \`bb thread log <id> --json --all > <tmp file>\` and keep it only if it has a completed \`skill\` tool call whose name argument is exactly \`hivecall\`. Titles, mentions and claims do not count. Also drop threads whose log never writes a run card (`.hivecall/run.md`): they discussed hivecall but ran nothing.
+2. For each, save \`bb thread log <id> --json --all > <tmp file>\` and keep it only if it has a completed \`skill\` tool call whose name argument is exactly \`hivecall\`. Titles, mentions and claims do not count. Also drop threads whose log never writes a run card (\`.hivecall/run.md\`): they discussed hivecall but ran nothing.
 3. For each kept thread, folder = the directory under ~/.hivecall/runs/*/ whose name ends with that thread id, or "" if none.
 If \`bb\` fails on a stale BB_CLI, run \`env -u BB_CLI bb ...\`. Do not read run contents beyond this.`,
     { provider: "opencode", model: "openai/gpt-6-luna", reasoningLevel: "medium", label: "Find runs", phase: "Find",
