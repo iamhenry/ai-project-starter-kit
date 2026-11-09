@@ -2,7 +2,8 @@ import { Database } from "bun:sqlite"
 import { existsSync, readFileSync, statSync } from "node:fs"
 import { homedir } from "node:os"
 import { basename, isAbsolute, resolve } from "node:path"
-import { briefRole, helperIdentity, reviewEvent, type HiveEvent, type Memory } from "./policy"
+import { briefRole, helperIdentity, type Helper, type HiveEvent, type Memory } from "./policy"
+import { helperRole, verdictEvent, verdictLines, verdictProblems } from "./verdicts"
 
 export type ShellDelegation = {
   call?: { tool: "subagent"; input: Record<string, unknown>; action: "spawn" | "tell" }
@@ -313,12 +314,26 @@ export function bbOutputRead(command: string): { thread: string; json: boolean }
   return match ? { thread: match[1], json: /--json/.test(match[0]) } : null
 }
 
+/**
+ * A BB reviewer or qa cannot call hivecall_verdict, so its result must end with one exact line per item
+ * (`VERDICT ISC-2 REVISE_CODE`). Any bad line, or none, records nothing and becomes a `verdict-missing` notice.
+ */
+export function bbVerdictEvent(helperID: string, helper: Helper, text: string): HiveEvent | null {
+  if (!helperRole(helper.agent) && !helperRole(helper.role)) return null
+  const verdicts = verdictLines(text)
+  const problems = verdicts.length ? verdictProblems(helper, verdicts)
+    : [text.trim() ? "its result does not end with VERDICT lines" : `the completion notice carried no result; read it with bb thread output ${helperID}`]
+  // Keyed by thread and verdicts: re-reading the same result is one review, a different result is a correction.
+  return problems.length ? { type: "verdict-missing", sessionID: helper.parentSessionID, helper: helperID, problems: problems.join("; ") }
+    : verdictEvent(helper.parentSessionID, `${helperID}:${verdicts.map((v) => `${v.id}=${v.verdict}`).join(",")}`, helper, verdicts)
+}
+
 export function bbReadEvent(state: Memory, read: { thread: string; json: boolean }, output: string): HiveEvent | null {
   const helper = state.helpers.get(read.thread)
   if (!helper) return null
   let text = output
   if (read.json) try { text = String(JSON.parse(output).output ?? "") } catch { text = "" }
-  return reviewEvent(helper.parentSessionID, read.thread, helper, text)
+  return bbVerdictEvent(read.thread, helper, text)
 }
 
 /**
@@ -333,7 +348,7 @@ export function bbNoticeEvents(state: Memory, sessionID: string, text: string): 
     const body = mark[3].trimStart().startsWith(":") ? text.slice(mark.index! + mark[0].length, marks[i + 1]?.index ?? text.length) : ""
     const events: Array<HiveEvent | null> = [
       mark[2] === "completed" ? { type: "helper-finished", sessionID: thread, parentSessionID: helper?.parentSessionID ?? sessionID } : null,
-      helper && body.trim() ? reviewEvent(helper.parentSessionID, thread, helper, body) : null,
+      helper && (body.trim() || mark[2] === "completed") ? bbVerdictEvent(thread, helper, body) : null,
     ]
     return events.filter((event): event is HiveEvent => event !== null)
   })

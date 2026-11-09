@@ -89,7 +89,8 @@ watchdog: on, automation auto_...
 started: <date>
 base: <branch> @ <commit> (preflight: install, typecheck, build passed)
 checkpoint: <commit to revert to>
-backup models: <agent> -> <provider/model#variant> (required; used on a credit cutoff)
+models: <agent> -> <provider/model#variant>, ... (optional; the plugin fills a helper's missing model from here and pauses once on any model not listed here or under backup models)
+backup models: <agent> -> <provider/model#variant> (required; used on a credit cutoff; the plugin names the next one when a helper stops on a usage limit)
 
 ## Overrides (only where this run differs from HOW-TO-WORK.md defaults)
 - machine: <e.g. iOS: 1 simulator, 1 native build; web: 1 browser, 1 dev server; keep 5 GB free>

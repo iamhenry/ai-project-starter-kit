@@ -63,9 +63,7 @@ describe("active-helper follow-ups", () => {
     const h = await host({ card: true })
     await spawn(h, "thr_builder", "build")
     for (const id of ["r1", "r2"]) {
-      h.before({ sessionID: "ses-root", id, tool: "subagent", input: { agent: "reviewer", prompt: brief("reviewer") } })
-      await h.send("session.tool.success", { sessionID: "ses-root", id, metadata: { sessionID: `ses_${id}`, status: "completed" },
-        content: [{ type: "text", text: "Decision: REVISE_CODE" }] })
+      await h.helper({ id, agent: "reviewer", prompt: brief("reviewer"), verdicts: "ISC-001 REVISE_CODE" })
     }
     expect(await h.call("shell", { command: "bb thread tell thr_builder 'ISC-001 fix implementation again'" })).toContain("Two REVISE_CODE")
   })

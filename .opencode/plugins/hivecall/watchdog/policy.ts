@@ -20,63 +20,6 @@ export function reviewScope(text: string): string[] {
   return slice?.startsWith("ISC-") ? slice.split(",") : []
 }
 
-type Verdict = "approve" | "revise"
-
-function verdictOf(text: string): Verdict | null {
-  const approve = /\bAPPROVE_CODE\b/.test(text), revise = /\bREVISE_CODE\b/.test(text)
-  return approve === revise ? null : approve ? "approve" : "revise"
-}
-
-/**
- * Reads a reviewer result. A `Decision:`/`Verdict:` line sets the overall verdict (else the only verdict used on lines naming no id);
- * a line naming ISC ids with one verdict sets those ids. Approval is per exact id inside the review scope.
- */
-export function reviewOutcome(text: string, scope: string[]): { approved: string[]; revised: boolean } | null {
-  const lines = text.split(/\r?\n/)
-  const decision = lines.map((line) => /^\W*(?:decision|verdict)\b[^:=\n]*[:=].*?\b(APPROVE|REVISE)_CODE\b/i.exec(line)?.[1]).find(Boolean)
-  const overall: Verdict | null = decision ? (decision.toUpperCase() === "APPROVE" ? "approve" : "revise")
-    : verdictOf(lines.filter((line) => !iscIds(line).length).join("\n"))
-  const perItem = new Map<string, Verdict>()
-  for (const line of lines) {
-    const verdict = verdictOf(line)
-    if (verdict) for (const id of iscIds(line)) perItem.set(id, perItem.get(id) === "revise" ? "revise" : verdict)
-  }
-  if (!overall && !perItem.size) return null
-  const approved = (scope.length ? scope : [...perItem.keys()]).filter((id) => (perItem.get(id) ?? overall) === "approve")
-  return { approved, revised: overall === "revise" || (!overall && [...perItem.values()].includes("revise")) }
-}
-
-/** Items a qa result fails: those its negative lines name, or every item when a negative line names none. */
-function qaFailed(text: string, items: string[]): string[] {
-  const negative = text.split(/\r?\n/).filter((line) => /\b(?:FAIL|BLOCKED|NOT_REPRODUCED)\b/.test(line))
-  if (negative.some((line) => !iscIds(line).length)) return items
-  const named = new Set(negative.flatMap(iscIds))
-  return items.filter((id) => named.has(id))
-}
-
-/** `role` "pass" is a qa result read for PASS alone (REPRODUCED is a repro, not a verified pass). */
-function discoveryOutcome(text: string, scope: string[], role: string): string[] {
-  const qa = role === "qa" || role === "pass"
-  const approve = role === "pass" ? /\bPASS\b/ : qa ? /\b(?:REPRODUCED|PASS)\b/ : /\b(?:APPROVE_PLAN|SELECTED)\b/
-  const revise = qa ? /\b(?:NOT_REPRODUCED|BLOCKED|FAIL)\b/ : /\b(?:REVISE_PLAN|ASK_USER)\b/
-  const verdict = (line: string): Verdict | null => {
-    const yes = approve.test(line), no = revise.test(line)
-    return yes === no ? null : yes ? "approve" : "revise"
-  }
-  const lines = text.split(/\r?\n/)
-  // A negative on a line naming no ISC id vetoes every scoped id, even after an approving Decision/Result line.
-  if (lines.some((line) => !iscIds(line).length && revise.test(line))) return []
-  const token = role === "pass" ? "PASS|NOT_REPRODUCED|BLOCKED|FAIL" : qa ? "REPRODUCED|PASS|NOT_REPRODUCED|BLOCKED|FAIL" : "APPROVE_PLAN|SELECTED|REVISE_PLAN|ASK_USER"
-  const decision = lines.map((line) => new RegExp(`^\\W*(?:[Dd][Ee][Cc][Ii][Ss][Ii][Oo][Nn]|[Vv][Ee][Rr][Dd][Ii][Cc][Tt]|[Ss][Tt][Aa][Tt][Uu][Ss]|[Rr][Ee][Ss][Uu][Ll][Tt])\\b[^:=\\n]*[:=].*?\\b(${token})\\b`).exec(line)?.[1]).find(Boolean)
-  const overall = decision ? verdict(decision) : verdict(lines.filter((line) => !iscIds(line).length).join("\n"))
-  const perItem = new Map<string, Verdict>()
-  for (const line of lines) {
-    const result = revise.test(line) ? "revise" : verdict(line)
-    if (result) for (const id of iscIds(line)) perItem.set(id, perItem.get(id) === "revise" ? "revise" : result)
-  }
-  return scope.filter((id) => (perItem.get(id) ?? overall) === "approve")
-}
-
 /** Role a brief names for its helper: an `agent:`/`role:` line, `You are <Name> (<role>)`, or the one gate it says to run; "" if none. */
 export function briefRole(text: string): string {
   const role = "(build|general|reviewer|qa|research)"
@@ -104,7 +47,6 @@ export type Memory = {
   grandfathered: Set<string>
   revisions: Map<string, number>
   helpers: Map<string, Helper>
-  reviewed: Set<string>
   /** Failed verdicts (REVISE_CODE, FAIL, BLOCKED, NOT_REPRODUCED) per item: attempts that did not raise the score. */
   failures: Map<string, number>
   /** Failed verdicts since the last earned tick, run-wide (hill climb). */
@@ -115,7 +57,7 @@ export type Memory = {
 
 export function memory(): Memory {
   return { blocks: new Map(), skills: new Set(), finished: new Set(), approvals: new Set(), grandfathered: new Set(), revisions: new Map(),
-    helpers: new Map(), reviewed: new Set(), failures: new Map(), sinceTick: 0, replans: new Map() }
+    helpers: new Map(), failures: new Map(), sinceTick: 0, replans: new Map() }
 }
 
 /** Items a helper works on: its PROMISE rows and the rows its brief names. */
@@ -139,20 +81,23 @@ export function helperIdentity(input: Record<string, unknown>): Omit<Helper, "pa
     ...(rows ? { promise: rows } : {}), ...(commits ? { commits } : {}) }
 }
 
-/** Turns a finished reviewer or qa helper's result text into a `review-result` event; other helpers return null. */
-export function reviewEvent(sessionID: string, helperID: string, helper: Omit<Helper, "parentSessionID">, text: string): HiveEvent | null {
-  const role = helper.agent.includes("reviewer") ? "reviewer" : helper.agent.includes("qa") ? "qa" : ""
-  if (!role) return null
-  const scope = helper.rows ? helper.rows.split(",") : []
-  const code = role === "reviewer" ? reviewOutcome(text, scope) : null
-  const discovery = discoveryOutcome(text, helper.promise ? helper.promise.split(",") : [], role)
-  const passed = role === "qa" ? discoveryOutcome(text, helper.promise ? helper.promise.split(",") : [], "pass") : []
-  // A failed attempt for the hill-climb count: a REVISE_CODE, or a qa negative, on the items the helper worked on.
-  const failed = role === "qa" ? qaFailed(text, helperItems(helper)) : code?.revised ? helperItems(helper).filter((id) => !code.approved.includes(id)) : []
-  if (!code && !discovery.length && !failed.length) return null
-  return { type: "review-result", sessionID, helper: helperID, slice: helper.slice, approved: code?.approved.join(",") ?? "", revised: code?.revised ? 1 : 0,
-    ...(discovery.length ? { discovery: discovery.join(",") } : {}), ...(passed.length && helper.commits ? { passed: passed.join(","), commits: helper.commits } : {}),
-    ...(failed.length ? { failed: failed.join(",") } : {}) }
+/**
+ * Fills what a native brief is missing instead of blocking it: the TALK-BACK block (OpenCode channel to `parentSessionID`)
+ * and a PROMISE line that claims no rows. A present but invalid PROMISE is left for brief-check: it is a typo, not a gap.
+ */
+export function fillBrief(prompt: string, parentSessionID: string): { prompt: string; filled: string[] } {
+  const filled: string[] = []
+  let text = prompt
+  if (!parsePromise(text)) { text = `${text.replace(/\s*$/, "")}\n\nPROMISE: kind=helper rows=- result=- lane=-`; filled.push("PROMISE") }
+  if (!/talk[- ]?back/i.test(text)) {
+    text += `\n\nTALK-BACK: Reach the parent mid-run without stopping: opencode api post /api/session/${parentSessionID}/prompt --data '{"text":"<msg>","delivery":"queue"}'.
+Send only BUG / BLOCKED / QUESTION, once per issue, then keep doing independent work.
+Only for emergencies, send STOP: <reason> as steer ("delivery":"steer").
+If the command fails, put the issue in your final result. The parent may steer you; follow it.
+Your final result still lists everything.`
+    filled.push("TALK-BACK")
+  }
+  return { prompt: text, filled }
 }
 
 /** Applies one neutral event to memory; used both live and when restoring `events.jsonl`. */
@@ -183,13 +128,19 @@ export function apply(state: Memory, event: HiveEvent): void {
   }
   if (event.type === "review-result") {
     const helper = String(event.helper ?? "")
-    if (helper && state.reviewed.has(helper)) return // the same helper result read twice is one review
-    if (helper) state.reviewed.add(helper)
+    for (const id of String(event.reset ?? "").split(",").filter(Boolean).map(iscId)) {
+      state.approvals.delete(id); state.approvals.delete(`discovery:${id}`)
+      for (const pass of [...state.approvals]) if (pass.startsWith(`pass:${id}@`)) state.approvals.delete(pass)
+    }
     for (const id of String(event.approved ?? "").split(",").filter(Boolean)) state.approvals.add(iscId(id))
     const failed = String(event.failed ?? "").split(",").filter(Boolean)
     for (const id of failed) state.failures.set(iscId(id), (state.failures.get(iscId(id)) ?? 0) + 1)
-    // A later failure on an item supersedes its earlier qa PASSes.
-    for (const id of failed) for (const pass of [...state.approvals]) if (pass.startsWith(`pass:${iscId(id)}@`)) state.approvals.delete(pass)
+    // A later failure on an item supersedes everything that counted it before: reviewer and discovery approvals and qa PASSes.
+    for (const id of failed.map(iscId)) {
+      state.approvals.delete(id)
+      state.approvals.delete(`discovery:${id}`)
+      for (const pass of [...state.approvals]) if (pass.startsWith(`pass:${id}@`)) state.approvals.delete(pass)
+    }
     if (failed.length) state.sinceTick++
     for (const id of String(event.discovery ?? "").split(",").filter(Boolean)) state.approvals.add(`discovery:${iscId(id)}`)
     for (const id of String(event.passed ?? "").split(",").filter(Boolean))
@@ -201,10 +152,10 @@ export function apply(state: Memory, event: HiveEvent): void {
   }
 }
 
-export function blockDecision(state: Memory, sessionID: string, rule: string): { block: boolean; count: number; warn: boolean } {
+export function blockDecision(state: Memory, sessionID: string, rule: string, cap = 3): { block: boolean; count: number; warn: boolean } {
   const key = `${sessionID}:${rule}`
   const count = state.blocks.get(key) ?? 0
-  if (count >= 3) return { block: false, count, warn: count === 3 }
+  if (count >= cap) return { block: false, count, warn: count === cap }
   state.blocks.set(key, count + 1)
   return { block: true, count: count + 1, warn: false }
 }
@@ -328,6 +279,16 @@ export function unearned(ledger: string, approvals: Set<string>, grandfathered: 
     (qaPassed(approvals, id, receiptCommit(ledger, id)) && lowRisk(ledger, root, receiptCommit(ledger, id)))) && hasReceipt(ledger, id, root) && !canary.has(id)))
 }
 
+/** Why ticking `id` on `ledger` would not count; empty when it would. */
+export function tickProblems(ledger: string, id: string, approvals: Set<string>, grandfathered: Set<string>, root: string): string[] {
+  if (!unearned(ledger, approvals, grandfathered, root).includes(id)) return []
+  const problems: string[] = []
+  if (!hasReceipt(ledger, id, root)) problems.push("no receipt: the commit must exist in this checkout and the evidence file must exist")
+  if (canaryMissing(ledger, root).includes(id)) problems.push("its commit edits a file its own check names, so the receipt needs a CANARY: line")
+  if (!problems.length) problems.push(`no verified approval for ${id} from this run (reviewer APPROVE_CODE; APPROVE_PLAN, SELECTED or qa REPRODUCED/PASS for Discovery items; or a qa PASS naming a low-risk commit)`)
+  return problems
+}
+
 function checkedItems(text: string): string[] {
   const ids = [...text.matchAll(/<li\b[^>]*id=["'](ISC-\d+(?:\.\d+)*)["'][^>]*>([\s\S]*?)<\/li>/gi)]
     .filter((m) => /\bchecked\b/i.test(m[2])).map((m) => iscId(m[1]))
@@ -347,8 +308,10 @@ function passedItems(text: string): string[] {
  * A backtick-quoted path must exist exactly; an unquoted one may end in prose punctuation such as `.` or `)`.
  */
 function hasReceipt(text: string, id: string, root: string): boolean {
-  return receipts(text, id).some((segment) => {
-    if (!/\bcommit\s+[0-9a-f]{7,40}\b/i.test(segment)) return false
+  // Only the latest receipt counts (the same one receiptCommit reads): a newer line naming a bad commit is not rescued by an older one.
+  return receipts(text, id).filter((segment) => /\bcommit\s+[0-9a-f]{7,40}\b/i.test(segment)).slice(-1).some((segment) => {
+    // The exact commit receiptCommit reads (the segment's first `commit <sha>`) must exist; another sha later in the line does not stand in.
+    if (!commitExists(root, /\bcommit\s+([0-9a-f]{7,40})\b/i.exec(segment)![1])) return false
     return [...segment.matchAll(/\bevidence\s*[:=]?\s*(?:`([^`\n]+)`|([^\s`;,|'"<>]+))/gi)].some(([, quoted, bare]) =>
       (quoted ? [quoted] : [bare, bare.replace(/[)\]}.:]+$/, "")]).some((path) => path && existsSync(isAbsolute(path) ? path : resolve(root, path))))
   })
@@ -376,6 +339,16 @@ function git(root: string, args: string[]): string | null {
     const result = spawnSync("git", args, { cwd: root, encoding: "utf8", timeout: 5000 })
     return result.status === 0 ? result.stdout : null
   } catch { return null }
+}
+
+const realCommits = new Set<string>(), repos = new Map<string, boolean>()
+/** The receipt's commit is in this checkout; true when the run is not in a git checkout (no data, no alarm). */
+function commitExists(root: string, sha: string): boolean {
+  if (!repos.has(root)) repos.set(root, git(root, ["rev-parse", "--git-dir"]) !== null)
+  if (!repos.get(root)) return true
+  const key = `${root}\n${sha.toLowerCase()}`
+  if (!realCommits.has(key) && git(root, ["cat-file", "-e", `${sha}^{commit}`]) !== null) realCommits.add(key)
+  return realCommits.has(key)
 }
 
 const commitFiles = new Map<string, string[] | null>()
@@ -458,12 +431,13 @@ function nextStatus(tool: string, text: string, original: string): string {
   return statusLine.exec(text)?.[1]?.toLowerCase() ?? ""
 }
 
-function reportWrite(tool: string, input: Record<string, unknown>, root: string): { text: string; added: boolean; status: string } | null {
+function reportWrite(tool: string, input: Record<string, unknown>, root: string): { text: string; added: boolean; status: string; card: string } | null {
   const result = reportText(tool, input, root)
   return result && { ...result, status: nextStatus(tool, result.text, readFile(resolve(root, ".hivecall/run.md"))) }
 }
 
-function reportText(tool: string, input: Record<string, unknown>, root: string): { text: string; added: boolean } | null {
+/** `card` is the run card as it will read after the call, as near as the call shows it. */
+function reportText(tool: string, input: Record<string, unknown>, root: string): { text: string; added: boolean; card: string } | null {
   let text = "", path = "", added = false
   if (tool === "write" || tool === "edit") {
     path = String(input.path ?? "")
@@ -478,7 +452,7 @@ function reportText(tool: string, input: Record<string, unknown>, root: string):
       text = original && original.includes(old) ? original.replace(old, next) : next
       added = !/##\s+Final report\b/i.test(original) && /##\s+Final report\b/i.test(text)
     }
-    return { text, added }
+    return { text, added, card: text }
   }
   if (tool === "patch") {
     const patch = String(input.patchText ?? "")
@@ -489,7 +463,9 @@ function reportText(tool: string, input: Record<string, unknown>, root: string):
     const additions = block.split(/\r?\n/).filter((line) => line.startsWith("+") && !line.startsWith("+++"))
       .map((line) => line.slice(1)).join("\n")
     added = !/##\s+Final report\b/i.test(original) && /##\s+Final report\b/i.test(additions)
-    return { text: `${additions}\n${original}`, added }
+    const removed = new Set(block.split(/\r?\n/).filter((line) => line.startsWith("-") && !line.startsWith("---")).map((line) => line.slice(1)))
+    const kept = original.split(/\r?\n/).filter((line) => !removed.has(line)).join("\n")
+    return { text: `${additions}\n${original}`, added, card: `${kept}\n${additions}` }
   }
   if (tool === "shell") {
     const command = String(input.command ?? "")
@@ -497,14 +473,24 @@ function reportText(tool: string, input: Record<string, unknown>, root: string):
     if (!target) return null
     const original = readFile(resolve(root, ".hivecall/run.md"))
     added = !/##\s+Final report\b/i.test(original) && /##\s+Final report\b/i.test(command)
-    return { text: command, added }
+    // Only a plain `>> run.md` append is known to keep the old card. Any other shell write (sed -i, write_text, `>`) leaves a
+    // card the plugin cannot read in advance, so it shows no `Not counted:` line; hivecall_card or the write tool can.
+    const appendOnly = /(?<![\d&])>>\s*['"]?[^\s;|&'"]*run\.md\b/.test(command) &&
+      !/(?<![>\d&])>(?!>)\s*['"]?[^\s;|&'"]*run\.md\b|\b(?:sed|perl)\s+-i|write_text|write_bytes|open\s*\([^)]*['"][wa]|\.replace\s*\(/.test(command)
+    return { text: command, added, card: appendOnly ? `${original}\n${command}` : "" }
   }
   return null
 }
 
 export type Call = { tool: string; input: Record<string, unknown>; sessionID: string; action?: "spawn" | "tell" }
 /** `key` scopes the block-then-allow count (for example one item), so one paused item never spends another's pauses. */
-export type Violation = { id: string; message: string; detail?: string; key?: string }
+/** `hold` keeps blocking after the 3-pause cap, because one line the caller can write clears it. */
+export type Violation = { id: string; message: string; detail?: string; key?: string; hold?: boolean; cap?: number }
+
+/** Ids the run card lists on `Not counted:` lines. */
+export function notCounted(text: string): Set<string> {
+  return new Set([...text.matchAll(/^.*\bnot counted\s*:(.*)$/gim)].flatMap((m) => iscIds(m[1])))
+}
 
 const HILL_CLIMB_ITEM = 3, HILL_CLIMB_RUN = 5
 type Replan = { item: string; next: string; problem: string }
@@ -629,9 +615,16 @@ export function ruleFor(call: Call, state: Memory, root: string): Violation | nu
       const ledger = readFile(path)
       const open = openItems(ledger), bad = unearned(ledger, state.approvals, state.grandfathered, root)
       if (!existsSync(path) || open.length || bad.length) {
+        // A checked box the plugin did not count stays visible as such (invariant 1): after the usual three pauses the close
+        // still waits until the run card names every such id on a `Not counted:` line.
+        const listed = notCounted(proposedCard.card) // the card as it will read after this call, so a rewrite cannot drop the line
+        const unlisted = bad.filter((id) => !listed.has(id))
         const detail = [open.length ? `open: ${open.join(", ")}` : "", bad.length ? `ticked without approval and receipt: ${bad.join(", ")}` : "",
-          existsSync(path) ? "" : "ledger missing"].filter(Boolean).join("; ")
-        return { id: "no-early-done", message: "Do not close the run or write the final report while counted ledger items are open or ticked without approval and receipt.", detail }
+          existsSync(path) ? "" : "ledger missing",
+          unlisted.length ? `to close with them still ticked, the run card must say \`Not counted: ${unlisted.join(", ")}\`` +
+            (call.tool === "shell" ? " (write the card with hivecall_card or the write tool; a shell rewrite cannot show that line)" : "") : ""].filter(Boolean).join("; ")
+        return { id: "no-early-done", message: "Do not close the run or write the final report while counted ledger items are open or ticked without approval and receipt.", detail,
+          ...(unlisted.length ? { hold: true } : {}) }
       }
     }
   }

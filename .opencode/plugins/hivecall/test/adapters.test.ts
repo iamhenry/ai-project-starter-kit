@@ -185,7 +185,7 @@ describe("BB child-thread lifecycle feeds the neutral helper state", () => {
   test("an approval from a BB thread whose brief only says reviewer does not count; the pin tells how to fix it", () => {
     const { root, state } = run()
     expect(spawn(state, root, "reviewer", "thr_unpinned", "ISC-001", false)).toBeNull()
-    for (const event of bbNoticeEvents(state, "ses-root", notice("thr_unpinned", "Decision: APPROVE_CODE"))) emit(state, event)
+    for (const event of bbNoticeEvents(state, "ses-root", notice("thr_unpinned", "VERDICT ISC-001 APPROVE_CODE"))) emit(state, event)
     expect(state.finished.has("thr_unpinned")).toBe(true)
     expect(tickGate(state, root)).toBe("tick-gate")
   })
@@ -194,16 +194,35 @@ describe("BB child-thread lifecycle feeds the neutral helper state", () => {
     const { root, state } = run()
     expect(tickGate(state, root)).toBe("tick-gate")
     expect(spawn(state, root, "reviewer", "thr_rev1")).toBeNull()
-    for (const event of bbNoticeEvents(state, "ses-root", notice("thr_rev1", "- Decision: `APPROVE_CODE`\n- 0 findings"))) emit(state, event)
+    for (const event of bbNoticeEvents(state, "ses-root", notice("thr_rev1", "0 findings.\nVERDICT ISC-001 APPROVE_CODE"))) emit(state, event)
     expect(state.finished.has("thr_rev1")).toBe(true)
     expect(tickGate(state, root)).toBeNull()
+  })
+
+  test("a BB result without exact VERDICT lines records nothing and becomes a verdict-missing notice", () => {
+    for (const output of ["", "Decision: APPROVE_CODE", "- VERDICT ISC-001 APPROVE_CODE", "VERDICT ISC-001 APPROVE_CODE\nBlocked after all.", "VERDICT ISC-001 APPROVE_CODE\nVERDICT ISC-002 APPROVE_CODE", "VERDICT ISC-001 PASS"]) {
+      const { root, state } = run()
+      spawn(state, root, "reviewer", "thr_rev")
+      const events = bbNoticeEvents(state, "ses-root", notice("thr_rev", output))
+      for (const event of events) emit(state, event)
+      expect([output, events.map((event) => event.type)]).toEqual([output, ["helper-finished", "verdict-missing"]])
+      expect(tickGate(state, root)).toBe("tick-gate")
+    }
+  })
+
+  test("a BB qa result FAIL, then PASS, then FAIL ends failed", () => {
+    const { root, state } = run()
+    spawn(state, root, "qa", "thr_qa")
+    for (const verdict of ["FAIL", "PASS", "FAIL"]) emit(state, bbReadEvent(state, { thread: "thr_qa", json: false }, `VERDICT ISC-001 ${verdict}`))
+    expect([...state.approvals]).toEqual([])
+    expect(state.failures.get("ISC-001")).toBe(2)
   })
 
   test("the pinned agent, not the brief text, decides whether a result is a reviewer approval", () => {
     const { root, state } = run()
     spawn(state, root, "reviewer", "thr_pinned")
     emit(state, { type: "helper-agent", sessionID: "thr_pinned", parentSessionID: "ses-root", agent: "build" })
-    for (const event of bbNoticeEvents(state, "ses-root", notice("thr_pinned", "Decision: APPROVE_CODE"))) emit(state, event)
+    for (const event of bbNoticeEvents(state, "ses-root", notice("thr_pinned", "VERDICT ISC-001 APPROVE_CODE"))) emit(state, event)
     expect(tickGate(state, root)).toBe("tick-gate")
   })
 
@@ -211,7 +230,7 @@ describe("BB child-thread lifecycle feeds the neutral helper state", () => {
     const { root, state } = run()
     spawn(state, root, "reviewer", "thr_rev2")
     const read = bbOutputRead("bb thread output thr_rev2 --json")!
-    emit(state, bbReadEvent(state, read, JSON.stringify({ output: "Decision: APPROVE_CODE" })))
+    emit(state, bbReadEvent(state, read, JSON.stringify({ output: "VERDICT ISC-001 APPROVE_CODE" })))
     expect(tickGate(state, root)).toBeNull()
     expect(bbOutputRead("bb thread output thr_rev2 | tail -3")).toBeNull()
   })
@@ -221,10 +240,8 @@ describe("BB child-thread lifecycle feeds the neutral helper state", () => {
     for (const thread of ["thr_r1", "thr_r2"]) {
       expect(spawn(state, root, "build", `${thread}fix`)).toBeNull()
       spawn(state, root, "reviewer", thread)
-      const text = `[bb system]\n\nChild thread updates:\n- @thread:${thread}fix completed.\n- @thread:${thread} completed:\n\nDecision: REVISE_CODE`
+      const text = `[bb system]\n\nChild thread updates:\n- @thread:${thread}fix completed.\n- @thread:${thread} completed:\n\nVERDICT ISC-001 REVISE_CODE`
       for (const event of bbNoticeEvents(state, "ses-root", text)) emit(state, event)
-      // Re-reading the same result does not count as another revision.
-      emit(state, bbReadEvent(state, { thread, json: false }, "Decision: REVISE_CODE"))
     }
     expect(state.revisions.get("ses-root:ISC-001")).toBe(2)
     expect(spawn(state, root, "build", "thr_fix3")).toBe("third-fix")

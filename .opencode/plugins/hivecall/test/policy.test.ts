@@ -2,7 +2,8 @@ import { afterEach, describe, expect, test } from "bun:test"
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { resolve } from "node:path"
-import { activeRun, anchor, apply, blockDecision, memory, parsePromise, reviewEvent, reviewOutcome, ruleFor, tickedItems, unearned } from "../watchdog/policy"
+import { activeRun, anchor, apply, blockDecision, memory, parsePromise, ruleFor, tickedItems, unearned } from "../watchdog/policy"
+import { verdictEvent, verdictLines, verdictProblems } from "../watchdog/verdicts"
 
 const parity = await Bun.file(resolve(import.meta.dir, "promise-parity.json")).json() as Array<Record<string, unknown>>
 const canary = await Bun.file(resolve(import.meta.dir, "canary-false-blocks.json")).json() as Record<"runCardWrite" | "tickWrite", { command: string }>
@@ -152,28 +153,48 @@ describe("Hivecall rule fixtures", () => {
     expect(tickGate(after("ISC-002 commit abcdef2 evidence .hivecall/proof-2.txt"), state, root)).toBe("tick-gate")
   })
 
-  test("review outcomes approve exact scoped ids and honour the overall decision", () => {
-    expect(reviewOutcome("Decision: `APPROVE_CODE`", ["ISC-001", "ISC-002"])).toEqual({ approved: ["ISC-001", "ISC-002"], revised: false })
-    expect(reviewOutcome("- Decision: `REVISE_CODE`\n- ISC-001 — `APPROVE_CODE`\n- ISC-002 — `REVISE_CODE`", ["ISC-001", "ISC-002"]))
-      .toEqual({ approved: ["ISC-001"], revised: true })
-    expect(reviewOutcome("Decision: REVISE_CODE. Earlier draft said APPROVE_CODE.", ["ISC-001"])).toEqual({ approved: [], revised: true })
-    expect(reviewOutcome("ISC-002 APPROVE_CODE", ["ISC-001"])).toEqual({ approved: [], revised: false })
-    expect(reviewOutcome("No verdict here", ["ISC-001"])).toBeNull()
-    const helper = { agent: "reviewer", role: "reviewer", slice: "ISC-001", rows: "ISC-001" }
-    const discovery = reviewEvent("s", "plan", helper, "Decision: REVISE_PLAN")
-    expect(discovery).toBeNull()
-    // A qa negative earns nothing; it is recorded only as a failed attempt for the hill-climb count.
-    expect(reviewEvent("s", "qa", { ...helper, agent: "qa" }, "Result: NOT_REPRODUCED")).toMatchObject({ approved: "", failed: "ISC-001" })
-    const revisions = memory(); revisions.skills.add("s")
-    for (let i = 0; i < 2; i++) {
-      const event = reviewEvent("s", `plan${i}`, helper, "Decision: REVISE_PLAN")
-      if (event) apply(revisions, event)
-    }
-    expect(revisions.revisions.size).toBe(0)
-    const state = memory()
-    const event = { type: "review-result", sessionID: "s", helper: "thr_a", slice: "ISC-001", approved: "", revised: 1 }
-    apply(state, event); apply(state, event)
-    expect(state.revisions.get("s:ISC-001")).toBe(1) // the same helper result read twice counts once
+  test("verdicts are checked against the helper's role and assigned items, never guessed", () => {
+    const reviewer = { agent: "reviewer", promise: "ISC-001,ISC-002" }
+    expect(verdictProblems(reviewer, [{ id: "ISC-1", verdict: "APPROVE_CODE" }, { id: "ISC-2", verdict: "REVISE_CODE" }])).toEqual([])
+    expect(verdictProblems(reviewer, [{ id: "ISC-3", verdict: "APPROVE_CODE" }])).toEqual(["ISC-003 is not one of the items your brief assigned (ISC-001, ISC-002)"])
+    expect(verdictProblems(reviewer, [{ id: "ISC-1", verdict: "PASS" }])[0]).toContain("PASS is not a reviewer verdict")
+    expect(verdictProblems(reviewer, [{ id: "ISC-1", verdict: "APPROVE_CODE" }, { id: "ISC-001", verdict: "REVISE_CODE" }])).toEqual(["ISC-001 is given twice"])
+    expect(verdictProblems({ agent: "build", promise: "ISC-001" }, [{ id: "ISC-1", verdict: "APPROVE_CODE" }])).toEqual(["only a verified reviewer or qa helper of this run records verdicts"])
+    expect(verdictProblems({ agent: "qa" }, [{ id: "ISC-1", verdict: "PASS" }])[0]).toContain("(none)")
+    // BB lines: exact format only; a later line for an id replaces an earlier one; prose and decorated lines are not verdicts.
+    expect(verdictLines("VERDICT ISC-1 APPROVE_CODE\nVERDICT ISC-2 APPROVE_CODE\nVERDICT ISC-1 REVISE_CODE")).toEqual([{ id: "ISC-001", verdict: "REVISE_CODE" }, { id: "ISC-002", verdict: "APPROVE_CODE" }])
+    expect(verdictLines("Decision: APPROVE_CODE\n- VERDICT ISC-1 APPROVE_CODE\nVERDICT ISC-1 APPROVE_CODE for now\n`VERDICT ISC-1 APPROVE_CODE`")).toEqual([])
+    // Only the closing block counts: a quoted example earlier in the result is not a verdict.
+    expect(verdictLines("Example:\n```\nVERDICT ISC-1 APPROVE_CODE\n```\nI am blocked.")).toEqual([])
+    expect(verdictLines("Example: VERDICT ISC-1 APPROVE_CODE\nVERDICT ISC-2 REVISE_CODE\n\n")).toEqual([{ id: "ISC-002", verdict: "REVISE_CODE" }])
+    // A brief with rows=- but naming ISC-1 elsewhere assigns nothing.
+    expect(verdictProblems({ agent: "reviewer", promise: undefined }, [{ id: "ISC-1", verdict: "APPROVE_CODE" }])[0]).toContain("(none)")
+  })
+
+  test("a recorded verdict maps to approvals, failures and revisions", () => {
+    const state = memory(), helper = { slice: "ISC-001", commits: "abcdef1" }
+    apply(state, verdictEvent("s", "h1", helper, [{ id: "ISC-1", verdict: "APPROVE_CODE" }, { id: "ISC-2", verdict: "REVISE_CODE" }]))
+    expect([...state.approvals]).toEqual(["ISC-001"])
+    expect([state.failures.get("ISC-002"), state.revisions.get("s:ISC-001")]).toEqual([1, 1])
+    // A later REVISE_CODE removes an earlier approval; a plan send-back removes a plan approval without a code revision.
+    apply(state, verdictEvent("s", "h2", helper, [{ id: "ISC-1", verdict: "REVISE_CODE" }]))
+    expect(state.approvals.has("ISC-001")).toBe(false)
+    // Any later verdict replaces an earlier approval in full, even a non-negative one such as ASK_USER.
+    apply(state, verdictEvent("s", "h3", helper, [{ id: "ISC-6", verdict: "APPROVE_CODE" }]))
+    apply(state, verdictEvent("s", "h4", helper, [{ id: "ISC-6", verdict: "ASK_USER" }]))
+    expect(state.approvals.has("ISC-006")).toBe(false)
+    apply(state, verdictEvent("s", "p1", { slice: "plan" }, [{ id: "ISC-3", verdict: "APPROVE_PLAN" }]))
+    apply(state, verdictEvent("s", "p2", { slice: "plan" }, [{ id: "ISC-3", verdict: "ASK_USER" }]))
+    expect([state.approvals.has("discovery:ISC-003"), state.revisions.has("s:plan")]).toEqual([false, false])
+    // qa PASS is bound to the brief's commits; a later FAIL cancels it and any approval.
+    apply(state, verdictEvent("s", "q1", helper, [{ id: "ISC-4", verdict: "PASS" }]))
+    expect(state.approvals.has("pass:ISC-004@abcdef1")).toBe(true)
+    apply(state, verdictEvent("s", "q2", helper, [{ id: "ISC-4", verdict: "FAIL" }]))
+    expect([...state.approvals].filter((a) => a.includes("ISC-004"))).toEqual([])
+    // A qa PASS keeps a reviewer's approval; ASK_USER withdraws it.
+    apply(state, verdictEvent("s", "h5", helper, [{ id: "ISC-7", verdict: "APPROVE_CODE" }]))
+    apply(state, verdictEvent("s", "q3", helper, [{ id: "ISC-7", verdict: "PASS" }]))
+    expect(state.approvals.has("ISC-007")).toBe(true)
   })
 
   test("no-early-done blocks a final report or a close with open work, allows a parked run and an earned close", () => {
@@ -184,7 +205,10 @@ describe("Hivecall rule fixtures", () => {
     expect(ruleFor(closed, memory(), root)?.detail).toBe("open: ISC-001")
     expect(ruleFor({ ...call, input: { ...call.input, content: "status: parked\ngoal: x\n## Final report\nDone" } }, memory(), root)).toBeNull()
     writeFileSync(resolve(root, ".hivecall/checklist.html"), '<li id="ISC-001"><input type="checkbox" checked> a</li>\n| ISC-001 | PASS | commit abcdef1 | evidence .hivecall/run.md |')
-    expect(ruleFor(closed, memory(), root)?.detail).toBe("ticked without approval and receipt: ISC-001")
+    expect(ruleFor(closed, memory(), root)?.detail).toBe("ticked without approval and receipt: ISC-001; to close with them still ticked, the run card must say `Not counted: ISC-001`")
+    expect(ruleFor(closed, memory(), root)?.hold).toBe(true)
+    const listed = { ...call, input: { ...call.input, content: "status: closed\ngoal: x\n## Final report\nNot counted: ISC-1 (no review)" } }
+    expect(ruleFor(listed, memory(), root)?.hold).toBeUndefined()
     const approved = memory()
     approved.approvals.add("ISC-001")
     expect(ruleFor(closed, approved, root)).toBeNull()
@@ -315,5 +339,40 @@ describe("Hivecall rule fixtures", () => {
       blockDecision(state, "ses-root", "brief-check").block,
       blockDecision(state, "ses-root", "brief-check").block]).toEqual([true, true, true])
     expect(blockDecision(state, "ses-root", "brief-check")).toEqual({ block: false, count: 3, warn: true })
+  })
+
+  test("a receipt counts only when its commit exists in the run's git checkout", () => {
+    const root = setup()
+    const git = (...args: string[]) => Bun.spawnSync(["git", "-c", "user.email=t@t", "-c", "user.name=t", ...args], { cwd: root }).stdout.toString().trim()
+    git("init", "-q"); writeFileSync(resolve(root, "proof.txt"), "x"); git("add", "proof.txt"); git("commit", "-qm", "c")
+    const sha = git("rev-parse", "--short", "HEAD"), approved = new Set(["ISC-001"])
+    const ledger = (commit: string) => `<li id="ISC-001"><input type="checkbox" checked> a</li>\n<li>ISC-001: PASS - ok; evidence proof.txt; commit ${commit}</li>`
+    expect(unearned(ledger(sha), approved, new Set(), root)).toEqual([])
+    expect(unearned(ledger("abcdef1"), approved, new Set(), root)).toEqual(["ISC-001"])
+  })
+
+  test("a close that rewrites the run card without its Not counted line is held", () => {
+    const root = setup('<li id="ISC-001"><input type="checkbox" checked> a</li>')
+    writeFileSync(resolve(root, ".hivecall/run.md"), "status: running\ngoal: x\nNot counted: ISC-1 (no review)\n")
+    const close = (content: string) => ruleFor({ tool: "write", sessionID: "ses-root", input: { path: ".hivecall/run.md", content } }, memory(), root)
+    expect(close("status: closed\ngoal: x\n## Final report\nDone")?.hold).toBe(true)
+    expect(close("status: closed\ngoal: x\nNot counted: ISC-1 (no review)\n## Final report\nDone")?.hold).toBeUndefined()
+    const shell = (command: string) => ruleFor({ tool: "shell", sessionID: "ses-root", input: { command } }, memory(), root)
+    expect(shell(`python3 -c "from pathlib import Path; Path('.hivecall/run.md').write_text('status: closed\\n## Final report')"`)?.hold).toBe(true)
+    expect(shell("printf 'status: closed\\n## Final report\\n' >> .hivecall/run.md")?.hold).toBeUndefined()
+    // Third audit: a script that names the line only to delete it does not keep it.
+    expect(shell(`python3 -c "from pathlib import Path; Path('.hivecall/run.md').write_text(Path('.hivecall/run.md').read_text().replace('Not counted: ISC-1 (no review)','').replace('status: running','status: closed'))"`)?.hold).toBe(true)
+  })
+
+  test("only the latest receipt counts: a newer line naming a missing commit is not rescued by an older good one", () => {
+    const root = setup()
+    const git = (...args: string[]) => Bun.spawnSync(["git", "-c", "user.email=t@t", "-c", "user.name=t", ...args], { cwd: root }).stdout.toString().trim()
+    git("init", "-q"); writeFileSync(resolve(root, "proof.txt"), "x"); git("add", "proof.txt"); git("commit", "-qm", "c")
+    const sha = git("rev-parse", "--short", "HEAD")
+    const ledger = `<li id="ISC-001"><input type="checkbox" checked> a</li>\n<li>ISC-001: PASS - ok; evidence proof.txt; commit ${sha}</li>\n` +
+      "<li>ISC-001: PASS - again; evidence proof.txt; commit abcdef1</li>"
+    expect(unearned(ledger, new Set(["ISC-001"]), new Set(), root)).toEqual(["ISC-001"])
+    const tail = `<li id="ISC-001"><input type="checkbox" checked> a</li>\n<li>ISC-001: PASS - ok; evidence proof.txt; commit abcdef1, previous commit ${sha}</li>`
+    expect(unearned(tail, new Set(["ISC-001"]), new Set(), root)).toEqual(["ISC-001"])
   })
 })

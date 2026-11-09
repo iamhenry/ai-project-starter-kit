@@ -14,7 +14,8 @@ const plugin = (await import("../index")).default as unknown as { setup(ctx: unk
 export const cleanups: Array<() => void> = []
 
 /** `store` is the plugin's private storage; pass the same map and `root` to restart the plugin on an existing run. */
-export async function host({ card = false, store = new Map<string, unknown>(), root = "" } = {}) {
+/** `live` adds the session APIs that deliver at once (synthetic messages, instruction entries); they are recorded in `sent`. */
+export async function host({ card = false, store = new Map<string, unknown>(), root = "", live = false } = {}) {
   const restart = Boolean(root)
   root ||= mkdtempSync(resolve(tmpdir(), "hive-plugin-"))
   if (!restart) {
@@ -24,7 +25,9 @@ export async function host({ card = false, store = new Map<string, unknown>(), r
     writeFileSync(resolve(root, ".hivecall/proof.txt"), "proof")
   }
   const hooks: Record<string, (event: Record<string, unknown>) => unknown> = {}
+  const tools: Record<string, { execute(input: unknown, context: { sessionID: string }): Promise<{ content: string }> }> = {}
   const queue: Array<{ type: string; data: Record<string, unknown> }> = []
+  const sent: Array<Record<string, unknown>> = []
   let wake: (() => void) | undefined
   const ctx = {
     location: { directory: root },
@@ -37,8 +40,11 @@ export async function host({ card = false, store = new Map<string, unknown>(), r
     })() },
     skill: { transform: async (edit: (editor: unknown) => void) => edit({ remove() {}, add() {} }) },
     command: { transform: async (edit: (editor: unknown) => void) => edit({ add() {} }) },
-    session: { hook: async (name: string, fn: never) => { hooks[`session.${name}`] = fn }, prompt: async () => {} },
-    tool: { hook: async (name: string, fn: never) => { hooks[`tool.${name}`] = fn } },
+    session: { hook: async (name: string, fn: never) => { hooks[`session.${name}`] = fn }, prompt: async () => {},
+      ...(live ? { synthetic: async (input: unknown) => { sent.push({ kind: "synthetic", ...(input as object) }) },
+        instructions: { entry: { put: async (input: unknown) => { sent.push({ kind: "instruction", ...(input as object) }) } } } } : {}) },
+    tool: { hook: async (name: string, fn: never) => { hooks[`tool.${name}`] = fn },
+      transform: async (edit: (editor: unknown) => void) => edit({ add: (t: { name: string }) => { tools[t.name] = t as never } }) },
     storage: { get: async (k: string) => structuredClone(store.get(k)), set: async (k: string, v: unknown) => { store.set(k, structuredClone(v)) } },
   }
   const stop = await plugin.setup(ctx)
@@ -64,9 +70,35 @@ export async function host({ card = false, store = new Map<string, unknown>(), r
     const seen = after.result.content.map((part) => part.text).join("\n")
     return seen === output ? null : seen
   }
+  /** Runs one of the plugin's own tools between the real hooks; returns its output or the error the model would see. */
+  const tool = async (name: string, input: Record<string, unknown>, sessionID = session.id) => {
+    const id = `call_${++n}`
+    try { hooks["tool.execute.before"]({ sessionID, id, tool: name, input }) } catch (error) { return (error as Error).message }
+    let text = "", status = "completed"
+    try { text = (await tools[name].execute(input, { sessionID })).content } catch (error) { text = (error as Error).message; status = "error" }
+    const after = { sessionID, id, tool: name, input, status, result: { content: [{ type: "text", text }] } }
+    hooks["tool.execute.after"]?.(after)
+    return after.result.content.map((part) => part.text).join("\n")
+  }
+  /** A helper session records verdicts with hivecall_verdict: `"ISC-001 APPROVE_CODE, ISC-002 REVISE_CODE"`. */
+  const verdict = (sessionID: string, spec: string) => tool("hivecall_verdict",
+    { verdicts: spec.split(",").map((part) => part.trim().split(/\s+/)).map(([id, verdict]) => ({ id, verdict })) }, sessionID)
+  /**
+   * A native helper spawned by `parent`: linked at session.created, records each verdict spec (if any) with the tool,
+   * then its spawn call returns. Returns the tool's last answer.
+   */
+  const helper = async ({ id, agent, prompt, child = `ses_${id}`, verdicts = [] as string | string[], background = false, parent = "ses-root" }:
+    { id: string; agent: string; prompt: string; child?: string; verdicts?: string | string[]; background?: boolean; parent?: string }) => {
+    hooks["tool.execute.before"]({ sessionID: parent, id, tool: "subagent", input: { agent, description: id, prompt, ...(background ? { background: true } : {}) } })
+    await send("session.created", { sessionID: child, parentID: parent, agent })
+    let answer = ""
+    for (const spec of [verdicts].flat()) answer = await verdict(child, spec)
+    await send("session.tool.success", { sessionID: parent, id, metadata: { sessionID: child, status: background ? "running" : "completed" }, content: [{ type: "text", text: "done" }] })
+    return answer
+  }
   const events = () => existsSync(resolve(root, ".hivecall/events.jsonl"))
     ? readFileSync(resolve(root, ".hivecall/events.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line)) : []
-  return { root, store, stop, session, call, send, events, hooks, before: (event: Record<string, unknown>) => hooks["tool.execute.before"](event),
+  return { root, store, stop, session, call, send, events, hooks, tool, tools, sent, verdict, helper, before: (event: Record<string, unknown>) => hooks["tool.execute.before"](event),
     after: (event: Record<string, unknown>) => hooks["tool.execute.after"](event),
     prompt: (text: string) => hooks["session.prompt"]({ sessionID: "ses-root", prompt: { text } }) }
 }
