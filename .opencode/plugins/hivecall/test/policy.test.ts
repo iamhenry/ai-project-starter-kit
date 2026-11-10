@@ -351,6 +351,38 @@ describe("Hivecall rule fixtures", () => {
     expect(unearned(ledger("abcdef1"), approved, new Set(), root)).toEqual(["ISC-001"])
   })
 
+  test("a close over a parked item is held until the run card says Goal met: no for it", () => {
+    const root = setup('<li id="ISC-002"><input type="checkbox" data-status="parked"> b</li>\n- [ ] ISC-3 c (parked)')
+    const close = (content: string) => ruleFor({ tool: "write", sessionID: "ses-root", input: { path: ".hivecall/run.md", content } }, memory(), root)
+    const held = close("status: closed\ngoal: x\n## Final report\nDone")
+    expect(held?.hold).toBe(true)
+    expect(held?.detail).toContain("Goal met: no - parked: ISC-002, ISC-003")
+    expect(close("status: closed\ngoal: x\n## Final report\nGoal met: no - parked: ISC-2\nDone")?.detail).toContain("parked: ISC-003;")
+    expect(close("status: closed\ngoal: x\n## Final report\nGoal met: no - parked: ISC-2, ISC-3\nDone")).toBeNull()
+    expect(close("status: parked\ngoal: x\n## Final report\nDone")).toBeNull()
+  })
+
+  test("the parked hold survives other open items, ignores shell comments and references", () => {
+    // Review finding 1: an open item alongside the park must not skip the hold (it would pass after three pauses).
+    const mixed = setup('<li id="ISC-002"><input type="checkbox" data-status="parked"> b</li>\n<li id="ISC-004"><input type="checkbox"> open</li>')
+    const held = ruleFor({ tool: "write", sessionID: "ses-root", input: { path: ".hivecall/run.md", content: "status: closed\ngoal: x\n## Final report\nDone" } }, memory(), mixed)
+    expect(held?.hold).toBe(true)
+    expect(held?.detail).toContain("Goal met: no - parked: ISC-002")
+    // Review finding 2: a shell append counts only the saved card, not a comment in the command.
+    const root = setup("- [ ] ISC-1 a (parked)")
+    const shell = (command: string) => ruleFor({ tool: "shell", sessionID: "ses-root", input: { command } }, memory(), root)
+    expect(shell("printf '\\n## Final report\\nDone\\n' >> .hivecall/run.md # Goal met: no - parked: ISC-1")?.hold).toBe(true)
+    writeFileSync(resolve(root, ".hivecall/run.md"), "status: running\ngoal: x\nGoal met: no - parked: ISC-1\n")
+    expect(shell("printf '\\n## Final report\\nDone\\n' >> .hivecall/run.md")).toBeNull()
+    // Delta review: a rewrite (tee) bundled with an append erases the saved line, so it counts nothing.
+    expect(shell("printf 'status: closed\\n## Final report\\nDone\\n' | tee .hivecall/run.md\nprintf '\\n' >> .hivecall/run.md")?.hold).toBe(true)
+    expect(shell("cp other.md .hivecall/run.md; printf '\\n## Final report\\nDone\\n' >> .hivecall/run.md")?.hold).toBe(true)
+    // Review finding 3: only the row's own id is parked, not ids it mentions.
+    const refs = setup("- [ ] ISC-5 c needs ISC-6 (parked)\n- [x] ISC-6 d")
+    const detail = ruleFor({ tool: "write", sessionID: "ses-root", input: { path: ".hivecall/run.md", content: "status: closed\ngoal: x\n## Final report\nDone" } }, memory(), refs)?.detail
+    expect(detail).toContain("parked: ISC-005;")
+  })
+
   test("a close that rewrites the run card without its Not counted line is held", () => {
     const root = setup('<li id="ISC-001"><input type="checkbox" checked> a</li>')
     writeFileSync(resolve(root, ".hivecall/run.md"), "status: running\ngoal: x\nNot counted: ISC-1 (no review)\n")

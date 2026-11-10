@@ -234,6 +234,17 @@ function openItems(ledger: string): string[] {
   return [...new Set(items)]
 }
 
+/** Unticked items marked parked, as normalized ids. */
+function parkedItems(ledger: string): string[] {
+  const items = [...ledger.matchAll(/<li\b[^>]*id=["'](ISC-\d+(?:\.\d+)?)["'][^>]*>([\s\S]*?)<\/li>/gi)]
+    .filter((m) => !/\bchecked\b/i.test(m[2]) && /parked/i.test(m[2])).map((m) => m[1])
+  for (const line of ledger.split(/\r?\n/)) { // the row's own id is its first one; later ids are references
+    const id = line.match(/\bISC-\d+(?:\.\d+)?\b/i)?.[0]
+    if (id && /^\s*[-*]\s+\[ \]/.test(line) && /parked/i.test(line)) items.push(id)
+  }
+  return [...new Set(items.map(iscId))]
+}
+
 /** The active run's ledger file. */
 export function activeLedger(root: string): string {
   return ledgerPath(root, card(root))
@@ -476,7 +487,7 @@ function reportText(tool: string, input: Record<string, unknown>, root: string):
     // Only a plain `>> run.md` append is known to keep the old card. Any other shell write (sed -i, write_text, `>`) leaves a
     // card the plugin cannot read in advance, so it shows no `Not counted:` line; hivecall_card or the write tool can.
     const appendOnly = /(?<![\d&])>>\s*['"]?[^\s;|&'"]*run\.md\b/.test(command) &&
-      !/(?<![>\d&])>(?!>)\s*['"]?[^\s;|&'"]*run\.md\b|\b(?:sed|perl)\s+-i|write_text|write_bytes|open\s*\([^)]*['"][wa]|\.replace\s*\(/.test(command)
+      !/(?<![>\d&])>(?!>)\s*['"]?[^\s;|&'"]*run\.md\b|\b(?:sed|perl)\s+-i|\btee\b|\b(?:cp|mv|install|rsync)\b[^;|&\n]*run\.md\b|write_text|write_bytes|open\s*\([^)]*['"][wa]|\.replace\s*\(/.test(command)
     return { text: command, added, card: appendOnly ? `${original}\n${command}` : "" }
   }
   return null
@@ -614,6 +625,13 @@ export function ruleFor(call: Call, state: Memory, root: string): Violation | nu
       const path = ledgerPath(root, run)
       const ledger = readFile(path)
       const open = openItems(ledger), bad = unearned(ledger, state.approvals, state.grandfathered, root)
+      // A parked item leaves the goal unproven: the close waits until the card says so in one line the owner sees. A shell
+      // append counts only the card already saved, never the command text (a `# Goal met: no` comment writes nothing).
+      const saidIn = call.tool === "shell" ? (proposedCard.card ? readFile(resolve(root, ".hivecall/run.md")) : "") : proposedCard.card
+      const said = new Set([...saidIn.matchAll(/^.*\bgoal met\s*:\s*no\b(.*)$/gim)].flatMap((m) => iscIds(m[1])))
+      const unsaid = parkedItems(ledger).filter((id) => !said.has(id))
+      const parkDetail = unsaid.length ? `parked: ${unsaid.join(", ")}; the run card must say \`Goal met: no - parked: ${unsaid.join(", ")}\` (first line of the final report)` +
+        (call.tool === "shell" ? " (save that line with hivecall_card or the write tool first)" : "") : ""
       if (!existsSync(path) || open.length || bad.length) {
         // A checked box the plugin did not count stays visible as such (invariant 1): after the usual three pauses the close
         // still waits until the run card names every such id on a `Not counted:` line.
@@ -622,10 +640,13 @@ export function ruleFor(call: Call, state: Memory, root: string): Violation | nu
         const detail = [open.length ? `open: ${open.join(", ")}` : "", bad.length ? `ticked without approval and receipt: ${bad.join(", ")}` : "",
           existsSync(path) ? "" : "ledger missing",
           unlisted.length ? `to close with them still ticked, the run card must say \`Not counted: ${unlisted.join(", ")}\`` +
-            (call.tool === "shell" ? " (write the card with hivecall_card or the write tool; a shell rewrite cannot show that line)" : "") : ""].filter(Boolean).join("; ")
+            (call.tool === "shell" ? " (write the card with hivecall_card or the write tool; a shell rewrite cannot show that line)" : "") : "",
+          parkDetail].filter(Boolean).join("; ")
         return { id: "no-early-done", message: "Do not close the run or write the final report while counted ledger items are open or ticked without approval and receipt.", detail,
-          ...(unlisted.length ? { hold: true } : {}) }
+          ...(unlisted.length || unsaid.length ? { hold: true } : {}) }
       }
+      if (unsaid.length) return { id: "no-early-done", hold: true,
+        message: "Do not close the run as if the goal were met while items are parked; say so first in the run card.", detail: parkDetail }
     }
   }
   return null
