@@ -16,8 +16,8 @@ Not for: a quick fix, a one-file change, or research. It costs more than a norma
 ## How a run goes
 
 1. You type `hivecall` and give a goal: a few sentences, a spec file, or an ISA.html.
-2. For clear input, it shows a goal contract and plan, including what must keep working and how far the result must reach (for example "any article"); ambiguous input first gets a three-item Discovery ledger. It asks "Watchdog on?" and "Open a PR at the end?".
-3. Clear-task runs wait for contract approval. On discovery, your two answers authorize the run and a reviewer approves or revises the plan.
+2. For clear input, it shows a goal contract and plan, including what must keep working and how far the result must reach (for example "any article"); ambiguous input first gets a three-item Discovery ledger. It asks "Open a PR at the end?"; the watchdog is always on.
+3. Clear-task runs wait for contract approval. On discovery, your answer authorizes the run and a reviewer approves or revises the plan.
 4. It works through the checklist. Open `.hivecall/checklist.html` in a browser to see progress.
 5. It ends in one of three ways:
    - **Done:** every item proven or parked. The final report compares the result with the goal and says "goal not met" when a parked item blocks it; the watchdog pauses first and removes itself on its next check after the run card is closed.

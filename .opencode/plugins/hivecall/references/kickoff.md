@@ -33,7 +33,7 @@ How the contract maps to the run:
 - **Every visual intent has a check.** If the spec has mocks, screenshots or a design doc, each screen they show is named by at least one item's check; otherwise add one before work starts.
 - **Write the check first.** An item without a check that can run on this machine gets one written before its worker starts. If none is possible, mark it "judged against spec" and cite the spec line, or owner-only. Do not block other items on it. Example: an app that cannot be built here cannot be checked here, so say that in the contract before work starts.
 
-Ask both questions in the same message: **"Watchdog on? (yes / no)"** and **"Open a PR at the end? (yes / no)"**. On the clear-task route, contract approval plus both answers starts the run; on discovery, the two answers authorize the run without owner approval of the contract or plan.
+Ask one question: **"Open a PR at the end? (yes / no)"**. The watchdog is always on; never ask about it. On the clear-task route, contract approval plus that answer starts the run; on discovery, the answer authorizes the run without owner approval of the contract or plan.
 
 ## 2. Pick the ledger
 
@@ -139,7 +139,7 @@ The approved contract lives on the checklist page, not here.
 - Create `.hivecall/verification/`.
 - Hide noise from Git: add `.lanes/` and `.hivecall/verification/` to `.git/info/exclude`. Thousands of evidence files slow Git and BB.
 - Before committing or opening a PR, inspect staged files and tracked evidence (`git diff --cached --name-only`; `git ls-files` for generated screenshots, recordings and logs, including under `_ai/`). Local excludes do not untrack files already committed. Keep run-only evidence local and cite it unless publication was authorized; do not rewrite shared history to remove it without the owner's approval.
-- If watchdog is on, follow [../README.md](../README.md#watchdog): name it `🐝 <orchestrator thread title>`, capture its automation id, write `watchdog: on, automation <id>` in the run card, pass `AUTOMATION_ID`, then start it live.
+- Start the watchdog (always on) per [../README.md](../README.md#watchdog): name it `🐝 <orchestrator thread title>`, capture its automation id, write `watchdog: on, automation <id>` in the run card, pass `AUTOMATION_ID`, then start it live.
 
 ## 5. Keep the owner informed
 
