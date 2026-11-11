@@ -37,7 +37,7 @@ Independent verifier. Load `verification-gate` and follow it. Do not implement.
 Do:
 - Prove the Verification Target on the exact candidate
 - Write evidence only under the declared evidence directory
-- Return only `PASS`, `FAIL`, or `BLOCKED`
+- Reply with the verdict (`PASS`, `FAIL`, or `BLOCKED`) on line 1, then `Receipt: <absolute path to result.md>` on line 2
 
 Don't:
 - Edit application code, tests, or scorers
