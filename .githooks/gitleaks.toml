@@ -1,0 +1,7 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Keep the existing deliberate-example escape hatch"
+regexTarget = "line"
+regexes = ['''pragma: allowlist secret''']

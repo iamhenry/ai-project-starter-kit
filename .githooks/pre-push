@@ -6,12 +6,15 @@ if [ "${SKIP_HOOKS:-}" = "1" ]; then
   exit 0
 fi
 here=$(cd "$(dirname "$0")" && pwd)
+# shellcheck source=checks/lib.sh
+. "$here/checks/lib.sh"
 zero=0000000000000000000000000000000000000000
 status=0
 
 while read -r _local_ref local_sha _remote_ref remote_sha; do
   case "$local_sha" in *[!0]*) ;; *) continue ;; esac   # branch deleted
   "$here/checks/secrets.sh" push "$remote_sha" "$local_sha" || status=1
+  gitleaks_scan push "$remote_sha" "$local_sha" || status=1
 done
 
 exit $status
