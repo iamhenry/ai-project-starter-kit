@@ -1,6 +1,6 @@
 # AGENTS.md — Global BB Instructions (macvm)
 
-BB injects this file into every provider-backed thread. Use it to orient quickly: where projects live, how to delegate through BB, and which commands map to common actions. `/Users/macvm` is the machine-wide fallback workspace; prefer a dedicated project below.
+BB injects this file into every provider-backed thread. Use it to orient quickly: where projects live, how to delegate through BB, and which commands map to common actions. `~` is the machine-wide fallback workspace; prefer a dedicated project below.
 
 ---
 
@@ -25,7 +25,7 @@ BB injects this file into every provider-backed thread. Use it to orient quickly
 | `proj_z8a7i24wnt` | bb-plugin-opencode | `~/Desktop/Projects/other/bb-plugin-opencode` |
 | `proj_mpw77yyiiy` | bb-plugin-dashboard-sidebar | `~/Desktop/Projects/other/bb-plugin-dashboard-sidebar` |
 | `proj_5tf55t8fjj` | bb-plugin-gitx | `~/Desktop/Projects/other/bb-plugin-gitx` |
-| `proj_vudqmhwkzq` | macvm (this workspace) | `/Users/macvm` |
+| `proj_vudqmhwkzq` | macvm (this workspace) | `~` |
 | `proj_48qxqrxgwy` | Projects (umbrella workspace) | `~/Desktop/Projects` |
 
 Fetch current truth anytime: `bb project list --json`. New project: `bb project create --name <n> --root <path> --machine <id>` (machine list via `bb machine list`).
