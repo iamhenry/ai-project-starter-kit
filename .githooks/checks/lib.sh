@@ -67,9 +67,9 @@ EOF
     status=$?
   else
     if [ -n "$base" ] && [ -z "$(printf %s "$base" | tr -d 0)" ]; then
-      log_opts="$head --not --remotes"
+      log_opts="-m $head --not --remotes"
     else
-      log_opts="$base..$head"
+      log_opts="-m $base..$head"
     fi
     gitleaks git --log-opts "$log_opts" --config "$here/gitleaks.toml" \
       --redact --no-banner --exit-code 42 --report-format template \
