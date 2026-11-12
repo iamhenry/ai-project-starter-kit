@@ -5,12 +5,19 @@ Two checks, one file each, so you can tune or drop either without touching the o
 | File | Blocks | Runs on |
 |---|---|---|
 | `checks/size.sh` | source files over 5,000 tokens (bytes / 4); markdown exempt | staged files, at commit |
-| `checks/secrets.sh` | API keys, private keys, committed `.env` files | staged files at commit; every commit being pushed |
+| `checks/secrets.sh` | built-in API-key and private-key rules, committed `.env` files, private-detail warnings | staged files at commit; every commit being pushed |
+| `gitleaks` | broader secret patterns; values are hidden in hook output | staged files at commit; every commit being pushed, when installed |
 | `commit-msg` | keys pasted into the commit message | every commit message |
 
-`pre-commit` runs both checks. `commit-msg` runs the secret rules over the
-message text. `pre-push` runs blocking secret rules only — size is a
-commit-time concern, publishing is the one that cannot be undone.
+`pre-commit` runs the size check, the built-in rules and gitleaks. `commit-msg`
+runs the built-in secret rules over the message text. `pre-push` runs blocking
+secret checks on every commit being published — size is a commit-time concern,
+publishing is the one that cannot be undone.
+
+Gitleaks is optional. If it is not on `PATH`, the hook prints a loud warning
+with `brew install gitleaks` and continues with the built-in rules. Installing
+it is each person's choice and needs their approval; the hook never installs
+software. If gitleaks is present but cannot scan, the hook blocks as a precaution.
 
 ## Enable
 
@@ -52,12 +59,13 @@ Commands:
 
 ## What it actually covers
 
-Both checks look only at what you are about to publish: the secret scan reads
-added lines in patches, and the size check measures the whole staged file.
+The secret scanners check changes being committed or pushed. They read added
+lines in patches. The size check measures the whole staged file at commit time.
 
-Detected, with high confidence: provider keys with fixed shapes, PEM private-key
-blocks, three-part JWTs, and credentials embedded in URLs. The matched value is
-never printed — you get a path, a line and a rule name.
+The built-in scanner detects provider keys with fixed shapes, PEM private-key
+blocks, three-part JWTs, and credentials embedded in URLs. When installed,
+gitleaks adds its maintained set of secret patterns. For both scanners, the
+matched value is never printed — you get a path, a line and a rule name.
 
 A committed `.env` is blocked on sight, whatever it contains — its values are
 random enough to look like nothing in particular, so no pattern rule would
@@ -69,10 +77,10 @@ is published exactly like one in a file.
 Warned, not blocked: private IP ranges, `*.ts.net` hosts, `/Users/<name>` paths,
 email addresses. Warnings appear at commit time only.
 
-**Not detected:** unprefixed random tokens; values built at runtime or split
-across lines; secrets inside binaries, archives or databases; anything that does
-not look like a known key shape. Treat this as a net for copy-paste accidents,
-not as proof that a commit is clean.
+**Not guaranteed detected:** unprefixed random tokens; values built at runtime
+or split across lines; secrets inside binaries, archives or databases; anything
+that does not look like a known key shape. Treat these checks as a net for
+copy-paste accidents, not as proof that a commit is clean.
 
 `pre-push` scans every commit not already on a remote, merge commits included,
 so a key that was added and later removed is still caught. A key that was already pushed is not

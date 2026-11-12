@@ -12,4 +12,5 @@ here=$(cd "$(dirname "$0")" && pwd)
 status=0
 staged_files | "$here/checks/size.sh" : || status=1
 "$here/checks/secrets.sh" staged || status=1
+gitleaks_scan staged || status=1
 exit $status
