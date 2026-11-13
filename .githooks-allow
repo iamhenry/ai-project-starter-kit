@@ -1,1 +1,2 @@
 .bb/AGENTS.md bb-id # lists this machine's BB project ids on purpose; the owner decides later whether to remove them
+.opencode/plugins/hivecall/lint.sh email # npm package spec @biomejs/biome@<version> matches the email shape; no personal address
