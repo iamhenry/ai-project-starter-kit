@@ -10,7 +10,6 @@
   "2394": "Self-check assertion: reachable only if the reactivated alert fires more than once.",
   "2416": "Self-check assertion: reachable only if the anti-spin stop state differs from the expected third no-progress check.",
   "2436": "Self-check assertion: reachable only if a new PASS, FAIL or BLOCKED verdict fails to reset the continue streak.",
-  "2483": "Self-check assertion: reachable only if a file change inside a promise lane is not detected.",
   "2550": "Self-check assertion: reachable only if a no-progress alert is emitted in a scenario designed to remain on track.",
   "2556": "Self-check assertion: reachable only if fast-jules promise metrics differ from the deterministic expected counts.",
   "2562": "Self-check assertion: reachable only if old results are attributed to new live testers.",
