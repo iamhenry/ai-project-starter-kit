@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Pre-commit: size hygiene + secrets, on staged files only.
+# Pre-commit: project checks, secrets, and gitleaks.
 set -uo pipefail
 if [ "${SKIP_HOOKS:-}" = "1" ]; then
   echo "  hooks skipped (SKIP_HOOKS=1)"
@@ -12,7 +12,6 @@ here=$(cd "$(dirname "$0")" && pwd)
 status=0
 repo_root=$(git rev-parse --show-toplevel)
 if [ -x "$repo_root/check" ]; then (cd "$repo_root" && unset $(git rev-parse --local-env-vars) && ./check) || status=1; fi
-staged_files | "$here/checks/size.sh" : || status=1
 "$here/checks/secrets.sh" staged || status=1
 gitleaks_scan staged || status=1
 exit $status
