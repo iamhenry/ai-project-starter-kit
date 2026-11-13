@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Drawn from survey repo mac-quotes-app (Xcode project + MacQuotesPackage
+# SwiftPM package). Uses xcodebuild or swift test; SwiftLint/SwiftFormat are optional.
+set -u
+cd "$(dirname "$0")"
+start=$SECONDS
+failed=0
+
+if command -v swift >/dev/null 2>&1 && [[ -f Package.swift ]]; then
+  swift test || failed=1
+elif command -v xcodebuild >/dev/null 2>&1 && { compgen -G '*.xcodeproj' >/dev/null || compgen -G '*.xcworkspace' >/dev/null; }; then
+  project=$(find . -maxdepth 1 \( -name '*.xcworkspace' -o -name '*.xcodeproj' \) -print -quit)
+  if [[ "$project" == *.xcworkspace ]]; then xcodebuild -workspace "$project" test || failed=1
+  else xcodebuild -project "$project" test || failed=1; fi
+else
+  echo 'WARNING: no Swift package or Xcode project/workspace with its tools was found; tests were not run.' >&2
+fi
+
+if command -v swiftlint >/dev/null 2>&1; then
+  swiftlint lint || echo 'WARNING: SwiftLint reported issues; optional lint does not fail ./check.' >&2
+else
+  echo 'WARNING: SwiftLint is not installed; optional lint was not run or installed.' >&2
+fi
+if command -v swift-format >/dev/null 2>&1; then
+  swift-format lint . || echo 'WARNING: swift-format reported issues; optional lint does not fail ./check.' >&2
+else
+  echo 'WARNING: swift-format is not installed; optional lint was not run or installed.' >&2
+fi
+printf 'Total wall time: %ss\n' "$((SECONDS - start))"
+exit "$failed"

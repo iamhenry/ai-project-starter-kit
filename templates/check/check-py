@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+# Generalized from chief-tui's ./check and checks/repo_rules.py; the survey
+# includes chief-tui. Uses Python 3 tests and optional Ruff warning-only lint.
+set -u
+cd "$(dirname "$0")"
+start=$SECONDS
+failed=0
+if ! command -v python3 >/dev/null 2>&1; then
+  echo 'WARNING: python3 is missing; tests and repo rules cannot run. Nothing was installed.' >&2
+  printf 'Total wall time: %ss\n' "$((SECONDS - start))"
+  exit 1
+fi
+
+python3 - <<'PY' || failed=1
+import concurrent.futures
+import glob
+import os
+import subprocess
+import sys
+import time
+
+files = sorted(glob.glob('tests/test_*.py'))
+if not files:
+    print('WARNING: no tests/test_*.py files found; no tests were run.', file=sys.stderr)
+else:
+    def run(path):
+        began = time.perf_counter()
+        result = subprocess.run([sys.executable, path], text=True,
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        return path, result.returncode, time.perf_counter() - began, result.stdout
+    with concurrent.futures.ThreadPoolExecutor(max_workers=min(len(files), os.cpu_count() or 1)) as pool:
+        results = list(pool.map(run, files))
+    for path, code, elapsed, output in results:
+        print(f"{'PASS' if code == 0 else 'FAIL'} {path} {elapsed:.3f}s")
+        if code:
+            print(output, end='' if output.endswith('\n') else '\n')
+    print(f"Slowest test: {max(results, key=lambda row: row[2])[0]}")
+    if any(row[1] for row in results):
+        raise SystemExit(1)
+PY
+
+if command -v ruff >/dev/null 2>&1; then
+  ruff check . || echo 'WARNING: Ruff reported issues; optional lint does not fail ./check.' >&2
+else
+  echo 'WARNING: Ruff is not installed; optional lint was not run or installed.' >&2
+fi
+
+# Small example rule: ambiguous interpreter commands in shell scripts. Rules warn, never block.
+# Optional allowlist rows: rule|path|ceiling|reason. Empty/missing means zero hits allowed.
+python3 - <<'PY'
+from pathlib import Path
+import re
+
+root = Path('.')
+allow = {}
+allow_path = root / 'checks/allowlist.txt'
+if allow_path.exists():
+    for line in allow_path.read_text().splitlines():
+        if not line.strip() or line.lstrip().startswith('#'):
+            continue
+        parts = line.split('|', 3)
+        if len(parts) != 4 or not parts[3].strip():
+            print(f'WARNING: invalid allowlist row (need rule|path|ceiling|reason): {line}')
+            continue
+        try:
+            allow[(parts[0], parts[1])] = int(parts[2])
+        except ValueError:
+            print(f'WARNING: invalid allowlist ceiling: {line}')
+hits = {}
+for path in root.rglob('*.sh'):
+    if '.git' in path.parts or 'node_modules' in path.parts:
+        continue
+    rel = path.as_posix()
+    for number, text in enumerate(path.read_text(errors='replace').splitlines(), 1):
+        if re.search(r'(?<![\w./])py' + r'thon(?:\s|$)', text):
+            hits.setdefault(rel, []).append((number, text.strip()))
+why = 'An ambiguous interpreter command can select an unexpected runtime.'
+fix = 'Use python3 or the explicit virtual-environment interpreter.'
+for rel, found in hits.items():
+    ceiling = allow.get(('ambiguous-interpreter', rel), 0)
+    for number, text in found[ceiling:]:
+        print(f'WARNING: ambiguous-interpreter {rel}:{number}: {text}\n  Why: {why}\n  Fix: {fix}')
+    if len(found) < ceiling:
+        print(f'HINT: ambiguous-interpreter {rel}: lower ceiling from {ceiling} to {len(found)}.')
+PY
+printf 'Total wall time: %ss\n' "$((SECONDS - start))"
+exit "$failed"
