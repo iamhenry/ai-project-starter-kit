@@ -1,0 +1,33 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.3.12/schema.json",
+  "files": {
+    "includes": ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx"]
+  },
+  "linter": {
+    "rules": {
+      "recommended": false,
+      "nursery": {
+        "noExcessiveLinesPerFile": {
+          "level": "error",
+          "options": { "maxLines": 500 }
+        }
+      }
+    }
+  },
+  "overrides": [
+    {
+      // 632 lines; defer splitting the main plugin entry point to KIT-7.
+      "includes": ["index.ts"],
+      "linter": {
+        "rules": { "nursery": { "noExcessiveLinesPerFile": "off" } }
+      }
+    },
+    {
+      // 661 lines; defer splitting watchdog policy to KIT-7.
+      "includes": ["watchdog/policy.ts"],
+      "linter": {
+        "rules": { "nursery": { "noExcessiveLinesPerFile": "off" } }
+      }
+    }
+  ]
+}
