@@ -8,12 +8,17 @@ Two checks, one file each, so you can tune or drop either without touching the o
 | `checks/secrets.sh` | built-in API-key and private-key rules, committed `.env` files, private-detail warnings | staged files at commit; every commit being pushed |
 | `checks/private.sh` | home paths, BB IDs, real emails, private hosts, trace files, ignored files and large files | every commit being pushed |
 | `gitleaks` | broader secret patterns; values are hidden in hook output | staged files at commit; every commit being pushed, when installed |
+| `./check` | the repository's executable top-level check script | at commit, when present |
 | `commit-msg` | keys pasted into the commit message | every commit message |
 
 `pre-commit` runs the size check, the built-in rules and gitleaks. `commit-msg`
 runs the built-in secret rules over the message text. `pre-push` runs blocking
 secret checks on every commit being published — size is a commit-time concern,
 publishing is the one that cannot be undone.
+
+`pre-commit` also runs an executable `./check` from the repository root, when
+present. Use `SKIP_HOOKS=1` to skip it. See `_ai/docs/AGENT-READINESS.md` and
+`templates/check/` for guidance and starter scripts.
 
 Gitleaks is optional. If it is not on `PATH`, the hook prints a loud warning
 with `brew install gitleaks` and continues with the built-in rules. Installing

@@ -10,6 +10,8 @@ here=$(cd "$(dirname "$0")" && pwd)
 . "$here/checks/lib.sh"
 
 status=0
+repo_root=$(git rev-parse --show-toplevel)
+if [ -x "$repo_root/check" ]; then (cd "$repo_root" && ./check) || status=1; fi
 staged_files | "$here/checks/size.sh" : || status=1
 "$here/checks/secrets.sh" staged || status=1
 gitleaks_scan staged || status=1

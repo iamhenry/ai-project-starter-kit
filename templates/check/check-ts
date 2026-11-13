@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Drawn from the survey repos journal-ios-app, qodi-qr-code-app, sonara-ios-app,
+# zero-proof-app, bb, bb-plugin-*, bb-voice, opencode-council and opencode-forge;
+# uses tsc, bun test or vitest, and optional Biome where those repos use them.
+set -u
+cd "$(dirname "$0")"
+start=$SECONDS
+failed=0
+
+if [[ -x node_modules/.bin/tsc ]]; then
+  node_modules/.bin/tsc --noEmit || failed=1
+elif command -v tsc >/dev/null 2>&1; then
+  tsc --noEmit || failed=1
+else
+  echo 'WARNING: TypeScript compiler (tsc) is missing; not installed.' >&2
+fi
+
+if [[ -x node_modules/.bin/vitest ]]; then
+  node_modules/.bin/vitest run || failed=1
+elif command -v bun >/dev/null 2>&1 && { [[ -f bun.lock ]] || [[ -f bun.lockb ]] || grep -q '"test"[[:space:]]*:[[:space:]]*"bun test' package.json 2>/dev/null; }; then
+  bun test || failed=1
+elif [[ -f package.json ]] && grep -q '"test"[[:space:]]*:' package.json; then
+  if command -v npm >/dev/null 2>&1; then npm test -- --run || failed=1
+  else echo 'WARNING: package test script exists but npm is missing; not installed.' >&2; fi
+else
+  echo 'WARNING: no Bun test or Vitest setup detected; tests were not run.' >&2
+fi
+
+if [[ -x node_modules/.bin/biome ]]; then
+  node_modules/.bin/biome check . || echo 'WARNING: Biome reported issues; optional lint does not fail ./check.' >&2
+else
+  echo 'WARNING: Biome is not installed; optional lint was not run or installed.' >&2
+fi
+printf 'Total wall time: %ss\n' "$((SECONDS - start))"
+exit "$failed"
