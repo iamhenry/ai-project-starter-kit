@@ -1,0 +1,1 @@
+{"name":"cli-no-orch","argv":["--dry-run"],"env":{"ORCH_THREAD":"","ORCH_SESSION":""},"expect_rc":2}

@@ -1,0 +1,11 @@
+{
+  "name": "plan-map",
+  "argv": [
+    "--simulate",
+    "plan-map"
+  ],
+  "env": {},
+  "files": {},
+  "answers": {},
+  "epoch": 1794528000
+}

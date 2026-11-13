@@ -1,0 +1,11 @@
+{
+  "name": "read-failure",
+  "argv": [
+    "--simulate",
+    "read-failure"
+  ],
+  "env": {},
+  "files": {},
+  "answers": {},
+  "epoch": 1794528000
+}

@@ -1,0 +1,11 @@
+{
+  "name": "ghost-agent-no-message",
+  "argv": [
+    "--simulate",
+    "ghost-agent-no-message"
+  ],
+  "env": {},
+  "files": {},
+  "answers": {},
+  "epoch": 1794528000
+}

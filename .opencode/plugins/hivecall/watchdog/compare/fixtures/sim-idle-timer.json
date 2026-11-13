@@ -1,0 +1,11 @@
+{
+  "name": "sim-idle-timer",
+  "argv": [
+    "--simulate",
+    "sim-idle-timer"
+  ],
+  "env": {},
+  "files": {},
+  "answers": {},
+  "epoch": 1794528000
+}

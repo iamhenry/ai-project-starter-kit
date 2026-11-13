@@ -1,0 +1,11 @@
+{
+  "name": "leftover-session",
+  "argv": [
+    "--simulate",
+    "leftover-session"
+  ],
+  "env": {},
+  "files": {},
+  "answers": {},
+  "epoch": 1794528000
+}

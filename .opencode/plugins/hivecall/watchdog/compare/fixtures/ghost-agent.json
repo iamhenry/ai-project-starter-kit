@@ -1,0 +1,11 @@
+{
+  "name": "ghost-agent",
+  "argv": [
+    "--simulate",
+    "ghost-agent"
+  ],
+  "env": {},
+  "files": {},
+  "answers": {},
+  "epoch": 1794528000
+}

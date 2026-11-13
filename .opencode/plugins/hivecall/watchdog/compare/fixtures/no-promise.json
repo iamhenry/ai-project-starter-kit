@@ -1,0 +1,11 @@
+{
+  "name": "no-promise",
+  "argv": [
+    "--simulate",
+    "no-promise"
+  ],
+  "env": {},
+  "files": {},
+  "answers": {},
+  "epoch": 1794528000
+}

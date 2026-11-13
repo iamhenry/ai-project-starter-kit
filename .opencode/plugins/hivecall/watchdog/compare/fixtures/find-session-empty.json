@@ -1,0 +1,1 @@
+{"name":"find-session-empty","argv":["--find-session"],"expect_rc":1}

@@ -1,0 +1,11 @@
+{
+  "name": "resumed-idle-agent",
+  "argv": [
+    "--simulate",
+    "resumed-idle-agent"
+  ],
+  "env": {},
+  "files": {},
+  "answers": {},
+  "epoch": 1794528000
+}

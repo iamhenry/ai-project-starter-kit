@@ -1,0 +1,11 @@
+{
+  "name": "repeat-fail",
+  "argv": [
+    "--simulate",
+    "repeat-fail"
+  ],
+  "env": {},
+  "files": {},
+  "answers": {},
+  "epoch": 1794528000
+}
