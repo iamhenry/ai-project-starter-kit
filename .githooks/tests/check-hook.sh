@@ -51,8 +51,8 @@ if [ "$rc" -eq 0 ] && [ "$before" != "$after" ]; then result isolated-git 1; els
 
 setup none
 baseline="$tmpbase/base-hooks"; mkdir -p "$baseline/checks"
-git -C "$root" show ad3fb3c:.githooks/pre-commit >"$baseline/pre-commit"
-for file in lib.sh size.sh secrets.sh; do ln -s "$root/.githooks/checks/$file" "$baseline/checks/$file"; done
+git -C "$root" show ad3fb3c:.githooks/pre-commit | sed '/^staged_files |/d' >"$baseline/pre-commit"
+for file in lib.sh secrets.sh; do ln -s "$root/.githooks/checks/$file" "$baseline/checks/$file"; done
 ln -s "$root/.githooks/gitleaks.toml" "$baseline/gitleaks.toml"
 chmod +x "$baseline/pre-commit"
 printf 'update\n' >file.txt; git add file.txt
@@ -61,6 +61,18 @@ current_out=$("$root/.githooks/pre-commit" 2>&1); current_rc=$?
 git config core.hooksPath "$root/.githooks"
 commit_out=$(git commit -m case 2>&1); commit_rc=$?
 if [ "$base_rc" -eq "$current_rc" ] && [ "$base_out" = "$current_out" ] && [ "$current_rc" -eq 0 ] && [ "$commit_rc" -eq 0 ]; then result none 1; else result none 0 "base_rc=$base_rc current_rc=$current_rc commit_rc=$commit_rc base_output=$base_out current_output=$current_out"; fi
+
+setup large-file
+head -c 21001 /dev/zero | tr '\000' x >large.ts
+git add large.ts
+out=$(git commit -m case 2>&1); rc=$?; after=$(git rev-parse HEAD)
+if [ "$rc" -eq 0 ] && [ "$before" != "$after" ]; then result large-file 1; else result large-file 0 "rc=$rc"; fi
+
+setup dummy-secret
+dummy_key="AKIA""0000000000000000"
+printf '%s\n' "$dummy_key" >dummy-key.txt; git add dummy-key.txt
+out=$(git commit -m case 2>&1); rc=$?; after=$(git rev-parse HEAD)
+if [ "$rc" -ne 0 ] && [ "$before" = "$after" ] && [[ "$out" == *aws-access-key* ]] && [[ "$out" != *"$dummy_key"* ]]; then result dummy-secret 1; else result dummy-secret 0 "rc=$rc"; fi
 
 setup non-executable
 printf '#!/bin/sh\nexit 1\n' >check; chmod 644 check

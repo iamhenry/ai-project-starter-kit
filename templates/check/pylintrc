@@ -1,0 +1,7 @@
+[MAIN]
+max-module-lines=500
+ignore=.venv,venv,env,.tox,node_modules,build,dist
+
+[MESSAGES CONTROL]
+disable=all
+enable=C0302

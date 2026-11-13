@@ -1,20 +1,20 @@
 # Git hooks
 
-Two checks, one file each, so you can tune or drop either without touching the other:
+The hook checks are separate, so you can tune or drop one without touching the others:
 
 | File | Blocks | Runs on |
 |---|---|---|
-| `checks/size.sh` | source files over 5,000 tokens (bytes / 4); markdown exempt | staged files, at commit |
 | `checks/secrets.sh` | built-in API-key and private-key rules, committed `.env` files, private-detail warnings | staged files at commit; every commit being pushed |
 | `checks/private.sh` | home paths, BB IDs, real emails, private hosts, trace files, ignored files and large files | every commit being pushed |
 | `gitleaks` | broader secret patterns; values are hidden in hook output | staged files at commit; every commit being pushed, when installed |
 | `./check` | the repository's executable top-level check script | at commit, when present |
 | `commit-msg` | keys pasted into the commit message | every commit message |
 
-`pre-commit` runs the size check, the built-in rules and gitleaks. `commit-msg`
+`pre-commit` runs the built-in rules and gitleaks. File length is enforced by
+each project's `./check` linters; see `templates/check/`. `commit-msg`
 runs the built-in secret rules over the message text. `pre-push` runs blocking
-secret checks on every commit being published — size is a commit-time concern,
-publishing is the one that cannot be undone.
+secret checks on every commit being published — publishing is the one that
+cannot be undone.
 
 `pre-commit` also runs an executable `./check` from the repository root, when
 present. Use `SKIP_HOOKS=1` to skip it. See `_ai/docs/AGENT-READINESS.md` and
@@ -66,7 +66,7 @@ Commands:
 ## What it actually covers
 
 The secret scanners check changes being committed or pushed. They read added
-lines in patches. The size check measures the whole staged file at commit time.
+lines in patches.
 
 The built-in scanner detects provider keys with fixed shapes, PEM private-key
 blocks, three-part JWTs, and credentials embedded in URLs. When installed,
@@ -118,14 +118,11 @@ running `checks/secrets.sh`, there is no guarantee a secret stays off the remote
 
 ## Tune
 
-- **A file is legitimately large** — add a glob to `.githooks/skip`. Lockfiles,
-  `dist/`, vendored code and assets are already there.
+- **File length** — each project's `./check` linters enforce it; see
+  `templates/check/`.
 - **A secret is a deliberate example** — append `pragma: allowlist secret` to
   that line.
-- **Prose is exempt** — `.md` and `.mdx` skip the token budget entirely. Secrets
-  are still scanned inside them.
 - **A tracked `.env` is intentional** — add `.env` to `.githooks/skip`.
-- **Different budget** — `LIMIT_TOKENS=2000 git commit`.
 - **Skip once** — `SKIP_HOOKS=1 git commit` / `git push`.
 
 ## Adding a rule

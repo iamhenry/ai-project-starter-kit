@@ -1,0 +1,12 @@
+[MAIN]
+# eval/eval.py (1402 lines): the evaluation engine is scheduled for splitting in KIT-7.
+# eval/test_eval.py (543 lines): its tests stay beside the engine until the KIT-7 split.
+# watchdog/watch.py (3332 lines): watchdog behavior is out of scope here; split it in KIT-7.
+ignore-paths = ^eval/eval[.]py$, ^eval/test_eval[.]py$, ^watchdog/watch[.]py$
+
+[MESSAGES CONTROL]
+disable = all
+enable = C0302
+
+[FORMAT]
+max-module-lines = 500
