@@ -3,7 +3,7 @@ name: orchestrator
 description: Strategic workflow orchestrator that breaks complex work into isolated tasks and stitches back bounded evidence packets
 mode: primary
 model: anthropic/claude-opus-5-5
-variant: medium
+variant: low
 color: "#ffa500"
 tools:
   task: true
