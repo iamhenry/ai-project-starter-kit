@@ -33,7 +33,8 @@ if [[ -x node_modules/.bin/biome ]]; then
 elif command -v biome >/dev/null 2>&1; then
   biome=$(command -v biome)
 else
-  echo 'WARNING: Biome is not installed; file-length lint was not run. Nothing was installed.' >&2
+  echo 'ERROR: Biome >= 2.6.7 is required; install with: brew install biome' >&2
+  failed=1
 fi
 if [[ -n "${biome:-}" ]]; then
   "$biome" lint . --config-path=biome.json --only=lint/style/noExcessiveLinesPerFile || failed=1

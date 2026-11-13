@@ -18,6 +18,7 @@ without guessing. Keep checks fast and make failures clear.
 6. **Keep each check in the right place:** `./check` enforces file-size limits
    with standard language linters. Secret scans, private detail checks and
    protected-file checks stay in the shared `.githooks/`.
+   The size linter is required; `./check` fails if it is missing.
 
 ## Adopt
 

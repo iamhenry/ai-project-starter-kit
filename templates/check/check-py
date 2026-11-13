@@ -49,7 +49,8 @@ fi
 if command -v pylint >/dev/null 2>&1; then
   pylint --rcfile=pylintrc . || failed=1
 else
-  echo 'WARNING: Pylint is not installed; file-length lint was not run. Nothing was installed.' >&2
+  echo 'ERROR: Pylint is required for the file-length check; install with: brew install pylint' >&2
+  failed=1
 fi
 
 # Small example rule: ambiguous interpreter commands in shell scripts. Rules warn, never block.
