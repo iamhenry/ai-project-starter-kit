@@ -1,0 +1,58 @@
+{
+ "name": "g1-html-ledger",
+ "argv": [
+  "--once-report"
+ ],
+ "env": {
+  "REPO": "{REPO}",
+  "ORCH_THREAD": "thr_dummy1",
+  "ORCH_SESSION": "ses_dummy1",
+  "VERIFY_DIR": "{REPO}/verify",
+  "LEDGER": "/isa.html",
+  "RUN_CARD": "{REPO}/run.md",
+  "PROJECT_ID": "proj_dummy1",
+  "AUTOMATION_ID": "auto_dummy1"
+ },
+ "files": {
+  "run.md": "status: running\ngoal: dummy goal\n",
+  "verify/keep.txt": "x\n",
+  "isa.html": "<li id=\"ISC-001\"><input type=\"checkbox\" checked></li>\n<table id=\"owner-verification-table\"><tr><td>owner</td><td><a href=\"#ISC-001\">row</a></td></tr></table>\n<section id=\"verification\"><li>ISC-001: PASS - evidence proof.txt</li><li>ISC-002: FAIL - evidence missing-proof.txt</li><li>not a verdict</li></section>\n<tr><th>progress</th><td>50%</td></tr><table id=\"test-strategy-table\"><tr><td>ISC-001</td><td>pytest</td></tr><tr><td>junk</td></tr></table>\n<ul id=\"owner-only\"><li>ISC-003</li></ul>",
+  "verify/demo-result.md": "| 1 | PASS | evidence proof.txt |\nPENDING-WAIT 001 until 23:59\nPENDING-WAIT 002 until 2026-11-13T12:00:00Z\nPENDING-WAIT 003 until nope\n",
+  "proof.txt": "proof\n"
+ },
+ "answers": [
+  {
+   "match": [
+    "uptime"
+   ],
+   "stdout": "load average: 0.10"
+  },
+  {
+   "match": [
+    "df"
+   ],
+   "stdout": "Filesystem 1024-blocks Used Available Capacity Mounted on\n/dev/dummy 1000 500 500 50% /"
+  },
+  {
+   "match": [
+    "thread",
+    "list"
+   ],
+   "stdout": "[]"
+  },
+  {
+   "match": [
+    "thread",
+    "show"
+   ],
+   "stdout": "{\"id\":\"thr_dummy1\",\"status\":\"active\"}"
+  },
+  {
+   "match": [
+    "thread",
+    "queue"
+   ],
+   "stdout": "[]"
+  }
+ ]
+}

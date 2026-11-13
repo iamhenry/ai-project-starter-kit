@@ -1,0 +1,11 @@
+{
+ "name": "g4-sim-combined",
+ "argv": [
+  "--simulate",
+  "combined-alerts"
+ ],
+ "env": {
+  "WATCH_LOAD_LIMIT": "600"
+ },
+ "files": {}
+}

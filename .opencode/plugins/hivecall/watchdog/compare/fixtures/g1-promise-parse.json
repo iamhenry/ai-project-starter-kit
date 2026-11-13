@@ -1,0 +1,87 @@
+{
+ "name": "g1-promise-parse",
+ "argv": [
+  "--dry-run"
+ ],
+ "env": {
+  "REPO": "{REPO}",
+  "ORCH_THREAD": "thr_dummy1",
+  "ORCH_SESSION": "ses_dummy1",
+  "VERIFY_DIR": "{REPO}/verify",
+  "LEDGER": "{REPO}/ledger.md",
+  "RUN_CARD": "{REPO}/run.md",
+  "PROJECT_ID": "proj_dummy1",
+  "AUTOMATION_ID": "auto_dummy1",
+  "LANE_ROOTS": "{HOME}/extra"
+ },
+ "files": {
+  "ledger.md": "- [x] ISC-1 done\n- [ ] ISC-2 todo\n",
+  "run.md": "status: running\ngoal: dummy goal\n",
+  "verify/keep.txt": "x\n",
+  "{HOME}/.bb/plugins/environment-git-worktree/host-data/worktrees/w/a.txt": "x\n",
+  "{HOME}/extra/l/a.txt": "x\n",
+  "sub/a.txt": "x\n"
+ },
+ "answers": [
+  {
+   "match": [
+    "uptime"
+   ],
+   "stdout": "load average: 0.10"
+  },
+  {
+   "match": [
+    "df"
+   ],
+   "stdout": "Filesystem 1024-blocks Used Available Capacity Mounted on\n/dev/dummy 1000 500 500 50% /"
+  },
+  {
+   "match": [
+    "thread",
+    "list"
+   ],
+   "stdout": "[]"
+  },
+  {
+   "match": [
+    "thread",
+    "show"
+   ],
+   "stdout": "{\"id\":\"thr_dummy1\",\"status\":\"active\"}"
+  },
+  {
+   "match": [
+    "thread",
+    "queue"
+   ],
+   "stdout": "[]"
+  }
+ ],
+ "sqlite": {
+  ".local/share/opencode/opencode.db": [
+   "CREATE TABLE session_v2(id TEXT, agent TEXT, title TEXT, time_created INTEGER, time_updated INTEGER, parent_id TEXT, directory TEXT, time_idle INTEGER, idle_outcome TEXT)",
+   "CREATE TABLE session_message(session_id TEXT,type TEXT,time_updated INTEGER,seq INTEGER,time_created INTEGER,data TEXT)",
+   "INSERT INTO session_v2 VALUES ('ses_dummy1','agent-dummy','orch',1794528000,1794528000,NULL,'{REPO}',NULL,NULL)",
+   "INSERT INTO session_v2 VALUES ('ses_dummy2','agent-dummy','child2',1794528000,1794528000,'ses_dummy1','{REPO}',NULL,NULL)",
+   "INSERT INTO session_message VALUES ('ses_dummy2','user',1794528000,1,1794528000,'{\"text\": \"intro line\\nPROMISE: kind=code rows=1-3 result=a-result.md lane=. pace=abc\"}')",
+   "INSERT INTO session_v2 VALUES ('ses_dummy3','agent-dummy','child3',1794528000,1794528000,'ses_dummy1','{REPO}',NULL,NULL)",
+   "INSERT INTO session_message VALUES ('ses_dummy3','user',1794528000,1,1794528000,'{\"text\": \"PROMISE: kind=code rows=5-2 result=a-result.md lane=.\"}')",
+   "INSERT INTO session_v2 VALUES ('ses_dummy4','agent-dummy','child4',1794528000,1794528000,'ses_dummy1','{REPO}',NULL,NULL)",
+   "INSERT INTO session_message VALUES ('ses_dummy4','user',1794528000,1,1794528000,'{\"text\": \"PROMISE: kind=code rows=x result=a-result.md lane=.\"}')",
+   "INSERT INTO session_v2 VALUES ('ses_dummy5','agent-dummy','child5',1794528000,1794528000,'ses_dummy1','{REPO}',NULL,NULL)",
+   "INSERT INTO session_message VALUES ('ses_dummy5','user',1794528000,1,1794528000,'{\"text\": \"no promise here\"}')",
+   "INSERT INTO session_v2 VALUES ('ses_dummy6','agent-dummy','child6',1794528000,1794528000,'ses_dummy1','{REPO}',NULL,NULL)",
+   "INSERT INTO session_message VALUES ('ses_dummy6','user',1794528000,1,1794528000,'{\"text\": \"PROMISE: kind=code rows=- result=- lane=-\"}')",
+   "INSERT INTO session_v2 VALUES ('ses_dummy7','agent-dummy','child7',1794528000,1794528000,'ses_dummy1','{REPO}',NULL,NULL)",
+   "INSERT INTO session_message VALUES ('ses_dummy7','user',1794528000,1,1794528000,'{\"text\": \"PROMISE: kind=code rows=1 result=- lane=MAIN/sub\"}')",
+   "INSERT INTO session_v2 VALUES ('ses_dummy8','agent-dummy','child8',1794528000,1794528000,'ses_dummy1','{REPO}',NULL,NULL)",
+   "INSERT INTO session_message VALUES ('ses_dummy8','user',1794528000,1,1794528000,'{\"text\": \"PROMISE: kind=code rows=1 result=- lane=/\"}')",
+   "INSERT INTO session_v2 VALUES ('ses_dummy9','agent-dummy','child9',1794528000,1794528000,'ses_dummy1','{REPO}',NULL,NULL)",
+   "INSERT INTO session_message VALUES ('ses_dummy9','user',1794528000,1,1794528000,'{\"text\": \"PROMISE: kind=code rows=1 result=- lane={HOME}/extra/l\"}')",
+   "INSERT INTO session_v2 VALUES ('ses_dummy10','agent-dummy','child10',1794528000,1794528000,'ses_dummy1','{REPO}',NULL,NULL)",
+   "INSERT INTO session_message VALUES ('ses_dummy10','user',1794528000,1,1794528000,'{\"text\": \"PROMISE: kind=code rows=1 result=- lane={HOME}/.bb/plugins/environment-git-worktree/host-data/worktrees/w\"}')",
+   "INSERT INTO session_v2 VALUES ('ses_dummy11','agent-dummy','child11',1794528000,1794528000,'ses_dummy1','{REPO}',NULL,NULL)",
+   "INSERT INTO session_message VALUES ('ses_dummy11','user',1794528000,1,1794528000,'{\"text\": \"PROMISE: kind=screen rows=1 result=- lane=-\"}')"
+  ]
+ }
+}

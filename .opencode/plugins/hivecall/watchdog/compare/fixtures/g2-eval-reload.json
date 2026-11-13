@@ -1,0 +1,107 @@
+{
+ "name": "g2-eval-reload",
+ "argv": [],
+ "env": {
+  "REPO": "{REPO}",
+  "ORCH_THREAD": "thr_dummy1",
+  "ORCH_SESSION": "ses_dummy1",
+  "VERIFY_DIR": "verify",
+  "LEDGER": "{REPO}/ledger.md",
+  "RUN_CARD": "{REPO}/run.md",
+  "PROJECT_ID": "proj_dummy1"
+ },
+ "files": {
+  "ledger.md": "- [x] ISC-1 done\n- [ ] ISC-2 todo\n- [ ] ISC-3 todo\n## Verification\nISC-1: PASS - verified evidence result.txt\n",
+  "run.md": "status: running\n## Plan Map\nISC-2 needs: ISC-1\nISC-3 needs: ISC-2\n",
+  "verify/one-result.md": "dummy result note\n",
+  ".bb/plugins/opencode/task-bound.json": "{\"bindings\":[{\"sessionId\":\"ses_dummy2\",\"threadId\":\"thr_dummy2\"}]}",
+  ".bb/bb.db": "",
+  ".lanes/watch-state.json": "{\"server\": {\"down_streak\": 1}, \"asked\": {\"W5\": {\"at\": 1794527300, \"key\": \"none\", \"kind\": \"dummy\"}}, \"conditions\": {\"free:dummy\": {\"streak\": 1}, \"high-load\": {\"streak\": 5}}}"
+ },
+ "sqlite": {
+  ".local/share/opencode/opencode.db": [
+   "CREATE TABLE session_v2(id TEXT, agent TEXT, title TEXT, time_created INTEGER, time_updated INTEGER, parent_id TEXT, directory TEXT, time_idle INTEGER, idle_outcome TEXT)",
+   "CREATE TABLE session_message(session_id TEXT,type TEXT,time_updated INTEGER,seq INTEGER,time_created INTEGER,data TEXT)",
+   "INSERT INTO session_v2 VALUES ('ses_dummy1','agent-dummy','title-dummy',1794528000,1794528000,NULL,'{REPO}',NULL,NULL)",
+   "INSERT INTO session_v2 VALUES ('ses_dummy2','build','child-dummy',1794528000,1794528000,'ses_dummy1','{REPO}',NULL,NULL)",
+   "INSERT INTO session_v2 VALUES ('ses_dummy3','qa','done-dummy',1794528000,1794528000,'ses_dummy1','{REPO}',1,NULL)",
+   "INSERT INTO session_message VALUES ('ses_dummy2','user',1794528000,1,1794528000,'{\"text\":\"PROMISE: kind=screen rows=2 result=two-result.md lane=.\"}')",
+   "INSERT INTO session_message VALUES ('ses_dummy3','user',1794528000,1,1794528000,'{\"text\":\"PROMISE: kind=screen rows=1 result=one-result.md lane=.\"}')",
+   "INSERT INTO session_message VALUES ('ses_dummy1','assistant',1794528000,1,1794528000,'{\"agent\":\"agent-dummy\"}')"
+  ],
+  ".bb/bb.db": [
+   "CREATE TABLE events(thread_id TEXT,provider_thread_id TEXT)",
+   "CREATE TABLE threads(id TEXT,parent_thread_id TEXT)"
+  ]
+ },
+ "answers": [
+  {
+   "match": [
+    "bb",
+    "thread",
+    "tell"
+   ],
+   "stderr": "dummy tell failure",
+   "rc": 1
+  },
+  {
+   "match": [
+    "bb",
+    "plugin",
+    "reload"
+   ],
+   "stderr": "dummy reload failure",
+   "rc": 1
+  },
+  {
+   "match": [
+    "uptime"
+   ],
+   "stdout": "load average: 0.10"
+  },
+  {
+   "match": [
+    "df"
+   ],
+   "stdout": "Filesystem 1024-blocks Used Available Capacity Mounted on\n/dev/dummy 1000 500 500 50% /"
+  },
+  {
+   "match": [
+    "bb",
+    "opencode"
+   ],
+   "stdout": "port: 1 attached: false"
+  },
+  {
+   "match": [
+    "git",
+    "-C"
+   ],
+   "stdout": "abc123"
+  },
+  {
+   "match": [
+    "bb",
+    "thread",
+    "list"
+   ],
+   "stdout": "[{\"id\":\"thr_dummy2\",\"parentThreadId\":\"thr_dummy1\",\"status\":\"active\",\"visibility\":\"visible\"}]"
+  },
+  {
+   "match": [
+    "bb",
+    "thread",
+    "show"
+   ],
+   "stdout": "{\"id\":\"thr_dummy1\",\"status\":\"active\"}"
+  },
+  {
+   "match": [
+    "bb",
+    "thread",
+    "queue"
+   ],
+   "stdout": "[]"
+  }
+ ]
+}

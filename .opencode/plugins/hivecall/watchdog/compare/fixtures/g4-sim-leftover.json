@@ -1,0 +1,11 @@
+{
+ "name": "g4-sim-leftover",
+ "argv": [
+  "--simulate",
+  "leftover-session"
+ ],
+ "env": {
+  "WATCH_GHOST_MIN": "20"
+ },
+ "files": {}
+}

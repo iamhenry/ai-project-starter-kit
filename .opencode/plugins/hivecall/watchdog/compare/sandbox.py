@@ -4,6 +4,7 @@ import re
 import os
 from pathlib import Path
 import subprocess
+import shutil
 import socket
 import tempfile
 
@@ -12,8 +13,11 @@ HERE = Path(__file__).resolve().parent
 COMMANDS = "uptime df ps pgrep xcrun git sqlite3 curl lsof launchctl osascript open pkill killall bb".split()
 
 def run(target, fixture, coverage=False):
-    with tempfile.TemporaryDirectory(prefix="watch-", dir=os.environ.get("TMPDIR")) as tmp:
-        base = Path(tmp); repo, home, bindir = (base / n for n in ("repo", "home", "bin"))
+    # Same sandbox path for old and new (one per compare process): watch.py hashes paths into state keys.
+    tmp = Path(tempfile.gettempdir()).resolve() / f"watch-compare-{os.getpid()}"
+    shutil.rmtree(tmp, ignore_errors=True); tmp.mkdir()
+    try:
+        base = tmp; repo, home, bindir = (base / n for n in ("repo", "home", "bin"))
         for p in (repo, home, bindir): p.mkdir()
         candidate = base / "candidate"; candidate.mkdir()
         staged = candidate / "watch.py"
@@ -22,6 +26,11 @@ def run(target, fixture, coverage=False):
             p = repo / rel.replace("{REPO}", str(repo)).replace("{HOME}", str(home))
             # Build the gated run-card text at runtime so the plugin does not treat fixture data as a close request.
             p.parent.mkdir(parents=True, exist_ok=True); p.write_text(text.replace("{REPO}", str(repo)).replace("{HOME}", str(home)).replace("{CLOSED}", "clo" + "sed"))
+        # "modes": {"<path under REPO>": 0} makes a file or folder unreadable; restored before the snapshot.
+        modes = {repo / rel: int(mode) for rel, mode in fixture.get("modes", {}).items()}
+        for p in modes:  # never chmod outside the sandbox REPO (no absolute paths, no ../, no symlinks)
+            if p.is_symlink() or not p.resolve().is_relative_to(repo):
+                raise SystemExit(f"modes path must stay inside REPO: {p}")
         for rel, statements in fixture.get("sqlite", {}).items():
             import sqlite3
             p = home / rel; p.parent.mkdir(parents=True, exist_ok=True)
@@ -48,6 +57,7 @@ def run(target, fixture, coverage=False):
         env = {"PATH": f"{bindir}:{os.environ.get('PATH','')}", "HOME": str(home), "TMPDIR": str(base), "CALLS": str(calls), "ANSWERS": str(answers), "REPO": str(repo), "BB_CLI": str(bindir / "bb"), "TZ": "UTC", "PYTHONHASHSEED": "0"}
         env.update({k: str(v).replace("{REPO}", str(repo)).replace("{HOME}", str(home)) for k,v in fixture.get("env", {}).items()})
         args = ["python3", str(launcher), str(staged), str(fixture.get("epoch", 1794528000)), str(hits) if coverage else "-", *fixture["argv"]]
+        for p, mode in modes.items(): p.chmod(mode)
         try:
             proc = subprocess.run(args, capture_output=True, text=True, env=env, cwd=repo, timeout=12)
         except subprocess.TimeoutExpired:
@@ -56,6 +66,7 @@ def run(target, fixture, coverage=False):
             timed_out = True
         else:
             timed_out = False
+        for p in modes: p.chmod(0o755 if p.is_dir() else 0o644)
         def snapshot(root):
             return {str(p.relative_to(root)): p.read_bytes().decode("utf-8", "backslashreplace") for p in sorted(root.rglob("*")) if p.is_file()}
         def clean(s):
@@ -71,3 +82,5 @@ def run(target, fixture, coverage=False):
         if coverage and hits.exists(): result["hits"] = json.loads(hits.read_text())
         for sock in port_sockets: sock.close()
         return result
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)

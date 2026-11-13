@@ -1,0 +1,90 @@
+{
+ "name": "g3-sessions-bb",
+ "argv": [
+  "--once-report"
+ ],
+ "env": {
+  "REPO": "{REPO}",
+  "ORCH_THREAD": "thr_dummy1",
+  "ORCH_SESSION": "ses_dummy1",
+  "VERIFY_DIR": "{REPO}/verification",
+  "LEDGER": "{REPO}/ledger.md",
+  "RUN_CARD": "{REPO}/run.md",
+  "PROJECT_ID": "proj_dummy1",
+  "AUTOMATION_ID": "auto_dummy1"
+ },
+ "files": {
+  "ledger.md": "## Verification\nISC-1: PASS - dummy evidence\n",
+  "run.md": "status: running\n",
+  "verify/one-result.md": "| ISC-1 | PASS | evidence proof.txt\nPENDING-WAIT ISC-2 until 23:59\n",
+  ".bb/plugins/opencode/task-bound.json": "{\"bindings\":[{\"sessionId\":\"ses_dummy2\",\"threadId\":\"thr_dummy2\"}]}",
+  ".bb/bb.db": "",
+  "verification/one-result.md": "| ISC-1 | PASS | dummy evidence.txt\n",
+  "{HOME}/.bb/plugins/opencode/task-bound.json": "{\"bindings\":{\"ses_dummy2\":\"thr_dummy2\"}}",
+  "lane-dummy/file.txt": "dummy"
+ },
+ "sqlite": {
+  ".local/share/opencode/opencode.db": [
+   "CREATE TABLE session_v2(id TEXT, agent TEXT, title TEXT, time_created INTEGER, time_updated INTEGER, parent_id TEXT, directory TEXT, time_idle INTEGER, idle_outcome TEXT)",
+   "CREATE TABLE session_message(session_id TEXT,type TEXT,time_updated INTEGER,seq INTEGER,time_created INTEGER,data TEXT)",
+   "INSERT INTO session_v2 VALUES ('ses_dummy1','agent-dummy','title-dummy',1794528000,1794528000,NULL,'{REPO}',NULL,NULL)",
+   "INSERT INTO session_v2 VALUES ('ses_dummy2','agent-dummy','child-dummy',1794528000,1794528000,'ses_dummy1','{REPO}',NULL,NULL)",
+   "INSERT INTO session_v2 VALUES ('ses_dummy1','agent-dummy','title-dummy',1794528000,1794528000,NULL,'{REPO}',NULL,NULL)",
+   "INSERT INTO session_message VALUES ('ses_dummy1','assistant',1794528000,1,1794528000,'{\"agent\":7}')",
+   "INSERT INTO session_message VALUES ('ses_dummy1','assistant',1794528000,2,1794528000,'{\"agent\":\"agent-dummy\"}')",
+   "INSERT INTO session_message VALUES ('ses_dummy1','assistant',1794528000,1,1794528000,'{\"agent\":\"agent-dummy\"}')",
+   "INSERT INTO session_v2 VALUES ('ses_dummy3','agent-dummy','title-dummy',1794528000,1794528000,'ses_dummy1','{REPO}',NULL,NULL)",
+   "INSERT INTO session_v2 VALUES ('ses_dummy4','agent-dummy','title-dummy',1794528000,1794528000,'ses_dummy1','{REPO}',1794528000,'done')",
+   "INSERT INTO session_message VALUES ('ses_dummy4','user',1794528000,1,1794528000,'{\"text\":\"hello\"}')",
+   "INSERT INTO session_message VALUES ('ses_dummy1','assistant',1794528000,2,1794528000,'bad json')",
+   "INSERT INTO session_message VALUES ('ses_dummy2','user',1794528000,1,1794528000,'{\"text\":\"PROMISE: kind=code rows=1 result=proof.txt lane=lane-dummy\"}')"
+  ],
+  ".bb/bb.db": [
+   "CREATE TABLE events(thread_id TEXT,provider_thread_id TEXT)",
+   "CREATE TABLE threads(id TEXT,parent_thread_id TEXT)",
+   "INSERT INTO threads VALUES ('thr_dummy1','thr_dummy2')",
+   "INSERT INTO events VALUES ('thr_dummy2','ses_dummy2')"
+  ]
+ },
+ "answers": [
+  {
+   "match": [
+    "bb",
+    "thread",
+    "list",
+    "--json"
+   ],
+   "stdout": "[{\"id\":\"thr_dummy2\",\"parentThreadId\":\"thr_dummy1\",\"status\":\"active\",\"visibility\":\"visible\",\"createdAt\":1794528000,\"title\":\"dummy\"},{\"id\":\"thr_dummy1\",\"parentThreadId\":\"thr_dummy1\"}]"
+  },
+  {
+   "match": [
+    "bb",
+    "thread",
+    "show",
+    "thr_dummy1",
+    "--json"
+   ],
+   "stdout": "{\"outer\":{\"id\":\"thr_dummy1\",\"status\":\"active\"}}"
+  },
+  {
+   "match": [
+    "bb",
+    "thread",
+    "queue",
+    "list",
+    "thr_dummy1"
+   ],
+   "stdout": "no queued messages"
+  },
+  {
+   "match": [
+    "bb",
+    "opencode"
+   ],
+   "stdout": "port: 1 attached: false"
+  }
+ ],
+ "ports": [
+  1
+ ]
+}

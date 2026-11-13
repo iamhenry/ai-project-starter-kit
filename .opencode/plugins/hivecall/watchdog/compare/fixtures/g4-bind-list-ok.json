@@ -1,0 +1,77 @@
+{
+ "name": "g4-bind-list-ok",
+ "argv": [
+  "--dry-run"
+ ],
+ "env": {
+  "REPO": "{REPO}",
+  "ORCH_THREAD": "thr_dummy1",
+  "ORCH_SESSION": "ses_dummy1",
+  "VERIFY_DIR": "{REPO}/nope",
+  "LEDGER": "{REPO}/ledger.md",
+  "RUN_CARD": "{REPO}/run.md",
+  "PROJECT_ID": "proj_dummy1",
+  "AUTOMATION_ID": "auto_dummy1"
+ },
+ "files": {
+  "run.md": "status: running\ngoal: dummy goal\n",
+  "ledger.md": "- [ ] ISC-1 dummy\n",
+  "lane-a/f.txt": "x\n",
+  "{HOME}/.bb/plugins/opencode/task-bound.json": "{\"bindings\": [{\"sessionId\": \"ses_dummy2\", \"threadId\": \"thr_dummy2\"}]}"
+ },
+ "sqlite": {
+  ".local/share/opencode/opencode.db": [
+   "CREATE TABLE session_v2(id TEXT, agent TEXT, title TEXT, time_created INTEGER, time_updated INTEGER, parent_id TEXT, directory TEXT, time_idle INTEGER, idle_outcome TEXT)",
+   "CREATE TABLE session_message(session_id TEXT,type TEXT,time_updated INTEGER,seq INTEGER,time_created INTEGER,data TEXT)",
+   "INSERT INTO session_v2 VALUES ('ses_dummy1','builder','title-dummy',1794528000,1794528000,NULL,'{REPO}',NULL,NULL)",
+   "INSERT INTO session_v2 VALUES ('ses_dummy2','builder','title-dummy',1794528000,1794528000,'ses_dummy1','{REPO}',NULL,NULL)",
+   "INSERT INTO session_message VALUES ('ses_dummy2','user',1794528000,1,1794528000,'{\"text\": \"PROMISE: kind=code rows=- result=x-result.md lane=lane-a\"}')"
+  ]
+ },
+ "answers": [
+  {
+   "match": [
+    "uptime"
+   ],
+   "stdout": " 10:00 up 1 day, 1 user, load averages: 0.10, 0.20, 0.30\n"
+  },
+  {
+   "match": [
+    "df"
+   ],
+   "stdout": "Filesystem 1024-blocks Used Available Capacity Mounted on\n/dev/dummy 100000000 500 99999500 1% /\n"
+  },
+  {
+   "match": [
+    "bb",
+    "thread",
+    "list"
+   ],
+   "stdout": "[{\"id\":\"thr_dummy2\",\"parentThreadId\":\"thr_dummy1\",\"status\":\"active\",\"visibility\":\"visible\",\"createdAt\":1794528000,\"title\":\"dummy\"}]"
+  },
+  {
+   "match": [
+    "bb",
+    "thread",
+    "show"
+   ],
+   "stdout": "{\"id\":\"thr_dummy1\",\"status\":\"active\"}"
+  },
+  {
+   "match": [
+    "bb",
+    "thread",
+    "queue"
+   ],
+   "stderr": "queue down",
+   "rc": 1
+  },
+  {
+   "match": [
+    "bb",
+    "opencode"
+   ],
+   "stdout": "{}"
+  }
+ ]
+}

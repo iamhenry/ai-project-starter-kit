@@ -1,0 +1,13 @@
+{
+ "name": "g4-sim-stuck-state",
+ "argv": [
+  "--simulate",
+  "stuck-agent"
+ ],
+ "env": {
+  "STATE_FILE": "{REPO}/state.json"
+ },
+ "files": {
+  "state.json": "{\"conditions\": {\"stuck-agent:/x\": {\"streak\": 1, \"last_alert\": 0, \"severity\": 0}, \"ghost-agent:thr-fixture\": {\"streak\": 5, \"last_alert\": 0, \"severity\": 0}}}"
+ }
+}

@@ -1,0 +1,11 @@
+{
+ "name": "g4-sim-old-bb",
+ "argv": [
+  "--simulate",
+  "working-old-bb"
+ ],
+ "env": {
+  "WATCH_GHOST_MIN": "0.5"
+ },
+ "files": {}
+}

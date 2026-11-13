@@ -1,0 +1,13 @@
+{
+ "name": "g4-sim-lane-newline",
+ "argv": [
+  "--simulate",
+  "lane-drift"
+ ],
+ "env": {
+  "TMPDIR": "{REPO}/t\nx"
+ },
+ "files": {
+  "t\nx/keep.txt": "x\n"
+ }
+}

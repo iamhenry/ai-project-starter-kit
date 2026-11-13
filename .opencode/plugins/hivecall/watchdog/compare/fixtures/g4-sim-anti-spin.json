@@ -1,0 +1,11 @@
+{
+ "name": "g4-sim-anti-spin",
+ "argv": [
+  "--simulate",
+  "anti-spin"
+ ],
+ "env": {
+  "WATCH_CONTINUE_MIN": "25"
+ },
+ "files": {}
+}

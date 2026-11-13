@@ -7,6 +7,13 @@ from pathlib import Path
 
 target, epoch, hits_path, *args = sys.argv[1:]
 time.time = lambda: float(epoch)
+import datetime
+class FrozenDateTime(datetime.datetime):
+    """datetime.now() follows the frozen clock too (append_note stamps notes with it)."""
+    @classmethod
+    def now(cls, tz=None):
+        return cls.fromtimestamp(float(epoch), tz)
+datetime.datetime = FrozenDateTime
 sys.argv = [target, *args]
 mon = getattr(sys, "monitoring", None)
 if hits_path != "-" and mon:

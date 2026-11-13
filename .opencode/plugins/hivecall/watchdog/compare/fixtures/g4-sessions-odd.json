@@ -1,0 +1,87 @@
+{
+ "name": "g4-sessions-odd",
+ "argv": [
+  "--dry-run"
+ ],
+ "env": {
+  "REPO": "{REPO}",
+  "ORCH_THREAD": "thr_dummy1",
+  "ORCH_SESSION": "ses_dummy1",
+  "VERIFY_DIR": "{REPO}/verify",
+  "LEDGER": "{REPO}/ledger.md",
+  "RUN_CARD": "{REPO}/run.md",
+  "PROJECT_ID": "proj_dummy1",
+  "AUTOMATION_ID": "auto_dummy1"
+ },
+ "files": {
+  "run.md": "status: running\ngoal: dummy goal\n",
+  "ledger.md": "- [ ] ISC-1 dummy\n- [ ] ISC-2 dummy\n## Verification\nISC-1: FAIL - broke; evidence proof.txt\nISC-2: FAIL - broke; evidence missing.txt\nISC-.: FAIL - id with no number\n",
+  "proof.txt": "proof\n",
+  "lane-a/f.txt": "x\n",
+  "verify/locked/a.txt": "x\n",
+  "verify/x-result.md": "PENDING-WAIT until 00:00\nPENDING-WAIT ISC-2 until 2026-11-13T12:00:00\nPENDING-WAIT until nope\n",
+  "{HOME}/.bb/plugins/opencode/task-bound.json": "{\"bindings\": {\"ses_dummy2\": 5}}"
+ },
+ "sqlite": {
+  ".local/share/opencode/opencode.db": [
+   "CREATE TABLE session_v2(id TEXT, agent TEXT, title TEXT, time_created INTEGER, time_updated INTEGER, parent_id TEXT, directory TEXT, time_idle INTEGER, idle_outcome TEXT)",
+   "CREATE TABLE session_message(session_id TEXT,type TEXT,time_updated INTEGER,seq INTEGER,time_created INTEGER,data TEXT)",
+   "INSERT INTO session_v2 VALUES ('ses_dummy1','builder','title-dummy',1794528000,1794528000,'ses_dummy1','{REPO}',NULL,NULL)",
+   "INSERT INTO session_message VALUES ('ses_dummy1','assistant',1794528000,1,1794528000,'{\"agent\": oops')",
+   "INSERT INTO session_v2 VALUES ('ses_dummy2','builder','title-dummy',1794528000,1794528000,'ses_dummy1','{REPO}',NULL,NULL)",
+   "INSERT INTO session_message VALUES ('ses_dummy2','user',1794528000,1,1794528000,'{\"text\": \"PROMISE: kind=code rows=1 result=x-result.md lane=lane-a\"}')",
+   "INSERT INTO session_v2 VALUES ('ses_dummy3','builder','title-dummy',1794528000,1794528000,'ses_dummy1','{REPO}',NULL,NULL)",
+   "INSERT INTO session_message VALUES ('ses_dummy3','user',1794528000,1,1794528000,'not json')",
+   "INSERT INTO session_v2 VALUES ('ses_dummy4','builder','title-dummy',1794528000,1794528000,'ses_dummy1','{REPO}',NULL,NULL)",
+   "INSERT INTO session_message VALUES ('ses_dummy4','user',1794528000,1,1794528000,'{\"text\": 5}')"
+  ]
+ },
+ "answers": [
+  {
+   "match": [
+    "uptime"
+   ],
+   "stdout": " 10:00 up 1 day, 1 user, load averages: 0.10, 0.20, 0.30\n"
+  },
+  {
+   "match": [
+    "df"
+   ],
+   "stdout": "Filesystem 1024-blocks Used Available Capacity Mounted on\n/dev/dummy 100000000 500 99999500 1% /\n"
+  },
+  {
+   "match": [
+    "bb",
+    "thread",
+    "list"
+   ],
+   "stdout": "[{\"id\":\"thr_dummy2\",\"parentThreadId\":\"thr_dummy1\",\"status\":\"active\",\"visibility\":\"visible\",\"createdAt\":1794528000,\"title\":\"dummy\"}]"
+  },
+  {
+   "match": [
+    "bb",
+    "thread",
+    "show"
+   ],
+   "stdout": "{\"id\":\"thr_dummy1\",\"status\":\"active\"}"
+  },
+  {
+   "match": [
+    "bb",
+    "thread",
+    "queue"
+   ],
+   "stdout": "{\"items\": []}"
+  },
+  {
+   "match": [
+    "bb",
+    "opencode"
+   ],
+   "stdout": "{}"
+  }
+ ],
+ "modes": {
+  "verify/locked": 292
+ }
+}
