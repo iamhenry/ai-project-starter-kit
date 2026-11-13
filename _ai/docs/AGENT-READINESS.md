@@ -27,7 +27,7 @@ Read its warnings and add project-specific checks only when they help.
 
 ## Sources
 
-- Henry's 21-repository survey: `.hivecall/grounding/agent-readiness-research.md`.
+- Henry's 21-repository survey (private notes).
 - `chief-tui` `./check` and `checks/repo_rules.py` patterns.
 - https://github.com/kodustech/agent-readiness
 - https://factory.com/agent-readiness and https://factory.com/news/agent-readiness
