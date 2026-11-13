@@ -6,6 +6,7 @@ rm -rf "$tmpbase"; mkdir -p "$tmpbase"
 passed=0; failed=0
 alpha=abcdefghijklmnopqrstuvwxyz0123456789
 host=$(hostname -s 2>/dev/null || true)
+hook_override=SKIP"_HOOKS"
 
 setup() {
   case_dir="$tmpbase/$1"; rm -rf "$case_dir"; mkdir -p "$case_dir"
@@ -89,9 +90,14 @@ if [ "$rc" -ne 0 ] && [[ "$out" == *'could not run'* ]] && [[ "$out" == *blocked
 
 setup secret
 token="ghp""_$(printf '%036d' 0 | tr 0 a)"; printf '%s\n' "$token" >file.txt; commit_case; push_case secret block github-token "$token"
+setup skip-private-detail
+private_detail="/Users/$(printf dummy-user)/private"
+printf '%s\n' "$private_detail" >file.txt; commit_case
+out=$(env "$hook_override=1" git push origin HEAD:main 2>&1); rc=$?
+record skip-private-detail "$rc" "$out" block home-path
 setup old-history
 printf '%s\n' "$token" >file.txt; git add file.txt; git -c core.hooksPath=/dev/null commit -qm old-secret
-SKIP_HOOKS=1 git push -q origin HEAD:main
+git -c core.hooksPath=/dev/null push -q origin HEAD:main
 before=$(git --git-dir="$case_dir/remote.git" rev-parse refs/heads/main)
 printf 'safe later update\n' >file.txt; commit_case; push_case old-history pass
 

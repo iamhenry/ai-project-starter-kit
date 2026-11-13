@@ -2,9 +2,6 @@
 # Pre-push: every commit about to become public, including any commit that
 # added a key and a later one that removed it.
 set -uo pipefail
-if [ "${SKIP_HOOKS:-}" = "1" ]; then
-  exit 0
-fi
 here=$(cd "$(dirname "$0")" && pwd)
 # shellcheck source=checks/lib.sh
 . "$here/checks/lib.sh"
