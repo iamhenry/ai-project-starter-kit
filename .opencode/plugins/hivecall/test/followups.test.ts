@@ -124,8 +124,10 @@ describe("parking from kickoff instructions", () => {
     expect(readFileSync(resolve(h.root, ".hivecall/checklist.html"), "utf8")).toBe(initial)
     expect(readFileSync(resolve(h.root, ".hivecall/run.md"), "utf8")).toContain("status: running")
     expect(await h.call("write", { path: ".hivecall/checklist.html", content: parked })).toBeNull()
-    expect(await h.call("write", close)).toBeNull()
-    expect(readFileSync(resolve(h.root, ".hivecall/run.md"), "utf8")).toBe(close.content)
+    expect(await h.call("write", close)).toContain("Goal met: no - parked: ISC-023")
+    const honest = { ...close, content: close.content.replace("## Final report\n", "## Final report\nGoal met: no - parked: ISC-23\n") }
+    expect(await h.call("write", honest)).toBeNull()
+    expect(readFileSync(resolve(h.root, ".hivecall/run.md"), "utf8")).toBe(honest.content)
     expect(h.events().some((e) => e.action === "tick")).toBe(false)
   })
 

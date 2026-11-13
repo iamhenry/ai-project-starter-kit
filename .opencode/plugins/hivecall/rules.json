@@ -21,7 +21,7 @@
   },
   {
     "id": "no-early-done",
-    "message": "Do not close the run or write the final report while counted ledger items are open or ticked without approval and receipt. Save ledger updates in a separate completed tool call before closing. To park an unproven HTML item, leave its checkbox unticked, add data-status=\"parked\" to that item's input, and append a BLOCKED result with the reason and unlock condition (references/kickoff.md, Parking an item). A box that stays ticked without approval and receipt can be closed over only after three pauses and once the run card lists it on a `Not counted: ISC-x` line, so the owner sees it was not counted."
+    "message": "Do not close the run or write the final report while counted ledger items are open or ticked without approval and receipt. Save ledger updates in a separate completed tool call before closing. To park an unproven HTML item, leave its checkbox unticked, add data-status=\"parked\" to that item's input, and append a BLOCKED result with the reason and unlock condition (references/kickoff.md, Parking an item). A box that stays ticked without approval and receipt can be closed over only after three pauses and once the run card lists it on a `Not counted: ISC-x` line, so the owner sees it was not counted. A close with any parked item is held until the run card says `Goal met: no - parked: ISC-x, ...` naming every parked id, as the first line of the final report."
   },
   {
     "id": "third-fix",
