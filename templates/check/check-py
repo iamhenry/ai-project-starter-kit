@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
+# Copy this file to the project root as ./check and copy pylintrc there too.
 # Generalized from chief-tui's ./check and checks/repo_rules.py; the survey
-# includes chief-tui. Uses Python 3 tests and optional Ruff warning-only lint.
+# includes chief-tui. Uses Python 3 tests, Pylint file-length and optional Ruff lint.
 set -u
 cd "$(dirname "$0")"
 start=$SECONDS
@@ -43,6 +44,12 @@ if command -v ruff >/dev/null 2>&1; then
   ruff check . || echo 'WARNING: Ruff reported issues; optional lint does not fail ./check.' >&2
 else
   echo 'WARNING: Ruff is not installed; optional lint was not run or installed.' >&2
+fi
+
+if command -v pylint >/dev/null 2>&1; then
+  pylint --rcfile=pylintrc . || failed=1
+else
+  echo 'WARNING: Pylint is not installed; file-length lint was not run. Nothing was installed.' >&2
 fi
 
 # Small example rule: ambiguous interpreter commands in shell scripts. Rules warn, never block.

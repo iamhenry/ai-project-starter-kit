@@ -1,0 +1,7 @@
+# SwiftPM creates generated Swift sources under .build; do not lint those.
+excluded:
+  - .build
+
+file_length:
+  warning: 500
+  error: 500

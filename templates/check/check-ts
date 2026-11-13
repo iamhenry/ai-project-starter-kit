@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
+# Copy this file to the project root as ./check and copy biome.json there too.
+# The file-length rule requires Biome 2.6.7 or newer.
 # Drawn from the survey repos journal-ios-app, qodi-qr-code-app, sonara-ios-app,
 # zero-proof-app, bb, bb-plugin-*, bb-voice, opencode-council and opencode-forge;
-# uses tsc, bun test or vitest, and optional Biome where those repos use them.
+# uses tsc, bun test or vitest, and Biome file-length plus optional full lint.
 set -u
 cd "$(dirname "$0")"
 start=$SECONDS
@@ -27,9 +29,15 @@ else
 fi
 
 if [[ -x node_modules/.bin/biome ]]; then
-  node_modules/.bin/biome check . || echo 'WARNING: Biome reported issues; optional lint does not fail ./check.' >&2
+  biome=node_modules/.bin/biome
+elif command -v biome >/dev/null 2>&1; then
+  biome=$(command -v biome)
 else
-  echo 'WARNING: Biome is not installed; optional lint was not run or installed.' >&2
+  echo 'WARNING: Biome is not installed; file-length lint was not run. Nothing was installed.' >&2
+fi
+if [[ -n "${biome:-}" ]]; then
+  "$biome" lint . --config-path=biome.json --only=lint/style/noExcessiveLinesPerFile || failed=1
+  "$biome" check . --config-path=biome.json --skip=lint/style/noExcessiveLinesPerFile || echo 'WARNING: Biome reported issues; optional lint does not fail ./check.' >&2
 fi
 printf 'Total wall time: %ss\n' "$((SECONDS - start))"
 exit "$failed"

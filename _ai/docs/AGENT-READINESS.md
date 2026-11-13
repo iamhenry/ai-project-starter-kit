@@ -15,15 +15,17 @@ without guessing. Keep checks fast and make failures clear.
    matters and how to fix it.
 5. **Explain the checks:** `AGENTS.md` says how to run `./check` and names the
    check that enforces each repo rule.
-6. **Keep global protections global:** secret scans, file-size limits, private
-   detail checks and protected-file checks stay in the shared `.githooks/`.
-   Do not move them into `./check`.
+6. **Keep each check in the right place:** `./check` enforces file-size limits
+   with standard language linters. Secret scans, private detail checks and
+   protected-file checks stay in the shared `.githooks/`.
 
 ## Adopt
 
-Copy the matching file from `templates/check/` to the project root as `./check`,
-then run `chmod +x ./check`. The shared pre-commit hook runs this executable.
-Read its warnings and add project-specific checks only when they help.
+Copy the matching file from `templates/check/` to the project root as `./check`.
+Also copy its linter config (`biome.json`, `.swiftlint.yml`, or `pylintrc`) to
+the project root, then run `chmod +x ./check`. The shared pre-commit hook runs
+this executable. Read its warnings and add project-specific checks only when
+they help.
 
 ## Sources
 

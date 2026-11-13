@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
+# Copy this file to the project root as ./check and copy .swiftlint.yml there too.
 # Drawn from survey repo mac-quotes-app (Xcode project + MacQuotesPackage
-# SwiftPM package). Uses xcodebuild or swift test; SwiftLint/SwiftFormat are optional.
+# SwiftPM package). Uses xcodebuild or swift test; SwiftLint checks file length.
+# Other SwiftLint and swift-format checks are warning-only.
 set -u
 cd "$(dirname "$0")"
 start=$SECONDS
@@ -17,9 +19,10 @@ else
 fi
 
 if command -v swiftlint >/dev/null 2>&1; then
-  swiftlint lint || echo 'WARNING: SwiftLint reported issues; optional lint does not fail ./check.' >&2
+  swiftlint lint --config .swiftlint.yml --only-rule file_length || failed=1
+  swiftlint lint --config .swiftlint.yml || echo 'WARNING: SwiftLint reported issues; optional lint does not fail ./check.' >&2
 else
-  echo 'WARNING: SwiftLint is not installed; optional lint was not run or installed.' >&2
+  echo 'WARNING: SwiftLint is not installed; file-length lint was not run. Nothing was installed.' >&2
 fi
 if command -v swift-format >/dev/null 2>&1; then
   swift-format lint . || echo 'WARNING: swift-format reported issues; optional lint does not fail ./check.' >&2
