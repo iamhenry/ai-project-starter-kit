@@ -31,6 +31,24 @@ make_check $'#!/bin/sh\nexit 0' 755
 out=$(commit_update); rc=$?; after=$(git rev-parse HEAD)
 if [ "$rc" -eq 0 ] && [ "$before" != "$after" ]; then result pass 1; else result pass 0 "rc=$rc"; fi
 
+setup isolated-git
+cat >check <<'EOF'
+#!/usr/bin/env bash
+set -e
+inner=$(mktemp -d "${TMPDIR:-/tmp}/check-hook-inner.XXXXXX")
+trap 'rm -rf "$inner"' EXIT
+git init -q "$inner/repo"
+cd "$inner/repo"
+[[ "$(git rev-parse --absolute-git-dir)" -ef "$inner/repo/.git" ]] || { echo "git did not select the temp repository" >&2; exit 1; }
+printf 'inner\n' >inner.txt
+git add inner.txt
+git -c user.name=Builder -c user.email=builder@example.com -c core.hooksPath=/dev/null commit -qm inner
+EOF
+chmod +x check
+printf 'update\n' >file.txt; git add file.txt
+out=$(GIT_DIR="$PWD/.git" GIT_INDEX_FILE="$PWD/.git/index" git commit -m case 2>&1); rc=$?; after=$(git rev-parse HEAD)
+if [ "$rc" -eq 0 ] && [ "$before" != "$after" ]; then result isolated-git 1; else result isolated-git 0 "rc=$rc output=$out"; fi
+
 setup none
 baseline="$tmpbase/base-hooks"; mkdir -p "$baseline/checks"
 git -C "$root" show ad3fb3c:.githooks/pre-commit >"$baseline/pre-commit"
