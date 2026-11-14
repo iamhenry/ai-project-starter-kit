@@ -99,9 +99,12 @@ review was needed) is PASS with that reason.
 ## Privacy
 
 Judge from the original records, then redact what goes into the report: no
-secrets or tokens, emails, IPs or personal names; paraphrase the owner, never
-quote. Local file paths, thread ids and commit ids may stay. Redact only
-identifying values, never the behavior. Keep scratch files in a temp folder.
+secrets or tokens, personal names, owner quotes, emails, IPs, private or tailnet
+hosts, local paths, thread/project/session ids, or commit ids. Paraphrase owner
+messages. Before posting, scan the complete report with the repository's secret
+and private-data rules. Any match blocks the post; show only the rule name and
+line number. Redact identifying values, not behavior. Keep scratch files in a
+temp folder.
 
 ## Proposed fixes
 
