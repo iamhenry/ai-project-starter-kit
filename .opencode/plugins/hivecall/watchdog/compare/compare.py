@@ -35,6 +35,29 @@ def executable_lines(source, filename):
         return result
     return visit(code)
 
+def normalize_traceback_locations(text):
+    frame = re.compile(r'^  File "[^"\r\n]+", line \d+, in (.+)$')
+    lines = []
+    in_traceback = False
+    saw_frame = False
+    for line in text.splitlines(keepends=True):
+        body = line.rstrip("\r\n")
+        ending = line[len(body):]
+        if body == "Traceback (most recent call last):":
+            in_traceback = True
+            saw_frame = False
+        elif in_traceback and body.startswith(("During handling of the above exception", "The above exception was the direct cause")):
+            in_traceback = False
+        elif in_traceback:
+            match = frame.fullmatch(body)
+            if match:
+                body = f"File <loc>, in {match.group(1)}"
+                saw_frame = True
+            elif saw_frame and body and not body[0].isspace():
+                in_traceback = False
+        lines.append(body + ending)
+    return "".join(lines)
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--old"); ap.add_argument("--new"); ap.add_argument("--coverage", action="store_true"); ap.add_argument("--report")
@@ -61,6 +84,9 @@ def main():
                     # argparse includes the launch filename in help; it is not watchdog output.
                     a[field] = re.sub(r"watch-baseline-[^\s]+\.py", "watch.py", a[field])
                     b[field] = re.sub(r"watch-baseline-[^\s]+\.py", "watch.py", b[field])
+                    if field == "stderr":
+                        a[field] = normalize_traceback_locations(a[field])
+                        b[field] = normalize_traceback_locations(b[field])
                 if a[field] != b[field]:
                     changed = True; print(f"{fixture['name']} {field}")
                     print("".join(difflib.unified_diff(str(a[field]).splitlines(True), str(b[field]).splitlines(True), fromfile="old", tofile="new"))[:1500])
