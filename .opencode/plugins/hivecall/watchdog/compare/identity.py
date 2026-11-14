@@ -5,7 +5,6 @@ from collections import defaultdict
 import copy
 from pathlib import Path
 import symtable
-from identity_ctx import NormalizeCtx, ctx_copy_name, ctx_prelude, ctx_prelude_errors, function_parameters, validate_ctx_class
 from identity_resolve import run_check
 
 SCOPED_FUNCTIONS = {"evaluate", "simulate"}
@@ -27,6 +26,27 @@ def unit(node):
         names = sorted({name for target in targets for name in binding_names(target)})
         return "assignment " + (", ".join(names) if names else f"at line {node.lineno}")
     return type(node).__name__
+
+class NormalizeCtx(ast.NodeTransformer):
+    def __init__(self, locals_):
+        self.locals = locals_
+        self.outer = True
+
+    def visit_Attribute(self, node):
+        if (isinstance(node.value, ast.Name) and node.value.id == "ctx"
+                and node.attr in self.locals):
+            return ast.copy_location(ast.Name(id=node.attr, ctx=node.ctx), node)
+        return self.generic_visit(node)
+
+    def visit_arguments(self, node):
+        if self.outer:
+            self.outer = False
+            for field in ("posonlyargs", "args", "kwonlyargs"):
+                setattr(node, field, [arg for arg in getattr(node, field) if arg.arg != "ctx"])
+            for field in ("vararg", "kwarg"):
+                arg = getattr(node, field)
+                if arg and arg.arg == "ctx": setattr(node, field, None)
+        return self.generic_visit(node)
 
 def canonical(node, locals_=()):
     clone = copy.deepcopy(node)
@@ -75,10 +95,9 @@ def locals_of(table): return {s.get_name() for s in table.get_symbols() if s.is_
 def function_locals(node, table):
     names = {arg.arg for arg in node.args.posonlyargs + node.args.args + node.args.kwonlyargs}
     def visit(item):
-        if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
-            return
-        if isinstance(item, ast.ClassDef):
-            names.add(item.name)
+        if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)):
+            if not isinstance(item, ast.Lambda):
+                names.add(item.name)
             return
         if isinstance(item, (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)):
             visit(item.generators[0].iter)
@@ -136,13 +155,11 @@ def has_ctx_arg(node): return any(arg.arg == "ctx" for arg in node.args.posonlya
 
 class CtxAudit(ast.NodeVisitor):
     def __init__(self, root, table, locals_, shared):
-        self.root = root
         self.scopes = [table]
         self.ast_scopes = []
         self.scope_map = scope_index(root, table)
         self.locals = locals_
         self.shared = shared
-        self.parameters = function_parameters(root)
         self.errors = []
     def inner_local(self, name):
         return (any(name in locals_of(scope) for scope in self.scopes[1:])
@@ -150,12 +167,6 @@ class CtxAudit(ast.NodeVisitor):
     def visit_Name(self, node):
         if node.id in self.shared and not self.inner_local(node.id):
             self.errors.append(f"shared local {node.id!r} is not prefixed with ctx.")
-    def visit_Assign(self, node):
-        if (self.root.name in SCOPED_FUNCTIONS and node.type_comment is None
-                and ctx_copy_name(node) in self.parameters):
-            self.visit(node.targets[0])
-            return
-        self.generic_visit(node)
     def visit_Attribute(self, node):
         if isinstance(node.value, ast.Name) and node.value.id == "ctx":
             if self.inner_local("ctx") and node.attr in self.locals: self.errors.append("ctx is shadowed in an inner scope.")
@@ -249,18 +260,16 @@ def named_function(modules, name):
 def ctx_check(node, source, filename, baseline_info):
     if node is None:
         return ["function is missing"]
-    errors = ctx_prelude_errors(node)
     if not has_ctx_arg(node) and not any(isinstance(item, ast.Attribute) and isinstance(item.value, ast.Name)
                                          and item.value.id == "ctx" for item in ast.walk(node)):
-        return errors
+        return []
     root_table = symtable.symtable(source, filename, "exec")
     table = find_table(root_table, node.name, node.lineno)
     if table is None:
         return ["cannot map function to symtable scope"]
     audit = CtxAudit(node, table, baseline_info["locals"], baseline_info["shared"])
-    start, count = ctx_prelude(node)
-    for item in node.body[:start] + node.body[start + count:]: audit.visit(item)
-    return sorted(set(errors + audit.errors))
+    for item in node.body: audit.visit(item)
+    return sorted(set(audit.errors))
 
 def baseline_ctx_info(tree, source, filename):
     result = {}
@@ -398,7 +407,6 @@ def check(old_path, new_path):
                 resolution_modules[id(old_node)] = actual[exact][0]
 
     extracted = defaultdict(list)
-    extracted_candidates = []
     claimed_nested = set()
     for i, (path, label, node) in enumerate(actual):
         if i in used or not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
@@ -417,16 +425,10 @@ def check(old_path, new_path):
                 errors.extend(f"{node.name}: {message}" for message in ctx_errors)
                 break
             extracted[parent_name].append(original)
-            extracted_candidates.append(node)
             claimed_nested.add(id(original))
             used.add(i)
             resolution_modules[id(original)] = path
             break
-
-    ctx_class, ctx_errors = validate_ctx_class(modules, SCOPED_FUNCTIONS, extracted_candidates)
-    errors.extend(ctx_errors)
-    if ctx_class is not None:
-        used.add(next(i for i, (_, _, node) in enumerate(actual) if node is ctx_class))
 
     for name, old_node in scoped.items():
         info = infos.get(name)
@@ -456,7 +458,7 @@ def check(old_path, new_path):
     return sorted(set(errors))
 def selftest():
     old = '''def evaluate():\n    shared = 3\n    def trigger(key):\n        return shared + key\n    return trigger(2)\n'''
-    correct = '''def evaluate(ctx):\n    ctx = Ctx()\n    ctx.shared = 3\n    def trigger(key):\n        return ctx.shared + key\n    return trigger(2)\n'''
+    correct = '''def evaluate(ctx):\n    ctx.shared = 3\n    def trigger(key):\n        return ctx.shared + key\n    return trigger(2)\n'''
     unprefixed = correct.replace("return ctx.shared + key", "return shared + key")
     inner_prefixed = correct.replace("shared + key", "shared + ctx.key")
     cases = [("correct closure rewrite", correct, True),
