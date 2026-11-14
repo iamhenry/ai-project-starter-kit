@@ -8,9 +8,6 @@ from pathlib import Path
 
 from hivewatch.shell import minutes_since
 
-VERDICT = re.compile(r"^\|\s*((?:ISC-)?\d+(?:\.\d+)?)\s*\|\s*(PASS|FAIL|BLOCKED)\b(.*)$", re.I)
-
-ISA_VERDICT = re.compile(r"^(ISC-[0-9.]+):\s*(PASS|FAIL|BLOCKED)\s*-\s*([^;]*)", re.I)
 
 PROMISE_DEFAULTS = {
     "screen": {"pace": 10, "signal": "answer"},
@@ -22,9 +19,6 @@ PROMISE_DEFAULTS = {
 
 OFF_TRACK_IDLE_MIN = 10
 
-PLACEHOLDER = re.compile(r"not probed|group stopped|not run|stopped after|pending", re.I)
-
-EVIDENCE_REFERENCE = re.compile(r"(?:`[^`]+\.[^`]+`|[\w./-]+\.(?:png|jpe?g|json|txt|mp4|log|csv|mov|webm)\b|https?://\S+)", re.I)
 
 def normalize_ident(value: str) -> str:
     value = re.sub(r"^ISC-", "", value.strip(), flags=re.I)
