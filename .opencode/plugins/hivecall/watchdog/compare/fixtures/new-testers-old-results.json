@@ -1,0 +1,11 @@
+{
+  "name": "new-testers-old-results",
+  "argv": [
+    "--simulate",
+    "new-testers-old-results"
+  ],
+  "env": {},
+  "files": {},
+  "answers": {},
+  "epoch": 1794528000
+}

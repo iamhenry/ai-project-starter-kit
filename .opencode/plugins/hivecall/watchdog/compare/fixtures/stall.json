@@ -1,0 +1,11 @@
+{
+  "name": "stall",
+  "argv": [
+    "--simulate",
+    "stall"
+  ],
+  "env": {},
+  "files": {},
+  "answers": {},
+  "epoch": 1794528000
+}

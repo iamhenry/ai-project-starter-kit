@@ -1,0 +1,1 @@
+{"name":"done-running-incomplete","argv":["--dry-run"],"env":{"REPO":"{REPO}","ORCH_THREAD":"thr_dummy1","ORCH_SESSION":"ses_dummy1","VERIFY_DIR":"{REPO}/verify","LEDGER":"{REPO}/ledger.md","RUN_CARD":"{REPO}/run.md"},"files":{"ledger.md":"- [ ] ISC-1 incomplete\n","run.md":"status: running\n",".lanes/watch-state.json":"{\"done\":true}"}}

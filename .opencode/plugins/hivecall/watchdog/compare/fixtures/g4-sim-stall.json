@@ -1,0 +1,11 @@
+{
+ "name": "g4-sim-stall",
+ "argv": [
+  "--simulate",
+  "stall"
+ ],
+ "env": {
+  "WATCH_STALL_MIN": "0.5"
+ },
+ "files": {}
+}

@@ -1,0 +1,11 @@
+{
+  "name": "regression",
+  "argv": [
+    "--simulate",
+    "regression"
+  ],
+  "env": {},
+  "files": {},
+  "answers": {},
+  "epoch": 1794528000
+}

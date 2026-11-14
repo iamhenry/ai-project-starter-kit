@@ -1,0 +1,11 @@
+{
+ "name": "g4-sim-alert-once-high",
+ "argv": [
+  "--simulate",
+  "alert-once"
+ ],
+ "env": {
+  "WATCH_AGENT_STUCK_MIN": "600"
+ },
+ "files": {}
+}

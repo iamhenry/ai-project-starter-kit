@@ -1,0 +1,11 @@
+{
+ "name": "g4-sim-idle-timer",
+ "argv": [
+  "--simulate",
+  "sim-idle-timer"
+ ],
+ "env": {
+  "WATCH_GHOST_MIN": "20"
+ },
+ "files": {}
+}

@@ -1,0 +1,11 @@
+{
+  "name": "lane-drift",
+  "argv": [
+    "--simulate",
+    "lane-drift"
+  ],
+  "env": {},
+  "files": {},
+  "answers": {},
+  "epoch": 1794528000
+}

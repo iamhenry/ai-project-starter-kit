@@ -1,0 +1,10 @@
+{
+  "1400": "Continuation line of the nested `def trigger(...)` signature in evaluate; on Python 3.14 its only code is the lazy `__annotate__` function (PEP 649), which runs only if something reads trigger.__annotations__, and watch.py never does.",
+  "1547": "Body of `if time_idle/idle_outcome is not None` over sessions['live']: load_sessions (lines 690-691) adds a session to live only when time_idle and idle_outcome are both None, every synthetic() live session has both None (only idle-helper sets them, and it goes to children only), and line 1441 only filters live.",
+  "1548": "Same call as 1547 (keyword argument line); the guard can never be true on today's file.",
+  "1549": "`continue` after the 1547 call; same never-true guard.",
+  "3182": "`elif name == 'anti-spin'` body in simulate's loop setup; the anti-spin scenario always returns at line 2440 before reaching line 3178.",
+  "3184": "`elif name == 'done'` body in simulate's loop setup; the done scenario always returns at line 2355 before reaching line 3178.",
+  "3204": "`if name == 'anti-spin' and i > 0` body in simulate's loop; anti-spin always returns at line 2440 first.",
+  "3252": "Post-loop `if name == 'anti-spin' and continue stopped` print; anti-spin always returns at line 2440 first."
+}

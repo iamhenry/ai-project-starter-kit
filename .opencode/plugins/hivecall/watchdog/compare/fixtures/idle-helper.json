@@ -1,0 +1,11 @@
+{
+  "name": "idle-helper",
+  "argv": [
+    "--simulate",
+    "idle-helper"
+  ],
+  "env": {},
+  "files": {},
+  "answers": {},
+  "epoch": 1794528000
+}

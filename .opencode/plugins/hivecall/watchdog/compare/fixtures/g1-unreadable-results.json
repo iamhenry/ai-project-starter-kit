@@ -1,0 +1,61 @@
+{
+ "name": "g1-unreadable-results",
+ "argv": [
+  "--once-report"
+ ],
+ "env": {
+  "REPO": "{REPO}",
+  "ORCH_THREAD": "thr_dummy1",
+  "ORCH_SESSION": "ses_dummy1",
+  "VERIFY_DIR": "{REPO}/verify",
+  "LEDGER": "{REPO}/ledger.md",
+  "RUN_CARD": "{REPO}/run.md",
+  "PROJECT_ID": "proj_dummy1",
+  "AUTOMATION_ID": "auto_dummy1"
+ },
+ "files": {
+  "ledger.md": "- [x] ISC-1 done\n- [ ] ISC-2 todo\n",
+  "run.md": "status: running\ngoal: dummy goal\n",
+  "verify/keep.txt": "x\n",
+  "verify/bad-result.md": "| 1 | PASS | evidence proof.txt |\n",
+  "proof.txt": "proof\n"
+ },
+ "answers": [
+  {
+   "match": [
+    "uptime"
+   ],
+   "stdout": "load average: 0.10"
+  },
+  {
+   "match": [
+    "df"
+   ],
+   "stdout": "Filesystem 1024-blocks Used Available Capacity Mounted on\n/dev/dummy 1000 500 500 50% /"
+  },
+  {
+   "match": [
+    "thread",
+    "list"
+   ],
+   "stdout": "[]"
+  },
+  {
+   "match": [
+    "thread",
+    "show"
+   ],
+   "stdout": "{\"id\":\"thr_dummy1\",\"status\":\"active\"}"
+  },
+  {
+   "match": [
+    "thread",
+    "queue"
+   ],
+   "stdout": "[]"
+  }
+ ],
+ "modes": {
+  "verify/bad-result.md": 0
+ }
+}

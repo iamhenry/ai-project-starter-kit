@@ -1,0 +1,3 @@
+{
+  "117": "parse_promise_rows reaches normalize_ident only after its full-match numeric-ID pattern succeeds; normalize_ident therefore cannot return an empty identifier here."
+}

@@ -1,0 +1,28 @@
+{
+ "name": "g3-broken-dbs",
+ "argv": [
+  "--once-report"
+ ],
+ "env": {
+  "REPO": "{REPO}/missing",
+  "ORCH_THREAD": "thr_dummy1",
+  "ORCH_SESSION": "ses_dummy1"
+ },
+ "files": {
+  "{HOME}/.bb/bb.db": "not a database file, dummy text only\n"
+ },
+ "sqlite": {
+  ".local/share/opencode/opencode.db": [
+   "CREATE TABLE unrelated(x TEXT)"
+  ]
+ },
+ "answers": [
+  {
+   "match": [
+    "bb",
+    "opencode"
+   ],
+   "stdout": "port: 1 attached: false"
+  }
+ ]
+}

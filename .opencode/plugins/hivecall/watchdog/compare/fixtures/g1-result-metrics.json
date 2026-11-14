@@ -1,0 +1,68 @@
+{
+ "name": "g1-result-metrics",
+ "argv": [
+  "--dry-run"
+ ],
+ "env": {
+  "REPO": "{REPO}",
+  "ORCH_THREAD": "thr_dummy1",
+  "ORCH_SESSION": "ses_dummy1",
+  "VERIFY_DIR": "{REPO}/verify",
+  "LEDGER": "{REPO}/ledger.md",
+  "RUN_CARD": "{REPO}/run.md",
+  "PROJECT_ID": "proj_dummy1",
+  "AUTOMATION_ID": "auto_dummy1"
+ },
+ "files": {
+  "ledger.md": "- [x] ISC-1 done\n- [ ] ISC-2 todo\n",
+  "run.md": "status: running\ngoal: dummy goal\n",
+  "verify/keep.txt": "x\n",
+  "verify/demo-result.md": "| 1 | PASS | evidence proof.txt |\n| 1 | BLOCKED | pending |\nPENDING-WAIT 001 until 23:59\nPENDING-WAIT 002 until 2026-11-13T12:00:00Z\nPENDING-WAIT 003 until nope\n",
+  "proof.txt": "proof\n"
+ },
+ "answers": [
+  {
+   "match": [
+    "uptime"
+   ],
+   "stdout": "load average: 0.10"
+  },
+  {
+   "match": [
+    "df"
+   ],
+   "stdout": "Filesystem 1024-blocks Used Available Capacity Mounted on\n/dev/dummy 1000 500 500 50% /"
+  },
+  {
+   "match": [
+    "thread",
+    "list"
+   ],
+   "stdout": "[]"
+  },
+  {
+   "match": [
+    "thread",
+    "show"
+   ],
+   "stdout": "{\"id\":\"thr_dummy1\",\"status\":\"active\"}"
+  },
+  {
+   "match": [
+    "thread",
+    "queue"
+   ],
+   "stdout": "[]"
+  }
+ ],
+ "sqlite": {
+  ".local/share/opencode/opencode.db": [
+   "CREATE TABLE session_v2(id TEXT, agent TEXT, title TEXT, time_created INTEGER, time_updated INTEGER, parent_id TEXT, directory TEXT, time_idle INTEGER, idle_outcome TEXT)",
+   "CREATE TABLE session_message(session_id TEXT,type TEXT,time_updated INTEGER,seq INTEGER,time_created INTEGER,data TEXT)",
+   "INSERT INTO session_v2 VALUES ('ses_dummy1','agent-dummy','orch',1794528000,1794528000,NULL,'{REPO}',NULL,NULL)",
+   "INSERT INTO session_v2 VALUES ('ses_dummy2','agent-dummy','child2',1794528000,1794528000,'ses_dummy1','{REPO}',NULL,NULL)",
+   "INSERT INTO session_message VALUES ('ses_dummy2','user',1794528000,1,1794528000,'{\"text\": \"PROMISE: kind=screen rows=1 result=demo-result.md lane=- pace=5\"}')",
+   "INSERT INTO session_message VALUES ('ses_dummy2','user',1794527100,2,1794527100,'{\"text\": \"steer\"}')"
+  ]
+ }
+}

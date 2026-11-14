@@ -1,0 +1,13 @@
+{
+ "name": "g2-sim-done-state",
+ "argv": [
+  "--simulate",
+  "high-load"
+ ],
+ "env": {
+  "REPO": "{REPO}"
+ },
+ "files": {
+  ".lanes/watch-state.json": "{\"done\": true}"
+ }
+}

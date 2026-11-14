@@ -1,0 +1,1 @@
+{"name":"find-session-db","argv":["--find-session"],"env":{"REPO":"."},"sqlite":{".local/share/opencode/opencode.db":["CREATE TABLE session_v2(id TEXT, agent TEXT, title TEXT, time_created INTEGER, time_updated INTEGER, parent_id TEXT, directory TEXT)","INSERT INTO session_v2 VALUES ('ses_dummy1','agent-dummy','title-dummy',1794528000,1794528000,NULL,'{REPO}')"]}}

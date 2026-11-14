@@ -1,0 +1,11 @@
+{
+  "name": "orphan-recorder",
+  "argv": [
+    "--simulate",
+    "orphan-recorder"
+  ],
+  "env": {},
+  "files": {},
+  "answers": {},
+  "epoch": 1794528000
+}

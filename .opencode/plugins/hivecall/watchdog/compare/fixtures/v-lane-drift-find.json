@@ -1,0 +1,11 @@
+{
+  "name": "v-lane-drift-find",
+  "argv": ["--simulate", "lane-drift"],
+  "env": {"PATH": "{REPO}/fakebin:{REPO}/../bin:/opt/homebrew/bin:/usr/bin:/bin"},
+  "files": {
+    "fakebin/find": "#!/bin/sh\ncount='{REPO}/find-count'\nif [ -f \"$count\" ]; then exit 0; fi\nprintf x > \"$count\"\nexec /usr/bin/find \"$@\"\n"
+  },
+  "modes": {"fakebin/find": 493},
+  "answers": [],
+  "epoch": 1794528000
+}

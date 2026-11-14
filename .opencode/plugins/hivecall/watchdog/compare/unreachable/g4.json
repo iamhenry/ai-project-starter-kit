@@ -1,0 +1,7 @@
+{
+  "439": "`except OSError` around `Path(path).stat()` in parse_isa: line 429 has just read the same path successfully, so stat fails only if another process removes or locks the file between the two calls. No fixture input (argv, env, files, modes, DB, stub answer, clock) runs between them; only a concurrent race can reach it.",
+  "440": "`ledger_mtime = None` in the same except as 439; same race-only condition.",
+  "661": "Continuation line of the `def load_sessions(...)` signature (`extra_ids: list[str] | None = None`). On Python 3.14 its only code is the lazy `__annotate__` function (PEP 649), which runs only if something reads load_sessions.__annotations__, and watch.py never does.",
+  "1194": "`return None` in off_track_idle_age when a code/build lane is not valid. Its only caller (line 1568) runs after promise_metrics returned non-None, and promise_metrics returns None at lines 1137-1138 for a code/build promise whose lane (the same snapshot['lanes'][sess['id']]) is not valid. So `not lane.get('valid')` is never true here.",
+  "1199": "`return None` in off_track_idle_age when evidence is not valid for a non-code promise. Valid kinds other than code/build are screen, timed and helper (PROMISE_DEFAULTS); promise_metrics returns None for them without a result path (1089-1090) and with a result path when evidence is not valid (1094-1095). So the only caller (1568) never reaches this with invalid evidence."
+}

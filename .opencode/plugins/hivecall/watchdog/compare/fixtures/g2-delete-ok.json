@@ -1,0 +1,28 @@
+{
+ "name": "g2-delete-ok",
+ "argv": [],
+ "env": {
+  "REPO": "{REPO}",
+  "ORCH_THREAD": "thr_dummy1",
+  "ORCH_SESSION": "ses_dummy1",
+  "VERIFY_DIR": "{REPO}/verify",
+  "LEDGER": "{REPO}/ledger.md",
+  "RUN_CARD": "{REPO}/run.md",
+  "PROJECT_ID": "proj_dummy1"
+ },
+ "files": {
+  "ledger.md": "- [x] ISC-1 done\n",
+  "run.md": "status: {CLOSED}\n",
+  ".lanes/watch-state.json": "{\"done\": true, \"closed_pause_recorded\": true, \"closed_automation_id\": \"auto_dummy1\"}"
+ },
+ "answers": [
+  {
+   "match": [
+    "bb",
+    "automation",
+    "delete"
+   ],
+   "stdout": "ok"
+  }
+ ]
+}

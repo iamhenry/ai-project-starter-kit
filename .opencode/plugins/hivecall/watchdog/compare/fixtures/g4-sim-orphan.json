@@ -1,0 +1,11 @@
+{
+ "name": "g4-sim-orphan",
+ "argv": [
+  "--simulate",
+  "orphan-recorder"
+ ],
+ "env": {
+  "WATCH_GHOST_MIN": "25"
+ },
+ "files": {}
+}

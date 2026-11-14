@@ -1,0 +1,11 @@
+{
+  "name": "reanchor",
+  "argv": [
+    "--simulate",
+    "reanchor"
+  ],
+  "env": {},
+  "files": {},
+  "answers": {},
+  "epoch": 1794528000
+}

@@ -1,0 +1,11 @@
+{
+  "name": "invisible-agent",
+  "argv": [
+    "--simulate",
+    "invisible-agent"
+  ],
+  "env": {},
+  "files": {},
+  "answers": {},
+  "epoch": 1794528000
+}

@@ -1,0 +1,11 @@
+{
+  "name": "disk-big-file",
+  "argv": [
+    "--simulate",
+    "disk-big-file"
+  ],
+  "env": {},
+  "files": {},
+  "answers": {},
+  "epoch": 1794528000
+}

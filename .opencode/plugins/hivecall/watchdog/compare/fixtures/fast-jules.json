@@ -1,0 +1,11 @@
+{
+  "name": "fast-jules",
+  "argv": [
+    "--simulate",
+    "fast-jules"
+  ],
+  "env": {},
+  "files": {},
+  "answers": {},
+  "epoch": 1794528000
+}

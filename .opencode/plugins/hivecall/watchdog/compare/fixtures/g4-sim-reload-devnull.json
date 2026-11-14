@@ -1,0 +1,11 @@
+{
+ "name": "g4-sim-reload-devnull",
+ "argv": [
+  "--simulate",
+  "unrecorded-pass-reload"
+ ],
+ "env": {
+  "STATE_FILE": "/dev/null"
+ },
+ "files": {}
+}

@@ -1,0 +1,69 @@
+{
+ "name": "g3-host-odd",
+ "argv": [
+  "--once-report"
+ ],
+ "env": {
+  "REPO": "{REPO}",
+  "WATCH_ORPHAN_MIN": "abc",
+  "WATCH_LARGE_FILE_MB": "0.000001",
+  "VERIFY_DIR": "{REPO}/verification"
+ },
+ "files": {
+  "big.bin": "0123456789",
+  "lb/z\nzz": "x",
+  "a.py": "print(1)\n",
+  "verification/locked/result.md": "x"
+ },
+ "answers": [
+  {
+   "match": [
+    "uptime"
+   ],
+   "stdout": "load average: 0.10"
+  },
+  {
+   "match": [
+    "df"
+   ],
+   "stdout": "Filesystem\n/dev/dummy 1000"
+  },
+  {
+   "match": [
+    "ps"
+   ],
+   "stdout": "short\n200 1 1:00 /usr/bin/other\n300 2 bad /usr/bin/recordVideo"
+  },
+  {
+   "match": [
+    "pgrep"
+   ],
+   "sleep": 2
+  },
+  {
+   "match": [
+    "xcrun"
+   ],
+   "stdout": "Dummy (Booted)"
+  },
+  {
+   "match": [
+    "bb",
+    "opencode"
+   ],
+   "stdout": "port: {PORT0} attached: true"
+  },
+  {
+   "match": [
+    "git"
+   ],
+   "stdout": "a.py\nmissing.py\nnote.txt"
+  }
+ ],
+ "ports": [
+  1
+ ],
+ "modes": {
+  "verification/locked": 0
+ }
+}
