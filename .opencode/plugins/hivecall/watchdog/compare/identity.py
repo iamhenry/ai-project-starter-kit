@@ -5,26 +5,19 @@ from collections import defaultdict
 import copy
 from pathlib import Path
 import symtable
-
+from identity_resolve import run_check
 
 SCOPED_FUNCTIONS = {"evaluate", "simulate"}
 SCOPE_NODES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda,
                ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)
 COMP_NAMES = {ast.ListComp: "listcomp", ast.SetComp: "setcomp",
-              ast.DictComp: "dictcomp", ast.GeneratorExp: "genexpr"}
+               ast.DictComp: "dictcomp", ast.GeneratorExp: "genexpr"}
 
-
-def is_docstring(node):
-    return isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str)
-
+def is_docstring(node): return isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str)
 
 def module_doc(tree): return tree.body[0].value.value if tree.body and is_docstring(tree.body[0]) else None
 
-
-def binding_names(target):
-    return sorted({n.id for n in ast.walk(target)
-                   if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store)})
-
+def binding_names(target): return sorted({n.id for n in ast.walk(target) if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store)})
 
 def unit(node):
     if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)): return node.name
@@ -33,7 +26,6 @@ def unit(node):
         names = sorted({name for target in targets for name in binding_names(target)})
         return "assignment " + (", ".join(names) if names else f"at line {node.lineno}")
     return type(node).__name__
-
 
 class NormalizeCtx(ast.NodeTransformer):
     def __init__(self, locals_):
@@ -56,26 +48,19 @@ class NormalizeCtx(ast.NodeTransformer):
                 if arg and arg.arg == "ctx": setattr(node, field, None)
         return self.generic_visit(node)
 
-
 def canonical(node, locals_=()):
     clone = copy.deepcopy(node)
     return ast.dump(ast.fix_missing_locations(NormalizeCtx(set(locals_)).visit(clone) if locals_ else clone), include_attributes=False)
 
-
 def scope_name(node):
     return node.name if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) else COMP_NAMES.get(type(node), "<lambda>")
-
-
 def scope_type(node): return "class" if isinstance(node, ast.ClassDef) else "function"
-
-
 def first_scope_descendants(node):
     for child in ast.iter_child_nodes(node):
         if isinstance(child, SCOPE_NODES):
             yield child
         else:
             yield from first_scope_descendants(child)
-
 
 def scope_index(root, root_table):
     result = {id(root): root_table}
@@ -97,7 +82,6 @@ def scope_index(root, root_table):
     fill(root, root_table)
     return result
 
-
 def find_table(table, name, lineno, kind="function"):
     if table.get_name() == name and table.get_lineno() == lineno and table.get_type() == kind:
         return table
@@ -106,9 +90,7 @@ def find_table(table, name, lineno, kind="function"):
         if found: return found
     return None
 
-
 def locals_of(table): return {s.get_name() for s in table.get_symbols() if s.is_local()}
-
 
 def function_locals(node, table):
     names = {arg.arg for arg in node.args.posonlyargs + node.args.args + node.args.kwonlyargs}
@@ -134,14 +116,12 @@ def function_locals(node, table):
         visit(statement)
     return locals_of(table) & names
 
-
 def walk_without_inner_scopes(node):
     yield node
     for child in ast.iter_child_nodes(node):
         if isinstance(child, SCOPE_NODES):
             continue
         yield from walk_without_inner_scopes(child)
-
 
 def shared_locals(table, top_locals, node):
     shared = set()
@@ -171,10 +151,7 @@ def shared_locals(table, top_locals, node):
                     shared.add(item.id)
     return shared
 
-
-def has_ctx_arg(node):
-    return any(arg.arg == "ctx" for arg in node.args.posonlyargs + node.args.args + node.args.kwonlyargs)
-
+def has_ctx_arg(node): return any(arg.arg == "ctx" for arg in node.args.posonlyargs + node.args.args + node.args.kwonlyargs)
 
 class CtxAudit(ast.NodeVisitor):
     def __init__(self, root, table, locals_, shared):
@@ -184,15 +161,12 @@ class CtxAudit(ast.NodeVisitor):
         self.locals = locals_
         self.shared = shared
         self.errors = []
-
     def inner_local(self, name):
         return (any(name in locals_of(scope) for scope in self.scopes[1:])
                 or any(name in scope for scope in self.ast_scopes))
-
     def visit_Name(self, node):
         if node.id in self.shared and not self.inner_local(node.id):
             self.errors.append(f"shared local {node.id!r} is not prefixed with ctx.")
-
     def visit_Attribute(self, node):
         if isinstance(node.value, ast.Name) and node.value.id == "ctx":
             if self.inner_local("ctx") and node.attr in self.locals: self.errors.append("ctx is shadowed in an inner scope.")
@@ -201,7 +175,6 @@ class CtxAudit(ast.NodeVisitor):
             elif node.attr not in self.locals:
                 self.errors.append(f"ctx.{node.attr} is not a baseline top-scope local.")
         self.generic_visit(node)
-
     def _visit_outer_expressions(self, node):
         for item in getattr(node, "decorator_list", []):
             self.visit(item)
@@ -221,7 +194,6 @@ class CtxAudit(ast.NodeVisitor):
         elif isinstance(node, ast.ClassDef):
             for item in node.bases + node.keywords:
                 self.visit(item)
-
     def _visit_scope_body(self, node, body):
         self._visit_outer_expressions(node)
         table = self.scope_map.get(id(node))
@@ -232,15 +204,11 @@ class CtxAudit(ast.NodeVisitor):
         for item in body:
             self.visit(item)
         self.scopes.pop()
-
     def visit_FunctionDef(self, node):
         self._visit_scope_body(node, node.body)
-
     visit_AsyncFunctionDef = visit_FunctionDef
-
     def visit_ClassDef(self, node):
         self._visit_scope_body(node, node.body)
-
     def visit_Lambda(self, node):
         self._visit_outer_expressions(node)
         table = self.scope_map.get(id(node))
@@ -250,7 +218,6 @@ class CtxAudit(ast.NodeVisitor):
         self.scopes.append(table)
         self.visit(node.body)
         self.scopes.pop()
-
     def _visit_comprehension(self, node, value_nodes):
         self.visit(node.generators[0].iter)
         table = self.scope_map.get(id(node))
@@ -279,11 +246,9 @@ class CtxAudit(ast.NodeVisitor):
     def visit_DictComp(self, node):
         self._visit_comprehension(node, [node.key, node.value])
 
-
 def function_node(tree, name):
     return next((n for n in reversed(tree.body) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
                  and n.name == name), None)
-
 
 def named_function(modules, name):
     for path, tree in modules:
@@ -291,7 +256,6 @@ def named_function(modules, name):
         if node is not None:
             return path, node
     return None, None
-
 
 def ctx_check(node, source, filename, baseline_info):
     if node is None:
@@ -307,7 +271,6 @@ def ctx_check(node, source, filename, baseline_info):
     for item in node.body: audit.visit(item)
     return sorted(set(audit.errors))
 
-
 def baseline_ctx_info(tree, source, filename):
     result = {}
     root_table = symtable.symtable(source, filename, "exec")
@@ -318,7 +281,6 @@ def baseline_ctx_info(tree, source, filename):
             top = function_locals(node, table)
             result[name] = {"locals": top, "shared": shared_locals(table, top, node)}
     return result
-
 
 def ctx_audit_helpers(modules, infos):
     errors = []
@@ -348,11 +310,43 @@ def ctx_audit_helpers(modules, infos):
                           for message in ctx_check(node, source, str(path), info))
     return errors
 
-
+BOOTSTRAP = ast.dump(ast.parse("sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))").body[0], include_attributes=False)
+def is_bootstrap(node): return isinstance(node, ast.Expr) and ast.dump(node, include_attributes=False) == BOOTSTRAP
+def is_hivewatch_import(node):
+    return (isinstance(node, ast.Import) and any(a.name == "hivewatch" or a.name.startswith("hivewatch.") for a in node.names)
+            or isinstance(node, ast.ImportFrom) and node.level == 0 and bool(node.module)
+            and (node.module == "hivewatch" or node.module.startswith("hivewatch.")))
+def main_import_errors(modules):
+    return [f"{path}: imports of __main__ are not allowed" for path, tree in modules
+            for node in ast.walk(tree)
+            if (isinstance(node, ast.Import) and any(alias.name == "__main__" for alias in node.names))
+            or isinstance(node, ast.ImportFrom) and node.module == "__main__"]
+def facade_header_errors(modules):
+    facade = modules[0][1]
+    if len(modules) == 1 and not any(is_bootstrap(node) or is_hivewatch_import(node) for node in ast.walk(facade)): return []
+    body = facade.body
+    if not body or not is_docstring(body[0]):
+        return ["watch.py: facade header must start with its module docstring"]
+    allowed = {id(body[0])}
+    index = 1
+    while index < len(body) and isinstance(body[index], (ast.Import, ast.ImportFrom)) and not is_hivewatch_import(body[index]):
+        allowed.add(id(body[index])); index += 1
+    has_bootstrap = index < len(body) and is_bootstrap(body[index])
+    if has_bootstrap:
+        allowed.add(id(body[index])); index += 1
+    hive_imports = 0
+    while index < len(body) and is_hivewatch_import(body[index]):
+        allowed.add(id(body[index])); hive_imports += 1; index += 1
+    errors = ([] if has_bootstrap else ["watch.py: facade header needs one path bootstrap after stdlib imports"])
+    if not hive_imports: errors.append("watch.py: facade header needs hivewatch imports after the path bootstrap")
+    if any(is_hivewatch_import(node) and id(node) not in allowed for node in ast.walk(facade)):
+        errors.append("watch.py: hivewatch imports must stay in the facade header")
+    bootstraps = [node for _, tree in modules for node in ast.walk(tree) if is_bootstrap(node)]
+    if len(bootstraps) != 1 or id(bootstraps[0]) not in allowed:
+        errors.append("watch.py: exactly one path bootstrap must appear in the facade header")
+    return errors
 def top_units(tree):
-    return [(unit(node), node) for node in tree.body if not isinstance(node, (ast.Import, ast.ImportFrom)) and not is_docstring(node)]
-
-
+    return [(unit(node), node) for node in tree.body if not isinstance(node, (ast.Import, ast.ImportFrom)) and not is_docstring(node) and not is_bootstrap(node)]
 def source_modules(new_path):
     modules = [(new_path, ast.parse(new_path.read_text(), filename=str(new_path)))]
     package = new_path.parent / "hivewatch"
@@ -361,13 +355,10 @@ def source_modules(new_path):
                        for path in sorted(package.rglob("*.py")) if path.is_file())
     return modules
 
-
 def nested_functions(node):
     return [n for n in ast.walk(node) if n is not node and isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]
 
-
 def node_key(node): return type(node), node.name, node.lineno, node.end_lineno
-
 
 def remove_extracted(node, extracted):
     targets = {node_key(item) for item in extracted}
@@ -382,7 +373,6 @@ def remove_extracted(node, extracted):
     visit(clone)
     return clone
 
-
 def check(old_path, new_path):
     old_source = old_path.read_text()
     old_tree = ast.parse(old_source, filename=str(old_path))
@@ -393,8 +383,11 @@ def check(old_path, new_path):
         errors.append("watch.py: baseline module docstring must remain the facade's first statement")
 
     infos = baseline_ctx_info(old_tree, old_source, str(old_path))
+    errors.extend(facade_header_errors(modules))
+    errors.extend(main_import_errors(modules))
     actual = [(path, label, node) for path, tree in modules for label, node in top_units(tree)]
     used = set()
+    resolution_modules = {}
     expected = top_units(old_tree)
     scoped = {node.name: node for _, node in expected
               if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name in SCOPED_FUNCTIONS}
@@ -410,6 +403,8 @@ def check(old_path, new_path):
             errors.append(f"{label}: {'value changed' if candidates else 'missing'}")
         else:
             used.add(exact)
+            if isinstance(old_node, SCOPE_NODES):
+                resolution_modules[id(old_node)] = actual[exact][0]
 
     extracted = defaultdict(list)
     claimed_nested = set()
@@ -432,6 +427,7 @@ def check(old_path, new_path):
             extracted[parent_name].append(original)
             claimed_nested.add(id(original))
             used.add(i)
+            resolution_modules[id(original)] = path
             break
 
     for name, old_node in scoped.items():
@@ -442,6 +438,7 @@ def check(old_path, new_path):
             continue
         used.update(i for i, (path, _, node) in enumerate(actual)
                     if path == new_module and node is new_node)
+        resolution_modules[id(old_node)] = new_module
         ctx_errors = ctx_check(new_node, new_module.read_text(), str(new_module), info)
         expected_node = remove_extracted(old_node, extracted[name])
         if ctx_errors:
@@ -451,9 +448,14 @@ def check(old_path, new_path):
 
     errors.extend(f"{label}: unexpected top-level definition" for i, (_, label, _) in enumerate(actual) if i not in used)
     errors.extend(ctx_audit_helpers(modules, infos))
+    if errors:
+        return sorted(set(errors))
+    mappings = [{"line": node.lineno, "name": node.name,
+                 "kind": type(node).__name__, "module": str(module)}
+                for node in ast.walk(old_tree)
+                if (module := resolution_modules.get(id(node))) is not None]
+    errors.extend(run_check(old_path, new_path, mappings))
     return sorted(set(errors))
-
-
 def selftest():
     old = '''def evaluate():\n    shared = 3\n    def trigger(key):\n        return shared + key\n    return trigger(2)\n'''
     correct = '''def evaluate(ctx):\n    ctx.shared = 3\n    def trigger(key):\n        return ctx.shared + key\n    return trigger(2)\n'''
@@ -474,8 +476,6 @@ def selftest():
             return 1
         print(f"selftest PASS: {label}")
     return 0
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--old", type=Path)
