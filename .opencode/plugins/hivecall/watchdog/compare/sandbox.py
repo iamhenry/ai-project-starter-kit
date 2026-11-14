@@ -58,6 +58,7 @@ def run(target, fixture, coverage=False):
         launcher = HERE / "launch.py"
         env = {"PATH": f"{bindir}:{os.environ.get('PATH','')}", "HOME": str(home), "TMPDIR": str(base), "CALLS": str(calls), "ANSWERS": str(answers), "REPO": str(repo), "BB_CLI": str(bindir / "bb"), "TZ": "UTC", "PYTHONHASHSEED": "0"}
         env.update({k: str(v).replace("{REPO}", str(repo)).replace("{HOME}", str(home)) for k,v in fixture.get("env", {}).items()})
+        env["PYTHONDONTWRITEBYTECODE"] = "1"
         args = ["python3", str(launcher), str(staged), str(fixture.get("epoch", 1794528000)), str(hits) if coverage else "-", *fixture["argv"]]
         for p, mode in modes.items(): p.chmod(mode)
         try:
