@@ -61,6 +61,48 @@ case_run example-email "person@$(printf 'example.com')" '' pass
 case_run pkg-email 'pkg@1.2.3' '' pass
 case_run remote-user 'git@github.com' '' pass
 
+# A secret in an earlier pushed commit must remain visible to the scanner even
+# when a later commit removes it. Values are assembled so test data is harmless.
+secret_prefix=AKIA; secret_suffix=ABCDEFGHIJKLMNOP; dummy_secret="$secret_prefix$secret_suffix"
+setup add-delete
+printf '%s\n' "$dummy_secret" >file.txt; git add file.txt
+git -c core.hooksPath=/dev/null commit -qm add-dummy
+offending=$(git rev-parse --short HEAD)
+printf 'clean update\n' >file.txt; git add file.txt
+git -c core.hooksPath=/dev/null commit -qm delete-dummy
+out=$(git push origin HEAD:main 2>&1); rc=$?
+after=$(git --git-dir="$case_dir/remote.git" rev-parse refs/heads/main)
+if [ "$rc" -ne 0 ] && [ "$before" = "$after" ] && [[ "$out" == *"$offending"* ]]; then echo 'PASS add-delete-commit'; passed=$((passed+1)); else echo "FAIL add-delete-commit rc=$rc output=$out"; failed=$((failed+1)); fi
+
+# The zero remote SHA path for a new branch must scan commits not on remotes.
+setup new-branch-add-delete
+git switch -q -c fresh-branch
+printf '%s\n' "$dummy_secret" >file.txt; git add file.txt
+git -c core.hooksPath=/dev/null commit -qm add-dummy
+offending=$(git rev-parse --short HEAD)
+printf 'clean update\n' >file.txt; git add file.txt
+git -c core.hooksPath=/dev/null commit -qm delete-dummy
+zero=0000000000000000000000000000000000000000
+out=$(printf 'refs/heads/fresh-branch %s refs/heads/fresh-branch %s\n' "$(git rev-parse HEAD)" "$zero" | "$root/.githooks/pre-push" 2>&1); rc=$?
+if [ "$rc" -ne 0 ] && [[ "$out" == *"$offending"* ]]; then echo 'PASS new-branch-add-delete'; passed=$((passed+1)); else echo "FAIL new-branch-add-delete rc=$rc output=$out"; failed=$((failed+1)); fi
+
+# Three ordinary commits remain pushable.
+setup clean-three
+for n in one two three; do printf '%s\n' "$n" >>file.txt; git add file.txt; git -c core.hooksPath=/dev/null commit -qm "$n"; done
+push_case clean-three pass
+
+# A private path in only the middle commit must identify that commit and leave
+# the remote unchanged.
+setup private-middle
+printf 'first\n' >>file.txt; git add file.txt; git -c core.hooksPath=/dev/null commit -qm first
+private_prefix=/Users/; private_user=dummy-user; private_path="$private_prefix$private_user/private"
+printf '%s\n' "$private_path" >>file.txt; git add file.txt; git -c core.hooksPath=/dev/null commit -qm middle
+offending=$(git rev-parse --short HEAD)
+printf 'last\n' >>file.txt; git add file.txt; git -c core.hooksPath=/dev/null commit -qm last
+out=$(git push origin HEAD:main 2>&1); rc=$?
+after=$(git --git-dir="$case_dir/remote.git" rev-parse refs/heads/main)
+if [ "$rc" -ne 0 ] && [ "$before" = "$after" ] && [[ "$out" == *"$offending"* ]]; then echo 'PASS private-middle-commit'; passed=$((passed+1)); else echo "FAIL private-middle-commit rc=$rc output=$out"; failed=$((failed+1)); fi
+
 setup ignored-file
 printf 'secret-build-output\n' >ignored.dat; echo ignored.dat >.gitignore; git add .gitignore; git add -f ignored.dat; commit_case
 push_case ignored-file block ignored-file
