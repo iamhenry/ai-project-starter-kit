@@ -1,8 +1,9 @@
 [MAIN]
 # eval/eval.py (1402 lines): the evaluation engine is scheduled for splitting in KIT-7.
 # eval/test_eval.py (543 lines): its tests stay beside the engine until the KIT-7 split.
-# watchdog/watch.py (3332 lines): watchdog behavior is out of scope here; split it in KIT-7.
-ignore-paths = ^eval/eval[.]py$, ^eval/test_eval[.]py$, ^watchdog/watch[.]py$
+# watchdog/hivewatch/evaluate.py (858 lines): pure move of one function; breaking it up is a later card.
+# watchdog/hivewatch/sim/simulate.py (1154 lines): pure move of one function; breaking it up is a later card.
+ignore-paths = ^eval/eval[.]py$, ^eval/test_eval[.]py$, ^watchdog/hivewatch/evaluate[.]py$, ^watchdog/hivewatch/sim/simulate[.]py$
 
 [MESSAGES CONTROL]
 disable = all
