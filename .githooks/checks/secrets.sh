@@ -133,7 +133,7 @@ trap 'rm -f "$tmp" "$msg" "$names" "$err"' EXIT
 fail() {
   printf '\n  ✗ secret scan could not run: %s\n' "$1"
   printf '    Nothing was checked for this step, so it is blocked as a precaution.\n'
-  printf '    Fix the scanner, or override once: SKIP_HOOKS=1 git ...\n\n'
+  printf '    Fix the scanner and try again. Do not bypass this check.\n\n'
   exit 2
 }
 
@@ -226,8 +226,7 @@ if [ "$blocked" -gt 0 ]; then
       3. Load it from the environment instead: process.env.NAME
       4. Real value goes in .env (gitignored); a placeholder goes in .env.example.
     Committed a .env? git rm --cached it and add it to .gitignore.
-    Deliberate example? Add "pragma: allowlist secret" to that line.
-    One-off override: SKIP_HOOKS=1 git ...
+    False positive or deliberate example? Add "pragma: allowlist secret" to that line.
     Already in a commit? Rewrite that commit before pushing, then rotate anyway.
 
 EOF

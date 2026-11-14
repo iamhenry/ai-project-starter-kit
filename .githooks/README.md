@@ -1,6 +1,6 @@
 # Git hooks
 
-The hook checks are separate, so you can tune or drop one without touching the others:
+The hook checks are separate, so you can tune one without touching the others:
 
 | File | Blocks | Runs on |
 |---|---|---|
@@ -13,12 +13,14 @@ The hook checks are separate, so you can tune or drop one without touching the o
 `pre-commit` runs the built-in rules and gitleaks. File length is enforced by
 each project's `./check` linters; see `templates/check/`. `commit-msg`
 runs the built-in secret rules over the message text. `pre-push` runs blocking
-secret checks on every commit being published — publishing is the one that
-cannot be undone.
+secret checks on each pushed commit on its own — including a commit that adds a
+secret and a later commit that removes it. The guard scans only commits not
+already on the remote; for a new branch, it scans commits not on any remote
+branch. Publishing is the one that cannot be undone.
 
 `pre-commit` also runs an executable `./check` from the repository root, when
-present. Use `SKIP_HOOKS=1` to skip it. See `_ai/docs/AGENT-READINESS.md` and
-`templates/check/` for guidance and starter scripts.
+present. See `_ai/docs/AGENT-READINESS.md` and `templates/check/` for guidance
+and starter scripts.
 
 Gitleaks is optional. If it is not on `PATH`, the hook prints a loud warning
 with `brew install gitleaks` and continues with the built-in rules. Installing
@@ -109,21 +111,24 @@ or split across lines; secrets inside binaries, archives or databases; anything
 that does not look like a known key shape. Treat these checks as a net for
 copy-paste accidents, not as proof that a commit is clean.
 
-`pre-push` scans added lines in commits being pushed, merge commits included.
+`pre-push` scans added lines in each commit being pushed, merge commits
+included, and names the commit with each finding.
 A key that was already pushed is not recoverable by any hook — rotate it.
 
-Local overrides exist and are deliberate: `--no-verify`, `SKIP_HOOKS=1`, and
-`core.hooksPath` unset all bypass both hooks. Without an equivalent CI job
+You can still bypass these hooks with `--no-verify` or by changing
+`core.hooksPath`. Without an equivalent CI job
 running `checks/secrets.sh`, there is no guarantee a secret stays off the remote.
 
 ## Tune
 
 - **File length** — each project's `./check` linters enforce it; see
   `templates/check/`.
-- **A secret is a deliberate example** — append `pragma: allowlist secret` to
-  that line.
+- **A line is a real false positive or deliberate example** — append
+  `pragma: allowlist secret` to that line. This also allows a line-based
+  private-detail finding.
+- **A path is a real false positive** — add its path, rule and reason to the
+  repo-root `.githooks-allow` file, as described above.
 - **A tracked `.env` is intentional** — add `.env` to `.githooks/skip`.
-- **Skip once** — `SKIP_HOOKS=1 git commit` / `git push`.
 
 ## Adding a rule
 

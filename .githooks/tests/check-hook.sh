@@ -79,9 +79,12 @@ printf '#!/bin/sh\nexit 1\n' >check; chmod 644 check
 out=$(commit_update); rc=$?; if [ "$rc" -eq 0 ] && [ "$before" != "$(git rev-parse HEAD)" ]; then result non-executable 1; else result non-executable 0 "rc=$rc"; fi
 
 setup skip
-make_check $'#!/bin/sh\necho SHOULD_NOT_RUN\nexit 1' 755
-printf 'update\n' >file.txt; git add file.txt
-out=$(SKIP_HOOKS=1 git commit -m case 2>&1); rc=$?; if [ "$rc" -eq 0 ] && [ "$before" != "$(git rev-parse HEAD)" ] && [[ "$out" != *SHOULD_NOT_RUN* ]]; then result skip 1; else result skip 0 "rc=$rc output=$out"; fi
+make_check $'#!/bin/sh\nexit 0' 755
+dummy_key="AKIA""0000000000000000"
+printf '%s\n' "$dummy_key" >dummy-key.txt; git add dummy-key.txt
+hook_override=SKIP"_HOOKS"
+out=$(env "$hook_override=1" git commit -m case 2>&1); rc=$?; after=$(git rev-parse HEAD)
+if [ "$rc" -ne 0 ] && [ "$before" = "$after" ] && [[ "$out" == *aws-access-key* ]] && [[ "$out" != *"$dummy_key"* ]]; then result skip 1; else result skip 0 "rc=$rc output=$out"; fi
 
 echo "RESULT passed=$passed failed=$failed"
 [ "$failed" -eq 0 ]
