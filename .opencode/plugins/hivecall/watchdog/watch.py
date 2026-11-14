@@ -72,193 +72,237 @@ import time
 from contextlib import redirect_stdout
 from pathlib import Path
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-VERDICT = re.compile(r"^\|\s*((?:ISC-)?\d+(?:\.\d+)?)\s*\|\s*(PASS|FAIL|BLOCKED)\b(.*)$", re.I)
-ISA_VERDICT = re.compile(r"^(ISC-[0-9.]+):\s*(PASS|FAIL|BLOCKED)\s*-\s*([^;]*)", re.I)
-PROMISE_DEFAULTS = {
-    "screen": {"pace": 10, "signal": "answer"},
-    "timed": {"pace": 15, "signal": "answer"},
-    "build": {"pace": 10, "signal": "build-log"},
-    "code": {"pace": 20, "signal": "lane-file"},
-    "helper": {"pace": 20, "signal": "answer"},
-}
-OFF_TRACK_IDLE_MIN = 10
-PLACEHOLDER = re.compile(r"not probed|group stopped|not run|stopped after|pending", re.I)
-EVIDENCE_REFERENCE = re.compile(r"(?:`[^`]+\.[^`]+`|[\w./-]+\.(?:png|jpe?g|json|txt|mp4|log|csv|mov|webm)\b|https?://\S+)", re.I)
-
-
-def normalize_ident(value: str) -> str:
-    value = re.sub(r"^ISC-", "", value.strip(), flags=re.I)
-    parts = value.split(".")
-    try:
-        parts[0] = f"{int(parts[0]):03d}"
-    except ValueError:
-        return ""
-    return "ISC-" + ".".join(parts)
-
-
-def parse_promise_rows(value: str) -> set[str] | None:
-    if value == "-":
-        return set()
-    rows = set()
-    for item in value.split(","):
-        item = item.strip()
-        m = re.fullmatch(r"(?:ISC-)?(\d+)-(?:ISC-)?(\d+)", item, re.I)
-        if m:
-            first, last = (int(part) for part in m.groups())
-            if last < first or last - first > 999:
-                return None
-            rows.update(f"ISC-{number:03d}" for number in range(first, last + 1))
-            continue
-        if not re.fullmatch(r"(?:ISC-)?\d+(?:\.\d+)?", item, re.I):
-            return None
-        ident = normalize_ident(item)
-        if not ident:
-            return None
-        rows.add(ident)
-    return rows
+from hivewatch.shell import (
+    BB,
+    BBAdapter,
+    append_note,
+    clear_done_state,
+    command,
+    delete_automation,
+    dispatch,
+    finish_closed_run,
+    flatten_dicts,
+    load_bb,
+    minutes_since,
+    parse_elapsed,
+    parse_load,
+    pause_automation,
+    seconds,
+    setting,
+    state_read,
+    state_write,
+    walk_files,
+)
+from hivewatch.promise import (
+    BB_WORKTREES,
+    EVIDENCE_REFERENCE,
+    ISA_VERDICT,
+    OFF_TRACK_IDLE_MIN,
+    PLACEHOLDER,
+    PROMISE_DEFAULTS,
+    VERDICT,
+    bind_promise_paths,
+    declared_path,
+    lane_roots,
+    normalize_ident,
+    off_track_idle_age,
+    parse_promise,
+    parse_promise_rows,
+    promise_metrics,
+    result_session_finished,
+    result_verdict_key,
+)
 
 
-def parse_promise(text: str) -> dict | None:
-    for line in text.splitlines():
-        match = re.match(r"^\s*PROMISE:\s*(.*)$", line, re.I)
-        if not match:
-            continue
-        body = match.group(1)
-        marks = list(re.finditer(r"\b(kind|rows|result|lane|pace)=", body, re.I))
-        fields = {mark.group(1).lower(): body[mark.end():marks[index + 1].start() if index + 1 < len(marks) else len(body)].strip()
-                  for index, mark in enumerate(marks)}
-        kind = fields.get("kind", "").lower()
-        rows = parse_promise_rows(fields.get("rows", ""))
-        try:
-            pace = float(fields["pace"]) if "pace" in fields else PROMISE_DEFAULTS[kind]["pace"]
-        except (ValueError, KeyError):
-            pace = 0
-        valid = (kind in PROMISE_DEFAULTS and rows is not None and
-                 all(name in fields for name in ("rows", "result", "lane")) and pace > 0)
-        return {"kind": kind, "rows": rows or set(), "result": fields.get("result", "-"),
-                "lane": fields.get("lane", "-"), "pace": pace, "valid": valid,
-                "error": "invalid PROMISE line" if not valid else ""}
-    return None
 
 
-def declared_path(value: str, base: str, root: str) -> str | None:
-    if not value or value == "-":
-        return None
-    path = Path(value).expanduser()
-    if not path.is_absolute():
-        parts = path.parts
-        if parts and parts[0] == "MAIN":
-            path = Path(root, *parts[1:])
-        else:
-            path = Path(base, path)
-    return str(path.resolve())
 
 
-BB_WORKTREES = Path.home() / ".bb/plugins/environment-git-worktree/host-data/worktrees"
 
 
-def lane_roots(repo: Path) -> list[Path]:
-    """Folders a PROMISE lane may live in: the repo, BB worktrees, and any LANE_ROOTS (os.pathsep-separated)."""
-    roots = [repo]
-    if BB_WORKTREES.is_dir():
-        roots.append(BB_WORKTREES.resolve())
-    for extra in os.environ.get("LANE_ROOTS", "").split(os.pathsep):
-        if extra.strip():
-            roots.append(Path(extra.strip()).expanduser().resolve())
-    return roots
 
 
-def bind_promise_paths(promise: dict, root: str, verify_dir: str) -> dict:
-    if not promise.get("valid"):
-        return promise
-    try:
-        repo = Path(root).resolve()
-        verify = Path(verify_dir).resolve()
-        lane = declared_path(promise["lane"], root, root)
-        result = declared_path(promise["result"], verify_dir, root)
-        if lane and not any(Path(lane).is_relative_to(r) for r in lane_roots(repo)):
-            raise ValueError("lane outside allowed roots")
-        if result:
-            Path(result).relative_to(verify)
-        promise.update(lane_path=lane, result_path=result)
-    except (OSError, RuntimeError, ValueError):
-        promise.update(valid=False, error="PROMISE path is outside its allowed folder")
-    return promise
 
 
-def command(args: list[str], timeout: float = 1.5) -> tuple[str, str]:
-    try:
-        p = subprocess.run(args, text=True, capture_output=True, timeout=timeout, check=False)
-        return p.stdout.strip(), p.stderr.strip() or (f"exit {p.returncode}" if p.returncode else "")
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        return "", str(exc)
 
 
-class BBAdapter:
-    """Default BB integration; watchdog decisions stay reusable without BB."""
-
-    def command(self, args: list[str], timeout: float = 8.0) -> tuple[str, str]:
-        return command([os.environ.get("BB_CLI") or "bb", *args], timeout)
-
-    def parse_json(self, args: list[str], timeout: float = 8.0):
-        out, error = self.command(args, timeout)
-        try:
-            return json.loads(out), error
-        except (json.JSONDecodeError, TypeError):
-            return None, error or ("invalid JSON" if out else "empty output")
-
-    def child_sessions(self, thread_id: str) -> list[str]:
-        db = os.path.expanduser("~/.bb/bb.db")
-        if not thread_id or not os.path.exists(db):
-            return []
-        try:
-            con = sqlite3.connect(f"file:{db}?mode=ro", uri=True, timeout=3.0)
-            con.execute("PRAGMA query_only=ON")
-            rows = con.execute("""SELECT DISTINCT e.provider_thread_id FROM events e JOIN threads t ON t.id=e.thread_id
-                WHERE t.parent_thread_id=? AND e.provider_thread_id LIKE 'ses_%'""", (thread_id,)).fetchall()
-            con.close()
-            return [row[0] for row in rows]
-        except sqlite3.Error:
-            return []
-
-    def load(self, thread_id: str, sessions: list[dict], live_sessions: list[dict]) -> dict:
-        return load_bb(thread_id, sessions, live_sessions)
 
 
-BB = BBAdapter()
 
 
-def seconds(value: object) -> float | None:
-    try:
-        n = float(value)
-        return n / 1000 if n > 100_000_000_000 else n
-    except (TypeError, ValueError):
-        return None
 
 
-def minutes_since(value: float | None, now: float) -> float | None:
-    return max(0.0, (now - value) / 60) if value is not None else None
 
 
-def parse_load(text: str) -> float | None:
-    m = re.search(r"load averages?:\s*([0-9.]+)", text, re.I)
-    return float(m.group(1)) if m else None
 
 
-def parse_elapsed(text: str) -> float:
-    days = 0
-    if "-" in text:
-        day, text = text.split("-", 1)
-        days = int(day)
-    parts = [int(x) for x in text.split(":")]
-    if len(parts) == 3:
-        h, m, s = parts
-    elif len(parts) == 2:
-        h, m, s = 0, *parts
-    else:
-        h, m, s = 0, 0, parts[0]
-    return days * 86400 + h * 3600 + m * 60 + s
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def extract_html_ledger(source: str):
@@ -356,67 +400,67 @@ def read_run_card(path: str) -> dict:
             "answers": answers, "needs": needs, "plan_valid": bool(needs), "plan_checked": True}
 
 
-def pause_automation(env: dict[str, str], dry_run: bool) -> str:
-    """Rule 11: switch itself off. Returns a short result for the heartbeat."""
-    automation_id = env.get("AUTOMATION_ID", "")
-    if "AUTOMATION_ID" not in env and env.get("PROJECT_ID") and env.get("ORCH_THREAD"):
-        listing, _ = BB.parse_json(["automation", "list", "--project", env["PROJECT_ID"], "--json"])
-        name = f"hivecall watchdog {env['ORCH_THREAD']}"
-        for item in flatten_dicts(listing):
-            if item.get("name") == name and str(item.get("id", "")).startswith("auto_"):
-                automation_id = item["id"]
-                break
-    if not automation_id:
-        return "no automation id (set AUTOMATION_ID or PROJECT_ID)"
-    if dry_run:
-        print(f"DRY-RUN: would run bb automation pause {automation_id}")
-        return f"would pause {automation_id}"
-    args = ["automation", "pause", automation_id]
-    if env.get("PROJECT_ID"):
-        args += ["--project", env["PROJECT_ID"]]  # bb requires it outside a thread
-    _, error = BB.command(args, 10.0)
-    return f"pause {automation_id} failed: {error}" if error else f"paused {automation_id}"
 
 
-def delete_automation(env: dict[str, str], dry_run: bool) -> str:
-    """Delete itself after a closed run. Unlike pause, deletion never looks up by name."""
-    automation_id = env.get("AUTOMATION_ID", "")
-    if not automation_id:
-        return "no explicit automation id; not deleting"
-    if not env.get("PROJECT_ID"):
-        return "no project id; not deleting"
-    args = ["automation", "delete", automation_id, "--project", env["PROJECT_ID"], "--yes"]
-    if dry_run:
-        print(f"DRY-RUN: would run bb {' '.join(args)}")
-        return f"would delete {automation_id}"
-    _, error = BB.command(args, 10.0)
-    return f"delete {automation_id} failed: {error}" if error else f"deleted {automation_id}"
 
 
-def finish_closed_run(state: dict, env: dict[str, str], dry_run: bool) -> None:
-    """Retry pause until successful, then retry deletion; only an explicit id is deleted."""
-    state["done"] = True
-    if not state.get("closed_pause_recorded"):
-        state["pause_result"] = pause_automation(env, dry_run)
-        if not dry_run and state["pause_result"].startswith("paused "):
-            state["closed_pause_recorded"] = True
-            state["closed_automation_id"] = env.get("AUTOMATION_ID", "")
-        print(f"WATCH DONE: run card closed; {state['pause_result']}")
-        return
-    if state.get("automation_deleted"):
-        return
-    automation_id = state.get("closed_automation_id") or env.get("AUTOMATION_ID", "")
-    delete_env = dict(env, AUTOMATION_ID=automation_id)
-    state["delete_result"] = delete_automation(delete_env, dry_run)
-    if state["delete_result"].startswith("deleted "):
-        state["automation_deleted"] = True
-    print(f"WATCH DONE: run card closed; {state['delete_result']}")
 
 
-def clear_done_state(state: dict) -> None:
-    for key in ("done", "pause_result", "closed_pause_recorded", "closed_automation_id",
-                "delete_result", "automation_deleted"):
-        state.pop(key, None)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def parse_isa(path: str, root: str = "") -> dict:
@@ -527,36 +571,36 @@ def parse_isa(path: str, root: str = "") -> dict:
             "error": "" if criteria else "no ISA criteria found"}
 
 
-def walk_files(root: str, errors: list[str] | None = None):
-    if not root or not os.path.isdir(root):
-        return
-
-    def onerror(exc: OSError) -> None:
-        if errors is not None:
-            errors.append(str(exc))
-
-    for base, dirs, names in os.walk(root, followlinks=False, onerror=onerror):
-        dirs[:] = [d for d in dirs if d != ".git"]
-        for name in names:
-            path = os.path.join(base, name)
-            try:
-                stat = os.stat(path, follow_symlinks=False)
-            except OSError as exc:
-                if errors is not None:
-                    errors.append(f"{path}: {exc}")
-                continue
-            if not stat_module.S_ISREG(stat.st_mode):
-                continue
-            yield {"path": path, "name": name, "mtime": stat.st_mtime, "size": stat.st_size,
-                   "created": getattr(stat, "st_birthtime", stat.st_mtime)}
 
 
-def setting(env: dict[str, str], name: str, default: float) -> float:
-    try:
-        value = float(env.get(name, default))
-        return value if value > 0 else default
-    except (TypeError, ValueError):
-        return default
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def load_host_facts(root: str, now: float, env: dict[str, str]) -> dict:
@@ -746,118 +790,118 @@ def load_sessions(session_id: str, now: float, root: str = "", verify_dir: str =
     return result
 
 
-def flatten_dicts(value):
-    if isinstance(value, dict):
-        yield value
-        for child in value.values():
-            yield from flatten_dicts(child)
-    elif isinstance(value, list):
-        for child in value:
-            yield from flatten_dicts(child)
 
 
-def load_bb(thread_id: str, sessions: list[dict], live_sessions: list[dict]) -> dict:
-    result = {"children": [], "binding": {}, "orch_status": None, "queue_count": None,
-              "errors": [], "list_valid": False, "show_valid": False,
-              "queue_valid": False, "binding_valid": False}
-    if not thread_id:
-        result["errors"].append("ORCH_THREAD is unset")
-        return result
 
-    raw_binding = None
-    binding_path = os.path.expanduser("~/.bb/plugins/opencode/task-bound.json")
-    try:
-        with open(binding_path, encoding="utf-8") as f:
-            raw_binding = json.load(f)
-    except (OSError, json.JSONDecodeError) as exc:
-        result["errors"].append(f"task-bound: {exc}")
-    if isinstance(raw_binding, dict):
-        values = raw_binding.get("bindings", raw_binding)
-        if isinstance(values, dict):
-            result["binding"] = {str(k): str(v) for k, v in values.items() if isinstance(v, str)}
-            result["binding_valid"] = all(isinstance(v, str) for v in values.values())
-            if not result["binding_valid"]:
-                result["errors"].append("task-bound: invalid session/thread binding value")
-        elif isinstance(values, list):
-            for item in values:
-                if not isinstance(item, dict) or not isinstance(item.get("sessionId"), str) or not isinstance(item.get("threadId"), str):
-                    result["binding_valid"] = False
-                    break
-                result["binding"][item["sessionId"]] = item["threadId"]
-            else:
-                result["binding_valid"] = True
-            if not result["binding_valid"]:
-                result["errors"].append("task-bound: invalid binding row")
-        else:
-            result["errors"].append("task-bound: unsupported binding format")
-    else:
-        result["errors"].append("task-bound: unsupported binding format")
 
-    listing, error = BB.parse_json(["thread", "list", "--json"], 8.0)
-    if isinstance(listing, list):
-        result["children"] = [row for row in listing if isinstance(row, dict) and isinstance(row.get("id"), str) and
-                              row.get("parentThreadId") == thread_id and row.get("id") != thread_id]
-        result["list_valid"] = True
-    else:
-        result["errors"].append(f"thread list: {error}")
 
-    shown, error = BB.parse_json(["thread", "show", thread_id, "--json"], 8.0)
-    if shown is not None:
-        for obj in flatten_dicts(shown):
-            if obj.get("id") == thread_id and isinstance(obj.get("status"), str):
-                result["orch_status"] = obj.get("status")
-                break
-        if result["orch_status"] is None and isinstance(shown, dict):
-            result["orch_status"] = shown.get("status")
-        result["show_valid"] = isinstance(result["orch_status"], str) and bool(result["orch_status"])
-        if not result["show_valid"]:
-            result["errors"].append("thread show: status missing")
-    else:
-        result["errors"].append(f"thread show: {error}")
 
-    qout, qerror = BB.command(["thread", "queue", "list", thread_id], 8.0)
-    if not qerror and "no queued" in qout.lower():
-        result["queue_count"] = 0
-        result["queue_valid"] = True
-    elif not qerror:
-        try:
-            q = json.loads(qout)
-            if isinstance(q, list):
-                result["queue_count"] = len(q)
-                result["queue_valid"] = True
-            elif isinstance(q, dict):
-                items = q.get("items", q.get("messages"))
-                if isinstance(items, list):
-                    result["queue_count"] = len(items)
-                    result["queue_valid"] = True
-        except json.JSONDecodeError:
-            pass
-        if not result["queue_valid"]:
-            result["errors"].append("thread queue list: unknown output")
-    else:
-        result["errors"].append(f"thread queue list: {qerror}")
 
-    visible_ids = {row.get("id") for row in result["children"] if row.get("status") == "active" and
-                   row.get("visibility") == "visible" and not row.get("deletedAt") and not row.get("archivedAt")}
-    by_id = {row.get("id"): row for row in result["children"] if row.get("id")}
-    live_ids = {s.get("id") for s in live_sessions}
-    for sess in sessions:
-        sess["thread_id"] = result["binding"].get(sess["id"])
-        sess["visible"] = sess["thread_id"] in visible_ids if sess["thread_id"] else False
-        bound = by_id.get(sess["thread_id"], {}) if sess["thread_id"] else {}
-        # Facts for the alert, so the orchestrator checks by id, never by title.
-        sess["binding_fact"] = (f"bound to {sess['thread_id']} (title '{bound.get('title', '?')}', "
-                                f"status {bound.get('status', 'not listed')}, "
-                                f"visibility {bound.get('visibility', '?')})"
-                                if sess["thread_id"] else "no BB thread bound to this session")
-    for child in result["children"]:
-        if child.get("status") == "active":
-            child["visible"] = child.get("id") in visible_ids
-            child["last_activity"] = seconds(child.get("latestAttentionAt") or child.get("updatedAt") or child.get("createdAt"))
-            child["bound_sessions"] = [s for s in sessions if s.get("thread_id") == child.get("id")]
-            child["sessions"] = [s for s in child["bound_sessions"] if s.get("id") in live_ids]
-    result["by_id"] = by_id
-    return result
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def load_lane_facts(sessions: list[dict]) -> dict:
@@ -1003,20 +1047,20 @@ def collect(env: dict[str, str], now: float | None = None) -> dict:
             "head_error": head_error}
 
 
-def state_read(path: str) -> dict:
-    try:
-        with open(path, encoding="utf-8") as f:
-            value = json.load(f)
-        return value if isinstance(value, dict) else {}
-    except (OSError, json.JSONDecodeError):
-        return {}
 
 
-def state_write(path: str, state: dict) -> None:
-    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(state, f, indent=2, sort_keys=True)
-        f.write("\n")
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def report(snapshot: dict) -> str:
@@ -1079,185 +1123,185 @@ def summary_line(snapshot: dict, alert_tags: list[str]) -> str:
         f" · {agents} · {ledger} · {status}{climb}"
 
 
-def promise_metrics(sess: dict, snapshot: dict, state: dict) -> dict | None:
-    promise = sess.get("promise")
-    if (not promise or not promise.get("valid") or not sess.get("promise_read_valid", True) or
-            not snapshot["sessions"].get("valid", False)):
-        return None
-    rows = promise["rows"]
-    kind = promise["kind"]
-    if kind in ("screen", "timed", "helper") and not promise.get("result_path"):
-        return None
-    evidence = snapshot["evidence"]
-    if rows and not evidence.get("valid", False):
-        return None
-    if promise.get("result_path") and not evidence.get("valid", False):
-        return None
-    if promise.get("result_path"):
-        sources = [item for item in evidence.get("results", [])
-                   if item["path"] == promise["result_path"]]
-    else:
-        sources = []
-
-    candidates = {}
-    placeholders = 0
-    waits = []
-    for source in sources:
-        waits.extend(source.get("waits", {}).items())
-        for row in source.get("table_rows", []):
-            if row.get("id") not in rows:
-                continue
-            if row.get("placeholder"):
-                placeholders += 1
-            if row.get("status") not in ("PASS", "FAIL") or row.get("placeholder") or not row.get("evidence"):
-                continue
-            candidate = dict(row, path=source["path"], mtime=source["mtime"])
-            old = candidates.get(row["id"])
-            if old is None or candidate["mtime"] >= old["mtime"]:
-                candidates[row["id"]] = candidate
-
-    row_state = state.setdefault("promise_rows", {}).setdefault(sess["id"], {})
-    current = {}
-    for ident, row in candidates.items():
-        signature = row["path"] + ":" + row["signature"]
-        previous = row_state.get(ident, {})
-        if previous.get("signature") == signature:
-            first_seen = previous.get("first_seen", row["mtime"])
-        else:
-            first_seen = min(row["mtime"], snapshot["now"])
-        current[ident] = {"signature": signature, "first_seen": first_seen}
-    state["promise_rows"][sess["id"]] = current
-    answers = len(candidates)
-    coverage = f"{answers}/{len(rows)}" if rows else "n/a"
-    created = sess.get("created") or snapshot["now"]
-    last_real = max((entry["first_seen"] for entry in current.values()), default=created)
-    pace = promise["pace"]
-    lane = snapshot.get("lanes", {}).get(sess["id"], {})
-    if kind in ("code", "build"):
-        if not promise.get("lane_path") or not lane.get("valid"):
-            return None
-        stamp = lane.get("build_mtime") if kind == "build" else lane.get("latest_mtime")
-        signal_at = max(created, stamp or created)
-        signal_name = "build log growth" if kind == "build" else "lane change"
-    else:
-        signal_at = max(created, last_real)
-        signal_name = "real answer"
-
-    pause_intervals = []
-    if kind in ("screen", "timed", "helper"):
-        for ident, wait in waits:
-            if ident != "*" and ident not in rows:
-                continue
-            start = max(signal_at, wait["from"])
-            end = min(snapshot["now"], wait["until"])
-            if end > start:
-                pause_intervals.append((start, end))
-    pause_intervals.sort()
-    paused = 0.0
-    merged = []
-    for start, end in pause_intervals:
-        if merged and start <= merged[-1][1]:
-            merged[-1] = (merged[-1][0], max(merged[-1][1], end))
-        else:
-            merged.append((start, end))
-    for start, end in merged:
-        paused += end - start
-    pace_age = max(0.0, (snapshot["now"] - signal_at - paused) / 60)
-
-    steer_events = [entry["first_seen"] for entry in current.values()]
-    if kind in ("code", "build"):
-        steer_events.append(signal_at)
-    unanswered = 0
-    for steer in sess.get("steers", []):
-        deadline = steer + pace * 60
-        if kind in ("screen", "timed", "helper"):
-            for start, end in merged:
-                if start < deadline and end > steer:
-                    deadline += max(0.0, min(end, deadline) - max(start, steer))
-        if snapshot["now"] >= deadline and not any(steer <= stamp <= deadline for stamp in steer_events):
-            unanswered += 1
-
-    return {"answers": answers, "placeholders": placeholders, "coverage": coverage,
-            "pace_age": pace_age, "pace": pace, "signal_name": signal_name,
-            "steers": len(sess.get("steers", [])), "unanswered": unanswered,
-            "valid": True, "breached": pace_age > pace}
 
 
-def off_track_idle_age(sess: dict, snapshot: dict) -> float | None:
-    """Minutes since this promise last showed message or attributable file progress."""
-    promise = sess.get("promise") or {}
-    created = sess.get("created")
-    stamps = [sess.get("last_message"), created]
-    if promise.get("kind") in ("code", "build"):
-        lane = snapshot.get("lanes", {}).get(sess["id"], {})
-        if not lane.get("valid"):
-            return None
-        stamps.append(lane.get("build_mtime" if promise["kind"] == "build" else "latest_mtime"))
-    else:
-        evidence = snapshot.get("evidence", {})
-        if not evidence.get("valid"):
-            return None
-        result_path = promise.get("result_path")
-        result_name = Path(result_path).name if result_path else ""
-        prefix = re.sub(r"-result\.md$", "", result_name, flags=re.I).casefold()
-        rows = promise.get("rows", set())
-        for item in (*evidence.get("files", []), *evidence.get("results", [])):
-            path = item.get("path", "")
-            name = (item.get("name") or Path(path).name).casefold()
-            matches = (path == result_path or bool(prefix and name.startswith(prefix)) or
-                       any(ident.casefold() in name for ident in rows))
-            stamp = item.get("mtime")
-            if matches and stamp is not None and (created is None or stamp >= created):
-                stamps.append(stamp)
-    latest = max((stamp for stamp in stamps if isinstance(stamp, (int, float))), default=None)
-    return minutes_since(latest, snapshot["now"]) if latest is not None else None
 
 
-def result_verdict_key(path: str, ident: str, status: str, text: str) -> str:
-    identity = json.dumps([os.path.normcase(os.path.abspath(path)), normalize_ident(ident),
-                           status.upper(), text], ensure_ascii=False, separators=(",", ":"))
-    return hashlib.sha256(identity.encode()).hexdigest()
 
 
-def result_session_finished(result: dict, snapshot: dict) -> bool:
-    result_path = os.path.normcase(os.path.abspath(result["path"]))
-    for sess in snapshot.get("sessions", {}).get("children", []):
-        promise = sess.get("promise")
-        if not promise or not promise.get("valid") or promise.get("kind") not in ("screen", "timed", "helper"):
-            continue
-        promised_path = promise.get("result_path")
-        matches = bool(promised_path and
-                       os.path.normcase(os.path.abspath(promised_path)) == result_path)
-        if matches and (sess.get("time_idle") is not None or sess.get("idle_outcome") is not None):
-            return True
-    return False
 
 
-def append_note(root: str, note: str, dry_run: bool) -> None:
-    path = os.path.join(root, ".lanes", "watch-ALERT.txt")
-    if dry_run:
-        print(f"DRY-RUN: would append user note to {path}: {note}")
-        return
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "a", encoding="utf-8") as f:
-        f.write(f"{dt.datetime.now().astimezone().isoformat(timespec='seconds')} {note}\n")
 
 
-def dispatch(thread_id: str, messages: list[str], dry_run: bool, mode: str = "queue") -> None:
-    """Queue by default; `auto` interrupts a live turn (urgent alerts, rate-limited by the caller)."""
-    if not messages:
-        return
-    lines = [message.replace("\n", " ").strip() for message in messages]
-    text = "\n".join(lines)
-    if dry_run:
-        suffix = "" if mode == "queue" else f" (--mode {mode}, interrupts now)"
-        print(f"DRY-RUN: would queue to {thread_id}:{suffix}\n{text}")
-        return
-    out, error = BB.command(["thread", "tell", thread_id, "--mode", mode, text], 8.0)
-    if error:
-        print(f"WATCH ERROR: bb thread tell failed: {error}", file=sys.stderr)
-    elif out:
-        print(out)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def status_table(snapshot: dict) -> list[str]:
