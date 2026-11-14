@@ -49,7 +49,7 @@ If the approved contract or changed code/diff is missing, return `ASK_USER` nami
 
 1. Reconstruct the task's intent from `issue.md` and the approved scope from `plan.md`. The plan is one interpretation of the task, not the definition of intent. If they disagree, record it for the decision; do not silently prefer either.
 2. Review the diff and directly affected code first.
-3. Use the local `ponytail-review` skill only as an optional, read-only, diff-focused lens when over-engineering is material or the review request explicitly calls for complexity review. Use its complexity-only findings to inform the simplicity/YAGNI judgment; it does not apply fixes, and this gate retains responsibility for correctness, security, performance, error handling, and maintainability. Do not run `ponytail-audit` or `ponytail-debt` automatically; they remain standalone reports only when explicitly requested. `ponytail-gain` and `ponytail-help` are informational, not gate steps.
+3. Always run local `ponytail-review` on the diff (read-only). A “N fewer lines, same behavior” finding is a required `REVISE_CODE` fix: name the shorter version and explain why behavior is identical. Reject shorter rewrites that change behavior. If no such finding exists, add no item. Do not run `ponytail-audit` or `ponytail-debt` unless explicitly requested; `ponytail-gain` and `ponytail-help` are not gate steps. This gate still owns correctness, security, performance, error handling, and maintainability.
 4. Trigger wider dependency review only when the change touches shared modules, public interfaces, global state, async side effects, security-sensitive paths, or common components.
 5. Compare implementation against the referenced quality docs without copying them into the report.
 6. Heavily weight simplicity: prefer the smallest code that satisfies `plan.md`; penalize speculative abstractions, extra surfaces, duplicate state, and unplanned features.
@@ -91,6 +91,7 @@ Return `REVISE_CODE` regardless of score if any are true:
 - The implementation misses a clear, stated intent from the task.
 - Implementation contradicts `plan.md`.
 - Unplanned scope drift.
+- A `ponytail-review` same-behavior reduction is a required fix; name the shorter version and explain why it is equivalent.
 - Overengineered solution where a simpler approach satisfies `plan.md`.
 
 Return `ASK_USER` instead when the blocker is missing context or evidence, ambiguous product intent, unclear plan scope, or conflicting artifacts. Name the missing input and its owner.
