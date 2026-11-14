@@ -22,6 +22,8 @@ def run(target, fixture, coverage=False):
         candidate = base / "candidate"; candidate.mkdir()
         staged = candidate / "watch.py"
         staged.write_bytes(Path(target).read_bytes())
+        package = Path(target).resolve().parent / "hivewatch"
+        if package.is_dir(): shutil.copytree(package, candidate / "hivewatch")
         for rel, text in fixture.get("files", {}).items():
             p = repo / rel.replace("{REPO}", str(repo)).replace("{HOME}", str(home))
             # Build the gated run-card text at runtime so the plugin does not treat fixture data as a close request.
