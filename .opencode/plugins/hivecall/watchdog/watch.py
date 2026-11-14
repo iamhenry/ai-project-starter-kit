@@ -134,53 +134,32 @@ from hivewatch.probes import (
 from hivewatch.collect import collect, report, status_table, summary_line
 
 
-
-class Ctx:
-    __slots__ = (
-        'active_bound', 'ages', 'alert_tags',
-        'all_live_sessions', 'asked', 'bb', 'bound',
-        'claimed', 'conditions', 'counts', 'done_ids',
-        'dry_run', 'ended', 'env', 'evidence_mtime', 'finished',
-        'ghost_min', 'history', 'isa', 'judged',
-        'leftover_ids', 'leftover_sessions', 'live', 'load_samples',
-        'loop', 'messages', 'needs', 'now',
-        'open_ids', 'parked_ids', 'promise',
-        'result', 'review', 'sessions', 'set_aside',
-        'snapshot', 'state', 'testers', 'thread_id',
-        'tried', 'urgent_keys',
-    )
-
 def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) -> list[str]:
-    ctx = Ctx()
-    ctx.snapshot = snapshot
-    ctx.state = state
-    ctx.env = env
-    ctx.dry_run = dry_run
-    ctx.now = ctx.snapshot["now"]
-    host, server, ctx.sessions, ctx.bb, ctx.isa, evidence = (ctx.snapshot[k] for k in
+    now = snapshot["now"]
+    host, server, sessions, bb, isa, evidence = (snapshot[k] for k in
         ("host", "server", "sessions", "bb", "isa", "evidence"))
     root = env.get("REPO", "")
-    ctx.thread_id = env.get("ORCH_THREAD", "")
-    run_status = ctx.snapshot.get("run_status")
-    ctx.messages: list[str] = []
+    thread_id = env.get("ORCH_THREAD", "")
+    run_status = snapshot.get("run_status")
+    messages: list[str] = []
     notes: list[str] = []
-    ctx.alert_tags: list[str] = []
-    ctx.conditions = ctx.state.setdefault("conditions", {})
+    alert_tags: list[str] = []
+    conditions = state.setdefault("conditions", {})
 
-    ctx.asked = ctx.state.setdefault("asked", {})
-    if not isinstance(ctx.asked, dict):
-        ctx.asked = ctx.state["asked"] = {}
-    ctx.urgent_keys: list[str] = []
+    asked = state.setdefault("asked", {})
+    if not isinstance(asked, dict):
+        asked = state["asked"] = {}
+    urgent_keys: list[str] = []
 
     def action_fingerprint() -> dict:
         """What the orchestrator can visibly do about an alert: start a helper, change the ledger, commit."""
-        return {"children": sorted(str(row.get("id")) for row in ctx.bb.get("children", []))
-                if ctx.bb.get("list_valid") else None,
-                "ledger": hashlib.sha256(json.dumps([ctx.isa.get("latest_verdicts", {}), ctx.isa.get("checked", []),
-                                                     ctx.isa.get("parked", []), ctx.isa.get("verdict_count", 0)],
+        return {"children": sorted(str(row.get("id")) for row in bb.get("children", []))
+                if bb.get("list_valid") else None,
+                "ledger": hashlib.sha256(json.dumps([isa.get("latest_verdicts", {}), isa.get("checked", []),
+                                                     isa.get("parked", []), isa.get("verdict_count", 0)],
                                                     sort_keys=True).encode()).hexdigest()
-                if not ctx.isa.get("error") else None,
-                "head": ctx.snapshot.get("head") if ctx.snapshot.get("head_valid") else None}
+                if not isa.get("error") else None,
+                "head": snapshot.get("head") if snapshot.get("head_valid") else None}
 
     def acted_since(baseline: dict) -> bool:
         current = action_fingerprint()
@@ -192,95 +171,95 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
 
     def record(key: str, tag: str, detail: str, urgent: bool, track: bool) -> None:
         if track:
-            ctx.state["alert_seq"] = int(ctx.state.get("alert_seq", 0)) + 1
-            aid = f"W{ctx.state['alert_seq']}"
+            state["alert_seq"] = int(state.get("alert_seq", 0)) + 1
+            aid = f"W{state['alert_seq']}"
             detail = f"{detail} (alert {aid})"
-            ctx.asked[aid] = {"at": ctx.now, "key": key, "kind": tag, "urgent": urgent,
+            asked[aid] = {"at": now, "key": key, "kind": tag, "urgent": urgent,
                           "baseline": action_fingerprint()}
-        ctx.messages.append(detail)
+        messages.append(detail)
         if urgent:
-            ctx.urgent_keys.append(key)
-        if tag not in ctx.alert_tags:
-            ctx.alert_tags.append(tag)
-        ctx.review["alerts"][tag] = ctx.review["alerts"].get(tag, 0) + 1
+            urgent_keys.append(key)
+        if tag not in alert_tags:
+            alert_tags.append(tag)
+        review["alerts"][tag] = review["alerts"].get(tag, 0) + 1
 
     def emit() -> None:
-        if ctx.messages:
-            if any("(alert W" in message for message in ctx.messages):
-                ctx.messages.append("Answer each alert id under the run card's Answers: "
+        if messages:
+            if any("(alert W" in message for message in messages):
+                messages.append("Answer each alert id under the run card's Answers: "
                                 "`ANSWER <id>: <action> — <thread id, ledger line, or park line>`.")
-            ctx.messages.extend(status_table(ctx.snapshot))
+            messages.extend(status_table(snapshot))
         mode = "queue"
-        if ctx.messages and ctx.urgent_keys and ctx.now - float(ctx.state.get("last_interrupt", 0)) >= 600:
+        if messages and urgent_keys and now - float(state.get("last_interrupt", 0)) >= 600:
             mode = "auto"
-            ctx.state["last_interrupt"] = ctx.now
-        dispatch(ctx.thread_id, ctx.messages, ctx.dry_run, mode)
+            state["last_interrupt"] = now
+        dispatch(thread_id, messages, dry_run, mode)
 
-    ctx.review = ctx.state.setdefault("review", {"last_at": ctx.now, "alerts": {},
+    review = state.setdefault("review", {"last_at": now, "alerts": {},
                                           "promise_agents": [], "other_agents": []})
-    if not isinstance(ctx.review, dict):
-        ctx.review = ctx.state["review"] = {"last_at": ctx.now, "alerts": {},
+    if not isinstance(review, dict):
+        review = state["review"] = {"last_at": now, "alerts": {},
                                     "promise_agents": [], "other_agents": []}
-    ctx.review.setdefault("last_at", ctx.now)
-    ctx.review.setdefault("alerts", {})
-    ctx.review.setdefault("promise_agents", [])
-    ctx.review.setdefault("other_agents", [])
+    review.setdefault("last_at", now)
+    review.setdefault("alerts", {})
+    review.setdefault("promise_agents", [])
+    review.setdefault("other_agents", [])
 
-    isa_valid = not ctx.isa.get("error")
+    isa_valid = not isa.get("error")
     prior_fail_lines: set[str] = set()
     if isa_valid:
         # FAIL lines seen on earlier checks; the first check is a baseline.
         current_fail_lines = {normalize_ident(ident) + ":" + signature
-                              for ident, signature, *_ in ctx.isa.get("fails", [])}
-        stored = ctx.state.get("fail_lines_seen")
+                              for ident, signature, *_ in isa.get("fails", [])}
+        stored = state.get("fail_lines_seen")
         prior_fail_lines = set(stored) if isinstance(stored, list) else set(current_fail_lines)
-        ctx.state["fail_lines_seen"] = sorted(prior_fail_lines | current_fail_lines)
-        active_regressions = set(ctx.isa.get("regressions", []))
-        for key in list(ctx.conditions):
+        state["fail_lines_seen"] = sorted(prior_fail_lines | current_fail_lines)
+        active_regressions = set(isa.get("regressions", []))
+        for key in list(conditions):
             if key.startswith("regression:") and key.split(":", 1)[1] not in active_regressions:
-                ctx.conditions.pop(key, None)
-        alerted = set(ctx.state.get("regressions_alerted", []))
-        ctx.state["regressions_alerted"] = sorted(alerted & active_regressions)
-    if run_status == "running" and isa_valid and not ctx.isa.get("done"):
-        clear_done_state(ctx.state)
+                conditions.pop(key, None)
+        alerted = set(state.get("regressions_alerted", []))
+        state["regressions_alerted"] = sorted(alerted & active_regressions)
+    if run_status == "running" and isa_valid and not isa.get("done"):
+        clear_done_state(state)
     if run_status == "closed":
-        finish_closed_run(ctx.state, env, ctx.dry_run)
-        return ctx.alert_tags
-    if ctx.state.get("done"):
+        finish_closed_run(state, env, dry_run)
+        return alert_tags
+    if state.get("done"):
         # Ledger-only completion stays paused until the run card is closed.
-        ctx.state.pop("closed_pause_recorded", None)
-        ctx.state.pop("closed_automation_id", None)
-        ctx.state.pop("delete_result", None)
-        ctx.state["pause_result"] = pause_automation(env, ctx.dry_run)
-        return ctx.alert_tags
-    if isa_valid and ctx.isa["done"]:
-        summary = (f"{ctx.isa['pass']}/{ctx.isa['total']} PASS, {len(ctx.isa.get('parked', []))} parked "
-                   f"(owner {ctx.isa['owner_done']}/{len(ctx.isa['owner'])}, blocked {len(ctx.isa['blocked'])})"
+        state.pop("closed_pause_recorded", None)
+        state.pop("closed_automation_id", None)
+        state.pop("delete_result", None)
+        state["pause_result"] = pause_automation(env, dry_run)
+        return alert_tags
+    if isa_valid and isa["done"]:
+        summary = (f"{isa['pass']}/{isa['total']} PASS, {len(isa.get('parked', []))} parked "
+                   f"(owner {isa['owner_done']}/{len(isa['owner'])}, blocked {len(isa['blocked'])})"
                    if isa_valid else "ledger unreadable")
-        ctx.state["done"] = True
-        ctx.state["pause_result"] = pause_automation(env, ctx.dry_run)
-        ctx.messages.append(f"WATCH DONE: ledger complete or parked-only ({summary}); watchdog {ctx.state['pause_result']}. "
+        state["done"] = True
+        state["pause_result"] = pause_automation(env, dry_run)
+        messages.append(f"WATCH DONE: ledger complete or parked-only ({summary}); watchdog {state['pause_result']}. "
                         "Set the run card status to closed and send the owner the final report.")
-        print(f"WATCH DONE: {summary}; {ctx.state['pause_result']}")
+        print(f"WATCH DONE: {summary}; {state['pause_result']}")
         emit()
-        return ctx.alert_tags
+        return alert_tags
     waiting = bool(run_status and run_status.startswith("waiting"))
-    if ctx.state.get("last_run_status", "").startswith("waiting") and run_status == "running":
-        ctx.state["continue"] = {}  # owner unblocked the run: nudging may resume
-    ctx.state["last_run_status"] = run_status or ""
+    if state.get("last_run_status", "").startswith("waiting") and run_status == "running":
+        state["continue"] = {}  # owner unblocked the run: nudging may resume
+    state["last_run_status"] = run_status or ""
 
     def trigger(key: str, active: bool, detail: str, severity: int = 1, valid: bool = True,
                 urgent: bool = False, track: bool = False) -> bool:
         if not valid:
             return False
-        rec = ctx.conditions.setdefault(key, {"streak": 0, "last_alert": 0, "severity": 0})
+        rec = conditions.setdefault(key, {"streak": 0, "last_alert": 0, "severity": 0})
         rec["streak"] = rec.get("streak", 0) + 1 if active else 0
         if not active:
             rec["last_alert"] = 0
             rec["severity"] = 0
         due = active and rec["streak"] >= 2 and not rec.get("last_alert")
         if due:
-            rec["last_alert"] = ctx.now
+            rec["last_alert"] = now
             rec["severity"] = severity
             tag = {
                 "high-load": "high load", "low-disk": "low disk", "big-file": "large file",
@@ -298,25 +277,25 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
             record(key, tag, detail, urgent, track)
         return due
 
-    ctx.all_live_sessions = list(ctx.sessions.get("live", []))
-    ctx.leftover_sessions = []
-    can_check_bindings = (ctx.sessions.get("valid", False) and ctx.bb.get("list_valid", False) and
-                          ctx.bb.get("binding_valid", False))
+    all_live_sessions = list(sessions.get("live", []))
+    leftover_sessions = []
+    can_check_bindings = (sessions.get("valid", False) and bb.get("list_valid", False) and
+                          bb.get("binding_valid", False))
     if can_check_bindings:
-        for sess in ctx.all_live_sessions:
+        for sess in all_live_sessions:
             child_thread = sess.get("thread_id")
-            thread = ctx.bb.get("by_id", {}).get(child_thread, {}) if child_thread else {}
+            thread = bb.get("by_id", {}).get(child_thread, {}) if child_thread else {}
             status = thread.get("status")
             if isinstance(status, str) and status.lower() in ("failed", "stopped", "idle"):
-                ctx.leftover_sessions.append((sess, child_thread))
-        if ctx.leftover_sessions:
-            ctx.leftover_ids = {sess["id"] for sess, _ in ctx.leftover_sessions}
-            ctx.sessions["live"] = [sess for sess in ctx.all_live_sessions if sess["id"] not in ctx.leftover_ids]
-        active_leftovers = {"leftover-session:" + sess["id"] for sess, _ in ctx.leftover_sessions}
-        for key in list(ctx.conditions):
+                leftover_sessions.append((sess, child_thread))
+        if leftover_sessions:
+            leftover_ids = {sess["id"] for sess, _ in leftover_sessions}
+            sessions["live"] = [sess for sess in all_live_sessions if sess["id"] not in leftover_ids]
+        active_leftovers = {"leftover-session:" + sess["id"] for sess, _ in leftover_sessions}
+        for key in list(conditions):
             if key.startswith("leftover-session:") and key not in active_leftovers:
                 trigger(key, False, "", valid=True)
-    for sess, child_thread in ctx.leftover_sessions:
+    for sess, child_thread in leftover_sessions:
         trigger("leftover-session:" + sess["id"], True,
                 f"LEFTOVER session {sess['id']} still running after its BB thread {child_thread} ended; "
                 "interrupt it before relaunching. Ask: Was this helper resumed after it finished? "
@@ -348,20 +327,20 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
                 if free is not None else "HOST disk: df reading unavailable.",
                 1, valid=disk_valid)
     for f in host.get("recent_big", []):
-        age = minutes_since(f["created"], ctx.now) or 0
+        age = minutes_since(f["created"], now) or 0
         size_mb = f["size"] / 1_048_576
         trigger("big-file:" + f["path"], True,
                 f"HOST large file: {f['path']} is {size_mb:.0f} MB, created {age:.0f} min ago.",
                 max(1, int(size_mb // 100)), valid=host.get("recent_big_valid", False))
-    orphan_state = ctx.state.setdefault("orphan_idle", {})
+    orphan_state = state.setdefault("orphan_idle", {})
     no_agent_elapsed = None
-    if ctx.sessions.get("valid", False):
-        if ctx.sessions.get("live"):
+    if sessions.get("valid", False):
+        if sessions.get("live"):
             orphan_state["no_agent_since"] = None
         else:
             if orphan_state.get("no_agent_since") is None:
-                orphan_state["no_agent_since"] = ctx.now
-            no_agent_elapsed = (ctx.now - orphan_state["no_agent_since"]) / 60
+                orphan_state["no_agent_since"] = now
+            no_agent_elapsed = (now - orphan_state["no_agent_since"]) / 60
     no_agent_long_enough = (no_agent_elapsed is not None and
                             no_agent_elapsed >= setting(env, "WATCH_GHOST_MIN", 15))
     for proc in host.get("processes", []):
@@ -370,75 +349,75 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
             trigger("orphan-process:" + str(proc["pid"]), no_agent_long_enough,
                     f"HOST orphan process: pid {proc['pid']} ppid {proc['ppid']}, {age:.0f} min; {proc['command'][:160]}.",
                     2 if proc["age"] > 3600 else 1,
-                    valid=host.get("processes_valid", False) and ctx.sessions.get("valid", False))
+                    valid=host.get("processes_valid", False) and sessions.get("valid", False))
 
-    deduped_passes = ctx.state.get("unrecorded_passes")
+    deduped_passes = state.get("unrecorded_passes")
     if not isinstance(deduped_passes, dict):
-        deduped_passes = ctx.state["unrecorded_passes"] = {}
-    for ctx.result in evidence["results"]:
-        age_m = minutes_since(ctx.result["mtime"], ctx.now) or 0
-        unchanged_or_finished = age_m >= 20 or result_session_finished(ctx.result, ctx.snapshot)
-        rows = ctx.result.get("table_rows", [])
+        deduped_passes = state["unrecorded_passes"] = {}
+    for result in evidence["results"]:
+        age_m = minutes_since(result["mtime"], now) or 0
+        unchanged_or_finished = age_m >= 20 or result_session_finished(result, snapshot)
+        rows = result.get("table_rows", [])
         if not rows:
             rows = [{"id": normalize_ident(ident), "status": status, "text": ""}
-                    for ident, status in ctx.result.get("rows", [])]
+                    for ident, status in result.get("rows", [])]
         for row in rows:
             ident, status, text = row.get("id"), row.get("status"), row.get("text", "")
             if status != "PASS" or not ident:
                 continue
-            key = result_verdict_key(ctx.result["path"], ident, status, text)
+            key = result_verdict_key(result["path"], ident, status, text)
             if key in deduped_passes:
                 continue
-            legacy = ctx.conditions.get(f"unrecorded-pass:{ctx.result['path']}:{ident}", {})
+            legacy = conditions.get(f"unrecorded-pass:{result['path']}:{ident}", {})
             if legacy.get("last_alert"):
                 deduped_passes[key] = legacy["last_alert"]
                 continue
 
-            latest = ctx.isa.get("latest_verdicts", {}).get(ident)
+            latest = isa.get("latest_verdicts", {}).get(ident)
             ledger_has_pass = latest is not None and latest.get("status") == "PASS"
-            ledger_is_newer = (latest is not None and ctx.isa.get("ledger_mtime") is not None and
-                               ctx.isa["ledger_mtime"] > ctx.result["mtime"])
+            ledger_is_newer = (latest is not None and isa.get("ledger_mtime") is not None and
+                               isa["ledger_mtime"] > result["mtime"])
             if ledger_has_pass or ledger_is_newer:
                 trigger("unrecorded-pass:" + key, False, "",
                         valid=evidence.get("valid", False) and isa_valid)
                 continue
             due = trigger("unrecorded-pass:" + key, unchanged_or_finished,
-                          f"LEDGER {ident}: PASS in {ctx.result['path']} is not in a newer ledger entry; record it. "
+                          f"LEDGER {ident}: PASS in {result['path']} is not in a newer ledger entry; record it. "
                           "Ask: Did this tester check the exact committed candidate? Is anything blocking the "
                           "tick? Default: tick it with the commit id and evidence, or write why not.",
                           max(1, int(age_m // 60)),
                           valid=evidence.get("valid", False) and isa_valid, track=True)
             if due:
-                deduped_passes[key] = ctx.now
+                deduped_passes[key] = now
 
-    if ctx.sessions.get("valid", False):
-        for sess in ctx.sessions.get("children", []):
+    if sessions.get("valid", False):
+        for sess in sessions.get("children", []):
             if sess.get("time_idle") is not None or sess.get("idle_outcome") is not None:
                 trigger("off-track:" + sess["id"], False, "")
-    for sess in ctx.sessions.get("live", []):
+    for sess in sessions.get("live", []):
         if sess.get("time_idle") is not None or sess.get("idle_outcome") is not None:
             trigger("off-track:" + sess["id"], False, "",
-                    valid=ctx.sessions.get("valid", False))
+                    valid=sessions.get("valid", False))
             continue
-        ctx.promise = sess.get("promise")
-        if not ctx.promise or not ctx.promise.get("valid"):
-            quiet = minutes_since(sess.get("last_message") or sess.get("created"), ctx.now) or 0
+        promise = sess.get("promise")
+        if not promise or not promise.get("valid"):
+            quiet = minutes_since(sess.get("last_message") or sess.get("created"), now) or 0
             trigger("stuck-agent:" + sess["id"], quiet >= setting(env, "WATCH_AGENT_STUCK_MIN", 10),
                     f"AGENT {sess.get('agent', 'agent')} ({sess['id']}): no session activity for {quiet:.0f} min. "
                     "Ask: Is it waiting on a permission, a prompt or you? Would a fresh helper with a Delta "
                     "finish sooner? Default: ask it for its smallest provable part now; if no reply in 5 min, "
                     "restart it fresh with a Delta.",
-                    max(1, int(quiet // 60)), valid=ctx.sessions.get("valid", False), urgent=True, track=True)
-        metrics = promise_metrics(sess, ctx.snapshot, ctx.state)
+                    max(1, int(quiet // 60)), valid=sessions.get("valid", False), urgent=True, track=True)
+        metrics = promise_metrics(sess, snapshot, state)
         if metrics is None:
             continue
         child_id = sess.get("thread_id") or sess["id"]
-        child = ctx.bb.get("by_id", {}).get(child_id, {})
+        child = bb.get("by_id", {}).get(child_id, {})
         title = child.get("title") or sess.get("agent", "agent")
         role = sess.get("agent", "agent")
         unanswered = metrics["unanswered"]
         message_count = f"{unanswered} message{'s' if unanswered != 1 else ''} not acted on"
-        idle = off_track_idle_age(sess, ctx.snapshot)
+        idle = off_track_idle_age(sess, snapshot)
         detail = (f"OFF TRACK {title} ({role}) {child_id}: no evidence or session message for "
                   f"{idle:.0f} min (idle limit {OFF_TRACK_IDLE_MIN} min); "
                   f"{metrics['coverage']} rows answered; {metrics['placeholders']} placeholders; "
@@ -451,15 +430,15 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
                 valid=metrics["valid"] and idle is not None, urgent=True, track=True)
 
     # Builder sessions with a quiet build log are called out separately from result-file progress.
-    for sess in ctx.sessions["live"]:
-        age = minutes_since(sess.get("created"), ctx.now)
+    for sess in sessions["live"]:
+        age = minutes_since(sess.get("created"), now)
         if age is not None:
             max_hours = setting(env, "WATCH_AGENT_MAX_HOURS", 3)
             trigger("long-agent:" + sess["id"], age > max_hours * 60,
                     f"AGENT {sess['agent']} ({sess['id']}): active {age:.0f} min; wrap up and report.",
-                    max(1, int(age // (max_hours * 60))), valid=ctx.sessions.get("valid", False))
+                    max(1, int(age // (max_hours * 60))), valid=sessions.get("valid", False))
         if not sess.get("visible"):
-            idle = minutes_since(sess.get("last_message"), ctx.now) or 0
+            idle = minutes_since(sess.get("last_message"), now) or 0
             follow_ups = len(sess.get("steers", []))
             trigger("invisible-agent:" + sess["id"], True,
                     f"AGENT {sess['agent']} session {sess['id']} is not bound to a visible active BB child; last message {idle:.0f} min ago. "
@@ -468,26 +447,26 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
                     "Ask: Was this helper resumed after it finished? Can the owner see it in BB (check by "
                     "session and thread id, not title)? Default: let it finish, and start any further work "
                     "in a fresh visible BB child with a Delta.",
-                    valid=(ctx.sessions.get("valid", False) and ctx.bb.get("list_valid", False) and
-                           ctx.bb.get("binding_valid", False)), urgent=True, track=True)
+                    valid=(sessions.get("valid", False) and bb.get("list_valid", False) and
+                           bb.get("binding_valid", False)), urgent=True, track=True)
 
-    for child in ctx.bb["children"]:
+    for child in bb["children"]:
         ghost_key = "ghost-agent:" + str(child.get("id"))
         if child.get("status") != "active":
-            trigger(ghost_key, False, "", valid=(ctx.sessions.get("valid", False) and
-                    ctx.bb.get("list_valid", False) and ctx.bb.get("binding_valid", False)))
+            trigger(ghost_key, False, "", valid=(sessions.get("valid", False) and
+                    bb.get("list_valid", False) and bb.get("binding_valid", False)))
             continue
-        ctx.ghost_min = setting(env, "WATCH_GHOST_MIN", 15)
-        ctx.bound = child.get("bound_sessions", [])
-        ctx.active_bound = [s for s in ctx.bound if s.get("time_idle") is None and s.get("idle_outcome") is None]
-        working = [s for s in ctx.active_bound if
-                   (minutes_since(s.get("last_message"), ctx.now) is not None and
-                    minutes_since(s.get("last_message"), ctx.now) < ctx.ghost_min)]
-        if not ctx.bound:
+        ghost_min = setting(env, "WATCH_GHOST_MIN", 15)
+        bound = child.get("bound_sessions", [])
+        active_bound = [s for s in bound if s.get("time_idle") is None and s.get("idle_outcome") is None]
+        working = [s for s in active_bound if
+                   (minutes_since(s.get("last_message"), now) is not None and
+                    minutes_since(s.get("last_message"), now) < ghost_min)]
+        if not bound:
             ghost = True
             evidence_text = "no bound OpenCode session"
-            inactive = ctx.ghost_min
-        elif not ctx.active_bound:
+            inactive = ghost_min
+        elif not active_bound:
             ghost = False
             evidence_text = "bound OpenCode session idle or finished"
             inactive = 0
@@ -497,72 +476,72 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
             inactive = 0
         else:
             ghost = True
-            ctx.ages = [minutes_since(s.get("last_message"), ctx.now) for s in ctx.bound]
-            inactive = max((age if age is not None else 10_000 for age in ctx.ages), default=10_000)
+            ages = [minutes_since(s.get("last_message"), now) for s in bound]
+            inactive = max((age if age is not None else 10_000 for age in ages), default=10_000)
             evidence_text = ", ".join(
                 f"{s['id']} idle={s.get('time_idle') is not None or s.get('idle_outcome') is not None} "
-                f"last={minutes_since(s.get('last_message'), ctx.now):.0f}m"
+                f"last={minutes_since(s.get('last_message'), now):.0f}m"
                 if s.get("last_message") is not None else f"{s['id']} has no session message"
-                for s in ctx.bound)
+                for s in bound)
         if ghost:
             trigger(ghost_key, True,
                     f"GHOST BB child {child.get('id')} ({child.get('title', 'untitled')}): active; {evidence_text}.",
                     max(1, int(inactive // 60)),
-                    valid=(ctx.sessions.get("valid", False) and ctx.bb.get("list_valid", False) and
-                           ctx.bb.get("binding_valid", False)))
+                    valid=(sessions.get("valid", False) and bb.get("list_valid", False) and
+                           bb.get("binding_valid", False)))
         else:
-            trigger(ghost_key, False, "", valid=(ctx.sessions.get("valid", False) and
-                    ctx.bb.get("list_valid", False) and ctx.bb.get("binding_valid", False)))
+            trigger(ghost_key, False, "", valid=(sessions.get("valid", False) and
+                    bb.get("list_valid", False) and bb.get("binding_valid", False)))
 
     # Keep recent samples so FAILs can be judged at the evidence file's timestamp.
-    ctx.load_samples = ctx.state.get("load_samples", [])
-    if not isinstance(ctx.load_samples, list):
-        ctx.load_samples = []
+    load_samples = state.get("load_samples", [])
+    if not isinstance(load_samples, list):
+        load_samples = []
     if host.get("uptime_valid", False) and load is not None:
-        ctx.load_samples.append({"time": ctx.now, "load": load})
-    ctx.load_samples = [sample for sample in ctx.load_samples
+        load_samples.append({"time": now, "load": load})
+    load_samples = [sample for sample in load_samples
                     if isinstance(sample, dict) and isinstance(sample.get("time"), (int, float)) and
-                    isinstance(sample.get("load"), (int, float)) and abs(ctx.now - sample["time"]) <= 7 * 86400]
-    ctx.state["load_samples"] = ctx.load_samples
+                    isinstance(sample.get("load"), (int, float)) and abs(now - sample["time"]) <= 7 * 86400]
+    state["load_samples"] = load_samples
 
     # Only gesture/recording/timing FAILs with a nearby high-load evidence sample qualify.
     if isa_valid:
-        fail_first = ctx.state.setdefault("fail_first_load", {})
-        if not ctx.state.get("fail_rows_initialized"):
-            for ident, signature, *_ in ctx.isa.get("fails", []):
-                fail_first[ident + ":" + signature] = {"baseline": True, "first_seen": ctx.now}
-            ctx.state["fail_rows_initialized"] = True
-        for ident, signature, _, tool, ctx.evidence_mtime in ctx.isa.get("fails", []):
+        fail_first = state.setdefault("fail_first_load", {})
+        if not state.get("fail_rows_initialized"):
+            for ident, signature, *_ in isa.get("fails", []):
+                fail_first[ident + ":" + signature] = {"baseline": True, "first_seen": now}
+            state["fail_rows_initialized"] = True
+        for ident, signature, _, tool, evidence_mtime in isa.get("fails", []):
             key = ident + ":" + signature
             if key not in fail_first:
-                fail_first[key] = {"baseline": False, "first_seen": ctx.now}
+                fail_first[key] = {"baseline": False, "first_seen": now}
             first = fail_first[key]
             if first.get("baseline"):
                 continue
-            nearest = min((sample for sample in ctx.load_samples
-                           if ctx.evidence_mtime is not None and abs(sample["time"] - ctx.evidence_mtime) <= 600),
-                          key=lambda sample: abs(sample["time"] - ctx.evidence_mtime), default=None)
+            nearest = min((sample for sample in load_samples
+                           if evidence_mtime is not None and abs(sample["time"] - evidence_mtime) <= 600),
+                          key=lambda sample: abs(sample["time"] - evidence_mtime), default=None)
             qualifies = tool in ("REC", "GESTURE", "TIME") and nearest is not None and nearest["load"] > 40
-            age = minutes_since(ctx.evidence_mtime, ctx.now) or 0
+            age = minutes_since(evidence_mtime, now) or 0
             detail = (f"FAIL {ident}: {tool} probe evidence was modified at load {nearest['load']:.1f} "
                       f"(>40), {age:.0f} min ago; recheck under calm load." if qualifies else "")
             trigger("fail-load:" + key, qualifies, detail)
 
     # Three failed attempts are enough to park a row instead of repeating it.
     if isa_valid:
-        checked = {normalize_ident(ident) for ident in ctx.isa.get("checked", [])}
-        parked = {normalize_ident(ident) for ident in ctx.isa.get("parked", [])}
-        parked |= {normalize_ident(ident) for ident in ctx.isa.get("blocked", [])}
+        checked = {normalize_ident(ident) for ident in isa.get("checked", [])}
+        parked = {normalize_ident(ident) for ident in isa.get("parked", [])}
+        parked |= {normalize_ident(ident) for ident in isa.get("blocked", [])}
         live_claims = set()
-        if ctx.sessions.get("valid", False):
-            for sess in ctx.sessions.get("live", []):
-                ctx.promise = sess.get("promise") or {}
-                if ctx.promise.get("valid"):
-                    live_claims |= {normalize_ident(ident) for ident in ctx.promise.get("rows", set())}
-        for ident, verdict in ctx.isa.get("latest_verdicts", {}).items():
+        if sessions.get("valid", False):
+            for sess in sessions.get("live", []):
+                promise = sess.get("promise") or {}
+                if promise.get("valid"):
+                    live_claims |= {normalize_ident(ident) for ident in promise.get("rows", set())}
+        for ident, verdict in isa.get("latest_verdicts", {}).items():
             # FAIL and BLOCKED both count as tries; restarts are the orchestrator's to count.
-            fails = ctx.isa.get("fail_counts", {}).get(ident, 0)
-            count = max(ctx.isa.get("tries", {}).get(ident, fails), fails)
+            fails = isa.get("fail_counts", {}).get(ident, 0)
+            count = max(isa.get("tries", {}).get(ident, fails), fails)
             blocked_tries = count - fails
             retried = ident in live_claims
             open_fail = verdict.get("status") == "FAIL" and ident not in parked
@@ -574,15 +553,15 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
                     "or the test setup failing? What is the cheapest different probe? Default: park it with "
                     "its unlock condition and start the next free item.", track=True)
 
-        active_regressions = set(ctx.isa.get("regressions", []))
-        alerted_regressions = set(ctx.state.setdefault("regressions_alerted", []))
+        active_regressions = set(isa.get("regressions", []))
+        alerted_regressions = set(state.setdefault("regressions_alerted", []))
         # Only a newly written FAIL line is a regression; a moved or re-ordered old line is not.
-        fresh = ctx.state.setdefault("regression_fresh", {})
+        fresh = state.setdefault("regression_fresh", {})
         for ident in list(fresh):
             if ident not in active_regressions:
                 fresh.pop(ident, None)
         for ident in sorted(active_regressions):
-            line = ident + ":" + ctx.isa.get("latest_fail_sigs", {}).get(ident, "")
+            line = ident + ":" + isa.get("latest_fail_sigs", {}).get(ident, "")
             if fresh.get(ident, {}).get("line") != line:
                 fresh[ident] = {"line": line, "fresh": line not in prior_fail_lines}
             due = trigger("regression:" + ident,
@@ -593,138 +572,138 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
                           urgent=True, track=True)
             if due:
                 alerted_regressions.add(ident)
-        ctx.state["regressions_alerted"] = sorted(alerted_regressions)
+        state["regressions_alerted"] = sorted(alerted_regressions)
 
         ledger_signature = hashlib.sha256(json.dumps({
-            "criteria": sorted(ctx.isa.get("criteria", [])),
-            "checked": sorted(ctx.isa.get("checked", [])),
-            "owner": sorted(ctx.isa.get("owner", [])),
-            "parked": sorted(ctx.isa.get("parked", [])),
-            "blocked": sorted(ctx.isa.get("blocked", [])),
-            "owner_only": sorted(ctx.isa.get("owner_only_ids", [])),
-            "latest_verdicts": ctx.isa.get("latest_verdicts", {}),
-            "verdict_count": ctx.isa.get("verdict_count", 0),
+            "criteria": sorted(isa.get("criteria", [])),
+            "checked": sorted(isa.get("checked", [])),
+            "owner": sorted(isa.get("owner", [])),
+            "parked": sorted(isa.get("parked", [])),
+            "blocked": sorted(isa.get("blocked", [])),
+            "owner_only": sorted(isa.get("owner_only_ids", [])),
+            "latest_verdicts": isa.get("latest_verdicts", {}),
+            "verdict_count": isa.get("verdict_count", 0),
         }, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-        run_card = ctx.snapshot.get("run_card", {})
-        if (run_card.get("valid", False) and ctx.snapshot.get("head_valid", False) and
-                ctx.isa.get("ledger_mtime") is not None):
+        run_card = snapshot.get("run_card", {})
+        if (run_card.get("valid", False) and snapshot.get("head_valid", False) and
+                isa.get("ledger_mtime") is not None):
             waiting_text = run_card.get("waiting_text")
-            waiting_note = ctx.state.get("unclaimed_waiting")
+            waiting_note = state.get("unclaimed_waiting")
             if (not isinstance(waiting_note, dict) or "text" not in waiting_note or
                     "fresh" not in waiting_note or
                     "ledger_signature" not in waiting_note or "head" not in waiting_note):
                 fresh = False  # first observation is a baseline, not proof the note is new
             else:
                 identity_unchanged = (waiting_note.get("ledger_signature") == ledger_signature and
-                                      waiting_note.get("head") == ctx.snapshot.get("head"))
+                                      waiting_note.get("head") == snapshot.get("head"))
                 text_changed = waiting_note.get("text") != waiting_text
                 fresh = bool(waiting_text) and identity_unchanged and text_changed
                 if not text_changed and identity_unchanged:
                     fresh = bool(waiting_text) and bool(waiting_note.get("fresh"))
-            ctx.state["unclaimed_waiting"] = {"text": waiting_text,
+            state["unclaimed_waiting"] = {"text": waiting_text,
                                            "ledger_signature": ledger_signature,
-                                           "head": ctx.snapshot.get("head"),
+                                           "head": snapshot.get("head"),
                                            "fresh": fresh}
         session_promises_valid = all(sess.get("promise_read_valid", True)
-                                     for sess in ctx.sessions.get("live", []))
+                                     for sess in sessions.get("live", []))
         unclaimed_valid = (run_status == "running" and run_card.get("valid", False) and
-                           ctx.sessions.get("valid", False) and session_promises_valid and
-                           ctx.snapshot.get("head_valid", False) and ctx.isa.get("ledger_mtime") is not None)
-        waiting_note = ctx.state.get("unclaimed_waiting") or {}
+                           sessions.get("valid", False) and session_promises_valid and
+                           snapshot.get("head_valid", False) and isa.get("ledger_mtime") is not None)
+        waiting_note = state.get("unclaimed_waiting") or {}
         waiting_is_current = (bool(waiting_note.get("text")) and waiting_note.get("fresh", False) and
                               unclaimed_valid and
                               waiting_note.get("text") == run_card.get("waiting_text") and
                               waiting_note.get("ledger_signature") == ledger_signature and
-                              waiting_note.get("head") == ctx.snapshot.get("head"))
+                              waiting_note.get("head") == snapshot.get("head"))
         if unclaimed_valid:
-            checked = {normalize_ident(ident) for ident in ctx.isa.get("checked", [])}
-            parked = {normalize_ident(ident) for ident in ctx.isa.get("parked", [])}
-            owner = {normalize_ident(ident) for ident in ctx.isa.get("owner", [])}
-            owner_only = {normalize_ident(ident) for ident in ctx.isa.get("owner_only_ids", [])}
-            open_items = set(ctx.isa.get("criteria", [])) - checked - parked - owner - owner_only
+            checked = {normalize_ident(ident) for ident in isa.get("checked", [])}
+            parked = {normalize_ident(ident) for ident in isa.get("parked", [])}
+            owner = {normalize_ident(ident) for ident in isa.get("owner", [])}
+            owner_only = {normalize_ident(ident) for ident in isa.get("owner_only_ids", [])}
+            open_items = set(isa.get("criteria", [])) - checked - parked - owner - owner_only
             open_rows = sorted(open_items)
-            if ctx.state.get("unclaimed_open_set") != open_rows:
-                for key in list(ctx.conditions):
+            if state.get("unclaimed_open_set") != open_rows:
+                for key in list(conditions):
                     if key.startswith("unclaimed:"):
                         trigger(key, False, "")
-                ctx.state["unclaimed_open_set"] = open_rows
-            ctx.claimed = set()
-            for sess in ctx.sessions.get("live", []):
-                ctx.promise = sess.get("promise") or {}
-                if ctx.promise.get("valid"):
-                    ctx.claimed |= {normalize_ident(ident) for ident in ctx.promise.get("rows", set())}
+                state["unclaimed_open_set"] = open_rows
+            claimed = set()
+            for sess in sessions.get("live", []):
+                promise = sess.get("promise") or {}
+                if promise.get("valid"):
+                    claimed |= {normalize_ident(ident) for ident in promise.get("rows", set())}
             # Grace window: a helper that just ended is usually followed by the next one.
-            ctx.ended = [seconds(child.get("time_idle")) for child in ctx.sessions.get("children", [])
+            ended = [seconds(child.get("time_idle")) for child in sessions.get("children", [])
                      if (child.get("promise") or {}).get("valid") and child.get("time_idle") is not None]
-            last_end = max((stamp for stamp in ctx.ended if stamp is not None), default=None)
-            in_grace = last_end is not None and 0 <= ctx.now - last_end < setting(env, "WATCH_UNCLAIMED_GRACE_MIN", 5) * 60
-            if open_items and not (open_items & ctx.claimed) and not waiting_is_current and not in_grace:
+            last_end = max((stamp for stamp in ended if stamp is not None), default=None)
+            in_grace = last_end is not None and 0 <= now - last_end < setting(env, "WATCH_UNCLAIMED_GRACE_MIN", 5) * 60
+            if open_items and not (open_items & claimed) and not waiting_is_current and not in_grace:
                 key = "unclaimed:" + hashlib.sha256("\n".join(open_rows).encode()).hexdigest()[:12]
                 trigger(key, True,
                         f"UNCLAIMED: no live PROMISE claims any of {len(open_rows)} open items ({', '.join(open_rows)}); "
-                        f"{len(ctx.sessions.get('live', []))} agent(s) running. If one is working on an item, correct its promise; "
+                        f"{len(sessions.get('live', []))} agent(s) running. If one is working on an item, correct its promise; "
                         "otherwise start work or write a `waiting: <reason>` line in the run card. "
                         "Ask: Which open item unblocks the most? Is anything waiting only on you? Default: start a "
                         "fresh visible helper on the free item that unblocks most, smallest first.", track=True)
             else:
-                for key in list(ctx.conditions):
+                for key in list(conditions):
                     if key.startswith("unclaimed:"):
                         trigger(key, False, "")
         elif run_card.get("valid", False) and run_status is not None and run_status != "running":
-            for key in list(ctx.conditions):
+            for key in list(conditions):
                 if key.startswith("unclaimed:"):
                     trigger(key, False, "")
-            ctx.state["unclaimed_open_set"] = None
+            state["unclaimed_open_set"] = None
 
     def clock(stamp: float | None) -> str:
         return dt.datetime.fromtimestamp(stamp).astimezone().strftime("%H:%M") if stamp else "unknown"
 
-    ctx.open_ids: list[str] = []
+    open_ids: list[str] = []
     tries_text = "none"
     if isa_valid:
-        ctx.done_ids = {normalize_ident(i) for i in ctx.isa.get("checked", [])}
-        ctx.set_aside = ctx.done_ids | {normalize_ident(i) for i in ctx.isa.get("owner", [])} | \
-            {normalize_ident(i) for i in ctx.isa.get("owner_only_ids", [])}
-        ctx.open_ids = [ident for ident in ctx.isa.get("criteria", []) if ident not in ctx.set_aside]
-        ctx.tried = sorted(((ctx.isa.get("tries", {}).get(ident, 0), ident) for ident in ctx.open_ids), reverse=True)
-        tries_text = ", ".join(f"{ident} ({count} tries)" for count, ident in ctx.tried[:3] if count) or "none"
+        done_ids = {normalize_ident(i) for i in isa.get("checked", [])}
+        set_aside = done_ids | {normalize_ident(i) for i in isa.get("owner", [])} | \
+            {normalize_ident(i) for i in isa.get("owner_only_ids", [])}
+        open_ids = [ident for ident in isa.get("criteria", []) if ident not in set_aside]
+        tried = sorted(((isa.get("tries", {}).get(ident, 0), ident) for ident in open_ids), reverse=True)
+        tries_text = ", ".join(f"{ident} ({count} tries)" for count, ident in tried[:3] if count) or "none"
 
     # Rule 10: the stall ladder. Honest progress = a new PASS/FAIL ledger line, a new tick,
     # a new PASS/FAIL result row with evidence, or a new commit. It runs even while the orchestrator is busy.
-    stall = ctx.state.setdefault("stall", {})
+    stall = state.setdefault("stall", {})
     if not isinstance(stall, dict):
-        stall = ctx.state["stall"] = {}
+        stall = state["stall"] = {}
     if isa_valid:
-        proof_lines = ctx.isa.get("pass_lines", 0) + len(ctx.isa.get("fails", []))
+        proof_lines = isa.get("pass_lines", 0) + len(isa.get("fails", []))
         row_keys = set()
         if evidence.get("valid", False):
-            for ctx.result in evidence.get("results", []):
-                for row in ctx.result.get("table_rows", []):
+            for result in evidence.get("results", []):
+                for row in result.get("table_rows", []):
                     if row.get("status") in ("PASS", "FAIL") and row.get("evidence") and not row.get("placeholder"):
-                        row_keys.add(hashlib.sha256(f"{ctx.result['path']}:{row.get('id')}:{row.get('status')}:"
+                        row_keys.add(hashlib.sha256(f"{result['path']}:{row.get('id')}:{row.get('status')}:"
                                                     f"{row.get('signature', '')}".encode()).hexdigest()[:12])
         seen_rows = set(stall.get("rows_seen", []))
-        head = ctx.snapshot.get("head") if ctx.snapshot.get("head_valid") else None
+        head = snapshot.get("head") if snapshot.get("head_valid") else None
         progressed = ("since" not in stall or proof_lines > stall.get("proof_lines", 0) or
-                      ctx.isa.get("pass", 0) > stall.get("checked", 0) or bool(row_keys - seen_rows) or
+                      isa.get("pass", 0) > stall.get("checked", 0) or bool(row_keys - seen_rows) or
                       (head is not None and stall.get("head") not in (None, head)))
         if progressed or waiting:
-            stall.update(since=ctx.now, step=0)
+            stall.update(since=now, step=0)
             if progressed:
-                stall["last_progress"] = ctx.now
+                stall["last_progress"] = now
         stall.update(proof_lines=max(proof_lines, stall.get("proof_lines", 0)),
-                     checked=max(ctx.isa.get("pass", 0), stall.get("checked", 0)),
+                     checked=max(isa.get("pass", 0), stall.get("checked", 0)),
                      rows_seen=sorted(seen_rows | row_keys), head=head or stall.get("head"))
-        minutes = (ctx.now - stall["since"]) / 60
+        minutes = (now - stall["since"]) / 60
         ask_min = setting(env, "WATCH_STALL_MIN", 10)
-        live_count = len(ctx.sessions.get("live", [])) if ctx.sessions.get("valid", False) else "?"
+        live_count = len(sessions.get("live", [])) if sessions.get("valid", False) else "?"
         step = stall.get("step", 0)
-        if not waiting and not ctx.isa.get("done") and step < 3:
+        if not waiting and not isa.get("done") and step < 3:
             facts = (f"no new proof for {minutes:.0f} min (last at {clock(stall.get('last_progress'))}); "
-                     f"proven {ctx.isa.get('pass', 0)}/{ctx.isa.get('total', 0)}; {live_count} helper(s) live; "
+                     f"proven {isa.get('pass', 0)}/{isa.get('total', 0)}; {live_count} helper(s) live; "
                      f"most-tried open items: {tries_text}.")
             if step == 0 and minutes >= ask_min:
-                stall.update(step=1, step_at=ctx.now, baseline=action_fingerprint())
+                stall.update(step=1, step_at=now, baseline=action_fingerprint())
                 record("stall:1", "stall", f"STALL 1/3: {facts} Ask: What exactly blocks the next proof? "
                        "What is the smallest part you can prove in 15 minutes? Default: split the oldest open "
                        "item and give its smallest provable part to a fresh visible helper.", False, True)
@@ -744,75 +723,75 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
                 notes.append(f"Stall: {facts} Watchdog said park and stopped stall questions until new proof.")
 
     # Free items: needs met (run card Plan map), not claimed by any live PROMISE.
-    run_card = ctx.snapshot.get("run_card", {})
+    run_card = snapshot.get("run_card", {})
     free_idle: list[str] = []
-    if isa_valid and run_card.get("plan_valid") and ctx.sessions.get("valid", False):
-        ctx.done_ids = {normalize_ident(i) for i in ctx.isa.get("checked", [])}
-        ctx.parked_ids = {normalize_ident(i) for i in ctx.isa.get("parked", [])}
-        ctx.claimed = set()
-        for sess in ctx.sessions.get("live", []):
-            ctx.promise = sess.get("promise") or {}
-            if ctx.promise.get("valid"):
-                ctx.claimed |= {normalize_ident(i) for i in ctx.promise.get("rows", set())}
-        ctx.needs = run_card.get("needs", {})
-        free_idle = sorted(ident for ident in ctx.open_ids if ident in ctx.needs and ident not in ctx.parked_ids and
-                           ident not in ctx.claimed and ctx.needs[ident] <= ctx.done_ids)
-        if free_idle and ctx.sessions.get("live") and not waiting:
+    if isa_valid and run_card.get("plan_valid") and sessions.get("valid", False):
+        done_ids = {normalize_ident(i) for i in isa.get("checked", [])}
+        parked_ids = {normalize_ident(i) for i in isa.get("parked", [])}
+        claimed = set()
+        for sess in sessions.get("live", []):
+            promise = sess.get("promise") or {}
+            if promise.get("valid"):
+                claimed |= {normalize_ident(i) for i in promise.get("rows", set())}
+        needs = run_card.get("needs", {})
+        free_idle = sorted(ident for ident in open_ids if ident in needs and ident not in parked_ids and
+                           ident not in claimed and needs[ident] <= done_ids)
+        if free_idle and sessions.get("live") and not waiting:
             trigger("free:" + hashlib.sha256("\n".join(free_idle).encode()).hexdigest()[:12], True,
                     f"FREE: {len(free_idle)} free item(s) have no helper ({', '.join(free_idle[:10])}); "
-                    f"{len(ctx.sessions['live'])} helper(s) live. Ask: Which of these unblocks the most? Does any "
+                    f"{len(sessions['live'])} helper(s) live. Ask: Which of these unblocks the most? Does any "
                     "share files with a running helper? Default: start a fresh visible helper on the free item "
                     "that unblocks most, smallest first.", track=True)
         else:
-            for key in list(ctx.conditions):
+            for key in list(conditions):
                 if key.startswith("free:"):
                     trigger(key, False, "")
 
     # The Plan map is living: every open item has a line, needs name real items, and no needs loop.
     # A run card read from disk is checked even with an empty or missing map: then every open item is missing.
     if isa_valid and (run_card.get("plan_valid") or run_card.get("plan_checked")):
-        ctx.needs = run_card.get("needs", {})
-        known = {normalize_ident(i) for i in ctx.isa.get("criteria", [])}
-        ctx.parked_ids = {normalize_ident(i) for i in ctx.isa.get("parked", [])}
-        missing = sorted(i for i in ctx.open_ids if i not in ctx.needs and i not in ctx.parked_ids)
-        unknown = sorted({n for deps in ctx.needs.values() for n in deps} - known) if known else []
-        ctx.loop: list[str] = []
-        ctx.finished: set[str] = set()
+        needs = run_card.get("needs", {})
+        known = {normalize_ident(i) for i in isa.get("criteria", [])}
+        parked_ids = {normalize_ident(i) for i in isa.get("parked", [])}
+        missing = sorted(i for i in open_ids if i not in needs and i not in parked_ids)
+        unknown = sorted({n for deps in needs.values() for n in deps} - known) if known else []
+        loop: list[str] = []
+        finished: set[str] = set()
         def walk(node, path):  # depth-first; each node is finished once, so shared needs are not re-walked
-            if ctx.loop or node in ctx.finished:
+            if loop or node in finished:
                 return
             if node in path:
-                ctx.loop.extend(path[path.index(node):] + [node])
+                loop.extend(path[path.index(node):] + [node])
                 return
-            for nxt in sorted(ctx.needs.get(node, ())):
+            for nxt in sorted(needs.get(node, ())):
                 walk(nxt, path + [node])
-            ctx.finished.add(node)
-        for start in sorted(ctx.needs):
+            finished.add(node)
+        for start in sorted(needs):
             walk(start, [])
         problems = ([f"open items with no Plan map line: {', '.join(missing[:10])}"] if missing else []) + \
                    ([f"needs name unknown items: {', '.join(unknown[:10])}"] if unknown else []) + \
-                   ([f"needs loop: {' -> '.join(ctx.loop)}"] if ctx.loop else [])
+                   ([f"needs loop: {' -> '.join(loop)}"] if loop else [])
         key = "plan:" + hashlib.sha256("\n".join(problems).encode()).hexdigest()[:12]
         trigger(key, bool(problems) and not waiting,
                 f"PLAN: the run card's Plan map is out of date ({'; '.join(problems)}). Ask: What did the newest "
                 "evidence change about what these items need or touch? Which chain is now the slowest? Default: "
                 "fix those Plan map lines and re-name the slowest chain before the next pick.", track=True)
-        for old in list(ctx.conditions):
+        for old in list(conditions):
             if old.startswith("plan:") and old != key:
                 trigger(old, False, "")
 
     # Code changed under a running tester: the candidate it is checking is no longer the candidate.
-    candidates = ctx.state.setdefault("qa_candidates", {})
-    fingerprint = ctx.snapshot.get("candidate")
-    if ctx.sessions.get("valid", False) and fingerprint:
-        ctx.testers = [sess for sess in ctx.sessions.get("live", []) if sess.get("agent") == "qa" or
+    candidates = state.setdefault("qa_candidates", {})
+    fingerprint = snapshot.get("candidate")
+    if sessions.get("valid", False) and fingerprint:
+        testers = [sess for sess in sessions.get("live", []) if sess.get("agent") == "qa" or
                    (sess.get("promise") or {}).get("kind") in ("screen", "timed")]
-        tester_ids = {sess["id"] for sess in ctx.testers}
+        tester_ids = {sess["id"] for sess in testers}
         for ident in list(candidates):
             if ident not in tester_ids:
                 candidates.pop(ident, None)
-                ctx.conditions.pop("drift:" + ident, None)
-        for sess in ctx.testers:
+                conditions.pop("drift:" + ident, None)
+        for sess in testers:
             first = candidates.setdefault(sess["id"], fingerprint)
             child_id = sess.get("thread_id") or sess["id"]
             trigger("drift:" + sess["id"], first != fingerprint,
@@ -822,29 +801,29 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
                     "on the new candidate; make no product edits while QA runs.", urgent=True, track=True)
 
     # Rule 13: the orchestrator session silently running as another agent (for example after a plugin restart).
-    first_agent, now_agent = ctx.sessions.get("orch_agent_first"), ctx.sessions.get("orch_agent")
+    first_agent, now_agent = sessions.get("orch_agent_first"), sessions.get("orch_agent")
     switched = bool(first_agent and now_agent and first_agent != now_agent)
     detail = (f"AGENT SWITCH: your session started as {first_agent} but its latest turn ran as {now_agent}. "
               f"Ask: Did the owner choose this? Are you still following {first_agent}'s rules? Default: tell the "
               f"owner to re-select {first_agent} for this thread; until then follow {first_agent}'s rules "
               "(delegate, don't edit product code).") if switched else ""
-    if trigger("agent-switch", switched, detail, valid=ctx.sessions.get("valid", False), urgent=True, track=True):
+    if trigger("agent-switch", switched, detail, valid=sessions.get("valid", False), urgent=True, track=True):
         notes.append(detail.split(" Ask:", 1)[0])
 
     # Rule 12: re-anchor after a context compaction.
-    compacted = ctx.sessions.get("last_compaction") if ctx.sessions.get("valid", False) else None
-    if ctx.sessions.get("valid", False) and "reanchored_at" not in ctx.state:
-        ctx.state["reanchored_at"] = compacted or 0  # baseline, also when none yet: older compactions are not news
+    compacted = sessions.get("last_compaction") if sessions.get("valid", False) else None
+    if sessions.get("valid", False) and "reanchored_at" not in state:
+        state["reanchored_at"] = compacted or 0  # baseline, also when none yet: older compactions are not news
     elif compacted is not None:
-        if compacted > float(ctx.state["reanchored_at"] or 0):
-            ctx.state["reanchored_at"] = compacted
-            ctx.live = ctx.sessions.get("live", [])
-            titles = ", ".join((ctx.bb.get("by_id", {}).get(sess.get("thread_id"), {}).get("title") or
-                                sess.get("agent", "agent")) for sess in ctx.live[:5])
+        if compacted > float(state["reanchored_at"] or 0):
+            state["reanchored_at"] = compacted
+            live = sessions.get("live", [])
+            titles = ", ".join((bb.get("by_id", {}).get(sess.get("thread_id"), {}).get("title") or
+                                sess.get("agent", "agent")) for sess in live[:5])
             rules = run_card.get("owner_rules", [])
             lines = [f"REANCHOR after your compaction at {clock(compacted)}. Goal: {run_card.get('goal') or 'see run card'}.",
-                     f"Proven {ctx.isa.get('pass', 0)}/{ctx.isa.get('total', 0)}; open: {', '.join(ctx.open_ids[:20]) or 'none'}.",
-                     f"Live helpers: {len(ctx.live)}" + (f" ({titles})" if titles else "") +
+                     f"Proven {isa.get('pass', 0)}/{isa.get('total', 0)}; open: {', '.join(open_ids[:20]) or 'none'}.",
+                     f"Live helpers: {len(live)}" + (f" ({titles})" if titles else "") +
                      f"; most-tried open items: {tries_text}."]
             if rules:
                 lines.append("Owner rules, word for word: " + " | ".join(rules))
@@ -852,35 +831,35 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
                          "rule are you closest to breaking? Default: re-read HOW-TO-WORK.md, the run card (Owner "
                          "rules, Proven recipes, Answers) and the brief checklist before the next delegation.")
             for line in lines:
-                ctx.messages.append(line)
-            ctx.urgent_keys.append("reanchor")
-            if "re-anchor" not in ctx.alert_tags:
-                ctx.alert_tags.append("re-anchor")
-            ctx.review["alerts"]["re-anchor"] = ctx.review["alerts"].get("re-anchor", 0) + 1
+                messages.append(line)
+            urgent_keys.append("reanchor")
+            if "re-anchor" not in alert_tags:
+                alert_tags.append("re-anchor")
+            review["alerts"]["re-anchor"] = review["alerts"].get("re-anchor", 0) + 1
 
     # Climb line for the heartbeat: proven count, recent gain, free items idle.
     if isa_valid:
-        ctx.history = [entry for entry in ctx.state.get("proven_history", [])
-                   if isinstance(entry, list) and len(entry) == 2 and ctx.now - entry[0] <= 2 * 3600]
-        ctx.history.append([ctx.now, ctx.isa.get("pass", 0)])
-        ctx.state["proven_history"] = ctx.history
-        past = [count for stamp, count in ctx.history if ctx.now - stamp >= 30 * 60]
-        base_count = past[-1] if past else ctx.history[0][1]
-        gain = ctx.isa.get("pass", 0) - base_count
+        history = [entry for entry in state.get("proven_history", [])
+                   if isinstance(entry, list) and len(entry) == 2 and now - entry[0] <= 2 * 3600]
+        history.append([now, isa.get("pass", 0)])
+        state["proven_history"] = history
+        past = [count for stamp, count in history if now - stamp >= 30 * 60]
+        base_count = past[-1] if past else history[0][1]
+        gain = isa.get("pass", 0) - base_count
         free_text = f" · {len(free_idle)} free item{'s' if len(free_idle) != 1 else ''} idle" \
             if run_card.get("plan_valid") else ""
-        ctx.snapshot["climb"] = (f"proven {ctx.isa.get('pass', 0)}/{ctx.isa.get('total', 0)} · "
+        snapshot["climb"] = (f"proven {isa.get('pass', 0)}/{isa.get('total', 0)} · "
                              f"{gain:+d} in last 30 min{free_text}")
 
     # Alerts with an id expect a visible action within 10 minutes; otherwise they escalate once.
     answers = run_card.get("answers", {})
-    for aid, rec in list(ctx.asked.items()):
-        if not isinstance(rec, dict) or ctx.now - rec.get("at", ctx.now) > 24 * 3600:
-            ctx.asked.pop(aid, None)
+    for aid, rec in list(asked.items()):
+        if not isinstance(rec, dict) or now - rec.get("at", now) > 24 * 3600:
+            asked.pop(aid, None)
             continue
-        if rec.get("done") or ctx.now - rec.get("at", ctx.now) < 600:
+        if rec.get("done") or now - rec.get("at", now) < 600:
             continue
-        cleared = ctx.conditions.get(rec.get("key", ""), {}).get("streak", 1) == 0
+        cleared = conditions.get(rec.get("key", ""), {}).get("streak", 1) == 0
         # Acted = the problem cleared, or an ANSWER line plus a visible action (new helper, ledger change, commit).
         moved = acted_since(rec.get("baseline", {}))
         rec["acted"] = cleared or (aid in answers and moved)
@@ -895,7 +874,7 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
                    "Default: take the alert's default move now and write its ANSWER line.", True, False)
 
     # OpenCode recovery is intentionally one reload per hour, followed by a user note if still down.
-    server_state = ctx.state.setdefault("server", {})
+    server_state = state.setdefault("server", {})
     if server.get("valid", False):
         down = not server.get("reachable")
         server_state["down_streak"] = server_state.get("down_streak", 0) + 1 if down else 0
@@ -904,96 +883,96 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
         elif server_state["down_streak"] >= 2:
             last_reload = server_state.get("last_reload", 0)
             pending = server_state.get("reload_pending_at")
-            if not pending and ctx.now - last_reload >= 3600:
-                server_state["last_reload"] = ctx.now
-                server_state["reload_pending_at"] = ctx.now
-                if ctx.dry_run:
+            if not pending and now - last_reload >= 3600:
+                server_state["last_reload"] = now
+                server_state["reload_pending_at"] = now
+                if dry_run:
                     print("DRY-RUN: would run bb plugin reload opencode (server unreachable on two checks).")
                 else:
                     out, error = BB.command(["plugin", "reload", "opencode"], 8.0)
                     print("WATCH: ran bb plugin reload opencode" + (f" ({error})" if error else ""))
-            elif pending and ctx.now > pending:
+            elif pending and now > pending:
                 detail = f"OpenCode server still unreachable at port {server.get('port')}; check `bb opencode` and restart the plugin."
                 if trigger("opencode-down", True, f"OPENCODE server: {detail}"):
                     notes.append(detail)
                     server_state["reload_pending_at"] = None
 
     # Only booted simulators accrue no-agent time.
-    if ctx.sessions.get("valid", False) and host.get("sims_valid", False):
-        if not ctx.sessions["live"] and host["booted_sims"]:
-            sim_idle = ctx.state.setdefault("sim_idle", {})
+    if sessions.get("valid", False) and host.get("sims_valid", False):
+        if not sessions["live"] and host["booted_sims"]:
+            sim_idle = state.setdefault("sim_idle", {})
             if sim_idle.get("no_agent_since") is None:
-                sim_idle["no_agent_since"] = ctx.now
-            sim_elapsed = (ctx.now - sim_idle["no_agent_since"]) / 60
+                sim_idle["no_agent_since"] = now
+            sim_elapsed = (now - sim_idle["no_agent_since"]) / 60
             trigger("sim-without-agent", sim_elapsed >= setting(env, "WATCH_GHOST_MIN", 15),
                     f"SIMULATOR: {len(host['booted_sims'])} booted simulator(s), no live agent for {sim_elapsed:.0f} min.",
-                    valid=ctx.sessions.get("valid", False) and host.get("sims_valid", False))
+                    valid=sessions.get("valid", False) and host.get("sims_valid", False))
         else:
-            ctx.state.setdefault("sim_idle", {})["no_agent_since"] = None
+            state.setdefault("sim_idle", {})["no_agent_since"] = None
             trigger("sim-without-agent", False, "")
 
     # A brief without TALK-BACK leaves a blocked worker silent until it finishes.
-    if ctx.sessions.get("valid", False):
-        for sess in ctx.sessions.get("live", []):
+    if sessions.get("valid", False):
+        for sess in sessions.get("live", []):
             trigger("no-talkback:" + sess["id"], sess.get("talkback") is False,
                     f"BRIEF {sess.get('agent', 'agent')} {sess['id']}: no TALK-BACK block in its first message, so it "
                     "cannot report BUG/BLOCKED/QUESTION mid-run. Steer it the TALK-BACK block from subagent-delegation.")
 
     # Continue is rate-limited; only latest ledger verdicts count as progress.
-    orch_idle = ctx.bb.get("orch_status") not in (None, "active")
-    queue_empty = ctx.bb.get("queue_count") == 0
-    last_msg_age = minutes_since(ctx.sessions.get("last_orch_message"), ctx.now)
-    eligible = (not waiting and isa_valid and ctx.sessions.get("valid", False) and ctx.bb.get("show_valid", False) and
-                ctx.bb.get("queue_valid", False) and not ctx.isa["done"] and orch_idle and queue_empty and not ctx.sessions["live"] and
-                ctx.snapshot.get("head_valid", False) and last_msg_age is not None and
+    orch_idle = bb.get("orch_status") not in (None, "active")
+    queue_empty = bb.get("queue_count") == 0
+    last_msg_age = minutes_since(sessions.get("last_orch_message"), now)
+    eligible = (not waiting and isa_valid and sessions.get("valid", False) and bb.get("show_valid", False) and
+                bb.get("queue_valid", False) and not isa["done"] and orch_idle and queue_empty and not sessions["live"] and
+                snapshot.get("head_valid", False) and last_msg_age is not None and
                 last_msg_age > setting(env, "WATCH_CONTINUE_MIN", 15))
-    cont = ctx.state.setdefault("continue", {})
-    if eligible and not cont.get("stopped") and ctx.now - cont.get("last_at", 0) >= 900:
+    cont = state.setdefault("continue", {})
+    if eligible and not cont.get("stopped") and now - cont.get("last_at", 0) >= 900:
         signature = {ident: verdict.get("status")
-                     for ident, verdict in sorted(ctx.isa.get("latest_verdicts", {}).items())}
+                     for ident, verdict in sorted(isa.get("latest_verdicts", {}).items())}
         old = cont.get("signature")
-        cont["last_at"] = ctx.now
+        cont["last_at"] = now
         if old is not None and old == signature:
             cont["no_progress"] = cont.get("no_progress", 0) + 1
             print(f"WATCH: skipped unchanged continue ({cont['no_progress']}/3 no-progress checks).")
             if cont["no_progress"] >= 3:
                 cont["stopped"] = True
                 notes.append("No ledger-verdict progress across three continue checks; watchdog stopped prompting.")
-                ctx.messages.append("🚦 WATCH STALLED: no ledger-verdict progress across three continue checks, so the watchdog "
+                messages.append("🚦 WATCH STALLED: no ledger-verdict progress across three continue checks, so the watchdog "
                                 "stopped nudging (machine and agent checks continue). Tell the owner what is blocking "
                                 "and what would unlock it, set the run card status to waiting-owner, then wait.")
         else:
             cont["no_progress"] = 0
             cont["signature"] = signature
-            facts = (f"orchestrator={ctx.bb.get('orch_status')}, last message {last_msg_age:.0f} min ago, "
-                     f"queue empty, no live child sessions, HEAD={ctx.snapshot.get('head') or 'unknown'}")
-            ctx.messages.append(f"WATCH CONTINUE: you are idle with ISA work left ({ctx.isa['pass']}/{ctx.isa['total']} PASS, "
-                            f"{len(ctx.isa.get('parked', []))} parked). Re-check these facts cheaply before acting: {facts}. "
+            facts = (f"orchestrator={bb.get('orch_status')}, last message {last_msg_age:.0f} min ago, "
+                     f"queue empty, no live child sessions, HEAD={snapshot.get('head') or 'unknown'}")
+            messages.append(f"WATCH CONTINUE: you are idle with ISA work left ({isa['pass']}/{isa['total']} PASS, "
+                            f"{len(isa.get('parked', []))} parked). Re-check these facts cheaply before acting: {facts}. "
                             "Then take the next step per the hivecall loop and the run card, or set the run card status to "
                             "waiting-owner and tell the owner why if genuinely blocked.")
 
     for note in notes:
-        append_note(root, note, ctx.dry_run)
-    if ctx.sessions.get("valid", False):
-        for sess in ctx.sessions.get("live", []):
+        append_note(root, note, dry_run)
+    if sessions.get("valid", False):
+        for sess in sessions.get("live", []):
             key = "promise_agents" if sess.get("promise") else "other_agents"
-            if sess["id"] not in ctx.review[key]:
-                ctx.review[key].append(sess["id"])
-    if ctx.now - ctx.review.get("last_at", ctx.now) >= 60 * 60 and (
-            ctx.review["promise_agents"] or ctx.review["other_agents"]):
-        ctx.counts = ctx.review.get("alerts", {})
-        total = sum(ctx.counts.values())
-        by_type = ", ".join(f"{kind} {count}" for kind, count in sorted(ctx.counts.items())) or "none"
-        ctx.judged = [rec for rec in ctx.asked.values() if isinstance(rec, dict) and rec.get("done") and
-                  rec.get("at", 0) >= ctx.review.get("last_at", ctx.now) - 600]
-        acted = sum(1 for rec in ctx.judged if rec.get("acted"))
-        ctx.messages.append(f"WATCH REVIEW: {total} alerts since last review by type ({by_type}); "
-                        f"acted on within 10 min {acted}/{len(ctx.judged)}; "
-                        f"PROMISE agents {len(ctx.review['promise_agents'])}, without {len(ctx.review['other_agents'])}; "
+            if sess["id"] not in review[key]:
+                review[key].append(sess["id"])
+    if now - review.get("last_at", now) >= 60 * 60 and (
+            review["promise_agents"] or review["other_agents"]):
+        counts = review.get("alerts", {})
+        total = sum(counts.values())
+        by_type = ", ".join(f"{kind} {count}" for kind, count in sorted(counts.items())) or "none"
+        judged = [rec for rec in asked.values() if isinstance(rec, dict) and rec.get("done") and
+                  rec.get("at", 0) >= review.get("last_at", now) - 600]
+        acted = sum(1 for rec in judged if rec.get("acted"))
+        messages.append(f"WATCH REVIEW: {total} alerts since last review by type ({by_type}); "
+                        f"acted on within 10 min {acted}/{len(judged)}; "
+                        f"PROMISE agents {len(review['promise_agents'])}, without {len(review['other_agents'])}; "
                         "check alerts matched reality, note false alarms in the run card's lessons section.")
-        ctx.review.update(last_at=ctx.now, last_sent_at=ctx.now, alerts={}, promise_agents=[], other_agents=[])
+        review.update(last_at=now, last_sent_at=now, alerts={}, promise_agents=[], other_agents=[])
     emit()
-    return ctx.alert_tags
+    return alert_tags
 
 
 def synthetic(name: str, now: float) -> dict:
