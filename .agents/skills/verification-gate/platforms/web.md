@@ -23,6 +23,14 @@ Run the plan-named commands, or reuse a receipt per `SKILL.md`.
 - Anti-pattern: relying on only tests, logs, or source.
 - Prefer the viewport for screenshots; avoid full-desktop captures that expose private content.
 
+## Saved-flow regression checks
+
+- Use saved flows only for the Regression Check and repeat checks on later candidates. They are near-zero-token and instant, but never primary proof.
+- Record once with agent-browser v0.42.0 or newer: `agent-browser --capture flow open <url>`, `agent-browser flow steps`, then `agent-browser flow save <name>`.
+- Replay with `agent-browser flow run <name>`. Installed v0.39.1 does not support saved flows.
+- Keep flow files in `~/.agent-browser/flows/...` out of git.
+- If a replay no longer matches (for example, `code: drifted`), return `FAIL` or `BLOCKED`, never `PASS`.
+
 ## Recovery
 
 | Symptom | One narrow fix |
