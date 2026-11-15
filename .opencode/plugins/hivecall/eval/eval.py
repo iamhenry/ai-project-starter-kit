@@ -1233,18 +1233,25 @@ def skill_fingerprint(commit: str) -> str:
     """Hash the full skill source at the commit matched to the run (or the matched working tree)."""
     root = SKILL.relative_to(REPO)
     fixed = [root / "SKILL.md", root / "HOW-TO-WORK.md", root / "watchdog/watch.py", root / "watchdog/lessons.md"]
+    package = root / "watchdog/hivewatch"
     if commit == "working-tree":
         files = [p for p in fixed if (REPO / p).is_file()]
         refs = sorted((root / "references").glob("**/*"))
         files += [p for p in refs if (REPO / p).is_file()]
+        package_files = (REPO / package).rglob("*")
+        files += [p.relative_to(REPO) for p in package_files
+                  if p.is_file() and "__pycache__" not in p.parts and p.suffix != ".pyc"]
         entries = [(p.as_posix(), (REPO / p).read_bytes()) for p in files]
     else:
         names = [p.as_posix() for p in fixed]
         names.append((root / "references").as_posix())
+        names.append(package.as_posix())
         listed = subprocess.run(["git", "-C", str(REPO), "ls-tree", "-r", "--name-only", commit, "--", *names],
                                 capture_output=True, text=True, check=True).stdout.splitlines()
         entries = []
         for name in listed:
+            if "__pycache__" in Path(name).parts or name.endswith(".pyc"):
+                continue
             data = subprocess.run(["git", "-C", str(REPO), "show", f"{commit}:{name}"],
                                   capture_output=True, check=True).stdout
             entries.append((name, data))
