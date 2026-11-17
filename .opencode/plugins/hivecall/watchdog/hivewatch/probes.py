@@ -177,6 +177,20 @@ def load_sessions(session_id: str, now: float, root: str = "", verify_dir: str =
                     child["steers"] = []
         row = con.execute("SELECT MAX(time_updated) FROM session_message WHERE session_id=?", (session_id,)).fetchone()
         result["last_orch_message"] = seconds(row[0]) if row else None
+        # Only the latest assistant message can describe the current stop.
+        ids = [session_id] + [child["id"] for child in result["children"]]
+        result["stop_errors"] = []
+        for ident in ids:
+            row = con.execute("""SELECT seq,data FROM session_message WHERE session_id=? AND type='assistant'
+                ORDER BY seq DESC LIMIT 1""", (ident,)).fetchone()
+            try:
+                body = json.loads(row[1]) if row else {}
+                error = body.get("error") if isinstance(body, dict) else None
+                message = error.get("message") if isinstance(error, dict) else None
+                if isinstance(message, str):
+                    result["stop_errors"].append({"id": f"{ident}:{row[0]}", "session": ident, "message": message})
+            except (TypeError, ValueError):
+                pass
         # Rule 12: a DCP compress call or a native compaction marks lost context.
         row = con.execute("""SELECT MAX(time_created) FROM session_message WHERE session_id=? AND
             (type='compaction' OR (type='assistant' AND data LIKE '%"name":"compress"%'))""",

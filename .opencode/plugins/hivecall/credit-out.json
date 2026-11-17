@@ -1,0 +1,10 @@
+{
+  "patterns": [
+    "usage limit has been reached",
+    "free usage limit reached",
+    "out of extra usage",
+    "run out of credits",
+    "monthly usage limit reached",
+    "reached your (weekly|session) usage limit"
+  ]
+}
