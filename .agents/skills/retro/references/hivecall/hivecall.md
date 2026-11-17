@@ -13,12 +13,21 @@ babysitting, honestly, and without wasted work. A retro answers two questions
 with evidence: which stages behaved as expected in each run, and what is
 systemically going well or wrong across runs and weeks.
 
+## Weekly run
+
+Use the days, limit, post and automation id supplied by the prompt. The prompt supplies the project id as <PROJECT_ID>.
+
+Before any workflow command, run `bb automation show <AUTOMATION_ID> --project <PROJECT_ID> --json` and read its `lastRunAt`; stop if it is missing or invalid. Run `bb thread list --project <PROJECT_ID> --include-hidden --json` and keep only threads whose `originPluginId` is `automations`, whose `projectId` is `<PROJECT_ID>`, and whose `createdAt` is between `lastRunAt` and `lastRunAt` + 5000 milliseconds, inclusive. Convert ISO timestamps to epoch milliseconds before comparison if the timestamp formats differ. Require exactly one match: if none match, stop and say no thread matched; if two or more match, stop and list their ids. Run `bb thread show <id> --json` for the match and export its thread record's project id, thread id and environment id as `BB_PROJECT_ID`, `BB_THREAD_ID` and `BB_ENVIRONMENT_ID`. Stop if any is missing or inconsistent. Never retry a bare workflow command.
+
+With those values set, run `bb workflows validate --file .bb/workflows/hivecall-retro.js`, then `bb workflows list --json`; stop on an error or if the workflow is absent. Run `python3 .bb/workflows/find-hivecall-runs.py --days <days> --limit <limit>` and stop on an error. Pass the resulting JSON array as `runs` in the JSON object supplied to `bb workflows run --name hivecall-retro --args`, with `days` and `post` set from the prompt. Do not substitute or select runs yourself. Use the workflow run id for status checks; report final status and KIT task key.
+
+Judge every run the finder returns (the newest runs, up to the limit). Read past trends from KIT cards only. Post to a new KIT card only after the full report passes the secret/private-data scan. Never post to GitHub or create a test card.
+
 ## Where the evidence is
 
-- A run is an archived BB thread whose log has a completed `skill` tool call
-  named exactly `hivecall` and writes a run card. Only archived threads count:
-  an active one may still be working. Its thread log and OpenCode session stay
-  readable after the thread and its worktree are archived. Follow its child
+- `.bb/workflows/find-hivecall-runs.py` is the one definition of which runs count.
+  The thread log and OpenCode session stay readable after the thread and its
+  worktree are archived. Follow its child
   threads (`bb thread list --parent-thread <id>`) too.
 - Saved run folder, when the plugin version had it:
   `~/.hivecall/runs/<repo>/<started>-<thread>/` holds the run's `events.jsonl`, `run.md` (run card with owner rules, lessons and final report)
