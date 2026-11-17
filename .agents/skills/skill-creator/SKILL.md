@@ -53,6 +53,12 @@ Start by understanding the user's intent. The current conversation might already
 3. What's the expected output format?
 4. Should we set up test cases to verify the skill works? Skills with objectively verifiable outputs (file transforms, data extraction, code generation, fixed workflow steps) benefit from test cases. Skills with subjective outputs (writing style, art) often don't need them. Suggest the appropriate default based on the skill type, but let the user decide.
 
+### Split the work
+
+Mark each workflow step **script** or **model**: put deterministic gathering, pagination, sorting, applying, and verification in scripts; leave judgment and ambiguity to the model. When this session already performed the work, reuse its real steps to build the script and a cleaned sample of its output as test input. If not, design fresh.
+
+For each script, follow [scripts.md](references/scripts.md).
+
 ### Interview and Research
 
 Proactively ask questions about edge cases, input/output formats, example files, success criteria, and dependencies. Wait to write test prompts until you've got this part ironed out.
