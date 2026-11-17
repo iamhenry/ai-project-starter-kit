@@ -3,6 +3,8 @@ from __future__ import annotations
 import datetime as dt
 import hashlib
 import json
+import re
+from pathlib import Path
 
 from hivewatch.shell import BB, append_note, dispatch, minutes_since, seconds, setting
 from hivewatch.promise import (
@@ -23,6 +25,53 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
         ("host", "server", "sessions", "bb", "isa", "evidence"))
     root = env.get("REPO", "")
     thread_id = env.get("ORCH_THREAD", "")
+    pending = state.get("credit_stop_pending")
+    try:
+        package = Path(__file__).resolve()
+        config = package.parents[1] / "credit-out.json"
+        if not config.exists():
+            config = package.parents[2] / "credit-out.json"
+        patterns = json.loads(config.read_text())["patterns"]
+        if not isinstance(patterns, list) or not all(isinstance(p, str) and p.strip() for p in patterns):
+            raise ValueError("invalid credit patterns")
+        errors = sessions.get("stop_errors", [])
+        if sessions.get("valid") and "credit_stops_handled" not in state:
+            state["credit_stops_handled"] = [error["id"] for error in errors]
+        handled = set(state.get("credit_stops_handled", []))
+        matches = {error["id"] for error in sessions.get("stop_errors", [])
+                   if error["id"] not in handled and
+                   any(re.search(pattern, error["message"], re.I) for pattern in patterns)}
+    except (OSError, ValueError, TypeError, KeyError, re.error):
+        matches = set()
+        handled = set(state.get("credit_stops_handled", []))
+    if matches or pending:
+        ids = ([thread_id] if thread_id and bb.get("orch_status") == "active" else [])
+        ids += [child["id"] for child in bb.get("children", [])
+                if child.get("status") == "active" and child.get("id")]
+        if pending:
+            ids = (ids if matches - set(pending["matches"]) else []) + pending["ids"]
+            matches |= set(pending["matches"])
+        state["credit_stop_pending"] = {"matches": sorted(matches), "ids": list(dict.fromkeys(ids))}
+        failed_ids = []
+        for ident in dict.fromkeys(ids):
+            if dry_run:
+                print(f"DRY-RUN: would run bb thread stop {ident}")
+            else:
+                _, error = BB.command(["thread", "stop", ident], 8.0)
+                if error:
+                    failed_ids.append(ident)
+                    print(f"WATCH ERROR: bb thread stop {ident} failed: {error}")
+        state["credit_stop_pending"]["ids"] = failed_ids
+        if not failed_ids:
+            state["credit_pause_result"] = pause_automation(env, dry_run)
+        alerted = set(state.get("credit_stops_alerted", []))
+        if matches - alerted:
+            append_note(root, "Usage credits exhausted; watchdog is pausing the run. Re-enable the automation to resume.", dry_run)
+            state["credit_stops_alerted"] = sorted(alerted | matches)
+        if not failed_ids and state["credit_pause_result"].startswith(("paused ", "would pause ")):
+            state["credit_stops_handled"] = sorted(handled | matches)
+            state.pop("credit_stop_pending", None)
+        return ["credit-out"]
     run_status = snapshot.get("run_status")
     messages: list[str] = []
     notes: list[str] = []

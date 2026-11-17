@@ -154,7 +154,7 @@ python3 "$W" --dry-run       # prints messages instead of sending
 1. Copy `watch.py` and its `hivewatch/` package into the repo at `.hivecall/` so the automation reads the entry point and its package from files that do not move:
 
 ```sh
-cp -R .opencode/plugins/hivecall/watchdog/watch.py .opencode/plugins/hivecall/watchdog/hivewatch "$REPO/.hivecall/"
+cp -R .opencode/plugins/hivecall/watchdog/watch.py .opencode/plugins/hivecall/watchdog/hivewatch .opencode/plugins/hivecall/credit-out.json "$REPO/.hivecall/"
 ```
 2. Create the automation (paused), capture its id, record the id in the run card, and update the automation with the id before resuming it:
 
