@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { cleanups, host } from "./host"
 
-const brief = "TALK-BACK: report BUG/BLOCKED/QUESTION only.\nPROMISE: kind=helper rows=ISC-001 result=- lane=-\nslice=ISC-001"
+const brief = "TALK-BACK: report BUG/BLOCKED/QUESTION only.\nPROMISE: kind=helper rows=ISC-001 result=.hivecall/proof.txt lane=-\nslice=ISC-001"
 afterEach(() => { for (const cleanup of cleanups.splice(0)) cleanup() })
 
 describe("plugin hooks", () => {
@@ -136,7 +136,7 @@ describe("plugin hooks", () => {
     const { root, call, before, after, events, send, verdict } = await host({ card: true })
     await call("skill", { id: "subagent-delegation" })
     before({ sessionID: "ses-root", id: "review", tool: "subagent", input: { agent: "reviewer", description: "review ISC-001",
-      prompt: "You are Noor (reviewer). slice=ISC-001\nPROMISE: kind=helper rows=ISC-001 result=- lane=-\nTALK-BACK: report BUG only." } })
+      prompt: "You are Noor (reviewer). slice=ISC-001\nPROMISE: kind=helper rows=ISC-001 result=.hivecall/proof.txt lane=-\nTALK-BACK: report BUG only." } })
     await send("session.created", { sessionID: "ses-review", parentID: "ses-root", agent: "reviewer" })
     await verdict("ses-review", "ISC-001 APPROVE_CODE")
     await send("session.tool.success", { sessionID: "ses-root", id: "review", metadata: { sessionID: "ses-review", status: "completed" },
@@ -169,7 +169,7 @@ describe("plugin hooks", () => {
   // The canary run's real shape (2026-10-23): a background `subagent` returns a launch notice at once; the child's
   // result reaches the parent later as a `session.synthetic` message, and BB mirrors the child as a `thr_…` thread.
   const canaryBrief = (name: string, role: string) => `You are ${name} (${role}). agent: ${role}. slice=S1\n\n` +
-    "PROMISE: kind=helper rows=ISC-1 result=- lane=-\n\nTALK-BACK: Reach the parent mid-run without stopping: bb thread tell thr_parent --mode queue '<msg>'."
+    "PROMISE: kind=helper rows=ISC-1 result=.hivecall/proof.txt lane=-\n\nTALK-BACK: Reach the parent mid-run without stopping: bb thread tell thr_parent --mode queue '<msg>'."
   const background = async (role: string, child: string, verdicts: string, createdFirst: boolean, description = `Noor (${role}): review counter S1`) => {
     const h = await host({ card: true })
     await h.call("skill", { id: "subagent-delegation" })
@@ -237,7 +237,7 @@ describe("plugin hooks", () => {
   // Advisory tables: a failed, cancelled or deleted call never credits a later result, and parallel children stay apart.
   const launch = async (h: Awaited<ReturnType<typeof host>>, id: string, child: string, row: string, wait = true) => {
     h.before({ sessionID: "ses-root", id, tool: "subagent", input: { agent: "reviewer", background: wait, description: `review ${row}`,
-      prompt: `slice=${row}\nPROMISE: kind=helper rows=${row} result=- lane=-\nTALK-BACK: report BUG only.` } })
+      prompt: `slice=${row}\nPROMISE: kind=helper rows=${row} result=.hivecall/proof.txt lane=-\nTALK-BACK: report BUG only.` } })
     if (wait) await h.send("session.tool.success", { sessionID: "ses-root", id, metadata: { sessionID: child, status: "running" }, content: [] })
   }
   const finish = async (h: Awaited<ReturnType<typeof host>>, child: string, state: string, spec = "") => {
@@ -278,7 +278,7 @@ describe("plugin hooks", () => {
       for (const file of ["isc-1.log", "isc-2-3.log", "desktop-capture.log"]) writeFileSync(resolve(h.root, ".hivecall/verification", file), "PASS")
       if (approved) {
         await h.call("skill", { id: "subagent-delegation" })
-        await h.helper({ id: "rev", agent: "reviewer", prompt: "You are Noor (reviewer). slice=S1\nPROMISE: kind=helper rows=ISC-1,ISC-2,ISC-3,ISC-4 result=- lane=-\nTALK-BACK: report BUG only.",
+        await h.helper({ id: "rev", agent: "reviewer", prompt: "You are Noor (reviewer). slice=S1\nPROMISE: kind=helper rows=ISC-1,ISC-2,ISC-3,ISC-4 result=.hivecall/proof.txt lane=-\nTALK-BACK: report BUG only.",
           verdicts: "ISC-1 APPROVE_CODE, ISC-2 APPROVE_CODE, ISC-3 APPROVE_CODE, ISC-4 APPROVE_CODE" })
       }
       const seen = await h.call("shell", { command: loopTick }, "4\n5\n", () => Bun.spawnSync(["sh", "-c", loopTick], { cwd: h.root }))

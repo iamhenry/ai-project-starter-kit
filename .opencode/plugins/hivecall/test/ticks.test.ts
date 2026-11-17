@@ -9,7 +9,7 @@ afterEach(() => { for (const cleanup of cleanups.splice(0)) cleanup() })
 const ticked = '<li id="ISC-001"><input type="checkbox" checked> a</li>\n| ISC-001 | PASS | commit abcdef1 | evidence .hivecall/proof.txt |'
 const tick = { path: ".hivecall/checklist.html", content: ticked }
 const close = { path: ".hivecall/run.md", content: "status: closed\ngoal: g\nledger: .hivecall/checklist.html\n## Final report\nDone" }
-const brief = (rows: string) => `PROMISE: kind=helper rows=${rows} result=- lane=-\nTALK-BACK: report BUG only.`
+const brief = (rows: string) => `PROMISE: kind=helper rows=${rows} result=.hivecall/proof.txt lane=-\nTALK-BACK: report BUG only.`
 
 /** A verified native reviewer approves ISC-001 with the verdict tool. */
 async function approve(h: Awaited<ReturnType<typeof host>>) {
@@ -24,6 +24,7 @@ describe("earned ticks", () => {
     for (const [rows, count] of [["-", 1], ["ISC-001,ISC-002", 2]] as const) {
       const h = await host({ card: true })
       await h.call("skill", { id: "subagent-delegation" })
+      if (rows === "-") for (let i = 0; i < 3; i++) await h.call("subagent", { agent: "qa", description: "qa", prompt: brief(rows) })
       const answer = await h.helper({ id: "qa", agent: "qa", prompt: brief(rows), verdicts: count === 1 ? "ISC-001 REPRODUCED" : "ISC-001 REPRODUCED, ISC-002 REPRODUCED" })
       const ledger = "<h3>Discovery</h3>\n" + Array.from({ length: count }, (_, i) => `<li id="ISC-00${i + 1}"><input type="checkbox" checked> discovery</li>\n| ISC-00${i + 1} | PASS | commit abcdef1 | evidence .hivecall/proof.txt |`).join("\n")
       const result = await h.call("write", { path: ".hivecall/checklist.html", content: ledger })

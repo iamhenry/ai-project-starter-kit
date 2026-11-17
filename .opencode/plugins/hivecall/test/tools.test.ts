@@ -16,6 +16,14 @@ async function run() {
 const ledger = (h: Awaited<ReturnType<typeof host>>) => readFileSync(resolve(h.root, ".hivecall/checklist.html"), "utf8")
 const tick = { action: "tick", id: "ISC-1", observed: "total shows 10.00", evidence: ".hivecall/proof.txt", commit: "abcdef1", verifier: "Noor (qa)" }
 
+test("watchdog-on refuses card tool setup when watchdog is off", async () => {
+  const h = await run()
+  const before = readFileSync(resolve(h.root, ".hivecall/run.md"), "utf8")
+  expect(await h.tool("hivecall_card", { action: "note", section: "Setup", text: "watchdog: off" })).toContain("Keep the watchdog on")
+  expect(readFileSync(resolve(h.root, ".hivecall/run.md"), "utf8")).toBe(before)
+  expect(await h.tool("hivecall_card", { action: "note", section: "Setup", text: "watchdog: on" })).toContain("updated")
+})
+
 describe("hivecall_ledger", () => {
   test("refuses an unearned tick with the reason and writes nothing", async () => {
     const h = await run()
@@ -28,7 +36,7 @@ describe("hivecall_ledger", () => {
   test("ticks an approved item in the template format, keeps progress true, and blames the caller", async () => {
     const h = await run()
     await h.call("skill", { id: "subagent-delegation" })
-    await h.helper({ id: "rev", agent: "reviewer", prompt: "PROMISE: kind=helper rows=ISC-1 result=- lane=-\nTALK-BACK: report BUG only.", verdicts: "ISC-1 APPROVE_CODE" })
+    await h.helper({ id: "rev", agent: "reviewer", prompt: "PROMISE: kind=helper rows=ISC-1 result=.hivecall/proof.txt lane=-\nTALK-BACK: report BUG only.", verdicts: "ISC-1 APPROVE_CODE" })
     expect(await h.tool("hivecall_ledger", tick)).toBe("tick ISC-001 written to .hivecall/checklist.html.")
     const text = ledger(h)
     expect(text).toContain('<li id="ISC-1"><input type="checkbox" disabled checked>')
@@ -41,7 +49,7 @@ describe("hivecall_ledger", () => {
   test("a literal \\n in observed text stays on the receipt line (live smoke 2026-11-07)", async () => {
     const h = await run()
     await h.call("skill", { id: "subagent-delegation" })
-    await h.helper({ id: "rev", agent: "reviewer", prompt: "PROMISE: kind=helper rows=ISC-1 result=- lane=-\nTALK-BACK: report BUG only.", verdicts: "ISC-1 APPROVE_CODE" })
+    await h.helper({ id: "rev", agent: "reviewer", prompt: "PROMISE: kind=helper rows=ISC-1 result=.hivecall/proof.txt lane=-\nTALK-BACK: report BUG only.", verdicts: "ISC-1 APPROVE_CODE" })
     expect(await h.tool("hivecall_ledger", { ...tick, observed: "od -c 'a l p h a \\n'" })).toBe("tick ISC-001 written to .hivecall/checklist.html.")
   })
 
@@ -76,7 +84,7 @@ describe("hivecall_card", () => {
 })
 
 describe("hivecall_verdict", () => {
-  const brief = "PROMISE: kind=helper rows=ISC-1 result=- lane=-\nTALK-BACK: report BUG only."
+  const brief = "PROMISE: kind=helper rows=ISC-1 result=.hivecall/proof.txt lane=-\nTALK-BACK: report BUG only."
 
   test("only a linked reviewer or qa helper records a verdict; its brief is told how", async () => {
     const h = await run()
@@ -132,7 +140,7 @@ describe("hivecall_verdict", () => {
     const h = await run()
     await h.call("skill", { id: "subagent-delegation" })
     for (const id of ["a", "b"]) h.before({ sessionID: "ses-root", id, tool: "subagent", input: { agent: "reviewer", description: `review ${id}`,
-      prompt: `PROMISE: kind=helper rows=ISC-${id === "a" ? 1 : 2} result=- lane=-\nTALK-BACK: report BUG only.` } })
+      prompt: `PROMISE: kind=helper rows=ISC-${id === "a" ? 1 : 2} result=.hivecall/proof.txt lane=-\nTALK-BACK: report BUG only.` } })
     for (const id of ["a", "b"]) await h.send("session.created", { sessionID: `ses_${id}`, parentID: "ses-root", agent: "reviewer", title: `review ${id}` })
     expect(await h.verdict("ses_a", "ISC-1 APPROVE_CODE")).toBe("Recorded: ISC-001 APPROVE_CODE.")
     expect(await h.verdict("ses_b", "ISC-1 APPROVE_CODE")).toContain("ISC-001 is not one of the items your brief assigned (ISC-002)")
@@ -142,7 +150,7 @@ describe("hivecall_verdict", () => {
   test("two foreground reviewers with the same description get distinct titles and both link", async () => {
     const h = await run()
     await h.call("skill", { id: "subagent-delegation" })
-    const inputs = ["ISC-1", "ISC-2"].map((row) => ({ agent: "reviewer", description: "review", prompt: `PROMISE: kind=helper rows=${row} result=- lane=-\nTALK-BACK: report BUG only.` }))
+    const inputs = ["ISC-1", "ISC-2"].map((row) => ({ agent: "reviewer", description: "review", prompt: `PROMISE: kind=helper rows=${row} result=.hivecall/proof.txt lane=-\nTALK-BACK: report BUG only.` }))
     inputs.forEach((input, i) => h.before({ sessionID: "ses-root", id: `s${i}`, tool: "subagent", input }))
     expect(inputs.map((input) => input.description)).toEqual(["review", "review (2)"])
     for (const [i, input] of inputs.entries()) await h.send("session.created", { sessionID: `ses_${i}`, parentID: "ses-root", agent: "reviewer", title: input.description })

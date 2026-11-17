@@ -8,7 +8,7 @@ import { cleanups, host } from "./host"
 afterEach(() => { for (const cleanup of cleanups.splice(0)) cleanup() })
 
 type Host = Awaited<ReturnType<typeof host>>
-const brief = (rows: string, extra = "") => `PROMISE: kind=helper rows=${rows} result=- lane=-\nTALK-BACK: report BUG only.\n${extra}`
+const brief = (rows: string, extra = "") => `PROMISE: kind=helper rows=${rows} result=.hivecall/proof.txt lane=-\nTALK-BACK: report BUG only.\n${extra}`
 let n = 0
 async function review(h: Host, verdict: string, slice: string, extra = "") {
   const id = `rev${++n}`
