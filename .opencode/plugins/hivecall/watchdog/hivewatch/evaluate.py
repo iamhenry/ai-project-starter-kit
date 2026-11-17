@@ -38,13 +38,8 @@ def evaluate(snapshot: dict, state: dict, env: dict[str, str], dry_run: bool) ->
         if sessions.get("valid") and "credit_stops_handled" not in state:
             state["credit_stops_handled"] = [error["id"] for error in errors]
         handled = set(state.get("credit_stops_handled", []))
-        active_sessions = {env.get("ORCH_SESSION")} if bb.get("orch_status") == "active" else set()
-        active_threads = {child.get("id") for child in bb.get("children", []) if child.get("status") == "active"}
-        active_sessions.update(child["id"] for child in sessions.get("children", [])
-                               if child.get("thread_id") in active_threads or
-                               (child.get("time_idle") is None and child.get("idle_outcome") is None))
         matches = {error["id"] for error in sessions.get("stop_errors", [])
-                   if error["id"] not in handled and error.get("session") in active_sessions and
+                   if error["id"] not in handled and
                    any(re.search(pattern, error["message"], re.I) for pattern in patterns)}
     except (OSError, ValueError, TypeError, KeyError, re.error):
         matches = set()

@@ -98,18 +98,59 @@ class CreditPauseTests(unittest.TestCase):
                     self.assertFalse(any(c.args[0][:2] in (["thread", "stop"], ["automation", "pause"])
                                          for c in command.call_args_list))
 
-    def test_baseline_and_ended_child_are_ignored(self):
+    def test_baseline_error_is_ignored(self):
         snapshot = watch.synthetic("none", 100000)
         snapshot["sessions"]["stop_errors"] = [{"id": "ses:1", "session": "ses", "message": "run out of credits"}]
         with tempfile.TemporaryDirectory() as root, patch.object(watch.BB, "command", return_value=("", "")) as command:
             env = {"REPO": root, "ORCH_THREAD": "thr_root", "ORCH_SESSION": "ses", "AUTOMATION_ID": "auto_1"}
             state = {}
             watch.evaluate(snapshot, state, env, False)
-            snapshot["sessions"]["stop_errors"] = [{"id": "ended:2", "session": "ended", "message": "run out of credits"}]
-            snapshot["sessions"]["children"] = [{"id": "ended", "time_idle": 1, "idle_outcome": "failed"}]
             watch.evaluate(snapshot, state, env, False)
             self.assertFalse(any(c.args[0][:2] in (["thread", "stop"], ["automation", "pause"])
                                  for c in command.call_args_list))
+            self.assertFalse((Path(root) / ".lanes/watch-ALERT.txt").exists())
+
+    def test_new_credit_error_from_ended_helper_pauses_active_threads(self):
+        snapshot = watch.synthetic("none", 100000)
+        snapshot["sessions"]["stop_errors"] = []
+        snapshot["sessions"]["children"] = [{"id": "ended", "time_idle": 1, "idle_outcome": "failed"}]
+        snapshot["bb"]["children"] = [{"id": "thr_active", "status": "active"},
+                                      {"id": "thr_ended", "status": "idle"}]
+        with tempfile.TemporaryDirectory() as root:
+            env = {"REPO": root, "ORCH_THREAD": "thr_root", "ORCH_SESSION": "ses", "AUTOMATION_ID": "auto_1"}
+            state = {}
+            with patch.object(watch.BB, "command", return_value=("", "")) as command, \
+                 patch("hivewatch.evaluate.dispatch") as dispatch:
+                watch.evaluate(snapshot, state, env, False)
+                command.reset_mock()
+                dispatch.reset_mock()
+                snapshot["sessions"]["stop_errors"] = [{"id": "ended:2", "session": "ended", "message": "run out of credits"}]
+                self.assertEqual(watch.evaluate(snapshot, state, env, False), ["credit-out"])
+                self.assertEqual([c.args[0] for c in command.call_args_list], [
+                    ["thread", "stop", "thr_root"], ["thread", "stop", "thr_active"],
+                    ["automation", "pause", "auto_1"]])
+                dispatch.assert_not_called()
+                watch.evaluate(snapshot, state, env, False)
+            self.assertEqual(len((Path(root) / ".lanes/watch-ALERT.txt").read_text().splitlines()), 1)
+
+    def test_new_credit_error_from_idle_orchestrator_pauses_automation(self):
+        snapshot = watch.synthetic("none", 100000)
+        snapshot["sessions"]["stop_errors"] = []
+        snapshot["bb"]["orch_status"] = "idle"
+        with tempfile.TemporaryDirectory() as root:
+            env = {"REPO": root, "ORCH_THREAD": "thr_root", "ORCH_SESSION": "ses", "AUTOMATION_ID": "auto_1"}
+            state = {}
+            with patch.object(watch.BB, "command", return_value=("", "")) as command, \
+                 patch("hivewatch.evaluate.dispatch") as dispatch:
+                watch.evaluate(snapshot, state, env, False)
+                command.reset_mock()
+                dispatch.reset_mock()
+                snapshot["sessions"]["stop_errors"] = [{"id": "ses:2", "session": "ses", "message": "run out of credits"}]
+                self.assertEqual(watch.evaluate(snapshot, state, env, False), ["credit-out"])
+                self.assertEqual([c.args[0] for c in command.call_args_list], [["automation", "pause", "auto_1"]])
+                dispatch.assert_not_called()
+                watch.evaluate(snapshot, state, env, False)
+            self.assertEqual(len((Path(root) / ".lanes/watch-ALERT.txt").read_text().splitlines()), 1)
 
     def test_failure_retries_without_second_alert(self):
         snapshot = watch.synthetic("none", 100000)
