@@ -299,7 +299,7 @@ describe("Hivecall rule fixtures", () => {
     expect(ruleFor(child(undefined, { agent: "build" }), state, root)?.id).toBe("third-fix")
     expect(ruleFor(child(undefined, { agent: "general", description: "slice=ISC-001 fix implementation" }), state, root)?.id).toBe("third-fix")
     for (const agent of ["reviewer", "qa", "research"])
-      expect(ruleFor(child(undefined, { agent }), state, root)).toBeNull()
+      expect(ruleFor(child("TALK-BACK: report.\nPROMISE: kind=helper rows=ISC-001 result=.hivecall/checklist.html lane=-", { agent }), state, root)).toBeNull()
     expect(ruleFor(child(undefined, { agent: "general", description: "slice=ISC-001 research options" }), state, root)).toBeNull()
   })
 
@@ -406,5 +406,84 @@ describe("Hivecall rule fixtures", () => {
     expect(unearned(ledger, new Set(["ISC-001"]), new Set(), root)).toEqual(["ISC-001"])
     const tail = `<li id="ISC-001"><input type="checkbox" checked> a</li>\n<li>ISC-001: PASS - ok; evidence proof.txt; commit abcdef1, previous commit ${sha}</li>`
     expect(unearned(tail, new Set(["ISC-001"]), new Set(), root)).toEqual(["ISC-001"])
+  })
+})
+
+describe("retro brief and watchdog gates", () => {
+  const state = () => { const s = memory(); s.skills.add("ses-root"); return s }
+  const brief = (role: string, rows = "ISC-1", more = "") => child(`TALK-BACK: report.\nPROMISE: kind=helper rows=${rows} result=- lane=-\n${more}`, { agent: role, description: "review work" })
+  test("review-receipt pauses when the brief names only source files", () => {
+    const root = setup(), s = state()
+    writeFileSync(resolve(root, "source.ts"), "source")
+    expect(ruleFor(brief("reviewer"), s, root)?.id).toBe("review-receipt")
+    expect(ruleFor(brief("reviewer", "ISC-1", "Files: source.ts"), s, root)?.id).toBe("review-receipt")
+    mkdirSync(resolve(root, ".hivecall"), { recursive: true })
+    writeFileSync(resolve(root, ".hivecall/checklist.html"), "receipt")
+    expect(ruleFor(brief("reviewer", "ISC-1", "Evidence: .hivecall/checklist.html"), s, root)).toBeNull()
+    const resultFile = brief("reviewer"); resultFile.input.prompt = String(resultFile.input.prompt).replace("result=-", "result=.hivecall/checklist.html")
+    expect(ruleFor(resultFile, s, root)).toBeNull()
+  })
+  test("review-receipt rejects quoted absolute receipts outside .hivecall", () => {
+    const root = setup(), s = state()
+    const receipt = resolve(root, "../receipt with spaces.txt")
+    writeFileSync(receipt, "proof")
+    try {
+      expect(ruleFor(brief("reviewer", "ISC-1", `Evidence: "${receipt}"`), s, root)?.id).toBe("review-receipt")
+    } finally { rmSync(receipt, { force: true }) }
+  })
+  test("review-item pauses when reviewer or qa names no item", () => {
+    const root = setup(), s = state()
+    expect(ruleFor(brief("reviewer", "-"), s, root)?.id).toBe("review-item")
+    expect(ruleFor(brief("qa", "-"), s, root)?.id).toBe("review-item")
+    expect(ruleFor(brief("research", "-"), s, root)).toBeNull()
+    expect(ruleFor(brief("general", "-"), s, root)).toBeNull()
+  })
+  test("watchdog-on pauses when run setup turns it off", () => {
+    const root = setup(), s = state()
+    const write = (content: string) => ({ tool: "write", input: { path: ".hivecall/run.md", content }, sessionID: "ses-root" })
+    expect(ruleFor(write("status: running\nwatchdog: off"), s, root)?.id).toBe("watchdog-on")
+    expect(ruleFor(write("status: running\nwatchdog: on"), s, root)).toBeNull()
+  })
+  test("review-after-qa pauses when reviewer repeats passed work without a reason", () => {
+    const root = setup(), s = state(); s.approvals.add("pass:ISC-001@abcdef1")
+    expect(ruleFor(brief("reviewer", "ISC-1", "Evidence: .hivecall/checklist.html"), s, root)?.id).toBe("review-after-qa")
+    expect(ruleFor(brief("reviewer", "ISC-1", "Evidence: .hivecall/checklist.html\nWHY: Check a new risk"), s, root)).toBeNull()
+  })
+  test("plan-scope pauses when changed files are outside the map", () => {
+    const root = setup(), s = state()
+    const git = (...args: string[]) => Bun.spawnSync(["git", ...args], { cwd: root, stdout: "ignore", stderr: "ignore" })
+    git("init"); git("config", "user.email", "fixture@example.invalid"); git("config", "user.name", "Fixture")
+    writeFileSync(resolve(root, "allowed.txt"), "a"); git("add", "allowed.txt"); git("commit", "-m", "base")
+    writeFileSync(resolve(root, "extra.txt"), "b"); git("add", "extra.txt"); git("commit", "-m", "change")
+    const sha = new TextDecoder().decode(Bun.spawnSync(["git", "rev-parse", "HEAD"], { cwd: root }).stdout).trim()
+    writeFileSync(resolve(root, ".hivecall/run.md"), "status: running\n## Plan map\nISC-1 needs: - · files: allowed.txt\n")
+    expect(ruleFor(brief("qa", "ISC-1", sha), s, root)?.id).toBe("plan-scope")
+    expect(ruleFor(brief("qa", "ISC-1", `${sha}\nRE-PLAN: include extra.txt`), s, root)).toBeNull()
+  })
+  test("plan-scope does not pause when the plan map lists no files", () => {
+    const root = setup(), s = state()
+    const git = (...args: string[]) => Bun.spawnSync(["git", ...args], { cwd: root, stdout: "ignore", stderr: "ignore" })
+    git("init"); git("config", "user.email", "fixture@example.invalid"); git("config", "user.name", "Fixture")
+    writeFileSync(resolve(root, "changed.txt"), "changed"); git("add", "changed.txt"); git("commit", "-m", "change")
+    const sha = new TextDecoder().decode(Bun.spawnSync(["git", "rev-parse", "HEAD"], { cwd: root }).stdout).trim()
+    writeFileSync(resolve(root, ".hivecall/run.md"), "status: running\n## Plan map\nISC-1 needs: - · files: -\n")
+    expect(ruleFor(brief("qa", "ISC-1", sha), s, root)).toBeNull()
+  })
+  test("plan-scope parses extensionless file names", () => {
+    const root = setup(), s = state()
+    const git = (...args: string[]) => Bun.spawnSync(["git", ...args], { cwd: root, stdout: "ignore", stderr: "ignore" })
+    git("init"); git("config", "user.email", "fixture@example.invalid"); git("config", "user.name", "Fixture")
+    writeFileSync(resolve(root, "Dockerfile"), "FROM scratch"); git("add", "Dockerfile"); git("commit", "-m", "base")
+    writeFileSync(resolve(root, "extra.txt"), "x"); git("add", "extra.txt"); git("commit", "-m", "out of plan")
+    const sha = new TextDecoder().decode(Bun.spawnSync(["git", "rev-parse", "HEAD"], { cwd: root }).stdout).trim()
+    writeFileSync(resolve(root, ".hivecall/run.md"), "status: running\n## Plan map\nISC-1 needs: - · files: Dockerfile\n")
+    expect(ruleFor(brief("qa", "ISC-1", sha), s, root)?.id).toBe("plan-scope")
+  })
+  test("all five gates use the shared three-pause then warn cap", () => {
+    for (const rule of ["review-receipt", "review-item", "watchdog-on", "review-after-qa", "plan-scope"]) {
+      const s = state()
+      expect([1, 2, 3].map(() => blockDecision(s, "ses-root", rule).block)).toEqual([true, true, true])
+      expect(blockDecision(s, "ses-root", rule)).toEqual({ block: false, count: 3, warn: true })
+    }
   })
 })

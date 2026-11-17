@@ -163,7 +163,7 @@ describe("BB child-thread lifecycle feeds the neutral helper state", () => {
     const state = memory(); state.skills.add("ses-root")
     return { root, state }
   }
-  const brief = (role: string, rows: string) => `agent: ${role}\nslice=ISC-001\nTALK-BACK: report BUG/BLOCKED/QUESTION only.\nPROMISE: kind=helper rows=${rows} result=- lane=-`
+  const brief = (role: string, rows: string) => `agent: ${role}\nslice=ISC-001\nTALK-BACK: report BUG/BLOCKED/QUESTION only.\nPROMISE: kind=helper rows=${rows} result=.hivecall/proof.txt lane=-`
   // What the plugin does on a `bb thread spawn` shell call: gate it, read the new thread id from its output, then
   // (Route B) see the orchestrator pin the thread's agent with `stampAgent`, unless `pin` is false.
   const spawn = (state: ReturnType<typeof memory>, root: string, role: string, thread: string, rows = "ISC-001", pin = true) => {

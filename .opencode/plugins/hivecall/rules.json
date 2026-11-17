@@ -46,5 +46,25 @@
   {
     "id": "right-agent",
     "message": "Right agent for the job: review work runs as agent=reviewer and qa work as agent=qa, so the judge is the agent built for it. Respawn with that agent."
+  },
+  {
+    "id": "review-receipt",
+    "message": "Name an existing receipt or check-output file in the reviewer brief."
+  },
+  {
+    "id": "plan-scope",
+    "message": "List the changed files in the item plan map, or add a RE-PLAN line."
+  },
+  {
+    "id": "review-item",
+    "message": "Name at least one item in the reviewer or qa brief."
+  },
+  {
+    "id": "watchdog-on",
+    "message": "Keep the watchdog on in the run card."
+  },
+  {
+    "id": "review-after-qa",
+    "message": "These items already have qa PASS receipts; add a WHY: line to review them again."
   }
 ]

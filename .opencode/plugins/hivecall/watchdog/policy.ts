@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process"
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
+import { copyFileSync, existsSync, mkdirSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs"
+import { homedir } from "node:os"
 import { basename, isAbsolute, relative, resolve } from "node:path"
 import { iscId, iscIds, parsePromise } from "./promise"
 
@@ -557,6 +558,39 @@ function progressGate(input: Record<string, unknown>, prompt: string, state: Mem
   const ledger = readFile(activeLedger(root))
   const ticked = new Set(tickedItems(ledger))
   const plans = new Map(replansIn(prompt, state, root).map((plan) => [plan.item, plan]))
+  if ((role === "reviewer" || role === "qa") && !items.length)
+    return { id: "review-item", key: "review-item", message: "", detail: "the brief names no item" }
+  if (role === "reviewer" && items.length && !reason(prompt) && items.every((item) =>
+    [...state.approvals].some((key) => key.startsWith(`pass:${item}@`))))
+    return { id: "review-after-qa", key: `review-after-qa:${items.join(",")}`, message: "", detail: `${items.join(", ")} already have QA PASS receipts` }
+  if (role === "reviewer") {
+    const paths = [
+      ...[...prompt.matchAll(/["']([^"']+)["']/g)].map((m) => m[1]),
+      ...[...prompt.matchAll(/(?:^|[\s`(=])((?:\/|~\/|\.{0,2}\/)?[\w@.-]+(?:\/[\w@.-]+)*)(?=$|[\s`"',;:)\]])/gm)].map((m) => m[1]),
+    ]
+    const receipt = paths.some((path) => {
+      try {
+        const candidate = path.startsWith("~/") ? resolve(homedir(), path.slice(2)) : isAbsolute(path) ? path : resolve(root, path)
+        const full = realpathSync(candidate)
+        const within = relative(realpathSync(resolve(root, ".hivecall")), full)
+        return Boolean(within && !within.startsWith("..") && !isAbsolute(within)) && statSync(full).isFile()
+      } catch { return false }
+    })
+    if (!receipt) return { id: "review-receipt", key: "review-receipt", message: "", detail: "the brief names no existing receipt or check-output file" }
+  }
+  if ((role === "reviewer" || role === "qa") && !/^\s*RE-?PLAN\b/im.test(prompt)) {
+    const commits = namedCommits(root, prompt) ?? []
+    const lines = section(card(root).text, "plan map")
+    for (const item of items) {
+      const line = lines.find((value) => iscIds(value)[0] === item)
+      const files = line?.match(/\b(?:files|touches)\s*:?\s*(.*?)(?:\s*[·|]\s*|$)/i)?.[1] ?? ""
+      const names = [...files.matchAll(/[\w@.*-]+(?:\/[\w@.*-]+)*/g)].map((m) => m[0].replace(/^\.\//, ""))
+      if (!names.length) continue
+      const changed = commits.flatMap((commit) => (changedBy(root, commit) ?? []).flatMap((row) => row.split("\t").slice(1)))
+      const extra = [...new Set(changed.filter((file) => !names.some((name) => file === name || file.startsWith(`${name}/`))))]
+      if (extra.length) return { id: "plan-scope", key: `plan-scope:${item}`, message: "", detail: `${item}: unlisted files ${extra.join(", ")}` }
+    }
+  }
   const needs = (item: string, count: number): Violation | null => {
     const plan = plans.get(item)
     if (plan && !plan.problem) return null
@@ -620,6 +654,9 @@ export function ruleFor(call: Call, state: Memory, root: string): Violation | nu
   const proposedCard = reportWrite(call.tool, call.input, root)
   if (proposedCard) {
     const run = card(root)
+    if (/^\s*(?:[-*]\s*)?\*?watchdog\*?\s*:\s*`?off\b/im.test(proposedCard.card) &&
+        !/^\s*(?:[-*]\s*)?\*?watchdog\*?\s*:\s*`?off\b/im.test(run.text))
+      return { id: "watchdog-on", key: "watchdog-on", message: "", detail: "the run card sets watchdog: off" }
     const closing = run.status !== "closed" && proposedCard.status === "closed"
     if ((proposedCard.added || closing) && proposedCard.status !== "parked") {
       const path = ledgerPath(root, run)

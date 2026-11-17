@@ -6,7 +6,7 @@ import { cleanups, host } from "./host"
 import { bbHelperSession, shellDelegation } from "../watchdog/adapters"
 import { apply, memory, ruleFor } from "../watchdog/policy"
 
-const brief = (agent = "qa") => `agent: ${agent}\nTALK-BACK: report BUG only.\nPROMISE: kind=helper rows=ISC-001 result=- lane=-\nslice=ISC-001`
+const brief = (agent = "qa") => `agent: ${agent}\nTALK-BACK: report BUG only.\nPROMISE: kind=helper rows=ISC-001 result=.hivecall/proof.txt lane=-\nslice=ISC-001`
 const correction = "ISC-16 scope clarification: notes autosave is a separate undo action."
 const close = { path: ".hivecall/run.md", content: "status: closed\ngoal: g\nledger: .hivecall/checklist.html\n## Final report\nParked with unlock." }
 const kickoff = readFileSync(resolve(import.meta.dir, "../references/kickoff.md"), "utf8")
