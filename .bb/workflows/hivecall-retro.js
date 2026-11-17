@@ -5,7 +5,7 @@ export const meta = {
     type: "object",
     additionalProperties: false,
     properties: {
-      runs: { type: "array", items: { type: "string" } },
+      runs: { type: "array", items: {} },
       days: { type: "integer", minimum: 1, maximum: 60 },
       post: { type: "boolean" },
     },
@@ -86,22 +86,10 @@ const groupSchema = (stages) => ({
 });
 
 phase("Find");
-let runs = Array.isArray(input.runs) ? input.runs.map((thread) => ({ thread, folder: "" })) : null;
-if (!runs) {
-  const found = await agent(
-    `Find every finished hivecall run: archived threads only, in all projects, archived in the last ${days} days. Active threads may still be working, so never include them.
-1. List archived threads and keep only threads whose archivedAt is within the window.
-2. For each, save its complete thread log to a temp file. Keep it only if it has a completed skill call named exactly hivecall and the log writes a run card (.hivecall/run.md).
-3. Return each kept run with its thread id, archivedAt exactly as supplied by bb, and saved folder under ~/.hivecall/runs/*/ when present (otherwise an empty string).
-4. Do not read run contents beyond this. If bb fails because BB_CLI is stale, run env -u BB_CLI bb ...`,
-    { provider: "opencode", model: "openai/gpt-6-luna", reasoningLevel: "medium", label: "Find runs", phase: "Find",
-      schema: { type: "object", required: ["runs"], additionalProperties: false, properties: { runs: { type: "array", items: {
-        type: "object", required: ["thread", "folder", "archivedAt"], additionalProperties: false,
-        properties: { thread: { type: "string" }, folder: { type: "string" }, archivedAt: { type: ["string", "number"] } },
-      } } } } },
-  );
-  runs = found?.runs ?? [];
-}
+if (!Array.isArray(input.runs)) throw new Error("No runs passed; run find-hivecall-runs.py and pass --args runs");
+const runs = input.runs.map((run) => typeof run === "string" ? { thread: run, folder: "" } : run);
+if (runs.some((run) => !run || typeof run.thread !== "string" || typeof run.folder !== "string"))
+  throw new Error("Each run must be a thread ID or an object with string thread and folder");
 log(`${runs.length} run(s) to judge`);
 
 if (runs.length === 0) {
@@ -114,9 +102,11 @@ const judgePrompt = (run, group, stages) => `You judge one hivecall run on fixed
 
 Orchestrator thread: ${run.thread}
 Saved run folder: ${run.folder || "none (read the thread log and its worktree if it still exists)"}
+Goal source: Read the goal line in this run's saved run.md; if it is unavailable, use the orchestrator thread's first user message.
 Stages: ${stages.join(", ")}
 
 Rules:
+- Grade against this run's own goal only, never this retro's task, branch, or workspace.
 - Answer every stage with PASS, FAIL or UNKNOWN and one evidence line (file and line, event time, or log sequence). PASS needs evidence too.
 - Read the records, not the orchestrator's claims about them. Save large logs to a temp file and search them; never sample.
 - UNKNOWN only after you tried; say what you tried.
@@ -125,16 +115,27 @@ Rules:
 const grids = [];
 for (const run of runs) {
   const entries = Object.entries(GROUPS);
-  const answers = await parallel(entries.map(([group, stages]) => () => agent(judgePrompt(run, group, stages), {
-    provider: "opencode", model: "openai/gpt-6-luna", reasoningLevel: "xhigh", label: `${run.thread} · ${group}`, phase: "Judge", schema: groupSchema(stages),
-  })));
+  const answers = await parallel(entries.map(([group, stages]) => async () => {
+    try {
+      return { answer: await agent(judgePrompt(run, group, stages), {
+        provider: "opencode", model: "openai/gpt-6-luna", reasoningLevel: "xhigh", label: `${run.thread} · ${group}`, phase: "Judge", schema: groupSchema(stages),
+      }) };
+    } catch (error) {
+      return { error: String(error?.message ?? error) };
+    }
+  }));
   const grid = {};
   entries.forEach(([group, stages], index) => {
     for (const stage of stages) {
-      const cell = answers[index]?.[stage];
-      if (!cell || !["PASS", "FAIL", "UNKNOWN"].includes(cell.status) || !cell.evidence)
-        throw new Error(`Judge ${group} left stage ${stage} unanswered for ${run.thread}`);
-      grid[stage] = cell;
+      const result = answers[index];
+      const cell = result?.answer?.[stage];
+      const valid = cell && typeof cell === "object" && !Array.isArray(cell)
+        && ["PASS", "FAIL", "UNKNOWN"].includes(cell.status)
+        && typeof cell.evidence === "string" && cell.evidence.length >= 8
+        && Object.keys(cell).every((key) => key === "status" || key === "evidence");
+      grid[stage] = valid ? cell : { status: "UNKNOWN", evidence: result?.error !== undefined
+        ? `Judge ${group} failed for ${stage}: ${result.error}`
+        : `Judge ${group} returned no valid answer for ${stage}` };
     }
   });
   grids.push({ thread: run.thread, folder: run.folder, archivedAt: run.archivedAt, grid });
