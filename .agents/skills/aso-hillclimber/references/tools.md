@@ -47,7 +47,7 @@ Tools used by this skill:
 | Tool | Use |
 |---|---|
 | `list_apps` | Find tracked apps and Astro IDs |
-| `add_app` | `appStoreId`, `platform: "iphone"`, `store`; `temporary: true` for a research app |
+| `add_app` | `appStoreId`, `platform: "iphone"` or `"mac"` (Momentry: `"mac"`), `store`; `temporary: true` for a research app |
 | `add_keywords` | `keywords[]`, `store`, `appId`, `platform`; batches ≤ 30 (larger ones time out client-side but may still finish — wait ~90 s and re-check) |
 | `get_app_keywords` | Popularity, difficulty, rank for every tracked phrase |
 | `get_keyword_performance` | `keyword`, `store`, `includeHistory: true` — rank history for the day-5/day-14 check |
