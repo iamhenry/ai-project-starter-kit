@@ -112,7 +112,7 @@ When every counted item is ticked or parked: compare the surviving goal contract
 
 ## Workflow skills
 
-`subagent-delegation` (briefs), `create-ticket` (raw intake), `reproduce-bug` via `qa`, `gather-context` (local code and official-doc research), `bugging-out` (unclear cause), `judge-proposal` and `judge-plan` via fresh `reviewer`, `.agents/commands/workflow/01-plan/02-create-issue.md`, `code-quality-gate` with `reviewer` for code or behavior changes, `verification-gate` with `qa` when the checker rule selects it, `create-pr` (only with kickoff authority), and `git-commits` (local commits without PR authority). Platform skills as the project needs them, e.g. `xcodebuildmcp-cli` and `argent` for iOS, `agent-browser` for web.
+`subagent-delegation` (briefs), `create-ticket` (raw intake), `reproduce-bug` via `qa`, `gather-context` (local code and official-doc research), `bugging-out` (unclear cause), `judge-proposal` and `judge-plan` via fresh `reviewer`, `.agents/commands/workflow/01-plan/02-create-issue.md`, `code-quality-gate` with `reviewer` whenever a reviewer is selected, `verification-gate` with `qa` when the checker rule selects it, `create-pr` (only with kickoff authority), and `git-commits` (local commits without PR authority). Platform skills as the project needs them, e.g. `xcodebuildmcp-cli` and `argent` for iOS, `agent-browser` for web.
 
 ## Status footer
 
