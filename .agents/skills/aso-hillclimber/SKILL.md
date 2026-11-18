@@ -85,7 +85,7 @@ Live listing with `asc` (see `references/tools.md`): title, subtitle, keywords, 
 
 These bands are starting rules; the prediction hit rate decides whether they move.
 
-**Funnel** for the window (since the last ship, or the last 90 days for a baseline) from App Store Connect → Analytics. Use **Sources → App Store Search** for keyword judgement and the total for the goal: impressions, product page views, first-time downloads, goal metric. If the API key lacks the Analytics role, ask the user for screenshots.
+**Funnel** for the window (since the last ship, or the last 90 days for a baseline) from App Store Connect → Analytics. Use **Sources → App Store Search** for keyword judgement and the total for the goal: impressions, product page views, first-time downloads, goal metric. If the API key lacks the Analytics role, follow the screenshot checklist in `references/tools.md`.
 
 **Ranks** from Astro (the real app, not the research app) for every phrase in the last `proposal` line and the playbook's keep/hold lists.
 
