@@ -115,7 +115,7 @@ First run: `search_app_store` (limit 15) on 5–9 core job phrases. Keep apps th
 ## Step 4 — Keyword pool (≥ 100 phrases)
 
 - `extract_competitors_keywords` on 15+ seed phrases (the app's jobs plus the competitors' best phrases).
-- For non-English markets, include at least 3 seed phrases in the market's own language.
+- For non-English markets, research in that market's language and culture: seed with how locals phrase the need and what local competitors use, not translations of English keywords. Keep English terms only where Astro shows locals search them.
 - Treat accented and unaccented spellings (e.g. `días` and `dias`) as separate candidates until Astro shows they behave the same.
 - Add: the user's "problem" phrasing ("help me sleep"), head term + extra word ("budget app for couples"), feature words from the app's user stories, the playbook's keep/hold list. Skip dropped phrases.
 - `add_keywords` to the research app in batches of ≤ 30. Run searches one at a time; Astro rate-limits parallel calls.
