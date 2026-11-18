@@ -23,18 +23,20 @@ stateDiagram-v2
             [*] --> Choosing
             state "Choosing the next item" as Choosing
             state "Being built by a fresh builder" as Building
-            state "Waiting for review" as InReview
-            state "Committed, waiting for QA" as Committed
-            state "Being proven by a fresh QA on that commit" as InQA
+            state "Waiting for review when required" as InReview
+            state "Committed, waiting for the required check" as Committed
+            state "Being checked by QA on that commit" as InQA
             state "Proven (ticked)" as Ticked
             state "Failed, attempt counted" as Failed
             state "Parked with an unlock condition" as Parked
 
             Choosing --> Building : cheapest free item picked
-            Building --> InReview : builder hands back diff and output
+            Building --> InReview : reviewer required
+            Building --> Committed : reviewer not required
             InReview --> Building : reviewer says revise (2nd time: split or new angle)
             InReview --> Committed : reviewer approves
-            Committed --> InQA : QA brief names the commit
+            Committed --> Ticked : reviewer only, with receipt
+            Committed --> InQA : QA required by checker rule
             InQA --> Ticked : PASS with a receipt
             InQA --> Failed : FAIL or BLOCKED with evidence
             Failed --> Building : attempt 2 or 3, new angle
@@ -98,9 +100,9 @@ You hand it a goal and leave. It must finish honestly, without you, and tell you
 1. **Start with a contract.** Before any work, the goal becomes a goal contract you approve: current state, ideal state, what must keep working, scope, the check that proves each item, one end-to-end smoke, and exit criteria. Fuzzy input first goes through a short discovery route (reproduce → cause → plan).
 2. **Write the scoreboard.** Turn the contract into a checklist. Each item says what the user will see and the exact check that proves it.
 3. **The foreman plans but never builds.** The orchestrator picks the next cheapest item that raises the score, briefs a fresh worker, and records results. It never edits the product.
-4. **Workers build, judges judge, inspectors prove.** A builder changes code. A reviewer says the diff is sound. QA proves the user outcome on a named commit. No one does two of these.
-5. **The score moves only on proof.** An item is ticked only when QA passed it on the exact candidate, with a receipt file. Green tests, a builder saying "done", or a summary never count.
-6. **One item, one commit.** Reviewer approves → commit → QA tests that commit → tick. Every proven item is a checkpoint you can return to.
+4. **Workers build, judges judge, inspectors prove.** A builder changes code. A reviewer says the diff is sound. When required, QA proves the user outcome on a named commit. No one does two of these.
+5. **The score moves only on proof.** Use the checker selected by SKILL.md's checker rule. Every tick needs independent proof on the exact candidate and a receipt. Green tests, a builder saying "done", or a summary never count.
+6. **One item, one commit.** Reviewer approves when required; QA tests the commit when required; then tick with a receipt. Every proven item is a checkpoint you can return to.
 7. **Fail three times, change the angle or park.** Never a fourth try of the same idea. A parked item carries its unlock condition.
 8. **The watchdog keeps asking "what passed since I last checked?"** Every 5 minutes, facts only. If nothing passed for 10, 15, 20 minutes, it nudges, then says park.
 9. **You hear only real changes.** One line when an item passes, fails or parks. A 🚦 only for hard blockers. Silence means nothing changed.
@@ -122,7 +124,7 @@ Mirrors of the two places the agents and the watchdog actually read. Those files
 ### Honest
 
 1. Correct beats fast beats cheap. Never fake progress or evidence.
-2. The score is ledger items proven by independent evidence on the exact build. Activity is not progress. Planless discovery ticks need fresh qa `REPRODUCED` for a reproduction/cause or fresh reviewer `SELECTED` on a cited non-bug finding (judge-proposal even for one option); cited research alone never ticks. The judge stays apart: qa tests one named commit in its own clean copy (`qa-commit`, `qa-dirty` warns), and a commit that edits an item's own check needs a `CANARY:` receipt line showing a known-broken case still fails (`tick-gate`). A commit that only moves or renames files, or changes tests or docs, on top of proven work ticks on a qa PASS that names that commit; a later failure on the item cancels it.
+2. The score counts items proven by the checker selected under SKILL.md's checker rule, with a receipt on the exact build. Activity is not progress. Planless discovery ticks need fresh qa `REPRODUCED` for a reproduction/cause or fresh reviewer `SELECTED` on a cited non-bug finding (judge-proposal even for one option); cited research alone never ticks. The judge stays apart: when QA is selected, it tests one named commit in its own clean copy (`qa-commit`, `qa-dirty` warns), and a commit that edits an item's own check needs a `CANARY:` receipt line showing a known-broken case still fails (`tick-gate`). A later failure on the item cancels it.
 3. The specs decide (ledger, design docs, prototype, named screenshots). Small visual differences are fine. Record each decision and its reason in the run card.
 
 ### Owner

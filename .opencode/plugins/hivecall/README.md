@@ -4,7 +4,7 @@ Hand an agent a goal and let it run to the finish without you babysitting it.
 
 ## What it does
 
-An orchestrator agent breaks your goal into a checklist, hands each piece to fresh worker agents, and ticks an item only when an independent tester proves it. A small watchdog script checks the run every 5 minutes. It nudges the orchestrator if it stalls, warns about stuck or hidden agents and machine problems, pauses when the ledger is complete, and removes itself after the run card is closed.
+An orchestrator agent breaks your goal into a checklist, hands each piece to fresh worker agents, and ticks an item only when the required independent check passes with a receipt. A small watchdog script checks the run every 5 minutes. It nudges the orchestrator if it stalls, warns about stuck or hidden agents and machine problems, pauses when the ledger is complete, and removes itself after the run card is closed.
 
 ## When to use it
 
@@ -39,7 +39,8 @@ flowchart LR
   G -->|ok| H[Helper runs]
   H --> T{Tick}
   T -->|edits its own check without CANARY| X[Tick refused]
-  T -->|QA PASS on that commit, plus review for behavior changes| OK[Ticked]
+  T --> C{Checker rule in SKILL.md}
+  C -->|required verdict and receipt| OK[Ticked]
 ```
 
 | Guardrail | When it acts | What the agent must do |
@@ -48,7 +49,7 @@ flowchart LR
 | `no-redo` | QA or review on passed items whose files are unchanged | Skip it, or give a `WHY:` line |
 | `qa-commit` / `qa-dirty` | QA brief names no commit / unsaved product edits exist | Name the commit under test; commit first |
 | `CANARY` | A tick whose commit edits that item's check | Show the check still fails on a known-bad case |
-| Low-risk tick | Renames, tests or docs on proven work | A QA PASS on that exact commit is enough; a later failure cancels it |
+| Low-risk tick | File moves, tests or docs on proven work | Use the checker rule in SKILL.md; a later failure cancels it |
 
 ## What's in this folder
 
@@ -81,7 +82,7 @@ flowchart LR
   YOU[You] -->|goal| ORCH[Orchestrator]
   ORCH -->|brief with PROMISE line| W[Workers - build, review, QA]
   W -->|PASS or FAIL rows with evidence| LED[(Ledger and result files)]
-  ORCH -->|ticks only on QA proof| LED
+  ORCH -->|ticks on required independent check and receipt| LED
   WD[Watchdog every 5 min] -.reads.-> LED
   WD -.reads.-> W
   WD -.reads.-> RC[Run card]
