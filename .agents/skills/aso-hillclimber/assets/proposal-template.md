@@ -12,7 +12,7 @@ Evidence: Astro research app `<App> ASO Research YYYY-MM-DD`, `research.md`, `ev
 | Ratings | |
 | Last window | Shown N times → N page views → N <goal metric> |
 | Search ranks | Phrases in top 10, top 50 |
-| Last test verdict | (last `measure` line in log.jsonl) |
+| Last test verdict | (last `measure` line in `_ai/aso/<store>/log.jsonl`) |
 
 ## 2. Why it ranks this way (hypotheses with numbers)
 

@@ -25,7 +25,7 @@ asc screenshots list --app <APP_ID> --version <X.Y.Z> --locale en-US   # compare
 Analytics (`asc analytics ...`) needs an API key with the Analytics/Sales role and a vendor number. If the key lacks Analytics access, use this checklist at the start of every run that measures or sets a baseline. Skip it if the log already has these numbers for the exact window.
 
 - Set the date picker at the top right to the window: since the last ship, or the last 90 days for a baseline. The card tooltip shows **Duration**.
-- For a one-market run, set the left filter to that country, if available.
+- For a one-market run, filter Analytics to that store's country, if available.
 - Ask for screenshots of:
   1. **Analytics → Overview**: impressions, product page views, first-time downloads, conversion rate, and proceeds.
   2. **Acquisition → Sources**, metric **Impressions**: the per-source table, including the App Store Search row.
@@ -68,4 +68,4 @@ Tools used by this skill:
 
 Rank 1000 in Astro means "not in the top results" — report it as "not in top 50", never as a number.
 
-Save raw responses you rely on to `runs/YYYY-MM-DD/evidence.json` so numbers in the proposal can be traced.
+Save raw responses you rely on to `_ai/aso/<store>/runs/YYYY-MM-DD/evidence.json` so numbers in the proposal can be traced.
