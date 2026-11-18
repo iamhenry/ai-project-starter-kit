@@ -1,12 +1,15 @@
 ---
 name: aso-hillclimber
-description: Repeatable, closed-loop App Store keyword optimization for one iOS app using the asc CLI and Astro MCP. Measures the last metadata test against the app's goal (sales, trials, or downloads), keeps a standing list of 10 competitors, scores keywords by real search demand and beatable top-10 results, and writes a plain-English proposal with current and expected ranks. Use whenever the user wants to improve App Store rankings or downloads, run or re-run ASO, pick a title, subtitle, or keyword field, check how the last metadata change performed, or asks "why isn't my app ranking". Prefer this over aso-worker for keyword selection.
+description: Repeatable, closed-loop App Store keyword optimization for one iOS or Mac app using the asc CLI and Astro MCP. Measures the last metadata test against the app's goal (sales, trials, or downloads), keeps a standing list of 10 competitors, scores keywords by real search demand and beatable top-10 results, and writes a plain-English proposal with current and expected ranks. Use whenever the user wants to improve App Store rankings or downloads, run or re-run ASO, pick a title, subtitle, or keyword field, check how the last metadata change performed, or asks "why isn't my app ranking". Prefer this over aso-worker for keyword selection.
 compatibility: Requires the Astro MCP server and an authenticated asc CLI (App Store Connect). Stops with BLOCKED if either is unavailable. Works for paid-upfront, free-trial, and free apps.
 ---
 
 # ASO Hillclimber
 
 One run = one app, one storefront (start with `us`), one language. Every run ends with one entry appended to the app's log, so the next run starts where this one stopped.
+
+Research each market in its own store; never copy keywords between markets, even US, UK, Canada, and Australia.
+One country can index several languages: don't repeat words already indexed from another language that feeds the same store.
 
 ## Why this works (read once)
 
@@ -82,7 +85,7 @@ Live listing with `asc` (see `references/tools.md`): title, subtitle, keywords, 
 
 These bands are starting rules; the prediction hit rate decides whether they move.
 
-**Funnel** for the window (since the last ship, or the last 90 days for a baseline) from App Store Connect → Analytics. Use **Sources → App Store Search** for keyword judgement and the total for the goal: impressions, product page views, first-time downloads, goal metric. If the API key lacks the Analytics role, ask the user for screenshots.
+**Funnel** for the window (since the last ship, or the last 90 days for a baseline) from App Store Connect → Analytics. Use **Sources → App Store Search** for keyword judgement and the total for the goal: impressions, product page views, first-time downloads, goal metric. If the API key lacks the Analytics role, follow the screenshot checklist in `references/tools.md`.
 
 **Ranks** from Astro (the real app, not the research app) for every phrase in the last `proposal` line and the playbook's keep/hold lists.
 
@@ -112,6 +115,8 @@ First run: `search_app_store` (limit 15) on 5–9 core job phrases. Keep apps th
 ## Step 4 — Keyword pool (≥ 100 phrases)
 
 - `extract_competitors_keywords` on 15+ seed phrases (the app's jobs plus the competitors' best phrases).
+- For non-English markets, research in that market's language and culture: seed with how locals phrase the need and what local competitors use, not translations of English keywords. Keep English terms only where Astro shows locals search them.
+- Treat accented and unaccented spellings (e.g. `días` and `dias`) as separate candidates until Astro shows they behave the same.
 - Add: the user's "problem" phrasing ("help me sleep"), head term + extra word ("budget app for couples"), feature words from the app's user stories, the playbook's keep/hold list. Skip dropped phrases.
 - `add_keywords` to the research app in batches of ≤ 30. Run searches one at a time; Astro rate-limits parallel calls.
 

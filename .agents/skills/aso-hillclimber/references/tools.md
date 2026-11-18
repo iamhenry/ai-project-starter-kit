@@ -22,7 +22,16 @@ asc screenshots list --app <APP_ID> --version <X.Y.Z> --locale en-US   # compare
 
 `--release-type MANUAL` is an example; copy the live version's release type and copyright.
 
-Analytics (`asc analytics ...`) needs an API key with the Analytics/Sales role and a vendor number. If it returns forbidden, ask the user for App Store Connect screenshots: Analytics → Overview (window = test window) and Acquisition → Sources filtered to App Store Search.
+Analytics (`asc analytics ...`) needs an API key with the Analytics/Sales role and a vendor number. If the key lacks Analytics access, use this checklist at the start of every run that measures or sets a baseline. Skip it if the log already has these numbers for the exact window.
+
+- Set the date picker at the top right to the window: since the last ship, or the last 90 days for a baseline. The card tooltip shows **Duration**.
+- For a one-market run, set the left filter to that country, if available.
+- Ask for screenshots of:
+  1. **Analytics → Overview**: impressions, product page views, first-time downloads, conversion rate, and proceeds.
+  2. **Acquisition → Sources**, metric **Impressions**: the per-source table, including the App Store Search row.
+  3. The same page, metric **Product Page Views**, with the column set to total, not daily average.
+  4. The same page, metric **First-Time Downloads**.
+- Record the numbers with source `ASC screenshot <window>`.
 
 ## Astro MCP
 
@@ -47,7 +56,7 @@ Tools used by this skill:
 | Tool | Use |
 |---|---|
 | `list_apps` | Find tracked apps and Astro IDs |
-| `add_app` | `appStoreId`, `platform: "iphone"`, `store`; `temporary: true` for a research app |
+| `add_app` | `appStoreId`, `platform: "iphone"` or `"mac"`, `store`; `temporary: true` for a research app |
 | `add_keywords` | `keywords[]`, `store`, `appId`, `platform`; batches ≤ 30 (larger ones time out client-side but may still finish — wait ~90 s and re-check) |
 | `get_app_keywords` | Popularity, difficulty, rank for every tracked phrase |
 | `get_keyword_performance` | `keyword`, `store`, `includeHistory: true` — rank history for the day-5/day-14 check |
