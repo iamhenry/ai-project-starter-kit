@@ -6,7 +6,7 @@ compatibility: Requires the Astro MCP server and an authenticated asc CLI (App S
 
 # ASO Hillclimber
 
-One run = one app, one storefront (start with `us`), one language. Every run ends with one entry appended to the app's log, so the next run starts where this one stopped.
+One run = one app, one storefront (start with `us`), one language. Every store has its own memory and log, so the next run starts where that store's last run stopped.
 
 Research each market in its own store; never copy keywords between markets, even US, UK, Canada, and Australia.
 One country can index several languages: don't repeat words already indexed from another language that feeds the same store.
@@ -29,14 +29,16 @@ The trap: picking phrases because they're *easy to rank on*. Easy almost always 
 
 ## The app's ASO memory
 
-In the app repo, `_ai/aso/` (examples in `assets/`):
+In the app repo, keep each store's memory in `_ai/aso/<store>/` (examples in `assets/`). Bare memory paths below refer to this store folder:
 
 | File | Holds | Who writes it |
 |---|---|---|
-| `config.json` | IDs, store, goal metric and target, business model, seed and core phrases, the 10 competitors | Set on the first run; edit when the goal or a competitor changes |
-| `playbook.json` | Phrases to keep, hold, drop (with reasons), learnings | Updated at the end of every run |
-| `log.jsonl` | One JSON line per event: `baseline`, `measure`, `proposal`, `shipped` | Append only; never edit old lines |
-| `runs/YYYY-MM-DD/` | `research.md`, `proposal.md`, `evidence.json` (raw Astro output) | One folder per proposal |
+| `_ai/aso/<store>/config.json` | IDs, store, goal metric and target, business model, seed and core phrases, the 10 competitors | Set on the first run; edit when the goal or a competitor changes |
+| `_ai/aso/<store>/playbook.json` | Phrases to keep, hold, drop (with reasons), learnings | Updated at the end of every run |
+| `_ai/aso/<store>/log.jsonl` | One JSON line per event: `baseline`, `measure`, `proposal`, `shipped` | Append only; never edit old lines |
+| `_ai/aso/<store>/runs/YYYY-MM-DD/` | `research.md`, `proposal.md`, `evidence.json` (raw Astro output) | One folder per proposal |
+
+Use the same `goal.metric` for every store: sales per 14 days by default, since downloads can include free trials. Use downloads only for a free app with no sales. Set each store's `goal.target` from its own baseline; never copy a target between stores.
 
 Live metadata isn't stored: read it from App Store Connect each run.
 
@@ -54,14 +56,15 @@ If either check fails, **stop**. Report `BLOCKED: <source> unavailable — <erro
 Funnel numbers (impressions, page views, downloads, sales) come from `asc analytics` or from App Store Connect screenshots the user provides. If neither is available, stop before judging a test; ranks alone can't decide the goal.
 
 While working:
-- Cite the source and date beside every number (`Astro 2026-11-04`, `ASC screenshot Aug 6–Nov 3`). Save the raw Astro responses to `runs/YYYY-MM-DD/evidence.json`.
+- Cite the source and date beside every number (`Astro 2026-11-04`, `ASC screenshot Aug 6–Nov 3`). Save the raw Astro responses to `_ai/aso/<store>/runs/YYYY-MM-DD/evidence.json`.
 - If Astro fails mid-run, stop and report what is done; never fill gaps with guesses.
 - Estimates (expected tiers, funnel math) must be labelled as estimates and built only from those numbers.
 
 ## Step 0 — Which run is this?
 
-- **New app** (no `_ai/aso/`): create `config.json` and `playbook.json` from `assets/`. Ask for the goal in plain words, e.g. "5 sales in 14 days" (paid), "10 trial starts in 14 days" (trial), "50 downloads in 14 days" (free). Run step 1 and log a `baseline`. Then steps 2–8.
-- **Existing app**: read all three files. Find the last `shipped` line and count days since it went live. Run step 1 and log a `measure`. Then, if the user wants a new change, steps 2–8 using the playbook.
+- **Legacy memory at `_ai/aso/`**: use the root `config.json` to identify its store, then move its config, playbook, log, and runs into `_ai/aso/<store>/` before continuing. Preserve all log lines and run history; merge existing store history without overwriting it.
+- **No memory for this store** (new app or live app without `_ai/aso/<store>/`): create the store folder and its `config.json` and `playbook.json` from `assets/`. Run step 1: for a live app, use the live listing, Astro ranks and rank history for this store, and this store's Analytics data (use the screenshot checklist in `references/tools.md` if API access is unavailable), then set its target from that baseline; if the app is not live, ask for the initial goal in plain words. Log a `baseline`, then steps 2–8.
+- **Existing store**: read all three files from `_ai/aso/<store>/`. Find the last `shipped` line and count days since it went live. Run step 1 and log a `measure`. Then, if the user wants a new change, steps 2–8 using the playbook.
 
 No fixed calendar. Measure whenever the user runs it. A measure under 7 days after going live is **early**: new metadata is still being indexed, so report ranks but don't drop phrases on it. Shipping a new change before the last one was measured is allowed; note `"previous_unmeasured": true` in the proposal line, since results will be mixed.
 
@@ -85,7 +88,7 @@ Live listing with `asc` (see `references/tools.md`): title, subtitle, keywords, 
 
 These bands are starting rules; the prediction hit rate decides whether they move.
 
-**Funnel** for the window (since the last ship, or the last 90 days for a baseline) from App Store Connect → Analytics. Use **Sources → App Store Search** for keyword judgement and the total for the goal: impressions, product page views, first-time downloads, goal metric. If the API key lacks the Analytics role, follow the screenshot checklist in `references/tools.md`.
+**Funnel** for the window (since the last ship, or the last 90 days for a baseline) from App Store Connect → Analytics, filtered to this store. Use **Sources → App Store Search** for impressions, product page views, and first-time downloads to judge keywords. Get the goal metric (sales by default) from this store's totals. If the API key lacks the Analytics role, follow the screenshot checklist in `references/tools.md`.
 
 **Ranks** from Astro (the real app, not the research app) for every phrase in the last `proposal` line and the playbook's keep/hold lists.
 
@@ -149,7 +152,7 @@ Read the app's user stories or feature list. Remove phrases the app can't honest
 
 ## Step 7 — Proposal
 
-Write `runs/YYYY-MM-DD/proposal.md` from `assets/proposal-template.md`: plain English, one table per field, each targeted phrase showing **now rank** and **expected tier**. Placement:
+Write `_ai/aso/<store>/runs/YYYY-MM-DD/proposal.md` from `assets/proposal-template.md`: plain English, one table per field, each targeted phrase showing **now rank** and **expected tier**. Placement:
 
 - **Title (30):** brand + strongest honest job phrase + easiest real-search phrase.
 - **Subtitle (30):** next-best phrases, readable at a glance.

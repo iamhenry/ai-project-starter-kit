@@ -11,7 +11,7 @@
   },
   "business_model": "paid upfront $X | free trial N days then $X | free",
   "goal": {
-    "metric": "sales | trial_starts | downloads",
+    "metric": "sales",
     "target": 5,
     "window_days": 14
   },
