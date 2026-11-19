@@ -26,7 +26,7 @@ Evidence: Astro research app `<App> ASO Research YYYY-MM-DD`, `research.md`, `ev
 ## 4. The proposed changes
 
 ### Title — `<text>` (N/30)
-| Phrase it targets | Searches | Difficulty | Small apps in top 10 | Competitors in top 10 | Now | Expected at next measure (estimate) |
+| Phrase it targets | Popularity (5-100) | Difficulty | Small apps in top 10 | Competitors in top 10 | Now | Expected at next measure (estimate) |
 |---|---|---|---|---|---|---|
 
 Why:

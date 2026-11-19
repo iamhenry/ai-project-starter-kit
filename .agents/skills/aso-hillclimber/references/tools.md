@@ -35,21 +35,7 @@ Analytics (`asc analytics ...`) needs an API key with the Analytics/Sales role a
 
 ## Astro MCP
 
-If Astro is a native MCP tool in this session, call it directly. Otherwise call it over HTTP (for example inside a code runner):
-
-```js
-const res = await fetch(ASTRO_URL, {
-  method: 'POST',
-  headers: {
-    'content-type': 'application/json',
-    accept: 'application/json, text/event-stream',
-    'mcp-session-id': SESSION_ID, // from an initialize call, or a known working session
-  },
-  body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call',
-    params: { name: 'search_app_store', arguments: { keyword: 'read later', store: 'us', limit: 10 } } }),
-});
-// result.content[0].text is a JSON string
-```
+Call Astro MCP tools directly; if unavailable, stop as described in the Gate.
 
 Tools used by this skill:
 
@@ -57,7 +43,7 @@ Tools used by this skill:
 |---|---|
 | `list_apps` | Find tracked apps and Astro IDs |
 | `add_app` | `appStoreId`, `platform: "iphone"` or `"mac"`, `store`; `temporary: true` for a research app |
-| `add_keywords` | `keywords[]`, `store`, `appId`, `platform`; batches ≤ 30 (larger ones time out client-side but may still finish — wait ~90 s and re-check) |
+| `add_keywords` | `keywords[]`, `store`, `appId`, `platform`; batches ≤ 30 |
 | `get_app_keywords` | Popularity, difficulty, rank for every tracked phrase |
 | `get_keyword_performance` | `keyword`, `store`, `includeHistory: true` — rank history for the day-5/day-14 check |
 | `search_app_store` | Live top results (max 50) with rating counts; count small apps here. Run sequentially |

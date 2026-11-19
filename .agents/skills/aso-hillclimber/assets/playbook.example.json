@@ -7,7 +7,7 @@
     { "phrase": "example phrase", "why": "#18 and rising", "since": "YYYY-MM-DD" }
   ],
   "drop": [
-    { "phrase": "example phrase", "why": "Popularity 5, no searches", "since": "YYYY-MM-DD" }
+    { "phrase": "example phrase", "why": "Popularity 5, below threshold", "since": "YYYY-MM-DD" }
   ],
   "hit_rate": { "A": [0, 0], "B": [0, 0], "C": [0, 0] },
   "learnings": [
