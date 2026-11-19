@@ -9,21 +9,21 @@ compatibility: Requires the Astro MCP server and an authenticated asc CLI (App S
 One run = one app, one storefront (start with `us`), one language. Every store has its own memory and log, so the next run starts where that store's last run stopped.
 
 Research each market in its own store; never copy keywords between markets, even US, UK, Canada, and Australia.
-One country can index several languages: don't repeat words already indexed from another language that feeds the same store.
+One country can index several languages; words from another locale are a bonus, not coverage.
 
 ## Why this works (read once)
 
 People find apps by searching. Apple shows apps whose **title, subtitle, or hidden keyword field** contain the searched words, ordered mostly by how well each app has done on that search (downloads, taps, ratings). Only the top ~10 get seen. A small app can't beat the leaders on big searches, so it starts where real people search **and** the top 10 holds other small apps, earns downloads there, and climbs.
 
-The trap: picking phrases because they're *easy to rank on*. Easy almost always means *nobody searches it* (Astro popularity 5). Ranking #1 there brings no one. That is why rule 1 exists.
+The trap: picking phrases because they're *easy to rank on*. Astro popularity is Apple Ads' relative, exponential 5-100 score; 5 means below Apple's reporting threshold, not zero. Never add or sum popularity scores.
 
 ## Hard rules
 
-1. **Real demand only.** Targets need Astro popularity ≥ 20. Popularity 5 = no searches; never a target.
+1. **Real demand only.** Targets need Astro popularity ≥ 20; popularity 5 is never a target.
 2. **Exactly 10 competitors**, kept in `config.json` and including the app's inspiration if it has one.
 3. **Beatable.** Count top-10 apps with < 100 ratings ("small apps"). More small apps = easier.
 4. **Honest.** Only words the app delivers today. No competitor or brand names.
-5. **Keep winners, drop losers.** Never remove a phrase ranking top 10; never keep one with no searches. Never re-propose a dropped phrase without a new reason.
+5. **Keep winners, drop losers.** Never remove a phrase ranking top 10; never keep one with popularity below 20. Never re-propose a dropped phrase without a new reason.
 6. **Judge by the goal metric and App Store Search impressions**, not rank counts.
 7. **Human approves before anything is staged** in App Store Connect.
 
@@ -38,7 +38,7 @@ In the app repo, keep each store's memory in `_ai/aso/<store>/` (examples in `as
 | `_ai/aso/<store>/log.jsonl` | One JSON line per event: `baseline`, `measure`, `proposal`, `shipped` | Append only; never edit old lines |
 | `_ai/aso/<store>/runs/YYYY-MM-DD/` | `research.md`, `proposal.md`, `evidence.json` (raw Astro output) | One folder per proposal |
 
-Use the same `goal.metric` for every store: sales per 14 days by default, since downloads can include free trials. Use downloads only for a free app with no sales. Set each store's `goal.target` from its own baseline; never copy a target between stores.
+Use the same `goal.metric` for every store: sales per 14 days by default, since downloads can include free trials. Use downloads only for a free app with no sales. Set each store's `goal.target` against the revenue the app needs, informed by its own baseline, not just a small step above it; record the reason in `goal.target_basis`. Never copy a target between stores.
 
 Live metadata isn't stored: read it from App Store Connect each run.
 
@@ -51,19 +51,19 @@ Every number this skill reports must come from a tool, not from memory or genera
 | Astro MCP | `list_apps` returns a result | Popularity, difficulty, ranks, top-10 apps, rating counts |
 | App Store Connect | `asc auth status --validate` passes | Live metadata, version, price, release date |
 
-If either check fails, **stop**. Report `BLOCKED: <source> unavailable — <error>` and do no research, scoring, or proposal. Don't fall back to web search, App Store pages, or estimates.
+If either check fails, **stop**. Report `BLOCKED: <source> unavailable — <error>` and do no research, scoring, or proposal. For any Astro error (rate limit, HTTP error, or timeout), include the count completed and "restart the Astro app"; never retry, resume, or fill in partial results. Don't fall back to web search, App Store pages, or estimates.
 
 Funnel numbers (impressions, page views, downloads, sales) come from `asc analytics` or from App Store Connect screenshots the user provides. If neither is available, stop before judging a test; ranks alone can't decide the goal.
 
 While working:
 - Cite the source and date beside every number (`Astro 2026-11-04`, `ASC screenshot Aug 6–Nov 3`). Save the raw Astro responses to `_ai/aso/<store>/runs/YYYY-MM-DD/evidence.json`.
-- If Astro fails mid-run, stop and report what is done; never fill gaps with guesses.
+- Call Astro MCP tools directly, one at a time, at most 20 Astro calls per minute total across all runs. Pause between every call; never batch or loop several calls inside one tool call without a pause, use scripts or background jobs, or retry. The server limit is 30 per rolling minute; hitting it can stop the MCP server until the Astro app is manually restarted.
 - Estimates (expected tiers, funnel math) must be labelled as estimates and built only from those numbers.
 
 ## Step 0 — Which run is this?
 
 - **Legacy memory at `_ai/aso/`**: use the root `config.json` to identify its store, then move its config, playbook, log, and runs into `_ai/aso/<store>/` before continuing. Preserve all log lines and run history; merge existing store history without overwriting it.
-- **No memory for this store** (new app or live app without `_ai/aso/<store>/`): create the store folder and its `config.json` and `playbook.json` from `assets/`. Run step 1: for a live app, use the live listing, Astro ranks and rank history for this store, and this store's Analytics data (use the screenshot checklist in `references/tools.md` if API access is unavailable), then set its target from that baseline; if the app is not live, ask for the initial goal in plain words. Log a `baseline`, then steps 2–8.
+- **No memory for this store** (new app or live app without `_ai/aso/<store>/`): create the store folder and its `config.json` and `playbook.json` from `assets/`. Run step 1: for a live app, use the live listing, Astro ranks and rank history for this store, and this store's Analytics data (use the screenshot checklist in `references/tools.md` if API access is unavailable), then set an ambitious target for the revenue the app needs, informed by the baseline; if the app is not live, ask for the initial goal in plain words. Record why in `goal.target_basis`. Log a `baseline`, then steps 2–8.
 - **Existing store**: read all three files from `_ai/aso/<store>/`. Find the last `shipped` line and count days since it went live. Run step 1 and log a `measure`. Then, if the user wants a new change, steps 2–8 using the playbook.
 
 No fixed calendar. Measure whenever the user runs it. A measure under 7 days after going live is **early**: new metadata is still being indexed, so report ranks but don't drop phrases on it. Shipping a new change before the last one was measured is allowed; note `"previous_unmeasured": true` in the proposal line, since results will be mixed.
@@ -121,7 +121,9 @@ First run: `search_app_store` (limit 15) on 5–9 core job phrases. Keep apps th
 - For non-English markets, research in that market's language and culture: seed with how locals phrase the need and what local competitors use, not translations of English keywords. Keep English terms only where Astro shows locals search them.
 - Treat accented and unaccented spellings (e.g. `días` and `dias`) as separate candidates until Astro shows they behave the same.
 - Add: the user's "problem" phrasing ("help me sleep"), head term + extra word ("budget app for couples"), feature words from the app's user stories, the playbook's keep/hold list. Skip dropped phrases.
-- `add_keywords` to the research app in batches of ≤ 30. Run searches one at a time; Astro rate-limits parallel calls.
+- If a major shopping or holiday season in this store's market is about 2–8 weeks away and fits the app, add one seasonal phrase as a labelled experiment, with popularity ≥ 20; otherwise skip it. Look up holidays per market.
+- Each store's own fields must cover its targets: never skip or drop a phrase because another locale field indexed by that store holds its words; other locale words are a bonus only.
+- `add_keywords` to the research app in batches of ≤ 30. Pace all calls as described in the Gate.
 
 ## Step 5 — Score and bucket
 
