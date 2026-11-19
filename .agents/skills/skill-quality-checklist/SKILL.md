@@ -44,6 +44,7 @@ Answer only the questions that matter for the reviewed artifact. Do not force ev
 ### 4. Algorithmic Thinking
 
 - Is it using code or tools for exact answers instead of asking the model to improvise deterministic work?
+- Are bundled scripts general and covered by a cheap offline test?
 - Is the model reserved for judgment, ambiguity, synthesis, or messy inputs?
 - Are authority-sensitive decisions kept with the human?
 
