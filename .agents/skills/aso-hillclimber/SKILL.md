@@ -159,6 +159,10 @@ Write `_ai/aso/<store>/runs/YYYY-MM-DD/proposal.md` from `assets/proposal-templa
 - **Title (30):** brand + strongest honest job phrase + easiest real-search phrase.
 - **Subtitle (30):** next-best phrases, readable at a glance.
 - **Keywords (100):** single words, commas, no spaces, no repeats of title/subtitle words, no plurals of existing words. Apple combines words across all three fields.
+  - Free space: remove words already in the title or subtitle (Apple counts each word once across the three fields) and words that add nothing.
+  - Fill with words that combine with title or subtitle words into phrases with popularity >= 20; the individual words need not reach 20 alone.
+  - Check how locals ask, including questions and synonyms, and check spelling or accent twins in Astro. Twins can differ in popularity; keep the one with data.
+  - If the field stays under about 90 characters, list each skipped candidate and why in the proposal.
 - **Promotional text (170):** selling points people don't search for. Not indexed; editable without review.
 - **Description:** plain use cases. Not indexed on iOS, but AI assistants read it.
 
