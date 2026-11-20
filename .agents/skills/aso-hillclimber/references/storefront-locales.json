@@ -1,0 +1,351 @@
+{
+ "source": "https://developer.apple.com/help/app-store-connect/reference/app-information/app-store-localizations",
+ "retrieved": "2026-11-20",
+ "scope": "Display languages, not evidence of search indexing",
+ "storefronts": {
+  "DZA": [
+   "Arabic",
+   "French"
+  ],
+  "ARG": [
+   "English (U.K.)"
+  ],
+  "AUS": [
+   "English (U.K.)"
+  ],
+  "AUT": [
+   "English (U.K.)"
+  ],
+  "BHR": [
+   "Arabic"
+  ],
+  "BEL": [
+   "Dutch",
+   "French"
+  ],
+  "BLZ": [
+   "Spanish (Mexico)"
+  ],
+  "BEN": [
+   "French"
+  ],
+  "BOL": [
+   "English (U.K.)"
+  ],
+  "BIH": [
+   "Croatian"
+  ],
+  "BRA": [
+   "English (U.K.)"
+  ],
+  "BFA": [
+   "French"
+  ],
+  "KHM": [
+   "French"
+  ],
+  "CMR": [
+   "English (U.K.)"
+  ],
+  "CAN": [
+   "French (Canada)"
+  ],
+  "TCD": [
+   "French"
+  ],
+  "CHL": [
+   "English (U.K.)"
+  ],
+  "CHN": [
+   "English (U.K.)"
+  ],
+  "COL": [
+   "English (U.K.)"
+  ],
+  "COD": [
+   "French"
+  ],
+  "COG": [
+   "French"
+  ],
+  "CRI": [
+   "English (U.K.)"
+  ],
+  "CIV": [
+   "English (U.K.)"
+  ],
+  "HRV": [
+   "Croatian"
+  ],
+  "CYP": [
+   "Greek",
+   "Turkish"
+  ],
+  "CZE": [
+   "Czech"
+  ],
+  "DNK": [
+   "Danish"
+  ],
+  "DOM": [
+   "English (U.K.)"
+  ],
+  "ECU": [
+   "English (U.K.)"
+  ],
+  "EGY": [
+   "Arabic",
+   "French"
+  ],
+  "SLV": [
+   "English (U.K.)"
+  ],
+  "FIN": [
+   "Finnish"
+  ],
+  "FRA": [
+   "English (U.K.)"
+  ],
+  "GAB": [
+   "English (U.K.)"
+  ],
+  "DEU": [
+   "English (U.K.)"
+  ],
+  "GRC": [
+   "Greek"
+  ],
+  "GTM": [
+   "English (U.K.)"
+  ],
+  "GNB": [
+   "French"
+  ],
+  "GUY": [
+   "French"
+  ],
+  "HND": [
+   "English (U.K.)"
+  ],
+  "HKG": [
+   "English (U.K.)"
+  ],
+  "HUN": [
+   "Hungarian"
+  ],
+  "IND": [
+   "Bangla",
+   "Gujarati",
+   "Hindi",
+   "Kannada",
+   "Malayalam",
+   "Marathi",
+   "Odia",
+   "Punjabi",
+   "Tamil",
+   "Telugu",
+   "Urdu"
+  ],
+  "IDN": [
+   "Indonesian"
+  ],
+  "IRQ": [
+   "Arabic"
+  ],
+  "ISR": [
+   "Hebrew"
+  ],
+  "ITA": [
+   "English (U.K.)"
+  ],
+  "JPN": [
+   "English (US)"
+  ],
+  "JOR": [
+   "Arabic"
+  ],
+  "KWT": [
+   "Arabic"
+  ],
+  "LAO": [
+   "French"
+  ],
+  "LBN": [
+   "Arabic",
+   "French"
+  ],
+  "LBY": [
+   "Arabic"
+  ],
+  "LUX": [
+   "French",
+   "German"
+  ],
+  "MAC": [
+   "English (U.K.)"
+  ],
+  "MDG": [
+   "French"
+  ],
+  "MYS": [
+   "Malay"
+  ],
+  "MLI": [
+   "French"
+  ],
+  "MRT": [
+   "Arabic",
+   "French"
+  ],
+  "MUS": [
+   "French"
+  ],
+  "MEX": [
+   "English (U.K.)"
+  ],
+  "MNE": [
+   "Croatian"
+  ],
+  "MAR": [
+   "Arabic",
+   "French"
+  ],
+  "NLD": [
+   "English (U.K.)"
+  ],
+  "NZL": [
+   "English (U.K.)"
+  ],
+  "NIC": [
+   "English (U.K.)"
+  ],
+  "NER": [
+   "French"
+  ],
+  "NOR": [
+   "Norwegian"
+  ],
+  "OMN": [
+   "Arabic"
+  ],
+  "PAK": [
+   "Urdu"
+  ],
+  "PAN": [
+   "English (U.K.)"
+  ],
+  "PRY": [
+   "English (U.K.)"
+  ],
+  "PER": [
+   "English (U.K.)"
+  ],
+  "POL": [
+   "Polish"
+  ],
+  "PRT": [
+   "English (U.K.)"
+  ],
+  "QAT": [
+   "Arabic"
+  ],
+  "KOR": [
+   "English (U.K.)"
+  ],
+  "ROU": [
+   "Romanian"
+  ],
+  "RUS": [
+   "English (U.K.)",
+   "Ukrainian"
+  ],
+  "RWA": [
+   "French"
+  ],
+  "SAU": [
+   "Arabic"
+  ],
+  "SEN": [
+   "French"
+  ],
+  "SRB": [
+   "Croatian"
+  ],
+  "SYC": [
+   "French"
+  ],
+  "SGP": [
+   "Chinese (Simplified)"
+  ],
+  "SVK": [
+   "Slovak"
+  ],
+  "SVN": [
+   "Slovenian"
+  ],
+  "ESP": [
+   "Catalan",
+   "English (U.K.)"
+  ],
+  "SUR": [
+   "Dutch"
+  ],
+  "SWE": [
+   "English (U.K.)"
+  ],
+  "CHE": [
+   "English (U.K.)",
+   "French",
+   "Italian"
+  ],
+  "TWN": [
+   "English (U.K.)"
+  ],
+  "THA": [
+   "Thai"
+  ],
+  "TTO": [
+   "French"
+  ],
+  "TUN": [
+   "Arabic",
+   "French"
+  ],
+  "TUR": [
+   "Turkish"
+  ],
+  "UKR": [
+   "Russian",
+   "Ukrainian"
+  ],
+  "ARE": [
+   "Arabic"
+  ],
+  "USA": [
+   "Arabic",
+   "Chinese (Simplified)",
+   "Chinese (Traditional)",
+   "French",
+   "Korean",
+   "Portuguese (Brazil)",
+   "Russian",
+   "Spanish (Mexico)",
+   "Vietnamese"
+  ],
+  "URY": [
+   "Spanish (Mexico)"
+  ],
+  "VUT": [
+   "French"
+  ],
+  "VEN": [
+   "English (U.K.)"
+  ],
+  "VNM": [
+   "Vietnamese"
+  ],
+  "YEM": [
+   "Arabic"
+  ]
+ }
+}
