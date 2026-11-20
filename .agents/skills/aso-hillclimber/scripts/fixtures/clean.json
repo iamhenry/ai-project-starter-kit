@@ -1,0 +1,1 @@
+{"listings":{"a":{"title":"Alpha","subtitle":"Quiet","keywords":"calm"},"b":{"title":"Beta","subtitle":"Gentle","keywords":"rest"},"c":{"title":"Gamma","subtitle":"Soft","keywords":"focus"}},"storefronts":{"X":["a","b"],"Y":["c"]},"targets":{"X":["quiet calm"]}}

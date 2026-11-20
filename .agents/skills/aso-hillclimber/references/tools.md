@@ -1,5 +1,19 @@
 # Tools reference
 
+## Metadata checker
+
+Use `python3 scripts/check_metadata.py --listings metadata.json [--popularity popularity.json]`.
+Example input (locale IDs and storefronts are supplied by the app):
+
+```json
+{"listings":{"en-US":{"title":"Northstar","subtitle":"Quiet moments","keywords":"focus,calm"}},
+ "storefronts":{"US":["en-US"]},
+ "app_names":["Northstar"],"company_names":[],"categories":[],"missing_features":[],
+ "targets":{"US":["quiet moments"]}}
+```
+
+The optional popularity file is `{"US":{"quiet moments":25}}`; missing or below-20 target scores fail. Names and missing-feature terms are checked in keywords. Populate `storefronts` with the listings actually read by each storefront; a missing mapping is not inferred. `storefront-locales.json` records Apple's display-language table, not proof of search indexing. Plural warnings need human judgment. Old single-listing flags remain supported.
+
 ## asc CLI (App Store Connect)
 
 ```bash

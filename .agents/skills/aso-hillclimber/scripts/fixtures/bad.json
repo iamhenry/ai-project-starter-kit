@@ -1,0 +1,1 @@
+{"listings":{"a":{"title":"Alpha","subtitle":"Quiet","keywords":"calm,app"},"b":{"title":"Beta","subtitle":"Gentle","keywords":"calm"},"c":{"title":"This title is much too long for the limit","subtitle":"Soft","keywords":"rest"}},"storefronts":{"X":["a","b"],"Y":["c"]}}

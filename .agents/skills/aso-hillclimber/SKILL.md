@@ -6,10 +6,10 @@ compatibility: Requires the Astro MCP server and an authenticated asc CLI (App S
 
 # ASO Hillclimber
 
-One run = one app, one storefront (start with `us`), one language. Every store has its own memory and log, so the next run starts where that store's last run stopped.
+One run = one app and its chosen storefronts. A one-market app needs only its one listing. Every store has its own memory and log, so the next run starts where that store's last run stopped.
 
 Research each market in its own store; never copy keywords between markets, even US, UK, Canada, and Australia.
-One country can index several languages; words from another locale are a bonus, not coverage.
+For multiple listings, establish which listings each target storefront reads before making proposals; Apple's display-language table alone does not establish search indexing.
 
 ## Why this works (read once)
 
@@ -122,7 +122,7 @@ First run: `search_app_store` (limit 15) on 5–9 core job phrases. Keep apps th
 - Treat accented and unaccented spellings (e.g. `días` and `dias`) as separate candidates until Astro shows they behave the same.
 - Add: the user's "problem" phrasing ("help me sleep"), head term + extra word ("budget app for couples"), feature words from the app's user stories, the playbook's keep/hold list. Skip dropped phrases.
 - If a major shopping or holiday season in this store's market is about 2–8 weeks away and fits the app, add one seasonal phrase as a labelled experiment, with popularity ≥ 20; otherwise skip it. Look up holidays per market.
-- Each store's own fields must cover its targets: never skip or drop a phrase because another locale field indexed by that store holds its words; other locale words are a bonus only.
+- Account for words already covered by listings the storefront reads; do not assume coverage from display-language support alone.
 - `add_keywords` to the research app in batches of ≤ 30. Pace all calls as described in the Gate.
 
 ## Step 5 — Score and bucket
@@ -167,6 +167,12 @@ Write `_ai/aso/<store>/runs/YYYY-MM-DD/proposal.md` from `assets/proposal-templa
 - **Description:** plain use cases. Not indexed on iOS, but AI assistants read it.
 
 Validate lengths and repeats: `python3 scripts/check_metadata.py --title ... --subtitle ... --keywords ... --promo ...`.
+
+For multiple listings, work in order: primary listing first, then hub listings read by other target storefronts, then local listings. Remove words already covered by earlier listings each storefront reads. Check all affected storefronts together with `--listings`; see `references/tools.md` for the input. If the app has one market, run its one listing only.
+
+### Script checks and judgment
+
+The script checks supplied listing lengths, repeated words, supplied names, categories and missing-feature terms, and target popularity when supplied. It warns about possible plurals. Provide missing-feature terms from this app's own feature files, not a generic list. The model must judge intent, native wording, reach, rank realism and plural warnings; a clean check does not prove those claims. Apple's [product page guidance](https://developer.apple.com/app-store/product-page/) advises against duplicate words, category names, “app” and plurals in keywords.
 
 Tag every targeted phrase **Proposed**. Append a `proposal` line to `log.jsonl` with the metadata and each phrase's predicted tier. Ask the human to approve.
 
