@@ -118,7 +118,7 @@ for (const run of runs) {
   const answers = await parallel(entries.map(([group, stages]) => async () => {
     try {
       return { answer: await agent(judgePrompt(run, group, stages), {
-        provider: "opencode", model: "openai/gpt-6-luna", reasoningLevel: "xhigh", label: `${run.thread} · ${group}`, phase: "Judge", schema: groupSchema(stages),
+        provider: "opencode", model: "openai/gpt-6.1-terra", reasoningLevel: "xhigh", label: `${run.thread} · ${group}`, phase: "Judge", schema: groupSchema(stages),
       }) };
     } catch (error) {
       return { error: String(error?.message ?? error) };
@@ -172,7 +172,7 @@ const posted = await agent(`Create exactly one new task card on the KIT board fo
 
 Checked report:
 ${report}`,
-  { provider: "opencode", model: "openai/gpt-6-luna", reasoningLevel: "medium", label: "Post KIT report", phase: "Post",
+  { provider: "opencode", model: "openai/gpt-6.1-terra", reasoningLevel: "medium", label: "Post KIT report", phase: "Post",
     schema: { type: "object", required: ["taskKey"], additionalProperties: false, properties: { taskKey: { type: "string" } } },
   },
 );
